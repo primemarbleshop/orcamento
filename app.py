@@ -1,13 +1,26 @@
 # 📌 Imports de Bibliotecas Externas
-from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, session
+from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from pytz import timezone
+import os
 
 # 📌 Imports de Modelos do Banco de Dados
 from models import db, Orcamento, OrcamentoSalvo, Usuario  # Modelos do SQLAlchemy
+
+# 📌 Importa Configuração Externa
+from config import Config
+
+# 📌 Inicializa o Flask
+app = Flask(__name__)
+app.config.from_object(Config)  # Aplica configurações do config.py
+
+# 📌 Inicializa Banco de Dados e Migrações
+db.init_app(app)
+migrate = Migrate(app, db)
+
 
 def atualizar_valor_orcamento_salvo(orcamento_salvo_id):
     """Recalcula o valor total de um orçamento salvo."""
@@ -27,29 +40,16 @@ def atualizar_valor_orcamento_salvo(orcamento_salvo_id):
             # Atualiza o valor total no banco de dados
             orcamento_salvo.valor_total = valor_total
             db.session.commit()
-        
 
-
-app = Flask(__name__)
 
 @app.route("/upload_db", methods=["POST"])
 def upload_db():
-    file = request.files['file']
-    if file.filename == 'orcamentos.db':
-        file.save("/data/orcamentos.db")
-        return {"mensagem": "Banco de dados enviado com sucesso!"}, 200
-    return {"erro": "Arquivo inválido!"}, 400
-
-
-# Configuração correta do SQLite no disco do Render
-DATABASE_PATH = "/data/orcamentos.db"
-app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DATABASE_PATH}"
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config['SECRET_KEY'] = '*Henrycm051094'
-
-# Inicializando o SQLAlchemy e Flask-Migrate
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)
+    """Endpoint para upload do banco de dados SQLite para o volume persistente no Render."""
+    file = request.files.get('file')
+    if file and file.filename == 'orcamentos.db':
+        file.save(Config.DATABASE_PATH)
+        return jsonify({"mensagem": "Banco de dados enviado com sucesso!"}), 200
+    return jsonify({"erro": "Arquivo inválido!"}), 400
 
 br_tz = timezone('America/Sao_Paulo')
 
