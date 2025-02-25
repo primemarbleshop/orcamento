@@ -1,13 +1,10 @@
-from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, session
+# 📌 Imports de Bibliotecas Externas
+from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from pytz import timezone
-import os
-
-# 📌 Imports de Modelos do Banco de Dados
-from models import db, Orcamento, OrcamentoSalvo, Usuario  # Modelos do SQLAlchemy
 
 # 📌 Importa Configuração Externa
 from config import Config
@@ -16,9 +13,10 @@ from config import Config
 app = Flask(__name__)
 app.config.from_object(Config)  # Aplica configurações do config.py
 
-# 📌 Inicializa Banco de Dados e Migrações
-db.init_app(app)
+# 📌 Inicializa o Banco de Dados
+db = SQLAlchemy(app)
 migrate = Migrate(app, db)
+
 
 
 def atualizar_valor_orcamento_salvo(orcamento_salvo_id):
