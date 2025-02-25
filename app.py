@@ -1,10 +1,12 @@
 # 📌 Imports de Bibliotecas Externas
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from pytz import timezone
+
+from models import db, Orcamento, OrcamentoSalvo, Usuario  # Modelos do SQLAlchemy
 
 # 📌 Importa Configuração Externa
 from config import Config
