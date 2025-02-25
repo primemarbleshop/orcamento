@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalhes dos Orçamentos</title>
+   <style>
+
+    /* Reduzir tamanho geral das fontes para 80% do original */
+    body {
+        font-size: 15px; /* Antes era 16px, agora reduzido 20% */
+    }
+
+    /* Reduzindo tamanho das tabelas */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 15px; /* Redução de 20% */
+    }
+
+    th, td {
+        border: 1px solid black;
+        padding: 3px; /* Redução leve do espaçamento */
+        text-align: left;
+    }
+
+    th {
+        background-color: #f2f2f2;
+        font-size: 14px; /* Mantendo maior que o texto normal */
+    }
+
+    /* Reduzindo cabeçalhos do cliente */
+    .cliente-header {
+        font-size: 15px; /* Antes era 20px, agora 16px */
+        font-weight: bold;
+        margin-top: 14px;
+        margin-bottom: 7px;
+    }
+
+    /* Reduzindo cabeçalhos de produtos */
+    .produto-header {
+        font-size: 15px; /* Antes era 18px, agora 15px */
+        font-weight: bold;
+        margin-top: 12px;
+        margin-bottom: 6px;
+    }
+
+    /* Reduzir tamanho do botão de impressão */
+    .print-button {
+        font-size: 14px; /* Antes era 16px */
+        padding: 8px;
+    }
+
+  
+
+    /* Reduzindo informações do cliente */
+    .cliente-info {
+        font-size: 13px;
+        color: #555;
+        font-weight: normal;
+    }
+
+
+.header-container {
+    display: flex;
+    justify-content: flex-start; /* Mantém o título alinhado à esquerda */
+    align-items: center; /* Alinha verticalmente */
+    position: relative; /* Define um contexto para posicionar a logo */
+    width: 100%; /* Ocupa toda a largura disponível */
+}
+
+.logo-empresa {
+    position: absolute;
+    right: 0; /* Move a logo totalmente para o canto direito */
+    top: 170%; /* Centraliza verticalmente em relação ao título */
+    transform: translateY(-50%); /* Ajuste fino para centralizar exatamente */
+    height: 150px; /* Ajuste conforme necessário */
+    width: auto; /* Mantém a proporção */
+}
+.total-box {
+    display: inline-block; /* Faz a largura se ajustar ao conteúdo */
+    background-color: #f8f9fa;
+    border: 2px solid #000;
+    padding: 8px 12px;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 5px;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    margin-bottom: 10px; /* Espaço antes da tabela */
+    float: right; /* Move a caixa para o lado direito */
+} 
+@media print {
+@page {
+        size: A4 landscape; /* Garante a orientação paisagem */
+        margin: 5mm; /* Define margens reduzidas */
+    }
+
+    /* Ajusta a logo para impressão */
+    .logo-empresa {
+        position: absolute;
+        top: 5mm; /* Ajusta a posição superior */
+        right: 10mm; /* Ajusta a posição lateral */
+        height: 150px !important; /* Reduz o tamanho para caber melhor */
+        width: auto !important;
+    }
+
+    /* Remove cabeçalho e rodapé do navegador */
+    body {
+        margin: 0;
+        padding: 0;
+    }
+
+ .produto-header {
+        page-break-after: avoid; /* Impede que o título do material fique separado da tabela */
+        font-weight: bold;
+        font-size: 13px;
+        margin-top: 5mm;
+    }
+   
+     .total-box {
+        font-size: 12px !important;
+        padding: 4px !important;
+    }
+
+    /* Oculta botões e links na impressão */
+    .print-button, .btn-voltar {
+        display: none !important;
+    }
+}
+       
+
+
+.header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0; /* Remove espaço extra */
+}
+
+h1, h2, h3, p {
+    margin: 0; /* Remove qualquer margem extra */
+    padding: 0; /* Remove espaçamentos internos */
+    line-height: 1.2; /* Ajusta a altura da linha para reduzir espaços verticais */
+}
+
+.empresa-header, .cliente-header {
+    margin-bottom: 5px; /* Mantém um pequeno espaçamento */
+}
+
+.empresa-header h1, .cliente-header h2 {
+    font-size: 18px; /* Define o mesmo tamanho para os títulos */
+    margin-bottom: 3px; /* Reduz o espaço abaixo do título */
+    font-weight: bold;
+}
+
+p strong {
+    font-weight: bold; /* Mantém o rótulo em negrito */
+}
+
+.info-normal {
+    font-weight: normal; /* Remove o negrito dos dados do cliente */
+}
+
+.detalhes-orcamento {
+    margin-top: 5px; /* Reduz espaço antes do título "Detalhes do Orçamento" */
+}
+</style>
+</head>
+<body>
+<div class="empresa-header">
+    <h1>Prime Marble Shop</h1>
+    <p><strong>Endereço:</strong> Estrada do Engenho, 1800 - Bangu</p>
+    <p><strong>CNPJ:</strong> 39.903.780/0001-15</p>
+
+</div>
+</div>
+<div class="header-container">
+       <img src="{{ url_for('static', filename='logo.jpg') }}" alt="Logo da Empresa" class="logo-empresa">
+</div>
+    <div class="cliente-header">
+    <h2>Cliente: {{ cliente_nome }}</h2>
+    <p><strong>Endereço:</strong> <span class="info-normal">{{ orcamentos[0].cliente.endereco }}</span></p>
+    <p><strong>Telefone:</strong> <span class="info-normal">{{ orcamentos[0].cliente.telefone }}</span></p>
+</div>
+
+
+<h1>Detalhes do Orçamento</h1>
+<p class="orcamento-info">
+    <strong>Orçamento:</strong> {{ codigo_orcamento }}<br>
+    <strong>Data:</strong> {{ data_salvo.strftime('%d/%m/%Y') }}
+</p>
+<div class="total-box">
+    Valor Total: <span id="valorTotal">{{ valor_total_final }}</span>
+    </div>
+
+
+<br>
+
+{% set tipos_produtos = {} %}
+
+{% for orcamento in orcamentos %}
+    {% if orcamento.tipo_produto not in tipos_produtos %}
+        {% set tipos_produtos = tipos_produtos.update({orcamento.tipo_produto: []}) or tipos_produtos %}
+    {% endif %}
+    {% set _ = tipos_produtos[orcamento.tipo_produto].append(orcamento) %}
+{% endfor %}
+
+{% for tipo, produtos in tipos_produtos.items() %}
+    <div class="produto-header"> {{ tipo }}</div>
+    <table>
+        <thead>
+            <tr>
+                <th>Material</th>
+                <th>Qtd</th>
+                <th>Comp.</th>
+                <th>Larg.</th>
+                {% if tipo in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
+                <th>Saia</th>
+                {% endif %}
+                {% if tipo in ["Bancada", "Lavatorio"] %}
+                <th>Fronte</th>
+                {% endif %}
+                {% if tipo in ["Bancada", "Lavatorio"] %}
+                <th>Cuba</th>
+                {% endif %}
+                {% if tipo == "Bancada" %}
+                <th>Cooktop</th>
+                {% endif %}
+                {% if tipo in ["Nicho", "Nicho Sem Fundo"] %}
+                <th>Profundidade</th>
+                <th>Fundo</th>
+                <th>Alisar</th>
+                <th>Largura do Alisar</th>
+                {% endif %}
+                <th>Outros Custos</th>
+                <th>Valor Total</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for produto in produtos %}
+            <tr>
+                <td>{{ produto.material.nome }}</td>
+                <td>{{ produto.quantidade }}</td>
+                <td>{{ produto.comprimento }} cm</td>
+                <td>{{ produto.largura }} cm</td>
+                {% if tipo in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
+                <td>{{ produto.comprimento_saia }} x {{ produto.largura_saia }} cm</td>
+                {% endif %}
+                {% if tipo in ["Bancada", "Lavatorio"] %}
+                <td>{{ produto.comprimento_fronte }} x {{ produto.largura_fronte }} cm</td>
+                {% endif %}
+                {% if tipo in ["Bancada", "Lavatorio"] %}
+                <td>{{ produto.tipo_cuba }} ({{ produto.quantidade_cubas }})</td>
+                {% endif %}
+                {% if tipo == "Bancada" %}
+                <td>{% if produto.tem_cooktop == "Sim" %}Sim{% else %}-{% endif %}</td>
+                {% endif %}
+                {% if tipo in ["Nicho", "Nicho Sem Fundo"] %}
+                <td>{{ produto.profundidade_nicho }} cm</td>
+                <td>{% if produto.tem_fundo == "Sim" %}Sim{% else %}Não{% endif %}</td>
+                <td>{% if produto.tem_alisar == "Sim" %}Sim{% else %}Não{% endif %}</td>
+                <td>{% if produto.tem_alisar == "Sim" %}{{ produto.largura_alisar }} cm{% else %}-{% endif %}</td>
+                {% endif %}
+                <td>R$ {{ "%.2f"|format(produto.outros_custos) }}</td>
+                <td class="valor-tabela">R$ {{ "%.2f"|format(produto.valor_total) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endfor %}
+
+<br>
+
+<!-- Botão de impressão -->
+<button class="print-button" onclick="window.print()">Imprimir</button>
+
+<br><br>
+<h2><a href="/orcamentos_salvos" class="btn-voltar">Voltar para Orçamentos Salvos</a></h2>
+</br>
+</br>
+</br>
+</body>
+</html>

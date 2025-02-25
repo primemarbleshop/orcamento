@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Orçamentos Salvos</title>
+    <style>
+        table { width: 100%; border-collapse: collapse; }
+        th, td { border: 1px solid black; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+
+
+
+    <h1>Orçamentos Salvos</h1>
+
+<div class="filtros-container">
+    <label for="filtro_codigo">Código:</label>
+    <input type="text" id="filtro_codigo" placeholder="Digite o código..." onkeyup="filtrarCodigo()">
+
+    {% if session.get('admin') %}
+    <label for="filtro_criado_por">Criado Por:</label>
+    <select id="filtro_criado_por" onchange="filtrarCriadoPor()">
+        <option value="Todos">Todos</option>
+        {% for usuario in usuarios %}
+            <option value="{{ usuario.nome }}">{{ usuario.nome }}</option>
+        {% endfor %}
+    </select>
+    {% endif %}
+
+    <!-- 🔹 Cliente agora aparece para todos os usuários -->
+    <label for="filtro_cliente">Cliente:</label>
+    <select id="filtro_cliente" onchange="filtrarCliente()">
+        <option value="Todos">Todos</option>
+        {% for cliente in clientes %}
+            {% if session.get('admin') or cliente.dono == session.get('user_cpf') %}
+                <option value="{{ cliente.nome }}">{{ cliente.nome }}</option>
+            {% endif %}
+        {% endfor %}
+    </select>
+  <label for="filtro_status">Status:</label>
+<select id="filtro_status" onchange="filtrarTabela()">
+    <option value="Todos">Todos</option>
+    <option value="Em Espera">Em Espera</option>
+    <option value="Aprovado">Aprovado</option>
+    <option value="Declinado">Declinado</option>
+</select>
+
+<label for="filtro_tipo_cliente">Tipo Cliente:</label>
+<select id="filtro_tipo_cliente" onchange="filtrarTabela()">
+    <option value="Todos">Todos</option>
+    <option value="Cliente de Porta">Cliente de Porta</option>
+    <option value="Carteira de Cliente">Carteira de Cliente</option>
+    <option value="Trafego Pago Google">Trafego Pago Google</option>
+    <option value="Trafego Pago Meta">Trafego Pago Meta</option>
+    <option value="Indicação Arquiteto">Indicação Arquiteto</option>
+    <option value="Indicação Construtor">Indicação Construtor</option>
+    <option value="Indicação Cliente">Indicação Cliente</option>
+    <option value="Indicação Marcenaria">Indicação Marcenaria</option>
+</select>
+
+</div>
+
+</br>
+
+
+    <table>
+    <thead>
+        <tr>
+            <th>Código</th>
+            {% if session.get('admin') %} <!-- Somente para administradores -->
+                <th>Criado Por</th>
+            {% endif %}
+            <th>Cliente</th>
+            <th>Data</th>
+            <th>Valor Total</th>
+            <th>Status</th>
+            <th>Tipo Cliente</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody id="orcamento_table">
+    {% for orcamento in orcamentos %}
+    <tr 
+        data-codigo="{{ orcamento.codigo | lower }}"
+        data-cliente="{{ orcamento.cliente_nome }}"
+    >
+        <td>{{ orcamento.codigo }}</td>
+        {% if session.get('admin') %}
+            <td>{{ orcamento.criado_por }}</td>
+        {% endif %}
+        <td>{{ orcamento.cliente_nome }}</td>
+        <td>{{ orcamento.data_salvo.strftime('%d/%m/%Y') }}</td>
+        <td>R$ {{ "%.2f"|format(orcamento.valor_total) }}</td>
+    <td>
+                <select class="status-select">
+                    <option value="Em Espera" {% if orcamento.status == "Em Espera" %}selected{% endif %}>Em Espera</option>
+                    <option value="Aprovado" {% if orcamento.status == "Aprovado" %}selected{% endif %}>Aprovado</option>
+                    <option value="Declinado" {% if orcamento.status == "Declinado" %}selected{% endif %}>Declinado</option>
+                </select>
+            </td>
+
+            <!-- 🔹 Tipo Cliente como Lista Suspensa -->
+            <td>
+                <select class="tipo-cliente-select">
+                    <option value="Selecionar" {% if not orcamento.tipo_cliente or orcamento.tipo_cliente == "Selecionar" %}selected{% endif %}>Selecionar</option>
+                    <option value="Cliente de Porta" {% if orcamento.tipo_cliente == "Cliente de Porta" %}selected{% endif %}>Cliente de Porta</option>
+                    <option value="Carteira de Cliente" {% if orcamento.tipo_cliente == "Carteira de Cliente" %}selected{% endif %}>Carteira de Cliente</option>
+                    <option value="Trafego Pago Google" {% if orcamento.tipo_cliente == "Trafego Pago Google" %}selected{% endif %}>Trafego Pago Google</option>
+                    <option value="Trafego Pago Meta" {% if orcamento.tipo_cliente == "Trafego Pago Meta" %}selected{% endif %}>Trafego Pago Meta</option>
+                    <option value="Indicação Arquiteto" {% if orcamento.tipo_cliente == "Indicação Arquiteto" %}selected{% endif %}>Indicação Arquiteto</option>
+                    <option value="Indicação Construtor" {% if orcamento.tipo_cliente == "Indicação Construtor" %}selected{% endif %}>Indicação Construtor</option>
+                    <option value="Indicação Cliente" {% if orcamento.tipo_cliente == "Indicação Cliente" %}selected{% endif %}>Indicação Cliente</option>
+                    <option value="Indicação Marcenaria" {% if orcamento.tipo_cliente == "Indicação Marcenaria" %}selected{% endif %}>Indicação Marcenaria</option>
+                </select>
+            </td>
+
+        <td>
+
+            <button class="btn-visualizar" data-url="{{ url_for('detalhes_orcamento_salvo', codigo=orcamento.codigo) }}">Visualizar</button>
+	    <button class="btn-salvar" data-id="{{ orcamento.id }}">Salvar</button>
+            <button class="btn-deletar" data-id="{{ orcamento.id }}">Deletar</button>
+        </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+    </table>
+
+</br>
+</br>
+
+
+    <a href="/">Voltar para a Página Inicial</a>
+</br>
+</br>
+</br>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+
+
+
+document.addEventListener("DOMContentLoaded", function() {
+
+    // 🔹 Ação para o botão "Visualizar"
+    document.querySelectorAll(".btn-visualizar").forEach(button => {
+        button.addEventListener("click", function() {
+            let url = this.getAttribute("data-url");
+            if (url) {
+                window.location.href = url;
+            } else {
+                Swal.fire("Erro!", "URL inválida para visualização.", "error");
+            }
+        });
+    });
+
+    // 🔹 Ação para o botão "Deletar" com SweetAlert2
+    document.querySelectorAll(".btn-deletar").forEach(button => {
+        button.addEventListener("click", function() {
+            let orcamentoId = this.getAttribute("data-id");
+
+            if (!orcamentoId) {
+                Swal.fire("Erro!", "ID do orçamento não encontrado.", "error");
+                return;
+            }
+
+            Swal.fire({
+                title: "Tem certeza?",
+                text: "Essa ação não pode ser desfeita!",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#3085d6",
+                confirmButtonText: "Sim, deletar!",
+                cancelButtonText: "Cancelar"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/deletar_orcamento_salvo/${orcamentoId}`, {
+                        method: "POST"
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                title: "Deletado!",
+                                text: "O orçamento foi excluído com sucesso.",
+                                icon: "success",
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                            setTimeout(() => location.reload(), 2000);
+                        } else {
+                            Swal.fire("Erro!", "Não foi possível excluir o orçamento.", "error");
+                        }
+                    })
+                    .catch(() => {
+                        Swal.fire("Erro!", "Erro na comunicação com o servidor.", "error");
+                    });
+                }
+            });
+        });
+    });
+
+});
+
+function filtrarCodigo() {
+    const codigoBusca = document.getElementById("filtro_codigo").value.trim().toLowerCase();
+    const linhasTabela = document.querySelectorAll("#orcamento_table tr");
+
+    linhasTabela.forEach(linha => {
+        const codigo = linha.querySelector("td:nth-child(1)")?.textContent.trim().toLowerCase() || "";
+        linha.style.display = codigo.includes(codigoBusca) ? "" : "none";
+    });
+}
+function filtrarCriadoPor() {
+    const criadoPorSelecionado = document.getElementById("filtro_criado_por").value;
+    const linhasTabela = document.querySelectorAll("#orcamento_table tr");
+
+    linhasTabela.forEach(linha => {
+        const criadoPor = linha.querySelector("td:nth-child(2)")?.textContent.trim() || "";
+        linha.style.display = (criadoPorSelecionado === "Todos" || criadoPor === criadoPorSelecionado) ? "" : "none";
+    });
+}
+
+document.addEventListener("DOMContentLoaded", function () {
+
+    function filtrarCliente() {
+        const clienteSelecionado = document.getElementById("filtro_cliente").value;
+        const linhasTabela = document.querySelectorAll("#orcamento_table tr");
+
+        linhasTabela.forEach(linha => {
+            const cliente = linha.getAttribute("data-cliente").trim();
+
+            let exibir = true;
+
+            if (clienteSelecionado !== "Todos" && cliente !== clienteSelecionado) {
+                exibir = false;
+            }
+
+            linha.style.display = exibir ? "" : "none";
+        });
+    }
+
+    document.getElementById("filtro_cliente").addEventListener("change", filtrarCliente);
+});
+
+
+function filtrarTabela() {
+    const statusSelecionado = document.getElementById("filtro_status").value;
+    const tipoClienteSelecionado = document.getElementById("filtro_tipo_cliente").value;
+    const linhasTabela = document.querySelectorAll("#orcamento_table tr");
+
+    linhasTabela.forEach(linha => {
+        const status = linha.querySelector(".status-select").value.trim(); // Pega o valor do select
+        const tipoCliente = linha.querySelector(".tipo-cliente-select").value.trim(); // Pega o valor do select
+
+        let exibir = true;
+
+        if (statusSelecionado !== "Todos" && status !== statusSelecionado) {
+            exibir = false;
+        }
+        if (tipoClienteSelecionado !== "Todos" && tipoCliente !== tipoClienteSelecionado) {
+            exibir = false;
+        }
+
+        linha.style.display = exibir ? "" : "none";
+    });
+}
+
+// Eventos para filtrar ao mudar os selects
+document.getElementById("filtro_status").addEventListener("change", filtrarTabela);
+document.getElementById("filtro_tipo_cliente").addEventListener("change", filtrarTabela);
+
+document.addEventListener("DOMContentLoaded", function() {
+    document.querySelectorAll(".btn-salvar").forEach(button => {
+        button.addEventListener("click", function() {
+            let orcamentoId = this.getAttribute("data-id");
+            let linha = this.closest("tr"); // Pegamos a linha correta
+            let status = linha.querySelector(".status-select").value; // Pegando o valor selecionado
+            let tipoCliente = linha.querySelector(".tipo-cliente-select").value; // Pegando o valor selecionado
+
+            fetch("/atualizar_status_tipo_cliente", {  // Nome da nova rota
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    id: orcamentoId,
+                    status: status,
+                    tipo_cliente: tipoCliente
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire("Sucesso!", "Orçamento atualizado com sucesso!", "success");
+                } else {
+                    Swal.fire("Erro!", data.error, "error");
+                }
+            })
+            .catch(() => {
+                Swal.fire("Erro!", "Erro na comunicação com o servidor.", "error");
+            });
+        });
+    });
+});
+
+
+
+
+</script>
+
+</body>
+</html>

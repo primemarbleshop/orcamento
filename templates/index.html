@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Orçamentos</title>
+</head>
+<body>
+<div class="user-info">
+    <p>Logado como: <strong>{{ session['user_cpf'] }}</strong></p>
+    <a href="{{ url_for('alterar_senha') }}" class="btn-alterar-senha">Alterar Senha</a>
+    <a href="{{ url_for('logout') }}" class="btn-logout">Logout</a>
+</div>
+
+{% if session['admin'] %}
+    <a href="{{ url_for('criar_usuario') }}" class="btn-acao">Cadastrar Novo Usuário</a>
+{% endif %}{% if session['admin'] %}
+    
+    <a href="{{ url_for('gerenciar_usuarios') }}" class="btn-acao">Gerenciar Usuários</a>
+{% endif %} 
+
+
+</br>
+</br>
+</br>
+</br>
+</br>
+    <h1 class="titulo-centralizado">Bem-vindo a Prime Marble Shop!</h1>
+	
+
+<nav class="button-container">
+    </br>
+    </br>
+    <div class="button-container">
+        {% if session['admin'] %}
+            <a href="{{ url_for('listar_orcamentos') }}" class="btn-acao">Lista de Orçamentos</a>
+            </br>
+	    <a href="{{ url_for('listar_orcamentos_salvos') }}" class="btn-acao">Ver Orçamentos Salvos</a>
+	    </br>
+            <a href="{{ url_for('clientes') }}" class="btn-acao">Lista de Clientes</a>
+            </br>
+            <a href="{{ url_for('materiais') }}" class="btn-acao">Cadastro de Materiais</a> <!-- Agora visível apenas para administradores -->
+        {% else %}
+            <a href="{{ url_for('listar_orcamentos') }}" class="btn-acao">Gerenciar Orçamentos</a>
+            </br>
+	    <a href="{{ url_for('listar_orcamentos_salvos') }}" class="btn-acao">Ver Orçamentos Salvos</a>
+	    </br>
+            <a href="{{ url_for('clientes') }}" class="btn-acao">Cadastro de Clientes</a>
+	    
+        
+{% endif %}
+    </div>
+
+
+
+
+
+
+<style>
+
+body {
+    position: relative;
+    background-color: #ffffff; /* Fundo branco para garantir contraste */
+}
+
+body::before {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: url("{{ url_for('static', filename='logo.jpg') }}");
+    background-size: contain; /* Mantém a proporção da imagem */
+    background-position: center; /* Centraliza a imagem no fundo */
+    background-repeat: no-repeat; /* Evita repetição */
+    background-attachment: fixed; /* Mantém a imagem fixa ao rolar a página */
+    opacity: 0.1; /* Ajusta a transparência da marca d'água */
+    z-index: -1; /* Mantém a imagem no fundo sem interferir no conteúdo */
+}
+
+    
+
+    /* Centralizar o título */
+    .titulo-centralizado {
+        text-align: center;
+        margin-top: 20px;
+    }
+
+    /* Centralizar os botões */
+    .button-container {
+        display: flex;
+        flex-direction: column; /* Deixar os botões em coluna */
+        align-items: center; /* Alinhar os botões no centro */
+        justify-content: center; /* Centralizar verticalmente */
+        margin-top: 20px;
+    }
+
+
+    /* Estilo dos botões */
+    .btn-acao {
+        display: inline-block;
+        padding: 10px 20px;
+        font-size: 16px;
+        font-weight: bold;
+        color: black; /* Texto preto */
+        background-color: #d6d6d6; /* Fundo cinza claro */
+        border: 2px solid black; /* Borda preta */
+        cursor: pointer;
+        border-radius: 5px;
+        text-decoration: none;
+        text-align: center;
+        margin: 10px;
+        transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
+    }
+
+    /* Efeito hover: escurecer o botão e mudar a cor do texto */
+    .btn-acao:hover {
+        background-color: #bfbfbf; /* Cinza mais escuro */
+        color: white; /* Texto branco ao passar o mouse */
+    }
+.user-info {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background-color: rgba(0, 0, 0, 0.1);
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: bold;
+    text-align: right;
+}
+
+.user-info p {
+    margin: 0;
+    color: #333;
+}
+
+.btn-logout {
+    display: inline-block;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+    background-color: #d9534f; /* Cor vermelha para destacar o logout */
+    border-radius: 5px;
+    text-decoration: none;
+    border: 1px solid #b52b27;
+    transition: background-color 0.3s ease-in-out;
+}
+
+.btn-logout:hover {
+    background-color: #c9302c;
+}
+
+.btn-alterar-senha,
+.btn-logout {
+    display: inline-block;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: bold;
+    border-radius: 5px;
+    text-decoration: none;
+    border: 1px solid black;
+    transition: background-color 0.3s ease-in-out;
+    margin-left: 5px;
+.btn-alterar-senha {
+    background-color: #0275d8; /* Azul */
+    color: white;
+}
+
+.btn-alterar-senha:hover {
+    background-color: #025aa5;
+}
+</style>
+
+</body>
+</html>

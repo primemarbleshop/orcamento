@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editar Cliente</title>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+</head>
+<body>
+    <h1>Editar Cliente</h1>
+    <form action="{{ url_for('editar_cliente', id=cliente.id) }}" method="POST">
+        <label for="nome">Nome:</label>
+        <input type="text" id="nome" name="nome" value="{{ cliente.nome }}" required><br>
+
+        <label for="endereco">Endereço:</label>
+        <input type="text" id="endereco" name="endereco" value="{{ cliente.endereco }}"><br>
+
+        <label for="telefone">Telefone:</label>
+        <input type="text" id="telefone" name="telefone" value="{{ cliente.telefone }}"><br>
+
+        <label for="documento">CNPJ/CPF:</label>
+        <input type="text" id="documento" name="documento" value="{{ cliente.documento }}" required><br>
+
+        <button type="submit">Salvar Alterações</button>
+    </form>
+</br>
+<a href="/clientes" class="btn btn-secondary">Voltar para Cadastro de Clientes</a>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    Swal.fire({
+                        title: "{% if category == 'error' %}Erro{% else %}Sucesso{% endif %}",
+                        text: "{{ message }}",
+                        icon: "{% if category == 'error' %}error{% else %}success{% endif %}",
+                        confirmButtonText: "OK"
+                    });
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    });
+</script>
+
+</body>
+</html>

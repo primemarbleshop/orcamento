@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Clientes</title>
+
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+    {% if session['user_cpf'] != "39903780000115" %}
+    <h1>Cadastrar Novo Cliente</h1>
+    <form method="POST">
+        <label for="nome">Nome:</label>
+        <input type="text" id="nome" name="nome" required><br>
+
+        <label for="endereco">Endereço:</label>
+        <input type="text" id="endereco" name="endereco"><br>
+
+        <label for="telefone">Telefone:</label>
+        <input type="text" id="telefone" name="telefone"><br>
+
+        <label for="cpf_cnpj">CPF/CNPJ:</label>
+        <input type="text" id="cpf_cnpj" name="cpf_cnpj">
+</br>
+
+        <button type="submit">Cadastrar Cliente</button>
+    </form>
+    {% endif %}
+
+    <style>
+
+        /* Estilização da Tabela */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            margin-top: 15px;
+        }
+
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: auto; /* Ajusta a largura da tabela automaticamente */
+            max-width: 100%;
+        }
+
+        th, td {
+            border: 1px solid black;
+            padding: 4px 8px;
+            text-align: left;
+            white-space: nowrap;
+        }
+    </style>
+
+    <h2>Lista de Clientes</h2>
+
+    <table>
+        <thead>
+            <tr>
+                {% if session['admin'] %}
+                    <th>Criado por</th>
+                {% endif %}
+                <th>Nome</th>
+                <th>Endereço</th>
+                <th>Telefone</th>
+                <th>CNPJ/CPF</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for cliente, nome_usuario in clientes %}
+            <tr>
+                {% if session['admin'] %}
+                    <td>{{ nome_usuario }}</td>
+                {% endif %}
+                <td>{{ cliente.nome }}</td>
+                <td>{{ cliente.endereco }}</td>
+                <td>{{ cliente.telefone }}</td>
+                <td>{{ cliente.documento }}</td>
+                <td>
+                    <form action="{{ url_for('editar_cliente', id=cliente.id) }}" method="GET" style="display:inline;">
+                        <button type="submit" class="btn-acao">Editar</button>
+                    </form> |
+                    <button class="btn-deletar" onclick="confirmarExclusao(event, '{{ url_for('deletar_cliente', id=cliente.id) }}')">Deletar</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    
+
+<script>
+function confirmarExclusao(event, url) {
+    event.preventDefault(); // Impede o envio automático do formulário
+
+    Swal.fire({
+        title: "Tem certeza?",
+        text: "Essa ação não poderá ser desfeita!",
+        icon: "warning",
+        showCancelButton: true,
+        confirmButtonColor: "#d33",
+        cancelButtonColor: "#3085d6",
+        confirmButtonText: "Sim, deletar!",
+        cancelButtonText: "Cancelar"
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(url, { method: "POST" })  // Envia a requisição via AJAX
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: "Deletado!",
+                        text: "O cliente foi excluído com sucesso.",
+                        icon: "success",
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    setTimeout(() => location.reload(), 2000); // Atualiza a página após 2 segundos
+                } else {
+                    Swal.fire("Erro!", "Não foi possível excluir o cliente.", "error");
+                }
+            })
+            .catch(() => {
+                Swal.fire("Erro!", "Erro na comunicação com o servidor.", "error");
+            });
+        }
+    });
+}
+
+
+        document.addEventListener("DOMContentLoaded", function() {
+            let telefones = document.querySelectorAll(".telefone-formatado");
+            let cpfCnpjElements = document.querySelectorAll(".cpf-cnpj-formatado");
+
+            // Formatar telefone para (XX) XXXXX-XXXX
+            telefones.forEach(function(td) {
+                let telefone = td.innerText.replace(/\D/g, "");
+                if (telefone.length === 11) {
+                    td.innerText = `(${telefone.substring(0,2)}) ${telefone.substring(2,7)}-${telefone.substring(7)}`;
+                } else if (telefone.length === 10) {
+                    td.innerText = `(${telefone.substring(0,2)}) ${telefone.substring(2,6)}-${telefone.substring(6)}`;
+                }
+            });
+
+            // Formatar CPF e CNPJ automaticamente
+            cpfCnpjElements.forEach(function(td) {
+                let num = td.innerText.replace(/\D/g, "");
+                if (num.length === 11) {
+                    td.innerText = `${num.substring(0,3)}.${num.substring(3,6)}.${num.substring(6,9)}-${num.substring(9)}`;
+                } else if (num.length === 14) {
+                    td.innerText = `${num.substring(0,2)}.${num.substring(2,5)}.${num.substring(5,8)}/${num.substring(8,12)}-${num.substring(12)}`;
+                }
+            });
+        });
+
+        document.addEventListener("DOMContentLoaded", function() {
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        Swal.fire({
+                            title: "{% if category == 'error' %}Erro{% else %}Sucesso{% endif %}",
+                            text: "{{ message }}",
+                            icon: "{% if category == 'error' %}error{% else %}success{% endif %}",
+                            confirmButtonText: "OK"
+                        });
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        });
+    </script>
+
+    <br>
+    <a href="/" class="btn btn-secondary">Voltar para a Página Inicial</a>
+
+</body>
+</html>

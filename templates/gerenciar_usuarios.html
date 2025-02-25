@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciar Usuários</title>
+    <style>
+        body {
+            position: relative;
+            background-color: #ffffff;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url("{{ url_for('static', filename='logo.jpg') }}");
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-attachment: fixed;
+            opacity: 0.1;
+            z-index: -1;
+        }
+
+        .container {
+            text-align: center;
+            margin-top: 50px;
+        }
+
+        .titulo-centralizado {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        table {
+            width: 80%;
+            margin: auto;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid black;
+            padding: 10px;
+            text-align: center;
+        }
+
+        th {
+            background-color: #f8f9fa;
+        }
+
+        .btn-editar, .btn-deletar {
+            padding: 5px 10px;
+            font-size: 12px;
+            font-weight: bold;
+            color: white;
+            border-radius: 5px;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-editar {
+            background-color: #0275d8;
+        }
+
+        .btn-editar:hover {
+            background-color: #025aa5;
+        }
+
+        .btn-deletar {
+            background-color: #d9534f;
+        }
+
+        .btn-deletar:hover {
+            background-color: #c9302c;
+        }
+
+        .back-link {
+            display: inline-block;
+            margin-top: 20px;
+            text-decoration: none;
+            font-size: 14px;
+            color: #007bff;
+            font-weight: bold;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+table {
+    width: auto;  /* Ajusta a tabela ao conteúdo */
+    margin: auto;
+    border-collapse: collapse;
+}
+
+th, td {
+    border: 1px solid black;
+    padding: 10px;
+    text-align: center;
+    white-space: nowrap;  /* Impede que os textos quebrem em várias linhas */
+}
+
+th {
+    background-color: #f8f9fa;
+}
+
+.btn-editar, .btn-deletar {
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: bold;
+    color: white;
+    border-radius: 5px;
+    text-decoration: none;
+    border: none;
+    cursor: pointer;
+}
+
+.btn-editar {
+    background-color: #0275d8;
+}
+
+.btn-editar:hover {
+    background-color: #025aa5;
+}
+
+.btn-deletar {
+    background-color: #d9534f;
+}
+
+.btn-deletar:hover {
+    background-color: #c9302c;
+}
+
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="titulo-centralizado">Gerenciar Usuários</h1>
+        <table>
+    <thead>
+        <tr>
+            <th>Nome</th>
+            <th>CPF</th>
+            <th>Ações</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for usuario in usuarios %}
+        <tr>
+            <td>{{ usuario.nome }}</td>  <!-- Exibe o nome do usuário -->
+            <td>{{ usuario.cpf }}</td>
+            <td>
+                <form action="{{ url_for('editar_usuario', cpf=usuario.cpf) }}" method="GET" style="display:inline;">
+                    <button type="submit" class="btn-editar">Editar</button>
+                </form>
+                <form action="{{ url_for('deletar_usuario', cpf=usuario.cpf) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este usuário?');" style="display:inline;">
+                    <button type="submit" class="btn-deletar">Excluir</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+        <br>
+        <a href="{{ url_for('index') }}" class="back-link">← Voltar para a Página Inicial</a>
+    </div>
+
+</body>
+</html>
