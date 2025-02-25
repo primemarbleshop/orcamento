@@ -32,9 +32,19 @@ def atualizar_valor_orcamento_salvo(orcamento_salvo_id):
 
 app = Flask(__name__)
 
-# Configuração do Banco de Dados
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///orcamentos.db'
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+@app.route("/upload_db", methods=["POST"])
+def upload_db():
+    file = request.files['file']
+    if file.filename == 'orcamentos.db':
+        file.save("/data/orcamentos.db")
+        return {"mensagem": "Banco de dados enviado com sucesso!"}, 200
+    return {"erro": "Arquivo inválido!"}, 400
+
+
+# Configuração correta do SQLite no disco do Render
+DATABASE_PATH = "/data/orcamentos.db"
+app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DATABASE_PATH}"
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config['SECRET_KEY'] = '*Henrycm051094'
 
 # Inicializando o SQLAlchemy e Flask-Migrate
