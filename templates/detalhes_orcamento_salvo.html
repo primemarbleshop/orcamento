@@ -251,7 +251,15 @@ p strong {
                 <td>{{ produto.comprimento_fronte }} x {{ produto.largura_fronte }} cm</td>
                 {% endif %}
                 {% if tipo in ["Bancada", "Lavatorio"] %}
-                <td>{{ produto.tipo_cuba }} ({{ produto.quantidade_cubas }})</td>
+                <td>
+                    {% if produto.tipo_cuba == "Esculpida" %}
+                        Esculpida ({{ produto.quantidade_cubas }}) - {{ produto.comprimento_cuba }} x {{ produto.largura_cuba }} x {{ produto.profundidade_cuba }} cm
+                    {% elif produto.tipo_cuba %}
+                        {{ produto.tipo_cuba }} ({{ produto.quantidade_cubas }})
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
                 {% endif %}
                 {% if tipo == "Bancada" %}
                 <td>{% if produto.tem_cooktop == "Sim" %}Sim{% else %}-{% endif %}</td>
