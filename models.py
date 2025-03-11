@@ -17,7 +17,7 @@ class Orcamento(db.Model):
     material_id = db.Column(db.Integer, db.ForeignKey('material.id'), nullable=False)
     quantidade = db.Column(db.Integer, nullable=False)
     valor_total = db.Column(db.Float, nullable=False)
-    modelo_cuba = db.Column(db.String(50))
+   
 
     # Novo campo: vincula um orçamento individual a um orçamento salvo
     orcamento_salvo_id = db.Column(db.Integer, db.ForeignKey('orcamento_salvo.id'), nullable=True)
