@@ -327,12 +327,17 @@ def listar_orcamentos():
 
             # **Cálculo da Cuba Esculpida**
             if tipo_cuba == 'Esculpida':
+                modelo_cuba = request.form.get('modelo_cuba', 'Normal')
                 comprimento_cuba = float(request.form.get('comprimento_cuba', 0))
                 largura_cuba = float(request.form.get('largura_cuba', 0))
                 profundidade_cuba = float(request.form.get('profundidade_cuba', 0))
+            
+                if modelo_cuba == 'Prainha':
+                    m2_cuba = ((comprimento_cuba * largura_cuba) + (largura_cuba * 2) * profundidade_cuba) / 10000
+                else:
+                    m2_cuba = ((comprimento_cuba * largura_cuba * 2) +
+                               (comprimento_cuba * 2 + largura_cuba * 2) * profundidade_cuba) / 10000
 
-                m2_cuba = ((comprimento_cuba * largura_cuba * 2) +
-                           (comprimento_cuba * 2 + largura_cuba * 2) * profundidade_cuba) / 10000
 
                 valor_cuba_esculpida = m2_cuba * material.valor * quantidade_cubas + 175
                 valor_total_criar += valor_cuba_esculpida
