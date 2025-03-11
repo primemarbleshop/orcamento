@@ -153,6 +153,7 @@ class Orcamento(db.Model):
     comprimento_cuba = db.Column(db.Float, default=0.0)
     largura_cuba = db.Column(db.Float, default=0.0)
     profundidade_cuba = db.Column(db.Float, default=0.0)
+    modelo_cuba = db.Column(db.String(50))
 
     # **Campos para Cooktop**
     tem_cooktop = db.Column(db.String(50), default="Não")
