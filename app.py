@@ -626,6 +626,7 @@ def editar_orcamento(id):
         orcamento.tem_fundo = request.form.get('tem_fundo', orcamento.tem_fundo)
         orcamento.tem_alisar = request.form.get('tem_alisar', orcamento.tem_alisar)
         orcamento.largura_alisar = float(request.form.get('largura_alisar', orcamento.largura_alisar or 0) or 0)
+        orcamento.modelo_cuba = request.form.get('modelo_cuba')  # Salva o modelo escolhido
         
 
 
