@@ -391,6 +391,7 @@ def listar_orcamentos():
                 largura_alisar=largura_alisar,
                 valor_total=valor_total,
                 dono=session['user_cpf']
+                modelo_cuba=modelo_cuba,
                     
             )
             # Salvar no banco de dados
