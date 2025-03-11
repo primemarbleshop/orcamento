@@ -361,7 +361,9 @@ def listar_orcamentos():
             valor_total = valor_total_criar + valor_rt
 
         
-        
+        modelo_cuba = request.form.get("modelo_cuba", "").strip()
+        if not modelo_cuba:  
+            modelo_cuba = "Normal"  # Define "Normal" como padrão se estiver vazio
 
          # Criando e salvando o orçamento
         if cliente_id and material_id:
