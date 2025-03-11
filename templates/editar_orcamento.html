@@ -11,6 +11,25 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
     <script>
 
+	     function toggleCubaFields() {
+        var tipoCuba = document.getElementById("tipo_cuba").value;
+        var modeloCubaField = document.getElementById("modelo_cuba_field");
+        var medidasCubaFields = document.getElementById("medidas_cuba_fields");
+
+        if (tipoCuba === "Esculpida") {
+            modeloCubaField.style.display = "block";
+            medidasCubaFields.style.display = "block";
+        } else {
+            modeloCubaField.style.display = "none";
+            medidasCubaFields.style.display = "none";
+        }
+    }
+
+    // Chama a função ao carregar a página para garantir que os campos corretos apareçam
+    document.addEventListener("DOMContentLoaded", function () {
+        toggleCubaFields();
+    });
+
 $(document).ready(function() {
         // Aplicando Select2 aos selects com a mesma formatação do 'orcamento_salvo'
         $('#orcamento_salvo, #cliente_id, #tipo_produto, #material_id').select2({
@@ -192,45 +211,43 @@ function toggleCubaFields() {
         <input type="number" id="largura_fronte" name="largura_fronte" value="{{ orcamento.largura_fronte }}" step="0.01" min="0" pattern="[0-9]+([.,][0-9]+)?"><br>
         </div>
 
-        <div id="cuba_fields" style="display: none;">
+       <div id="cuba_fields" style="display: none;">
     <h3>Modelo de Cuba</h3>
     <label for="tipo_cuba">Tipo de Cuba:</label>
     <select name="tipo_cuba" id="tipo_cuba" onchange="toggleCubaFields()">
         <option value="">Selecione...</option>
-        <option value="Embutir">Embutir</option>
-        <option value="Esculpida">Esculpida</option>
-        <option value="Cuba Tradicional Inox">Cuba Tradicional Inox</option>
-        <option value="Apoio Cliente">Apoio Cliente</option>
-        <option value="Embutida Cliente">Embutida Cliente</option>
-        <option value="Gourmet Cliente">Gourmet Cliente</option>
-        <option value="Tanque Inox">Tanque Inox</option>
+        <option value="Embutir" {% if orcamento and orcamento.tipo_cuba == 'Embutir' %}selected{% endif %}>Embutir</option>
+        <option value="Esculpida" {% if orcamento and orcamento.tipo_cuba == 'Esculpida' %}selected{% endif %}>Esculpida</option>
+        <option value="Cuba Tradicional Inox" {% if orcamento and orcamento.tipo_cuba == 'Cuba Tradicional Inox' %}selected{% endif %}>Cuba Tradicional Inox</option>
+        <option value="Apoio Cliente" {% if orcamento and orcamento.tipo_cuba == 'Apoio Cliente' %}selected{% endif %}>Apoio Cliente</option>
+        <option value="Embutida Cliente" {% if orcamento and orcamento.tipo_cuba == 'Embutida Cliente' %}selected{% endif %}>Embutida Cliente</option>
+        <option value="Gourmet Cliente" {% if orcamento and orcamento.tipo_cuba == 'Gourmet Cliente' %}selected{% endif %}>Gourmet Cliente</option>
+        <option value="Tanque Inox" {% if orcamento and orcamento.tipo_cuba == 'Tanque Inox' %}selected{% endif %}>Tanque Inox</option>
     </select><br>
 
-    <!-- Campo de modelo da Cuba Esculpida -->
+    <!-- Campo para selecionar o modelo da Cuba Esculpida -->
     <div id="modelo_cuba_field" style="display: none;">
         <label for="modelo_cuba">Modelo da Cuba Esculpida:</label>
         <select name="modelo_cuba" id="modelo_cuba">
             <option value="Normal" {% if orcamento and orcamento.modelo_cuba == 'Normal' %}selected{% endif %}>Normal</option>
-<option value="Prainha" {% if orcamento and orcamento.modelo_cuba == 'Prainha' %}selected{% endif %}>Prainha</option>
-
+            <option value="Prainha" {% if orcamento and orcamento.modelo_cuba == 'Prainha' %}selected{% endif %}>Prainha</option>
         </select>
     </div>
 
     <div id="medidas_cuba_fields" style="display: none;">
+        <h3>Medidas da Cuba Esculpida</h3>
         <label for="comprimento_cuba">Comprimento Cuba:</label>
-        <input type="number" id="comprimento_cuba" name="comprimento_cuba" step="0.01" min="0" value="0">
+        <input type="number" id="comprimento_cuba" name="comprimento_cuba" value="{{ orcamento.comprimento_cuba or '' }}" step="0.01" min="0">
         <br>
 
         <label for="largura_cuba">Largura Cuba:</label>
-        <input type="number" id="largura_cuba" name="largura_cuba" step="0.01" min="0" value="0">
+        <input type="number" id="largura_cuba" name="largura_cuba" value="{{ orcamento.largura_cuba or '' }}" step="0.01" min="0">
         <br>
 
         <label for="profundidade_cuba">Profundidade Cuba:</label>
-        <input type="number" id="profundidade_cuba" name="profundidade_cuba" step="0.01" min="0" value="0">
+        <input type="number" id="profundidade_cuba" name="profundidade_cuba" value="{{ orcamento.profundidade_cuba or '' }}" step="0.01" min="0">
+        <br>
     </div>
-
-    <label for="quantidade_cubas">Quantidade de Cubas:</label>
-    <input type="number" id="quantidade_cubas" name="quantidade_cubas" value="0" min="0">
 </div>
 
 
