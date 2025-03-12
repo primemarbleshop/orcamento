@@ -307,6 +307,8 @@ p strong {
 
 <!-- Botão de impressão -->
 <button class="print-button" onclick="window.print()">Imprimir</button>
+</br>
+<button onclick="gerarPDF()">Gerar PDF</button>
 
 
 
@@ -315,6 +317,36 @@ p strong {
 </br>
 </br>
 </br>
+    
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+  async function gerarPDF() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF("landscape", "mm", "a4");
+
+    // Seleciona a área que será convertida em imagem
+    const elemento = document.body; // Captura todo o conteúdo da página
+
+    // Usa html2canvas para capturar a área visível
+    const canvas = await html2canvas(elemento, {
+      scale: 2, // Aumenta a qualidade
+      useCORS: true, // Para capturar imagens externas corretamente
+    });
+
+    // Converte a imagem do canvas em base64
+    const imgData = canvas.toDataURL("image/png");
+
+    // Ajusta a imagem para caber na página do PDF
+    const imgWidth = 297; // Largura da página A4 (paisagem)
+    const imgHeight = (canvas.height * imgWidth) / canvas.width; // Mantém a proporção
+
+    doc.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
+    doc.save("orcamento.pdf"); // Salva o arquivo
+  }
+</script>
 
 
     
