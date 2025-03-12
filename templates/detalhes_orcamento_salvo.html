@@ -308,7 +308,7 @@ p strong {
 <!-- Botão de impressão -->
 <button class="print-button" onclick="window.print()">Imprimir</button>
 </br>
-<button onclick="gerarPDFDireto()">Gerar PDF</button>
+<button onclick="gerarPDFDireto()">Baixar PDF</button>
 
 
 
@@ -319,32 +319,33 @@ p strong {
 </br>
 </br>
 </br>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
 <script>
-function gerarPDFDireto() {
-    const printFrame = document.createElement("iframe");
-    printFrame.style.position = "absolute";
-    printFrame.style.width = "0px";
-    printFrame.style.height = "0px";
-    printFrame.style.border = "none";
+async function gerarPDFDireto() {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF('p', 'mm', 'a4');
 
-    document.body.appendChild(printFrame);
+    // Seleciona o elemento que será capturado (pode ser 'body' ou um 'div' específico)
+    const elemento = document.body;
 
-    const doc = printFrame.contentWindow.document;
-    doc.open();
-    doc.write('<html><head><title>Orçamento</title>');
-    doc.write('<link rel="stylesheet" type="text/css" href="styles.css">'); // Se houver CSS externo
-    doc.write('</head><body>');
-    doc.write(document.documentElement.innerHTML);
-    doc.write('</body></html>');
-    doc.close();
+    // Gera uma imagem a partir do HTML com html2canvas
+    html2canvas(elemento, { scale: 2 }).then(canvas => {
+        const imgData = canvas.toDataURL('image/png');
 
-    printFrame.contentWindow.focus();
-    printFrame.contentWindow.print();
+        // Calcula o tamanho da imagem no PDF
+        const imgWidth = 210; // Largura A4 em mm
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-    // Remove o iframe após a impressão
-    setTimeout(() => document.body.removeChild(printFrame), 1000);
+        // Adiciona a imagem no PDF
+        doc.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+        doc.save("orcamento.pdf"); // Salva o arquivo PDF
+    });
 }
 </script>
+
 
     
 
