@@ -308,6 +308,8 @@ p strong {
 <!-- Botão de impressão -->
 <button class="print-button" onclick="window.print()">Imprimir</button>
 </br>
+<button onclick="gerarPDFDireto()">Gerar PDF</button>
+
 
 
 
@@ -317,6 +319,33 @@ p strong {
 </br>
 </br>
 </br>
+<script>
+function gerarPDFDireto() {
+    const printFrame = document.createElement("iframe");
+    printFrame.style.position = "absolute";
+    printFrame.style.width = "0px";
+    printFrame.style.height = "0px";
+    printFrame.style.border = "none";
+
+    document.body.appendChild(printFrame);
+
+    const doc = printFrame.contentWindow.document;
+    doc.open();
+    doc.write('<html><head><title>Orçamento</title>');
+    doc.write('<link rel="stylesheet" type="text/css" href="styles.css">'); // Se houver CSS externo
+    doc.write('</head><body>');
+    doc.write(document.documentElement.innerHTML);
+    doc.write('</body></html>');
+    doc.close();
+
+    printFrame.contentWindow.focus();
+    printFrame.contentWindow.print();
+
+    // Remove o iframe após a impressão
+    setTimeout(() => document.body.removeChild(printFrame), 1000);
+}
+</script>
+
     
 
 
