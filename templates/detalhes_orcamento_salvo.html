@@ -325,28 +325,30 @@ p strong {
 <script>
   async function gerarPDF() {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF("landscape", "mm", "a4");
+    const doc = new jsPDF("portrait", "mm", "a4"); // Ajuste para retrato se necessário
 
-    const elemento = document.body; // Captura a página inteira
+    const elemento = document.body; // Captura toda a página
 
-    // Ajuste para capturar a altura total
-    window.scrollTo(0, 0); // Garante que a página esteja no topo antes de capturar
+    window.scrollTo(0, 0);
     const canvas = await html2canvas(elemento, {
-      scale: 3, // Aumenta a qualidade do PDF
-      useCORS: true, // Evita problemas de carregamento de imagens externas
-      windowWidth: document.documentElement.scrollWidth, // Largura total da página
-      windowHeight: document.documentElement.scrollHeight, // Altura total da página
+      scale: 3,
+      useCORS: true,
+      windowWidth: document.documentElement.scrollWidth,
+      windowHeight: document.documentElement.scrollHeight,
     });
 
     const imgData = canvas.toDataURL("image/png");
-    const imgWidth = 297; // A4 paisagem
+    const imgWidth = 210; // Largura da página A4 (portrait)
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
     doc.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
-    doc.save("orcamento.pdf");
+
+    // Abrir o PDF antes do download
+    const pdfBlob = doc.output("blob");
+    const pdfUrl = URL.createObjectURL(pdfBlob);
+    window.open(pdfUrl); // Abre o PDF em uma nova aba
   }
 </script>
-
 
     
 </body>
