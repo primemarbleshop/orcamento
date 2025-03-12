@@ -5,6 +5,32 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Detalhes dos Orçamentos</title>
    <style>
+    .force-print {
+    width: 100% !important;
+    font-size: 14px !important;
+    background-color: white !important;
+    color: black !important;
+}
+
+/* Esconde botões manualmente */
+.force-print .print-button,
+.force-print .btn-voltar {
+    display: none !important;
+}
+
+/* Mantém a formatação correta */
+.force-print table {
+    width: 100% !important;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.force-print th, .force-print td {
+    border: 1px solid black;
+    padding: 4px;
+    text-align: left;
+}
+
 
     /* Reduzir tamanho geral das fontes para 80% do original */
     body {
@@ -308,6 +334,7 @@ p strong {
 <!-- Botão de impressão -->
 <button class="print-button" onclick="window.print()">Imprimir</button>
 </br>
+<button onclick="gerarPDFComFormatacao()">Baixar PDF</button>
 
 
 
@@ -320,8 +347,43 @@ p strong {
 </br>
 </br>
 
+<script>
+async function gerarPDFComFormatacao() {
+    const { jsPDF } = window.jspdf;
 
+    // Aplica a classe que força o CSS de impressão
+    document.body.classList.add("force-print");
 
+    window.scrollTo(0, 0);
+    const doc = new jsPDF('l', 'mm', 'a4');
+
+    const elemento = document.body;
+    html2canvas(elemento, { scale: 3, useCORS: true }).then(canvas => {
+        const imgData = canvas.toDataURL('image/png');
+        const imgWidth = 297;
+        const pageHeight = 210;
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+        let alturaRestante = imgHeight;
+        let y = 0;
+
+        while (alturaRestante > 0) {
+            doc.addImage(imgData, 'PNG', 0, y, imgWidth, imgHeight, undefined, 'FAST');
+            alturaRestante -= pageHeight;
+            y -= pageHeight;
+
+            if (alturaRestante > 0) {
+                doc.addPage();
+            }
+        }
+
+        doc.save("orcamento.pdf");
+
+        // Remove a classe de impressão para voltar ao normal
+        document.body.classList.remove("force-print");
+    });
+}
+</script>
 
     
 
