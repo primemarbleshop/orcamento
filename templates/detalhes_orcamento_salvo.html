@@ -5,33 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Detalhes dos Orçamentos</title>
    <style>
-    .force-print {
-    width: 100% !important;
-    font-size: 14px !important;
-    background-color: white !important;
-    color: black !important;
-}
-
-/* Esconde botões manualmente */
-.force-print .print-button,
-.force-print .btn-voltar {
-    display: none !important;
-}
-
-/* Mantém a formatação correta */
-.force-print table {
-    width: 100% !important;
-    border-collapse: collapse;
-    font-size: 12px;
-}
-
-.force-print th, .force-print td {
-    border: 1px solid black;
-    padding: 4px;
-    text-align: left;
-}
-
-
+    
     /* Reduzir tamanho geral das fontes para 80% do original */
     body {
         font-size: 15px; /* Antes era 16px, agora reduzido 20% */
@@ -334,7 +308,7 @@ p strong {
 <!-- Botão de impressão -->
 <button class="print-button" onclick="window.print()">Imprimir</button>
 </br>
-<button onclick="gerarPDFComFormatacao()">Baixar PDF</button>
+
 
 
 
@@ -347,55 +321,7 @@ p strong {
 </br>
 </br>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
-    
-
-<script>
-async function gerarPDFComFormatacao() {
-    const { jsPDF } = window.jspdf;
-
-    // Aplica a classe que força o CSS de impressão
-    document.body.classList.add("force-print");
-
-    // Garante que o CSS de impressão foi aplicado antes da captura
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    window.scrollTo(0, 0);
-    const doc = new jsPDF('l', 'mm', 'a4');
-
-    const elemento = document.body;
-
-    html2canvas(elemento, { scale: 3, useCORS: true }).then(canvas => {
-        const imgData = canvas.toDataURL('image/png');
-        const imgWidth = 297;
-        const pageHeight = 210;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-        let alturaRestante = imgHeight;
-        let y = 0;
-
-        while (alturaRestante > 0) {
-            doc.addImage(imgData, 'PNG', 0, y, imgWidth, imgHeight, undefined, 'FAST');
-            alturaRestante -= pageHeight;
-            y -= pageHeight;
-
-            if (alturaRestante > 0) {
-                doc.addPage();
-            }
-        }
-
-        doc.save("orcamento.pdf");
-
-        // Remove a classe de impressão para voltar ao normal
-        document.body.classList.remove("force-print");
-    }).catch(error => {
-        console.error("Erro ao gerar o PDF:", error);
-        alert("Erro ao gerar o PDF. Tente novamente.");
-    });
-}
-</script>
 
 
     
