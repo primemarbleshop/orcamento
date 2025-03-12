@@ -327,24 +327,23 @@ p strong {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF("landscape", "mm", "a4");
 
-    // Seleciona a área que será convertida em imagem
-    const elemento = document.body; // Captura todo o conteúdo da página
+    const elemento = document.body; // Captura a página inteira
 
-    // Usa html2canvas para capturar a área visível
+    // Ajuste para capturar a altura total
+    window.scrollTo(0, 0); // Garante que a página esteja no topo antes de capturar
     const canvas = await html2canvas(elemento, {
-      scale: 2, // Aumenta a qualidade
-      useCORS: true, // Para capturar imagens externas corretamente
+      scale: 3, // Aumenta a qualidade do PDF
+      useCORS: true, // Evita problemas de carregamento de imagens externas
+      windowWidth: document.documentElement.scrollWidth, // Largura total da página
+      windowHeight: document.documentElement.scrollHeight, // Altura total da página
     });
 
-    // Converte a imagem do canvas em base64
     const imgData = canvas.toDataURL("image/png");
-
-    // Ajusta a imagem para caber na página do PDF
-    const imgWidth = 297; // Largura da página A4 (paisagem)
-    const imgHeight = (canvas.height * imgWidth) / canvas.width; // Mantém a proporção
+    const imgWidth = 297; // A4 paisagem
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
     doc.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
-    doc.save("orcamento.pdf"); // Salva o arquivo
+    doc.save("orcamento.pdf");
   }
 </script>
 
