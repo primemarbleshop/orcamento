@@ -347,6 +347,11 @@ p strong {
 </br>
 </br>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    
+
 <script>
 async function gerarPDFComFormatacao() {
     const { jsPDF } = window.jspdf;
@@ -354,10 +359,14 @@ async function gerarPDFComFormatacao() {
     // Aplica a classe que força o CSS de impressão
     document.body.classList.add("force-print");
 
+    // Garante que o CSS de impressão foi aplicado antes da captura
+    await new Promise(resolve => setTimeout(resolve, 500));
+
     window.scrollTo(0, 0);
     const doc = new jsPDF('l', 'mm', 'a4');
 
     const elemento = document.body;
+
     html2canvas(elemento, { scale: 3, useCORS: true }).then(canvas => {
         const imgData = canvas.toDataURL('image/png');
         const imgWidth = 297;
@@ -381,9 +390,13 @@ async function gerarPDFComFormatacao() {
 
         // Remove a classe de impressão para voltar ao normal
         document.body.classList.remove("force-print");
+    }).catch(error => {
+        console.error("Erro ao gerar o PDF:", error);
+        alert("Erro ao gerar o PDF. Tente novamente.");
     });
 }
 </script>
+
 
     
 
