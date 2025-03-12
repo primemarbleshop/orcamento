@@ -308,7 +308,7 @@ p strong {
 <!-- Botão de impressão -->
 <button class="print-button" onclick="window.print()">Imprimir</button>
 </br>
-<button onclick="gerarPDF()">Gerar PDF</button>
+<button onclick="salvarComoPDF()">Salvar PDF</button>
 
 
 
@@ -319,35 +319,19 @@ p strong {
 </br>
     
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 
 <script>
-  async function gerarPDF() {
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF("portrait", "mm", "a4"); // Ajuste para retrato se necessário
+function salvarComoPDF() {
+  const printSettings = {
+    margin: 0,
+    title: document.title,
+    printBackground: true,
+    scale: 1 // Ajusta para manter a proporção correta
+  };
 
-    const elemento = document.body; // Captura toda a página
-
-    window.scrollTo(0, 0);
-    const canvas = await html2canvas(elemento, {
-      scale: 3,
-      useCORS: true,
-      windowWidth: document.documentElement.scrollWidth,
-      windowHeight: document.documentElement.scrollHeight,
-    });
-
-    const imgData = canvas.toDataURL("image/png");
-    const imgWidth = 210; // Largura da página A4 (portrait)
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-    doc.addImage(imgData, "PNG", 0, 0, imgWidth, imgHeight);
-
-    // Abrir o PDF antes do download
-    const pdfBlob = doc.output("blob");
-    const pdfUrl = URL.createObjectURL(pdfBlob);
-    window.open(pdfUrl); // Abre o PDF em uma nova aba
-  }
+  // Executa a impressão sem abrir o diálogo (funciona melhor em navegadores baseados em Chromium)
+  window.print();
+}
 </script>
 
     
