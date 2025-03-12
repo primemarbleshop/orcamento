@@ -327,24 +327,39 @@ p strong {
 async function gerarPDFDireto() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF('p', 'mm', 'a4');
-
-    // Seleciona o elemento que será capturado (pode ser 'body' ou um 'div' específico)
+    
     const elemento = document.body;
 
-    // Gera uma imagem a partir do HTML com html2canvas
+    // Captura o HTML como uma imagem usando html2canvas
     html2canvas(elemento, { scale: 2 }).then(canvas => {
         const imgData = canvas.toDataURL('image/png');
 
-        // Calcula o tamanho da imagem no PDF
-        const imgWidth = 210; // Largura A4 em mm
+        // Tamanho do PDF
+        const imgWidth = 210; // Largura A4 (mm)
+        const pageHeight = 297; // Altura A4 (mm)
+
+        // Tamanho da imagem gerada
         const imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-        // Adiciona a imagem no PDF
-        doc.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
-        doc.save("orcamento.pdf"); // Salva o arquivo PDF
+        let alturaRestante = imgHeight;
+        let y = 0;
+
+        // Adiciona páginas automaticamente se necessário
+        while (alturaRestante > 0) {
+            doc.addImage(imgData, 'PNG', 0, y, imgWidth, imgHeight);
+            alturaRestante -= pageHeight;
+            y -= pageHeight;
+
+            if (alturaRestante > 0) {
+                doc.addPage();
+            }
+        }
+
+        doc.save("orcamento.pdf"); // Salva o PDF
     });
 }
 </script>
+
 
 
     
