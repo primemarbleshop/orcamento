@@ -153,12 +153,6 @@
     }
 }
 
-@media print {
-    table, h1, h2, p, .produto-header, .cliente-header {
-        page-break-inside: avoid; /* Mantém títulos e tabelas juntos */
-    }
-}
-
        
 
 
@@ -314,7 +308,7 @@ p strong {
 <!-- Botão de impressão -->
 <button class="print-button" onclick="window.print()">Imprimir</button>
 </br>
-<button onclick="gerarPDFDireto()">Baixar PDF</button>
+
 
 
 
@@ -326,47 +320,6 @@ p strong {
 </br>
 </br>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-
-<script>
-async function gerarPDFDireto() {
-    const botoes = document.querySelectorAll('.print-button, .btn-voltar');
-
-    // Esconde os botões antes da captura
-    botoes.forEach(botao => botao.style.display = 'none');
-
-    window.scrollTo(0, 0);
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF('l', 'mm', 'a4');
-
-    const elemento = document.body;
-    html2canvas(elemento, { scale: 3, useCORS: true }).then(canvas => {
-        const imgData = canvas.toDataURL('image/png');
-        const imgWidth = 297;
-        const pageHeight = 210;
-        const imgHeight = (canvas.height * imgWidth) / canvas.width;
-
-        let alturaRestante = imgHeight;
-        let y = 0;
-
-        while (alturaRestante > 0) {
-            doc.addImage(imgData, 'PNG', 0, y, imgWidth, imgHeight, undefined, 'FAST');
-            alturaRestante -= pageHeight;
-            y -= pageHeight;
-
-            if (alturaRestante > 0) {
-                doc.addPage();
-            }
-        }
-
-        doc.save("orcamento.pdf");
-
-        // Mostra os botões novamente após salvar o PDF
-        botoes.forEach(botao => botao.style.display = 'block');
-    });
-}
-</script>
 
 
 
