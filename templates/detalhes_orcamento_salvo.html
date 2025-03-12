@@ -93,36 +93,38 @@
 @media print {
     @page {
         size: A4 landscape; /* Define a impressão no formato paisagem */
-        margin: 5mm; /* Margens reduzidas para melhor aproveitamento */
+        margin: 10mm; /* Margens um pouco maiores para evitar cortes */
     }
-
 
     /* Ajusta a logo para impressão */
     .logo-empresa {
         position: absolute;
         top: 5mm;
         right: 10mm;
-        height: 120px !important;
+        height: 100px !important;
         width: auto !important;
     }
 
-      
+    /* Remove margens extras */
     body {
         margin: 0;
         padding: 0;
+        font-size: 12px !important; /* Mantém um tamanho adequado para impressão */
     }
 
-    /* Evita que títulos sejam separados */
+    /* Evita que os títulos das seções fiquem separados das tabelas */
     .produto-header, .cliente-header {
-        page-break-after: avoid;
+        page-break-after: avoid; /* Mantém o título junto da tabela */
+        page-break-before: auto;
         font-weight: bold;
         font-size: 14px;
     }
 
-    /* Permite quebra de tabelas, se necessário */
+    /* Evita que tabelas sejam quebradas no meio */
     table {
-        page-break-inside: auto !important;
+        page-break-inside: avoid !important;
         width: 100%;
+        border-collapse: collapse; /* Garante que as bordas fiquem visíveis */
     }
 
     th, td {
@@ -131,24 +133,28 @@
         text-align: left;
     }
 
-    /* Evita que o total seja separado do conteúdo */
+    /* Mantém o total sempre junto com a tabela */
     .total-box {
         font-size: 14px !important;
         padding: 6px !important;
-        page-break-before: avoid; /* Mantém o total sempre na mesma página */
+        page-break-before: avoid; /* Mantém o total na mesma página */
         page-break-after: avoid;
     }
 
-    
-    /* Evita separação de cliente e produtos */
+    /* Evita separação do nome do cliente e seus produtos */
     .cliente-header {
         page-break-after: avoid;
         font-weight: bold;
         font-size: 14px;
     }
 
-    /* Oculta botões e links na impressão */
-    .print-button, .btn-voltar {
+    /* Impede que um único item fique isolado no fim da página */
+    tr {
+        page-break-inside: avoid !important;
+    }
+
+    /* Oculta botões e elementos desnecessários na impressão */
+    .print-button, .btn-voltar, .no-print {
         display: none !important;
     }
 }
@@ -306,11 +312,40 @@ p strong {
 
 <!-- Botão de impressão -->
 <button class="print-button" onclick="window.print()">Imprimir</button>
+</br>
+<button id="downloadPDF">Gerar PDF</button>
+<button class="no-print" onclick="window.print()">Imprimir</button>
+
 
 <br><br>
 <h2><a href="/orcamentos_salvos" class="btn-voltar">Voltar para Orçamentos Salvos</a></h2>
 </br>
 </br>
 </br>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
+<script>
+    document.getElementById('downloadPDF').addEventListener('click', function () {
+        // Seleciona o conteúdo que será convertido para PDF
+        const elemento = document.body; // Pode ser um container específico como '.conteudo'
+
+        // Opções de formatação do PDF
+        const opcoes = {
+            margin: 5,
+            filename: 'orcamento.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2 },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
+        };
+
+        // Aplica a formatação de impressão antes de gerar o PDF
+        document.body.classList.add('modo-impressao');
+        setTimeout(() => {
+            html2pdf().from(elemento).set(opcoes).save();
+            document.body.classList.remove('modo-impressao');
+        }, 500);
+    });
+</script>
+    
 </body>
 </html>
