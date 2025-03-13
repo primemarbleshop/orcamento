@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from pytz import timezone
 from weasyprint import HTML
+import io
 
 from models import db, Orcamento, OrcamentoSalvo, Usuario  # Modelos do SQLAlchemy
 
@@ -1282,6 +1283,9 @@ def gerar_pdf_orcamento(codigo):
     # Calcular o valor total do orçamento
     valor_total_final = sum(o.valor_total for o in orcamentos)
 
+    # Gerar URL absoluta para a logo
+    logo_url = url_for('static', filename='logo.jpg', _external=True)
+
     # Renderizar o HTML
     rendered_html = render_template(
         "detalhes_orcamento_salvo.html",
@@ -1290,11 +1294,12 @@ def gerar_pdf_orcamento(codigo):
         cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
         orcamentos=orcamentos,
         valor_total_final="R$ {:,.2f}".format(valor_total_final).replace(",", "X").replace(".", ",").replace("X", "."),
-        pdf=True  # Variável que indica que está gerando PDF
+        pdf=True,  # Variável que indica que está gerando PDF
+        logo_url=logo_url  # Passa a URL da logo para o template
     )
 
     # Converter HTML para PDF
-    pdf = HTML(string=rendered_html).write_pdf()
+    pdf = HTML(string=rendered_html, base_url=request.host_url).write_pdf()
 
     # Responder com o PDF
     response = make_response(pdf)
