@@ -1283,7 +1283,7 @@ def gerar_pdf_orcamento(codigo):
     # Calcular o valor total do orçamento
     valor_total_final = sum(o.valor_total for o in orcamentos)
 
-    # URL da logo (agora fixa e pública)
+    # URL pública da logo
     logo_url = "https://orcamento-t9w2.onrender.com/static/logo.jpg"
 
     # Renderizar o HTML
@@ -1295,7 +1295,7 @@ def gerar_pdf_orcamento(codigo):
         orcamentos=orcamentos,
         valor_total_final="R$ {:,.2f}".format(valor_total_final).replace(",", "X").replace(".", ",").replace("X", "."),
         pdf=True,  # Variável que indica que está gerando PDF
-        logo_url=logo_url  # Agora a logo tem um caminho fixo e acessível
+        logo_url=logo_url  # Passa a URL fixa da logo para o template
     )
 
     # Converter HTML para PDF
@@ -1307,7 +1307,6 @@ def gerar_pdf_orcamento(codigo):
     response.headers["Content-Disposition"] = f"inline; filename=orcamento_{codigo}.pdf"
 
     return response
-
 
 
 
