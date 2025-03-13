@@ -1,10 +1,11 @@
 # 📌 Imports de Bibliotecas Externas
-from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, session
+from flask import Flask, render_template, make_response, request, redirect, url_for, jsonify, flash, session
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from pytz import timezone
+from weasyprint import HTML
 
 from models import db, Orcamento, OrcamentoSalvo, Usuario  # Modelos do SQLAlchemy
 
@@ -1263,8 +1264,44 @@ def atualizar_status_tipo_cliente():
     except Exception as e:
         db.session.rollback()
         return jsonify({"success": False, "error": str(e)}), 500
+        
 
+@app.route('/gerar_pdf_orcamento/<codigo>')
+def gerar_pdf_orcamento(codigo):
+    # Buscar o orçamento salvo pelo código
+    orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
 
+    if not orcamento_salvo:
+        flash("Orçamento salvo não encontrado!", "danger")
+        return redirect(url_for('listar_orcamentos_salvos'))
+
+    # Buscar IDs dos orçamentos vinculados
+    ids = [int(id) for id in orcamento_salvo.orcamentos_ids.split(",")]
+    orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
+
+    # Calcular o valor total do orçamento
+    valor_total_final = sum(o.valor_total for o in orcamentos)
+
+    # Renderizar o HTML
+    rendered_html = render_template(
+        "detalhes_orcamento_salvo.html",
+        codigo_orcamento=orcamento_salvo.codigo,
+        data_salvo=orcamento_salvo.data_salvo,
+        cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
+        orcamentos=orcamentos,
+        valor_total_final="R$ {:,.2f}".format(valor_total_final).replace(",", "X").replace(".", ",").replace("X", "."),
+        pdf=True  # Variável que indica que está gerando PDF
+    )
+
+    # Converter HTML para PDF
+    pdf = HTML(string=rendered_html).write_pdf()
+
+    # Responder com o PDF
+    response = make_response(pdf)
+    response.headers["Content-Type"] = "application/pdf"
+    response.headers["Content-Disposition"] = f"inline; filename=orcamento_{codigo}.pdf"
+
+    return response
 
 
 
