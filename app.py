@@ -1311,6 +1311,8 @@ def gerar_pdf_orcamento(codigo):
     final_pdf_path = "/tmp/final_orcamento.pdf"
     doc = fitz.open(temp_pdf_path)
 
+    scale_factor = 0.8
+
     if os.path.exists(logo_path):  # 🔥 Apenas adiciona a logo se o arquivo existir
         page = doc[0]  # Pega a primeira página do PDF
         page_width = page.rect.width  # Largura total da página
