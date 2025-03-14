@@ -1269,39 +1269,33 @@ def atualizar_status_tipo_cliente():
 
 @app.route('/gerar_pdf_orcamento/<codigo>')
 def gerar_pdf_orcamento(codigo):
-    # Buscar o orçamento salvo pelo código
     orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
-
     if not orcamento_salvo:
         flash("Orçamento salvo não encontrado!", "danger")
         return redirect(url_for('listar_orcamentos_salvos'))
 
-    # Buscar IDs dos orçamentos vinculados
     ids = [int(id) for id in orcamento_salvo.orcamentos_ids.split(",")]
     orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
-
-    # Calcular o valor total do orçamento
     valor_total_final = sum(o.valor_total for o in orcamentos)
 
-    # Gera a URL absoluta da logo
-    logo_url = url_for('static', filename='logo.jpg', _external=True)
+    # ✅ Criamos a URL absoluta da logo
+    logo_url = "https://orcamento-t9w2.onrender.com/static/logo.jpg"
 
-    # Renderiza o HTML passando a URL da logo
+    # ✅ Passamos a URL da logo para o template
     rendered_html = render_template(
         "detalhes_orcamento_salvo.html",
-        logo_url=logo_url,  # Envia a URL da logo para o template
+        logo_url=logo_url,  # 🔥 Envia a URL absoluta para o HTML
         codigo_orcamento=orcamento_salvo.codigo,
         data_salvo=orcamento_salvo.data_salvo,
         cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
         orcamentos=orcamentos,
         valor_total_final="R$ {:,.2f}".format(valor_total_final).replace(",", "X").replace(".", ",").replace("X", "."),
-        pdf=True  # Indica que está gerando PDF
+        pdf=True
     )
 
-    # Converte HTML para PDF usando o base_url para carregar recursos corretamente
-    pdf = HTML(string=rendered_html, base_url=request.host_url).write_pdf()
+    # ✅ Mantemos `base_url` correto para o WeasyPrint
+    pdf = HTML(string=rendered_html, base_url="https://orcamento-t9w2.onrender.com").write_pdf()
 
-    # Retorna o PDF como resposta
     response = make_response(pdf)
     response.headers["Content-Type"] = "application/pdf"
     response.headers["Content-Disposition"] = f"inline; filename=orcamento_{codigo}.pdf"
