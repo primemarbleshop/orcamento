@@ -1316,8 +1316,8 @@ def gerar_pdf_orcamento(codigo):
         page_width = page.rect.width  # Largura total da página
         page_height = page.rect.height  # Altura total da página
 
-        logo_width = 120  # Ajuste conforme necessário
-        logo_height = 60  # Ajuste conforme necessário
+        logo_width = 300  # Ajuste conforme necessário
+        logo_height = 150  # Ajuste conforme necessário
 
         # 🔥 Posiciona a logo no canto superior direito
         rect = fitz.Rect(page_width - logo_width - 30, 30, page_width - 30, 30 + logo_height)
