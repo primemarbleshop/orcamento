@@ -7,6 +7,7 @@ from datetime import datetime
 from pytz import timezone
 from weasyprint import HTML
 import io
+import requests
 
 from models import db, Orcamento, OrcamentoSalvo, Usuario  # Modelos do SQLAlchemy
 
