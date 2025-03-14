@@ -1322,7 +1322,7 @@ def gerar_pdf_orcamento(codigo):
         logo_height = 120  # Ajuste conforme necessário
 
         # 🔥 Posiciona a logo no canto superior direito
-        rect = fitz.Rect(page_width - logo_width - -20, 10, page_width - -20, 10 + logo_height)
+        rect = fitz.Rect(page_width - logo_width - -20, 20, page_width - -20, 20 + logo_height)
 
         page.insert_image(rect, filename=logo_path)
     else:
