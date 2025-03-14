@@ -1278,7 +1278,6 @@ def atualizar_status_tipo_cliente():
 
 
 
-
 @app.route('/gerar_pdf_orcamento/<codigo>')
 def gerar_pdf_orcamento(codigo):
     orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
@@ -1311,9 +1310,18 @@ def gerar_pdf_orcamento(codigo):
     # ✅ Inserir a logo no PDF diretamente do caminho local
     final_pdf_path = "/tmp/final_orcamento.pdf"
     doc = fitz.open(temp_pdf_path)
+
     if os.path.exists(logo_path):  # 🔥 Apenas adiciona a logo se o arquivo existir
         page = doc[0]  # Pega a primeira página do PDF
-        rect = fitz.Rect(30, 30, 130, 130)  # Posição da logo no canto superior esquerdo
+        page_width = page.rect.width  # Largura total da página
+        page_height = page.rect.height  # Altura total da página
+
+        logo_width = 120  # Ajuste conforme necessário
+        logo_height = 60  # Ajuste conforme necessário
+
+        # 🔥 Posiciona a logo no canto superior direito
+        rect = fitz.Rect(page_width - logo_width - 30, 30, page_width - 30, 30 + logo_height)
+
         page.insert_image(rect, filename=logo_path)
     else:
         print("⚠️ Aviso: A logo não foi adicionada porque o arquivo local não foi encontrado.")
