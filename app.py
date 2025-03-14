@@ -9,6 +9,7 @@ from weasyprint import HTML
 import io
 import requests
 import base64
+import os
 
 from models import db, Orcamento, OrcamentoSalvo, Usuario  # Modelos do SQLAlchemy
 
@@ -1274,6 +1275,7 @@ def atualizar_status_tipo_cliente():
         
 
 
+
 @app.route('/gerar_pdf_orcamento/<codigo>')
 def gerar_pdf_orcamento(codigo):
     orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
@@ -1287,14 +1289,17 @@ def gerar_pdf_orcamento(codigo):
 
     # ✅ Baixar a logo e converter para Base64
     logo_url = "https://orcamento-t9w2.onrender.com/static/logo.jpg"
+    logo_base64 = ""
+
     try:
         response = requests.get(logo_url, timeout=10)
         if response.status_code == 200:
             logo_base64 = base64.b64encode(response.content).decode("utf-8")
             logo_data_uri = f"data:image/jpeg;base64,{logo_base64}"
+            print("✅ Logo convertida com sucesso!")
         else:
             logo_data_uri = None
-            print(f"❌ Erro ao baixar a logo: Status {response.status_code}")
+            print(f"❌ Erro ao baixar a logo! Status: {response.status_code}")
     except Exception as e:
         logo_data_uri = None
         print(f"❌ Erro ao tentar baixar a logo: {e}")
@@ -1311,7 +1316,7 @@ def gerar_pdf_orcamento(codigo):
         pdf=True
     )
 
-    # ✅ Mantemos `base_url` correto para o WeasyPrint
+    # ✅ Gera o PDF com a logo já embutida no HTML
     pdf = HTML(string=rendered_html).write_pdf()
 
     response = make_response(pdf)
