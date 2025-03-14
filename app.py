@@ -7,6 +7,7 @@ from datetime import datetime
 from pytz import timezone
 from weasyprint import HTML
 import io
+import fitz  # PyMuPDF
 import requests
 import base64
 import os
@@ -1276,6 +1277,8 @@ def atualizar_status_tipo_cliente():
 
 
 
+
+
 @app.route('/gerar_pdf_orcamento/<codigo>')
 def gerar_pdf_orcamento(codigo):
     orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
@@ -1287,27 +1290,9 @@ def gerar_pdf_orcamento(codigo):
     orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
     valor_total_final = sum(o.valor_total for o in orcamentos)
 
-    # ✅ Baixar a logo e converter para Base64
-    logo_url = "https://orcamento-t9w2.onrender.com/static/logo.jpg"
-    logo_base64 = ""
-
-    try:
-        response = requests.get(logo_url, timeout=10)
-        if response.status_code == 200:
-            logo_base64 = base64.b64encode(response.content).decode("utf-8")
-            logo_data_uri = f"data:image/jpeg;base64,{logo_base64}"
-            print("✅ Logo convertida com sucesso!")
-        else:
-            logo_data_uri = None
-            print(f"❌ Erro ao baixar a logo! Status: {response.status_code}")
-    except Exception as e:
-        logo_data_uri = None
-        print(f"❌ Erro ao tentar baixar a logo: {e}")
-
-    # ✅ Passamos a imagem Base64 para o template
+    # ✅ Renderizamos o HTML normalmente sem a logo
     rendered_html = render_template(
         "detalhes_orcamento_salvo.html",
-        logo_url=logo_data_uri,  # 🔥 Agora a logo é embutida como Base64
         codigo_orcamento=orcamento_salvo.codigo,
         data_salvo=orcamento_salvo.data_salvo,
         cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
@@ -1316,12 +1301,47 @@ def gerar_pdf_orcamento(codigo):
         pdf=True
     )
 
-    # ✅ Gera o PDF com a logo já embutida no HTML
-    pdf = HTML(string=rendered_html).write_pdf()
+    # ✅ Criamos um arquivo temporário para armazenar o PDF sem a logo
+    temp_pdf_path = "/tmp/temp_orcamento.pdf"
+    HTML(string=rendered_html, base_url="https://orcamento-t9w2.onrender.com").write_pdf(temp_pdf_path)
 
-    response = make_response(pdf)
+    # ✅ Baixar a logo da URL e salvar temporariamente
+    logo_url = "https://orcamento-t9w2.onrender.com/static/logo.jpg"
+    logo_path = "/tmp/temp_logo.jpg"
+
+    try:
+        response = requests.get(logo_url, timeout=10)
+        if response.status_code == 200:
+            with open(logo_path, "wb") as file:
+                file.write(response.content)
+    except Exception as e:
+        print(f"❌ Erro ao baixar a logo: {e}")
+        logo_path = None  # Se falhar, a logo não será adicionada
+
+    # ✅ Inserir a logo no PDF
+    final_pdf_path = "/tmp/final_orcamento.pdf"
+    doc = fitz.open(temp_pdf_path)
+    if logo_path:
+        page = doc[0]  # Pega a primeira página do PDF
+        rect = fitz.Rect(30, 30, 130, 130)  # Posição da logo no canto superior esquerdo
+        page.insert_image(rect, filename=logo_path)
+
+    doc.save(final_pdf_path)  # Salva o PDF final com a logo
+    doc.close()
+
+    # ✅ Retornamos o PDF final com a logo inserida
+    with open(final_pdf_path, "rb") as pdf_file:
+        pdf_bytes = pdf_file.read()
+
+    response = make_response(pdf_bytes)
     response.headers["Content-Type"] = "application/pdf"
     response.headers["Content-Disposition"] = f"inline; filename=orcamento_{codigo}.pdf"
+
+    # ✅ Limpa os arquivos temporários
+    os.remove(temp_pdf_path)
+    if os.path.exists(logo_path):
+        os.remove(logo_path)
+    os.remove(final_pdf_path)
 
     return response
 
