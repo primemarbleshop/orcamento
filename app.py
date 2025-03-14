@@ -1305,38 +1305,23 @@ def gerar_pdf_orcamento(codigo):
     temp_pdf_path = "/tmp/temp_orcamento.pdf"
     HTML(string=rendered_html, base_url="https://orcamento-t9w2.onrender.com").write_pdf(temp_pdf_path)
 
-    # ✅ Baixar a logo da URL e salvar temporariamente
-    logo_url = "https://orcamento-t9w2.onrender.com/static/logo.jpg"
-    logo_path = "/tmp/temp_logo.jpg"
+    # ✅ Definição do caminho local para a logo SEM precisar baixar
+    logo_path = "static/logo.jpg"
 
-    try:
-        response = requests.get(logo_url, timeout=20)  # ⬆ Aumentamos o timeout para evitar erro
-        if response.status_code == 200:
-            with open(logo_path, "wb") as file:
-                file.write(response.content)
-            print("✅ Logo baixada com sucesso!")
-        else:
-            print(f"❌ Erro ao baixar a logo: Status {response.status_code}")
-            logo_path = None
-    except Exception as e:
-        print(f"❌ Erro ao tentar baixar a logo: {e}")
-        logo_path = None  # Se falhar, a logo não será adicionada
-
-    # ✅ Inserir a logo no PDF SOMENTE SE O DOWNLOAD FUNCIONAR
+    # ✅ Inserir a logo no PDF diretamente do caminho local
     final_pdf_path = "/tmp/final_orcamento.pdf"
     doc = fitz.open(temp_pdf_path)
-
-    if logo_path and os.path.exists(logo_path):  # 🔥 Só adiciona a logo se o arquivo existir
+    if os.path.exists(logo_path):  # 🔥 Apenas adiciona a logo se o arquivo existir
         page = doc[0]  # Pega a primeira página do PDF
         rect = fitz.Rect(30, 30, 130, 130)  # Posição da logo no canto superior esquerdo
         page.insert_image(rect, filename=logo_path)
     else:
-        print("⚠️ Aviso: A logo não foi adicionada ao PDF porque não foi baixada.")
+        print("⚠️ Aviso: A logo não foi adicionada porque o arquivo local não foi encontrado.")
 
-    doc.save(final_pdf_path)  # Salva o PDF final com ou sem a logo
+    doc.save(final_pdf_path)  # Salva o PDF final com a logo (ou sem, caso não exista)
     doc.close()
 
-    # ✅ Retornamos o PDF final com ou sem a logo
+    # ✅ Retornamos o PDF final com a logo inserida
     with open(final_pdf_path, "rb") as pdf_file:
         pdf_bytes = pdf_file.read()
 
@@ -1346,8 +1331,6 @@ def gerar_pdf_orcamento(codigo):
 
     # ✅ Limpa os arquivos temporários
     os.remove(temp_pdf_path)
-    if logo_path and os.path.exists(logo_path):
-        os.remove(logo_path)
     os.remove(final_pdf_path)
 
     return response
