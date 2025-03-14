@@ -1311,11 +1311,7 @@ def gerar_pdf_orcamento(codigo):
     final_pdf_path = "/tmp/final_orcamento.pdf"
     doc = fitz.open(temp_pdf_path)
 
-    scale_factor = 0.8  # 🔥 Reduz a escala para 80% do tamanho original
-
-    for page in doc:  # 🔥 Aplica a escala em todas as páginas
-        page.set_mediabox(fitz.Rect(0, 0, page.rect.width * scale_factor, page.rect.height * scale_factor))
-
+   
 
     if os.path.exists(logo_path):  # 🔥 Apenas adiciona a logo se o arquivo existir
         page = doc[0]  # Pega a primeira página do PDF
