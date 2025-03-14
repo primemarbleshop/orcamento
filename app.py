@@ -1278,13 +1278,21 @@ def gerar_pdf_orcamento(codigo):
     orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
     valor_total_final = sum(o.valor_total for o in orcamentos)
 
-    # ✅ Criamos a URL absoluta da logo
+    # ✅ Baixa a logo para um caminho local (caso o WeasyPrint bloqueie imagens externas)
     logo_url = "https://orcamento-t9w2.onrender.com/static/logo.jpg"
+    logo_local_path = os.path.join("static", "logo_temp.jpg")
 
-    # ✅ Passamos a URL da logo para o template
+    try:
+        response = requests.get(logo_url, timeout=5)
+        with open(logo_local_path, "wb") as file:
+            file.write(response.content)
+    except Exception as e:
+        print(f"Erro ao baixar a logo: {e}")
+
+    # ✅ Passamos o caminho local para o template
     rendered_html = render_template(
         "detalhes_orcamento_salvo.html",
-        logo_url=logo_url,  # 🔥 Envia a URL absoluta para o HTML
+        logo_url=logo_local_path,  # 🔥 Agora usando o caminho local no PDF
         codigo_orcamento=orcamento_salvo.codigo,
         data_salvo=orcamento_salvo.data_salvo,
         cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
@@ -1294,7 +1302,7 @@ def gerar_pdf_orcamento(codigo):
     )
 
     # ✅ Mantemos `base_url` correto para o WeasyPrint
-    pdf = HTML(string=rendered_html, base_url="https://orcamento-t9w2.onrender.com").write_pdf()
+    pdf = HTML(string=rendered_html, base_url=f"file://{os.getcwd()}").write_pdf()
 
     response = make_response(pdf)
     response.headers["Content-Type"] = "application/pdf"
