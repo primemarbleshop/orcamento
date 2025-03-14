@@ -1176,9 +1176,13 @@ def detalhes_orcamento_salvo(codigo):
     # Calcular o valor total
     valor_total_final = sum(o.valor_total for o in orcamentos)
 
+    # ✅ Adicionando a URL da logo para o template
+    logo_url = "https://orcamento-t9w2.onrender.com/static/logo.jpg"
+
     return render_template(
         "detalhes_orcamento_salvo.html",
-        codigo_orcamento=orcamento_salvo.codigo,  # Aqui passa o código correto
+        logo_url=logo_url,  # 🔥 Agora a logo é enviada para o HTML
+        codigo_orcamento=orcamento_salvo.codigo,
         data_salvo=orcamento_salvo.data_salvo,
         cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
         orcamentos=orcamentos,
