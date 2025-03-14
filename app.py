@@ -8,6 +8,7 @@ from pytz import timezone
 from weasyprint import HTML
 import io
 import requests
+import os
 
 from models import db, Orcamento, OrcamentoSalvo, Usuario  # Modelos do SQLAlchemy
 
