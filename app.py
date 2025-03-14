@@ -8,7 +8,7 @@ from pytz import timezone
 from weasyprint import HTML
 import io
 import requests
-import os
+import base64
 
 from models import db, Orcamento, OrcamentoSalvo, Usuario  # Modelos do SQLAlchemy
 
@@ -1273,6 +1273,7 @@ def atualizar_status_tipo_cliente():
         return jsonify({"success": False, "error": str(e)}), 500
         
 
+
 @app.route('/gerar_pdf_orcamento/<codigo>')
 def gerar_pdf_orcamento(codigo):
     orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
@@ -1284,21 +1285,24 @@ def gerar_pdf_orcamento(codigo):
     orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
     valor_total_final = sum(o.valor_total for o in orcamentos)
 
-    # ✅ Baixa a logo para um caminho local (caso o WeasyPrint bloqueie imagens externas)
+    # ✅ Baixar a logo e converter para Base64
     logo_url = "https://orcamento-t9w2.onrender.com/static/logo.jpg"
-    logo_local_path = os.path.join("static", "logo_temp.jpg")
-
     try:
-        response = requests.get(logo_url, timeout=5)
-        with open(logo_local_path, "wb") as file:
-            file.write(response.content)
+        response = requests.get(logo_url, timeout=10)
+        if response.status_code == 200:
+            logo_base64 = base64.b64encode(response.content).decode("utf-8")
+            logo_data_uri = f"data:image/jpeg;base64,{logo_base64}"
+        else:
+            logo_data_uri = None
+            print(f"❌ Erro ao baixar a logo: Status {response.status_code}")
     except Exception as e:
-        print(f"Erro ao baixar a logo: {e}")
+        logo_data_uri = None
+        print(f"❌ Erro ao tentar baixar a logo: {e}")
 
-    # ✅ Passamos o caminho local para o template
+    # ✅ Passamos a imagem Base64 para o template
     rendered_html = render_template(
         "detalhes_orcamento_salvo.html",
-        logo_url=logo_local_path,  # 🔥 Agora usando o caminho local no PDF
+        logo_url=logo_data_uri,  # 🔥 Agora a logo é embutida como Base64
         codigo_orcamento=orcamento_salvo.codigo,
         data_salvo=orcamento_salvo.data_salvo,
         cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
@@ -1308,14 +1312,13 @@ def gerar_pdf_orcamento(codigo):
     )
 
     # ✅ Mantemos `base_url` correto para o WeasyPrint
-    pdf = HTML(string=rendered_html, base_url=f"file://{os.getcwd()}").write_pdf()
+    pdf = HTML(string=rendered_html).write_pdf()
 
     response = make_response(pdf)
     response.headers["Content-Type"] = "application/pdf"
     response.headers["Content-Disposition"] = f"inline; filename=orcamento_{codigo}.pdf"
 
     return response
-
 
 
 
