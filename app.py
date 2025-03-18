@@ -1105,52 +1105,51 @@ def salvar_orcamento():
 
 @app.route("/orcamentos_salvos")
 def listar_orcamentos_salvos():
-    user_cpf = session.get("user_cpf")  # Obtém o CPF do usuário logado
-    is_admin = session.get("admin")  # Verifica se o usuário é admin
+    user_cpf = session.get("user_cpf")
+    is_admin = session.get("admin")
 
-   orcamentos_salvos = OrcamentoSalvo.query.order_by(OrcamentoSalvo.codigo.desc()).all()
+    orcamentos_salvos = OrcamentoSalvo.query.order_by(OrcamentoSalvo.codigo.desc()).all()
 
-resultado = []
+    resultado = []
 
-for orc_salvo in orcamentos_salvos:
-    primeiro_orcamento_id = int(orc_salvo.orcamentos_ids.split(",")[0])
-    primeiro_orcamento = Orcamento.query.get(primeiro_orcamento_id)
+    for orc_salvo in orcamentos_salvos:
+        primeiro_orcamento_id = int(orc_salvo.orcamentos_ids.split(",")[0])
+        primeiro_orcamento = Orcamento.query.get(primeiro_orcamento_id)
 
-    if not primeiro_orcamento:
-        continue
+        if not primeiro_orcamento:
+            continue
 
-    cliente = Cliente.query.get(primeiro_orcamento.cliente_id)
-    if not cliente:
-        continue
+        cliente = Cliente.query.get(primeiro_orcamento.cliente_id)
+        if not cliente:
+            continue
 
-    if is_admin or cliente.dono == user_cpf:
-        resultado.append({
-            'id': orc_salvo.id,
-            'codigo': orc_salvo.codigo,
-            'data_salvo': orc_salvo.data_salvo,
-            'valor_total': orc_salvo.valor_total,
-            'criado_por': orc_salvo.criado_por,
-            'status': orc_salvo.status,
-            'tipo_cliente': orc_salvo.tipo_cliente,
-            'cliente_nome': cliente.nome,
-            'cliente_dono': cliente.dono
-        })
+        # Esse trecho deixa claro o filtro admin e não-admin
+        if is_admin or cliente.dono == user_cpf:
+            resultado.append({
+                'id': orc_salvo.id,
+                'codigo': orc_salvo.codigo,
+                'data_salvo': orc_salvo.data_salvo,
+                'valor_total': orc_salvo.valor_total,
+                'criado_por': orc_salvo.criado_por,
+                'status': orc_salvo.status,
+                'tipo_cliente': orc_salvo.tipo_cliente,
+                'cliente_nome': cliente.nome,
+                'cliente_dono': cliente.dono
+            })
 
-orcamentos = resultado  # Aqui que está a alteração principal
-
-
-    # 🔹 Filtrar os clientes para o dropdown de busca
+    # Agora adicionando a clareza no filtro dos clientes:
     if is_admin:
         clientes = Cliente.query.all()
     else:
         clientes = Cliente.query.filter_by(dono=user_cpf).all()
 
-    usuarios = Usuario.query.all()  # Lista de usuários para o filtro "Criado Por"
+    usuarios = Usuario.query.all()
 
-    return render_template("orcamentos_salvos.html", 
-                           clientes=clientes, 
-                           usuarios=usuarios, 
-                           orcamentos=orcamentos)
+    return render_template("orcamentos_salvos.html",
+                           clientes=clientes,
+                           usuarios=usuarios,
+                           orcamentos=resultado)
+
 
 
 
