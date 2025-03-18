@@ -1058,36 +1058,40 @@ import time  # Certifique-se de importar time
 @app.route('/salvar_orcamento', methods=['POST'])
 def salvar_orcamento():
     try:
+        # 🔹 Pegando os dados do JSON enviado pelo frontend
         data = request.json
         ids = data.get('ids')
-        cliente_id = data.get('cliente_id')  # 🔥 Pegando o ID do cliente diretamente do JSON
 
-        if not ids or not cliente_id:
-            return jsonify({"success": False, "error": "Cliente ou orçamentos não selecionados!"}), 400
+        if not ids:
+            return jsonify({"success": False, "error": "Nenhum orçamento selecionado!"}), 400
 
+        # 🔹 Convertendo a string de IDs para uma lista de inteiros
         ids = [int(id.strip()) for id in ids.split(",") if id.strip().isdigit()]
         if not ids:
             return jsonify({"success": False, "error": "IDs inválidos!"}), 400
 
+        # 🔹 Buscar o usuário pelo CPF salvo na sessão
         usuario = Usuario.query.filter_by(cpf=session.get('user_cpf')).first()
-        criado_por = usuario.nome if usuario else "Desconhecido"
+        criado_por = usuario.nome if usuario else "Desconhecido"  # Nome do usuário logado
 
+        # 🔹 Gerar o código sequencial iniciando em O000100
         ultimo_orcamento = db.session.query(db.func.max(OrcamentoSalvo.id)).scalar()
         novo_codigo = f"O{(100 + (ultimo_orcamento or 0)):06d}"
 
+        # 🔹 Data de salvamento
         data_salvamento = datetime.now(br_tz)
 
+        # 🔹 Calcular o valor total dos orçamentos selecionados
         valor_total = db.session.query(db.func.sum(Orcamento.valor_total)).filter(Orcamento.id.in_(ids)).scalar()
         valor_total = valor_total if valor_total else 0.0
         
-        # 🔥 Agora associamos explicitamente o `cliente_id`
+        # 🔹 Criar o novo orçamento salvo
         novo_orcamento = OrcamentoSalvo(
             codigo=novo_codigo,
             data_salvo=data_salvamento,
-            orcamentos_ids=",".join(map(str, ids)),
+            orcamentos_ids=",".join(map(str, ids)),  # IDs dos orçamentos vinculados
             valor_total=valor_total,
-            criado_por=criado_por,
-            cliente_id=cliente_id  # 🔥 Agora associamos o orçamento ao cliente correto
+            criado_por=criado_por  # 🔹 Agora pega o nome diretamente do banco de dados
         )
 
         db.session.add(novo_orcamento)
@@ -1108,34 +1112,45 @@ def listar_orcamentos_salvos():
     user_cpf = session.get("user_cpf")  # Obtém o CPF do usuário logado
     is_admin = session.get("admin")  # Verifica se o usuário é admin
 
-    # 🔹 Criamos a query base
-    query = db.session.query(
-        OrcamentoSalvo.id,
-        OrcamentoSalvo.codigo,
-        OrcamentoSalvo.data_salvo,
-        OrcamentoSalvo.valor_total,
-        OrcamentoSalvo.criado_por,
-        OrcamentoSalvo.status,
-        OrcamentoSalvo.tipo_cliente,
-        Cliente.nome.label("cliente_nome"),
-        Cliente.dono.label("cliente_dono")  # CPF de quem cadastrou o cliente
-    ).join(Orcamento, db.func.instr(OrcamentoSalvo.orcamentos_ids, db.cast(Orcamento.id, db.String())) > 0
-    ).join(Cliente, Cliente.id == Orcamento.cliente_id)  # 🔥 JOIN correto passando pela tabela Orcamento
-
-    # 🔹 Se o usuário não for admin, filtramos apenas os orçamentos dos seus clientes
-    if not is_admin:
-        query = query.filter(Cliente.dono == user_cpf)
-
-    # 🔹 Agrupamos os resultados corretamente para evitar duplicações
-    orcamentos = query.group_by(
-        OrcamentoSalvo.id, Cliente.nome, Cliente.dono
-    ).order_by(OrcamentoSalvo.codigo.desc()).all()
-
-    # 🔹 Preparamos os clientes para o dropdown de busca
+    # Se for administrador, mostrar todos os orçamentos sem restrições
     if is_admin:
-        clientes = Cliente.query.all()  # 🔥 Administrador vê todos os clientes
+        orcamentos = db.session.query(
+            db.func.min(OrcamentoSalvo.id).label("id"),
+            OrcamentoSalvo.codigo,
+            db.func.min(OrcamentoSalvo.data_salvo).label("data_salvo"),
+            db.func.min(OrcamentoSalvo.valor_total).label("valor_total"),
+            db.func.min(OrcamentoSalvo.criado_por).label("criado_por"),
+            db.func.min(OrcamentoSalvo.status).label("status"),
+            db.func.min(OrcamentoSalvo.tipo_cliente).label("tipo_cliente"),
+            db.func.min(Cliente.nome).label("cliente_nome"),
+            db.func.min(Cliente.dono).label("cliente_dono")  # CPF do dono do cliente
+        ).join(Orcamento, db.func.instr(OrcamentoSalvo.orcamentos_ids, db.cast(Orcamento.id, db.String())) > 0
+        ).join(Cliente, Cliente.id == Orcamento.cliente_id
+        ).group_by(OrcamentoSalvo.codigo
+        ).order_by(OrcamentoSalvo.codigo.desc()).all()
     else:
-        clientes = Cliente.query.filter_by(dono=user_cpf).all()  # 🔥 Usuário comum vê apenas seus clientes
+        # Para usuários comuns, mostrar apenas os orçamentos dos clientes que ele cadastrou sem duplicação
+        orcamentos = db.session.query(
+            db.func.min(OrcamentoSalvo.id).label("id"),
+            OrcamentoSalvo.codigo,
+            db.func.min(OrcamentoSalvo.data_salvo).label("data_salvo"),
+            db.func.min(OrcamentoSalvo.valor_total).label("valor_total"),
+            db.func.min(OrcamentoSalvo.criado_por).label("criado_por"),
+            db.func.min(OrcamentoSalvo.status).label("status"),
+            db.func.min(OrcamentoSalvo.tipo_cliente).label("tipo_cliente"),
+            db.func.min(Cliente.nome).label("cliente_nome"),
+            db.func.min(Cliente.dono).label("cliente_dono")  # CPF do dono do cliente
+        ).join(Orcamento, db.func.instr(OrcamentoSalvo.orcamentos_ids, db.cast(Orcamento.id, db.String())) > 0
+        ).join(Cliente, Cliente.id == Orcamento.cliente_id
+        ).filter(Cliente.dono == user_cpf  # 🔹 Esse filtro só se aplica a usuários normais
+        ).group_by(OrcamentoSalvo.codigo
+        ).order_by(OrcamentoSalvo.codigo.desc()).all()
+
+    # 🔹 Filtrar os clientes para o dropdown de busca
+    if is_admin:
+        clientes = Cliente.query.all()
+    else:
+        clientes = Cliente.query.filter_by(dono=user_cpf).all()
 
     usuarios = Usuario.query.all()  # Lista de usuários para o filtro "Criado Por"
 
