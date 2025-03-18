@@ -81,11 +81,9 @@
             <th>Ações</th>
         </tr>
     </thead>
-	    
-   <tbody id="orcamento_table">
+    <tbody id="orcamento_table">
     {% for orcamento in orcamentos %}
     <tr 
-        data-id="{{ orcamento.id }}"  <!-- 🔹 Adicionamos o ID do orçamento salvo -->
         data-codigo="{{ orcamento.codigo | lower }}"
         data-cliente="{{ orcamento.cliente_nome }}"
     >
@@ -97,35 +95,37 @@
         <td>{{ orcamento.data_salvo.strftime('%d/%m/%Y') }}</td>
         <td>R$ {{ "%.2f"|format(orcamento.valor_total) }}</td>
     <td>
-        <select class="status-select">
-            <option value="Em Espera" {% if orcamento.status == "Em Espera" %}selected{% endif %}>Em Espera</option>
-            <option value="Aprovado" {% if orcamento.status == "Aprovado" %}selected{% endif %}>Aprovado</option>
-            <option value="Declinado" {% if orcamento.status == "Declinado" %}selected{% endif %}>Declinado</option>
-        </select>
-    </td>
-    <td>
-        <select class="tipo-cliente-select">
-            <option value="Selecionar" {% if not orcamento.tipo_cliente or orcamento.tipo_cliente == "Selecionar" %}selected{% endif %}>Selecionar</option>
-            <option value="Cliente de Porta" {% if orcamento.tipo_cliente == "Cliente de Porta" %}selected{% endif %}>Cliente de Porta</option>
-            <option value="Carteira de Cliente" {% if orcamento.tipo_cliente == "Carteira de Cliente" %}selected{% endif %}>Carteira de Cliente</option>
-            <option value="Trafego Pago Google" {% if orcamento.tipo_cliente == "Trafego Pago Google" %}selected{% endif %}>Trafego Pago Google</option>
-            <option value="Trafego Pago Meta" {% if orcamento.tipo_cliente == "Trafego Pago Meta" %}selected{% endif %}>Trafego Pago Meta</option>
-            <option value="Indicação Arquiteto" {% if orcamento.tipo_cliente == "Indicação Arquiteto" %}selected{% endif %}>Indicação Arquiteto</option>
-            <option value="Indicação Construtor" {% if orcamento.tipo_cliente == "Indicação Construtor" %}selected{% endif %}>Indicação Construtor</option>
-            <option value="Indicação Cliente" {% if orcamento.tipo_cliente == "Indicação Cliente" %}selected{% endif %}>Indicação Cliente</option>
-            <option value="Indicação Marcenaria" {% if orcamento.tipo_cliente == "Indicação Marcenaria" %}selected{% endif %}>Indicação Marcenaria</option>
-        </select>
-    </td>
+                <select class="status-select">
+                    <option value="Em Espera" {% if orcamento.status == "Em Espera" %}selected{% endif %}>Em Espera</option>
+                    <option value="Aprovado" {% if orcamento.status == "Aprovado" %}selected{% endif %}>Aprovado</option>
+                    <option value="Declinado" {% if orcamento.status == "Declinado" %}selected{% endif %}>Declinado</option>
+                </select>
+            </td>
 
-    <td>
-        <button class="btn-visualizar" data-url="{{ url_for('detalhes_orcamento_salvo', codigo=orcamento.codigo) }}">Visualizar</button>
-        <button class="btn-salvar" data-id="{{ orcamento.id }}">Salvar</button>  <!-- 🔹 Corrigido para pegar o ID correto -->
-        <button class="btn-deletar" data-id="{{ orcamento.id }}">Deletar</button>
-    </td>
+            <!-- 🔹 Tipo Cliente como Lista Suspensa -->
+            <td>
+                <select class="tipo-cliente-select">
+                    <option value="Selecionar" {% if not orcamento.tipo_cliente or orcamento.tipo_cliente == "Selecionar" %}selected{% endif %}>Selecionar</option>
+                    <option value="Cliente de Porta" {% if orcamento.tipo_cliente == "Cliente de Porta" %}selected{% endif %}>Cliente de Porta</option>
+                    <option value="Carteira de Cliente" {% if orcamento.tipo_cliente == "Carteira de Cliente" %}selected{% endif %}>Carteira de Cliente</option>
+                    <option value="Trafego Pago Google" {% if orcamento.tipo_cliente == "Trafego Pago Google" %}selected{% endif %}>Trafego Pago Google</option>
+                    <option value="Trafego Pago Meta" {% if orcamento.tipo_cliente == "Trafego Pago Meta" %}selected{% endif %}>Trafego Pago Meta</option>
+                    <option value="Indicação Arquiteto" {% if orcamento.tipo_cliente == "Indicação Arquiteto" %}selected{% endif %}>Indicação Arquiteto</option>
+                    <option value="Indicação Construtor" {% if orcamento.tipo_cliente == "Indicação Construtor" %}selected{% endif %}>Indicação Construtor</option>
+                    <option value="Indicação Cliente" {% if orcamento.tipo_cliente == "Indicação Cliente" %}selected{% endif %}>Indicação Cliente</option>
+                    <option value="Indicação Marcenaria" {% if orcamento.tipo_cliente == "Indicação Marcenaria" %}selected{% endif %}>Indicação Marcenaria</option>
+                </select>
+            </td>
+
+        <td>
+
+            <button class="btn-visualizar" data-url="{{ url_for('detalhes_orcamento_salvo', codigo=orcamento.codigo) }}">Visualizar</button>
+	    <button class="btn-salvar" data-id="{{ orcamento.id }}">Salvar</button>
+            <button class="btn-deletar" data-id="{{ orcamento.id }}">Deletar</button>
+        </td>
     </tr>
     {% endfor %}
-</tbody>
-
+    </tbody>
     </table>
 
 </br>
