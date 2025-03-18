@@ -7,10 +7,6 @@ from datetime import datetime
 from pytz import timezone
 from weasyprint import HTML
 import io
-import fitz  # PyMuPDF
-import requests
-import base64
-import os
 
 from models import db, Orcamento, OrcamentoSalvo, Usuario  # Modelos do SQLAlchemy
 
@@ -99,7 +95,6 @@ class OrcamentoSalvo(db.Model):
     status = db.Column(db.String(50), nullable=False, default="Em Espera")  
     tipo_cliente = db.Column(db.String(50), nullable=False, default="Selecionar")
     orcamentos_ids = db.Column(db.String, nullable=False)  # Armazena os IDs separados por vírgula
-    cliente_id = db.Column(db.Integer, db.ForeignKey('cliente.id'))
 
     @property
     def cliente_nome(self):
@@ -624,10 +619,10 @@ def editar_orcamento(id):
         orcamento.rt_percentual = float(request.form.get('rt_percentual', orcamento.rt_percentual or 0)or 0)
 
         # Campos dinâmicos
-        orcamento.comprimento_saia = float(request.form.get('comprimento_saia', orcamento.comprimento_saia or 0) or 0)
-        orcamento.largura_saia = float(request.form.get('largura_saia', orcamento.largura_saia or 0) or 0)
-        orcamento.comprimento_fronte = float(request.form.get('comprimento_fronte', orcamento.comprimento_fronte or 0) or 0)
-        orcamento.largura_fronte = float(request.form.get('largura_fronte', orcamento.largura_fronte or 0) or 0)
+        orcamento.comprimento_saia = float(request.form.get('comprimento_saia', orcamento.comprimento_saia or 0))
+        orcamento.largura_saia = float(request.form.get('largura_saia', orcamento.largura_saia or 0))
+        orcamento.comprimento_fronte = float(request.form.get('comprimento_fronte', orcamento.comprimento_fronte or 0))
+        orcamento.largura_fronte = float(request.form.get('largura_fronte', orcamento.largura_fronte or 0))
         orcamento.tipo_cuba = request.form.get('tipo_cuba', orcamento.tipo_cuba)
         orcamento.quantidade_cubas = int(request.form.get('quantidade_cubas', orcamento.quantidade_cubas or 0) or 0)
         orcamento.comprimento_cuba = float(request.form.get('comprimento_cuba', orcamento.comprimento_cuba or 0) or 0)
@@ -1108,74 +1103,57 @@ def salvar_orcamento():
 
 
 
-
 @app.route("/orcamentos_salvos")
 def listar_orcamentos_salvos():
-    user_cpf = session.get("user_cpf")
-    is_admin = session.get("admin")
+    user_cpf = session.get("user_cpf")  # Obtém o CPF do usuário logado
+    is_admin = session.get("admin")  # Verifica se o usuário é admin
 
+    # Se for administrador, mostrar todos os orçamentos sem restrições
     if is_admin:
-        # Admin: Mostrar todos os orçamentos salvos sem restrições
         orcamentos = db.session.query(
-            OrcamentoSalvo.id,
+            db.func.min(OrcamentoSalvo.id).label("id"),
             OrcamentoSalvo.codigo,
-            OrcamentoSalvo.data_salvo,
-            OrcamentoSalvo.valor_total,
-            OrcamentoSalvo.criado_por,
-            OrcamentoSalvo.status,
-            OrcamentoSalvo.tipo_cliente,
-            Cliente.nome.label("cliente_nome"),
-            Cliente.dono.label("cliente_dono")
-        ).join(
-            Orcamento,
-            db.func.instr(OrcamentoSalvo.orcamentos_ids, db.cast(Orcamento.id, db.String())) > 0
-        ).join(
-            Cliente, Cliente.id == Orcamento.cliente_id
-        ).group_by(
-            OrcamentoSalvo.id, Cliente.nome, Cliente.dono
-        ).order_by(
-            OrcamentoSalvo.codigo.desc()
-        ).all()
+            db.func.min(OrcamentoSalvo.data_salvo).label("data_salvo"),
+            db.func.min(OrcamentoSalvo.valor_total).label("valor_total"),
+            db.func.min(OrcamentoSalvo.criado_por).label("criado_por"),
+            db.func.min(OrcamentoSalvo.status).label("status"),
+            db.func.min(OrcamentoSalvo.tipo_cliente).label("tipo_cliente"),
+            db.func.min(Cliente.nome).label("cliente_nome"),
+            db.func.min(Cliente.dono).label("cliente_dono")  # CPF do dono do cliente
+        ).join(Orcamento, db.func.instr(OrcamentoSalvo.orcamentos_ids, db.cast(Orcamento.id, db.String())) > 0
+        ).join(Cliente, Cliente.id == Orcamento.cliente_id
+        ).group_by(OrcamentoSalvo.codigo
+        ).order_by(OrcamentoSalvo.codigo.desc()).all()
     else:
-        # Usuário comum: Mostrar somente orçamentos salvos de clientes cadastrados por ele
+        # Para usuários comuns, mostrar apenas os orçamentos dos clientes que ele cadastrou sem duplicação
         orcamentos = db.session.query(
-            OrcamentoSalvo.id,
+            db.func.min(OrcamentoSalvo.id).label("id"),
             OrcamentoSalvo.codigo,
-            OrcamentoSalvo.data_salvo,
-            OrcamentoSalvo.valor_total,
-            OrcamentoSalvo.criado_por,
-            OrcamentoSalvo.status,
-            OrcamentoSalvo.tipo_cliente,
-            Cliente.nome.label("cliente_nome"),
-            Cliente.dono.label("cliente_dono")
-        ).join(
-            Orcamento,
-            db.func.instr(OrcamentoSalvo.orcamentos_ids, db.cast(Orcamento.id, db.String())) > 0
-        ).join(
-            Cliente, Cliente.id == Orcamento.cliente_id
-        ).filter(
-            Cliente.dono == user_cpf
-        ).group_by(
-            OrcamentoSalvo.id, Cliente.nome, Cliente.dono
-        ).order_by(
-            OrcamentoSalvo.codigo.desc()
-        ).all()
+            db.func.min(OrcamentoSalvo.data_salvo).label("data_salvo"),
+            db.func.min(OrcamentoSalvo.valor_total).label("valor_total"),
+            db.func.min(OrcamentoSalvo.criado_por).label("criado_por"),
+            db.func.min(OrcamentoSalvo.status).label("status"),
+            db.func.min(OrcamentoSalvo.tipo_cliente).label("tipo_cliente"),
+            db.func.min(Cliente.nome).label("cliente_nome"),
+            db.func.min(Cliente.dono).label("cliente_dono")  # CPF do dono do cliente
+        ).join(Orcamento, db.func.instr(OrcamentoSalvo.orcamentos_ids, db.cast(Orcamento.id, db.String())) > 0
+        ).join(Cliente, Cliente.id == Orcamento.cliente_id
+        ).filter(Cliente.dono == user_cpf  # 🔹 Esse filtro só se aplica a usuários normais
+        ).group_by(OrcamentoSalvo.codigo
+        ).order_by(OrcamentoSalvo.codigo.desc()).all()
 
-    # Dropdown filtrado corretamente com if/else também
+    # 🔹 Filtrar os clientes para o dropdown de busca
     if is_admin:
         clientes = Cliente.query.all()
     else:
         clientes = Cliente.query.filter_by(dono=user_cpf).all()
 
-    usuarios = Usuario.query.all()
+    usuarios = Usuario.query.all()  # Lista de usuários para o filtro "Criado Por"
 
-    return render_template("orcamentos_salvos.html",
-                           clientes=clientes,
-                           usuarios=usuarios,
+    return render_template("orcamentos_salvos.html", 
+                           clientes=clientes, 
+                           usuarios=usuarios, 
                            orcamentos=orcamentos)
-
-
-
 
 
 
@@ -1198,13 +1176,9 @@ def detalhes_orcamento_salvo(codigo):
     # Calcular o valor total
     valor_total_final = sum(o.valor_total for o in orcamentos)
 
-    # ✅ Adicionando a URL da logo para o template
-    logo_url = "https://orcamento-t9w2.onrender.com/static/logo.jpg"
-
     return render_template(
         "detalhes_orcamento_salvo.html",
-        logo_url=logo_url,  # 🔥 Agora a logo é enviada para o HTML
-        codigo_orcamento=orcamento_salvo.codigo,
+        codigo_orcamento=orcamento_salvo.codigo,  # Aqui passa o código correto
         data_salvo=orcamento_salvo.data_salvo,
         cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
         orcamentos=orcamentos,
@@ -1262,8 +1236,6 @@ def deletar_orcamento_salvo(orcamento_id):
         db.session.rollback()
         return jsonify({"error": f"Erro ao excluir orçamento: {str(e)}"}), 500
 
-
-
 @app.route('/atualizar_status_tipo_cliente', methods=['POST'])
 def atualizar_status_tipo_cliente():
     try:
@@ -1295,21 +1267,26 @@ def atualizar_status_tipo_cliente():
         return jsonify({"success": False, "error": str(e)}), 500
         
 
-
-
-
 @app.route('/gerar_pdf_orcamento/<codigo>')
 def gerar_pdf_orcamento(codigo):
+    # Buscar o orçamento salvo pelo código
     orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
+
     if not orcamento_salvo:
         flash("Orçamento salvo não encontrado!", "danger")
         return redirect(url_for('listar_orcamentos_salvos'))
 
+    # Buscar IDs dos orçamentos vinculados
     ids = [int(id) for id in orcamento_salvo.orcamentos_ids.split(",")]
     orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
+
+    # Calcular o valor total do orçamento
     valor_total_final = sum(o.valor_total for o in orcamentos)
 
-    # ✅ Renderizamos o HTML normalmente sem a logo
+    # Gerar URL absoluta para a logo
+    logo_url = url_for('static', filename='logo.jpg', _external=True)
+
+    # Renderizar o HTML
     rendered_html = render_template(
         "detalhes_orcamento_salvo.html",
         codigo_orcamento=orcamento_salvo.codigo,
@@ -1317,53 +1294,21 @@ def gerar_pdf_orcamento(codigo):
         cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
         orcamentos=orcamentos,
         valor_total_final="R$ {:,.2f}".format(valor_total_final).replace(",", "X").replace(".", ",").replace("X", "."),
-        pdf=True
+        pdf=True,  # Variável que indica que está gerando PDF
+        logo_url=logo_url  # Passa a URL da logo para o template
     )
 
-    # ✅ Criamos um arquivo temporário para armazenar o PDF sem a logo
-    temp_pdf_path = "/tmp/temp_orcamento.pdf"
-    HTML(string=rendered_html, base_url="https://orcamento-t9w2.onrender.com").write_pdf(temp_pdf_path)
+    # Converter HTML para PDF
+    pdf = HTML(string=rendered_html, base_url=request.host_url).write_pdf()
 
-    # ✅ Definição do caminho local para a logo SEM precisar baixar
-    logo_path = "static/logo.jpg"
-
-    # ✅ Inserir a logo no PDF diretamente do caminho local
-    final_pdf_path = "/tmp/final_orcamento.pdf"
-    doc = fitz.open(temp_pdf_path)
-
-   
-
-    if os.path.exists(logo_path):  # 🔥 Apenas adiciona a logo se o arquivo existir
-        page = doc[0]  # Pega a primeira página do PDF
-        page_width = page.rect.width  # Largura total da página
-        page_height = page.rect.height  # Altura total da página
-
-        logo_width = 240  # Ajuste conforme necessário
-        logo_height = 120  # Ajuste conforme necessário
-
-        # 🔥 Posiciona a logo no canto superior direito
-        rect = fitz.Rect(page_width - logo_width - -20, 20, page_width - -20, 20 + logo_height)
-
-        page.insert_image(rect, filename=logo_path)
-    else:
-        print("⚠️ Aviso: A logo não foi adicionada porque o arquivo local não foi encontrado.")
-
-    doc.save(final_pdf_path)  # Salva o PDF final com a logo (ou sem, caso não exista)
-    doc.close()
-
-    # ✅ Retornamos o PDF final com a logo inserida
-    with open(final_pdf_path, "rb") as pdf_file:
-        pdf_bytes = pdf_file.read()
-
-    response = make_response(pdf_bytes)
+    # Responder com o PDF
+    response = make_response(pdf)
     response.headers["Content-Type"] = "application/pdf"
     response.headers["Content-Disposition"] = f"inline; filename=orcamento_{codigo}.pdf"
 
-    # ✅ Limpa os arquivos temporários
-    os.remove(temp_pdf_path)
-    os.remove(final_pdf_path)
-
     return response
+
+
 
 
 
