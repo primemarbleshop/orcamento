@@ -1108,42 +1108,34 @@ def listar_orcamentos_salvos():
     user_cpf = session.get("user_cpf")  # Obtém o CPF do usuário logado
     is_admin = session.get("admin")  # Verifica se o usuário é admin
 
-    # 🔹 Se for administrador, mostrar todos os orçamentos sem restrições
-    if is_admin:
-        orcamentos = db.session.query(
-            OrcamentoSalvo.id,
-            OrcamentoSalvo.codigo,
-            OrcamentoSalvo.data_salvo,
-            OrcamentoSalvo.valor_total,
-            OrcamentoSalvo.criado_por,
-            OrcamentoSalvo.status,
-            OrcamentoSalvo.tipo_cliente,
-            Cliente.nome.label("cliente_nome"),
-            Cliente.dono.label("cliente_dono")  # CPF do dono do cliente
-        ).join(Cliente, Cliente.id == OrcamentoSalvo.cliente_id  # 🔥 Agora vinculamos corretamente ao Cliente
-        ).order_by(OrcamentoSalvo.codigo.desc()).all()
-    
-    else:
-        # 🔹 Para usuários comuns, mostrar apenas os orçamentos dos clientes que ele cadastrou
-        orcamentos = db.session.query(
-            OrcamentoSalvo.id,
-            OrcamentoSalvo.codigo,
-            OrcamentoSalvo.data_salvo,
-            OrcamentoSalvo.valor_total,
-            OrcamentoSalvo.criado_por,
-            OrcamentoSalvo.status,
-            OrcamentoSalvo.tipo_cliente,
-            Cliente.nome.label("cliente_nome"),
-            Cliente.dono.label("cliente_dono")  # CPF do dono do cliente
-        ).join(Cliente, Cliente.id == OrcamentoSalvo.cliente_id
-        ).filter(Cliente.dono == user_cpf  # 🔹 Filtra apenas os clientes cadastrados pelo usuário logado
-        ).order_by(OrcamentoSalvo.codigo.desc()).all()
+    # 🔹 Criamos a query base
+    query = db.session.query(
+        OrcamentoSalvo.id,
+        OrcamentoSalvo.codigo,
+        OrcamentoSalvo.data_salvo,
+        OrcamentoSalvo.valor_total,
+        OrcamentoSalvo.criado_por,
+        OrcamentoSalvo.status,
+        OrcamentoSalvo.tipo_cliente,
+        Cliente.nome.label("cliente_nome"),
+        Cliente.dono.label("cliente_dono")  # CPF de quem cadastrou o cliente
+    ).join(Orcamento, db.func.instr(OrcamentoSalvo.orcamentos_ids, db.cast(Orcamento.id, db.String())) > 0
+    ).join(Cliente, Cliente.id == Orcamento.cliente_id)  # 🔥 JOIN correto passando pela tabela Orcamento
 
-    # 🔹 Filtrar os clientes para o dropdown de busca
+    # 🔹 Se o usuário não for admin, filtramos apenas os orçamentos dos seus clientes
+    if not is_admin:
+        query = query.filter(Cliente.dono == user_cpf)
+
+    # 🔹 Agrupamos os resultados corretamente para evitar duplicações
+    orcamentos = query.group_by(
+        OrcamentoSalvo.id, Cliente.nome, Cliente.dono
+    ).order_by(OrcamentoSalvo.codigo.desc()).all()
+
+    # 🔹 Preparamos os clientes para o dropdown de busca
     if is_admin:
-        clientes = Cliente.query.all()
+        clientes = Cliente.query.all()  # 🔥 Administrador vê todos os clientes
     else:
-        clientes = Cliente.query.filter_by(dono=user_cpf).all()
+        clientes = Cliente.query.filter_by(dono=user_cpf).all()  # 🔥 Usuário comum vê apenas seus clientes
 
     usuarios = Usuario.query.all()  # Lista de usuários para o filtro "Criado Por"
 
