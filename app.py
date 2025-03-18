@@ -1080,13 +1080,18 @@ def salvar_orcamento():
         valor_total = db.session.query(db.func.sum(Orcamento.valor_total)).filter(Orcamento.id.in_(ids)).scalar()
         valor_total = valor_total if valor_total else 0.0
 
-        # 🔥 Removendo cliente_id, não é necessário aqui
+        # 🔥 Corrigido: definindo o cliente_id pelo primeiro orçamento vinculado
+        primeiro_orcamento = Orcamento.query.get(ids[0])
+        cliente_id = primeiro_orcamento.cliente_id if primeiro_orcamento else None
+
+        # ✅ Salvar com cliente_id corretamente definido
         novo_orcamento = OrcamentoSalvo(
             codigo=novo_codigo,
             data_salvo=data_salvamento,
             orcamentos_ids=",".join(map(str, ids)),
             valor_total=valor_total,
-            criado_por=criado_por
+            criado_por=criado_por,
+            cliente_id=cliente_id  # <-- essa linha é necessária e importante!
         )
 
         db.session.add(novo_orcamento)
@@ -1097,6 +1102,7 @@ def salvar_orcamento():
     except Exception as e:
         db.session.rollback()
         return jsonify({"success": False, "error": str(e)}), 500
+
 
 
 
