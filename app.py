@@ -7,6 +7,10 @@ from datetime import datetime
 from pytz import timezone
 from weasyprint import HTML
 import io
+import fitz  # PyMuPDF
+import requests
+import base64
+import os
 
 from models import db, Orcamento, OrcamentoSalvo, Usuario  # Modelos do SQLAlchemy
 
@@ -619,10 +623,10 @@ def editar_orcamento(id):
         orcamento.rt_percentual = float(request.form.get('rt_percentual', orcamento.rt_percentual or 0)or 0)
 
         # Campos dinâmicos
-        orcamento.comprimento_saia = float(request.form.get('comprimento_saia', orcamento.comprimento_saia or 0))
-        orcamento.largura_saia = float(request.form.get('largura_saia', orcamento.largura_saia or 0))
-        orcamento.comprimento_fronte = float(request.form.get('comprimento_fronte', orcamento.comprimento_fronte or 0))
-        orcamento.largura_fronte = float(request.form.get('largura_fronte', orcamento.largura_fronte or 0))
+        orcamento.comprimento_saia = float(request.form.get('comprimento_saia', orcamento.comprimento_saia or 0) or 0)
+        orcamento.largura_saia = float(request.form.get('largura_saia', orcamento.largura_saia or 0) or 0)
+        orcamento.comprimento_fronte = float(request.form.get('comprimento_fronte', orcamento.comprimento_fronte or 0) or 0)
+        orcamento.largura_fronte = float(request.form.get('largura_fronte', orcamento.largura_fronte or 0) or 0)
         orcamento.tipo_cuba = request.form.get('tipo_cuba', orcamento.tipo_cuba)
         orcamento.quantidade_cubas = int(request.form.get('quantidade_cubas', orcamento.quantidade_cubas or 0) or 0)
         orcamento.comprimento_cuba = float(request.form.get('comprimento_cuba', orcamento.comprimento_cuba or 0) or 0)
@@ -1172,9 +1176,13 @@ def detalhes_orcamento_salvo(codigo):
     # Calcular o valor total
     valor_total_final = sum(o.valor_total for o in orcamentos)
 
+    # ✅ Adicionando a URL da logo para o template
+    logo_url = "https://orcamento-t9w2.onrender.com/static/logo.jpg"
+
     return render_template(
         "detalhes_orcamento_salvo.html",
-        codigo_orcamento=orcamento_salvo.codigo,  # Aqui passa o código correto
+        logo_url=logo_url,  # 🔥 Agora a logo é enviada para o HTML
+        codigo_orcamento=orcamento_salvo.codigo,
         data_salvo=orcamento_salvo.data_salvo,
         cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
         orcamentos=orcamentos,
@@ -1263,26 +1271,21 @@ def atualizar_status_tipo_cliente():
         return jsonify({"success": False, "error": str(e)}), 500
         
 
+
+
+
 @app.route('/gerar_pdf_orcamento/<codigo>')
 def gerar_pdf_orcamento(codigo):
-    # Buscar o orçamento salvo pelo código
     orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
-
     if not orcamento_salvo:
         flash("Orçamento salvo não encontrado!", "danger")
         return redirect(url_for('listar_orcamentos_salvos'))
 
-    # Buscar IDs dos orçamentos vinculados
     ids = [int(id) for id in orcamento_salvo.orcamentos_ids.split(",")]
     orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
-
-    # Calcular o valor total do orçamento
     valor_total_final = sum(o.valor_total for o in orcamentos)
 
-    # Gerar URL absoluta para a logo
-    logo_url = url_for('static', filename='logo.jpg', _external=True)
-
-    # Renderizar o HTML
+    # ✅ Renderizamos o HTML normalmente sem a logo
     rendered_html = render_template(
         "detalhes_orcamento_salvo.html",
         codigo_orcamento=orcamento_salvo.codigo,
@@ -1290,21 +1293,53 @@ def gerar_pdf_orcamento(codigo):
         cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
         orcamentos=orcamentos,
         valor_total_final="R$ {:,.2f}".format(valor_total_final).replace(",", "X").replace(".", ",").replace("X", "."),
-        pdf=True,  # Variável que indica que está gerando PDF
-        logo_url=logo_url  # Passa a URL da logo para o template
+        pdf=True
     )
 
-    # Converter HTML para PDF
-    pdf = HTML(string=rendered_html, base_url=request.host_url).write_pdf()
+    # ✅ Criamos um arquivo temporário para armazenar o PDF sem a logo
+    temp_pdf_path = "/tmp/temp_orcamento.pdf"
+    HTML(string=rendered_html, base_url="https://orcamento-t9w2.onrender.com").write_pdf(temp_pdf_path)
 
-    # Responder com o PDF
-    response = make_response(pdf)
+    # ✅ Definição do caminho local para a logo SEM precisar baixar
+    logo_path = "static/logo.jpg"
+
+    # ✅ Inserir a logo no PDF diretamente do caminho local
+    final_pdf_path = "/tmp/final_orcamento.pdf"
+    doc = fitz.open(temp_pdf_path)
+
+   
+
+    if os.path.exists(logo_path):  # 🔥 Apenas adiciona a logo se o arquivo existir
+        page = doc[0]  # Pega a primeira página do PDF
+        page_width = page.rect.width  # Largura total da página
+        page_height = page.rect.height  # Altura total da página
+
+        logo_width = 240  # Ajuste conforme necessário
+        logo_height = 120  # Ajuste conforme necessário
+
+        # 🔥 Posiciona a logo no canto superior direito
+        rect = fitz.Rect(page_width - logo_width - -20, 20, page_width - -20, 20 + logo_height)
+
+        page.insert_image(rect, filename=logo_path)
+    else:
+        print("⚠️ Aviso: A logo não foi adicionada porque o arquivo local não foi encontrado.")
+
+    doc.save(final_pdf_path)  # Salva o PDF final com a logo (ou sem, caso não exista)
+    doc.close()
+
+    # ✅ Retornamos o PDF final com a logo inserida
+    with open(final_pdf_path, "rb") as pdf_file:
+        pdf_bytes = pdf_file.read()
+
+    response = make_response(pdf_bytes)
     response.headers["Content-Type"] = "application/pdf"
     response.headers["Content-Disposition"] = f"inline; filename=orcamento_{codigo}.pdf"
 
+    # ✅ Limpa os arquivos temporários
+    os.remove(temp_pdf_path)
+    os.remove(final_pdf_path)
+
     return response
-
-
 
 
 
