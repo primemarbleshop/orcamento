@@ -1245,16 +1245,16 @@ def deletar_orcamento_salvo(orcamento_id):
     try:
         orcamento = OrcamentoSalvo.query.get(orcamento_id)
         if not orcamento:
-            return jsonify({"error": "Orçamento não encontrado."}), 404
+            return jsonify({"success": False, "error": "Orçamento salvo não encontrado!"}), 404
 
         db.session.delete(orcamento)
         db.session.commit()
-        
-        return jsonify({"success": "Orçamento deletado com sucesso!"})
-    
+
+        return jsonify({"success": True, "message": "Orçamento salvo deletado com sucesso!"})
+
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": f"Erro ao excluir orçamento: {str(e)}"}), 500
+        return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route('/atualizar_status_tipo_cliente', methods=['POST'])
 def atualizar_status_tipo_cliente():
