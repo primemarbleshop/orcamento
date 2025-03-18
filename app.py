@@ -1059,39 +1059,40 @@ import time  # Certifique-se de importar time
 @app.route('/salvar_orcamento', methods=['POST'])
 def salvar_orcamento():
     try:
+        # 🔹 Pegando os dados do JSON enviado pelo frontend
         data = request.json
         ids = data.get('ids')
 
         if not ids:
             return jsonify({"success": False, "error": "Nenhum orçamento selecionado!"}), 400
 
+        # 🔹 Convertendo a string de IDs para uma lista de inteiros
         ids = [int(id.strip()) for id in ids.split(",") if id.strip().isdigit()]
         if not ids:
             return jsonify({"success": False, "error": "IDs inválidos!"}), 400
 
+        # 🔹 Buscar o usuário pelo CPF salvo na sessão
         usuario = Usuario.query.filter_by(cpf=session.get('user_cpf')).first()
-        criado_por = usuario.nome if usuario else "Desconhecido"
+        criado_por = usuario.nome if usuario else "Desconhecido"  # Nome do usuário logado
 
+        # 🔹 Gerar o código sequencial iniciando em O000100
         ultimo_orcamento = db.session.query(db.func.max(OrcamentoSalvo.id)).scalar()
         novo_codigo = f"O{(100 + (ultimo_orcamento or 0)):06d}"
 
+        # 🔹 Data de salvamento
         data_salvamento = datetime.now(br_tz)
 
+        # 🔹 Calcular o valor total dos orçamentos selecionados
         valor_total = db.session.query(db.func.sum(Orcamento.valor_total)).filter(Orcamento.id.in_(ids)).scalar()
         valor_total = valor_total if valor_total else 0.0
-
-        # 🔥 Corrigido: definindo o cliente_id pelo primeiro orçamento vinculado
-        primeiro_orcamento = Orcamento.query.get(ids[0])
-        cliente_id = primeiro_orcamento.cliente_id if primeiro_orcamento else None
-
-        # ✅ Salvar com cliente_id corretamente definido
+        
+        # 🔹 Criar o novo orçamento salvo
         novo_orcamento = OrcamentoSalvo(
             codigo=novo_codigo,
             data_salvo=data_salvamento,
-            orcamentos_ids=",".join(map(str, ids)),
+            orcamentos_ids=",".join(map(str, ids)),  # IDs dos orçamentos vinculados
             valor_total=valor_total,
-            criado_por=criado_por,
-            cliente_id=cliente_id  # <-- essa linha é necessária e importante!
+            criado_por=criado_por  # 🔹 Agora pega o nome diretamente do banco de dados
         )
 
         db.session.add(novo_orcamento)
@@ -1102,7 +1103,6 @@ def salvar_orcamento():
     except Exception as e:
         db.session.rollback()
         return jsonify({"success": False, "error": str(e)}), 500
-
 
 
 
@@ -1251,16 +1251,18 @@ def deletar_orcamento_salvo(orcamento_id):
     try:
         orcamento = OrcamentoSalvo.query.get(orcamento_id)
         if not orcamento:
-            return jsonify({"success": False, "error": "Orçamento salvo não encontrado!"}), 404
+            return jsonify({"error": "Orçamento não encontrado."}), 404
 
         db.session.delete(orcamento)
         db.session.commit()
-
-        return jsonify({"success": True, "message": "Orçamento salvo deletado com sucesso!"})
-
+        
+        return jsonify({"success": "Orçamento deletado com sucesso!"})
+    
     except Exception as e:
         db.session.rollback()
-        return jsonify({"success": False, "error": str(e)}), 500
+        return jsonify({"error": f"Erro ao excluir orçamento: {str(e)}"}), 500
+
+
 
 @app.route('/atualizar_status_tipo_cliente', methods=['POST'])
 def atualizar_status_tipo_cliente():
