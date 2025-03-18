@@ -1080,17 +1080,13 @@ def salvar_orcamento():
         valor_total = db.session.query(db.func.sum(Orcamento.valor_total)).filter(Orcamento.id.in_(ids)).scalar()
         valor_total = valor_total if valor_total else 0.0
 
-        # 🔥 NOVO TRECHO: definir corretamente o cliente_id do primeiro orçamento vinculado
-        primeiro_orcamento = Orcamento.query.get(ids[0])
-        cliente_id = primeiro_orcamento.cliente_id if primeiro_orcamento else None
-
+        # 🔥 Removendo cliente_id, não é necessário aqui
         novo_orcamento = OrcamentoSalvo(
             codigo=novo_codigo,
             data_salvo=data_salvamento,
             orcamentos_ids=",".join(map(str, ids)),
             valor_total=valor_total,
-            criado_por=criado_por,
-            cliente_id=cliente_id  # ✅ cliente_id agora corretamente definido
+            criado_por=criado_por
         )
 
         db.session.add(novo_orcamento)
@@ -1109,11 +1105,11 @@ def salvar_orcamento():
 
 @app.route("/orcamentos_salvos")
 def listar_orcamentos_salvos():
-    user_cpf = session.get("user_cpf")  # CPF do usuário logado
-    is_admin = session.get("admin")  # Verifica se o usuário é admin
+    user_cpf = session.get("user_cpf")
+    is_admin = session.get("admin")
 
     if is_admin:
-        # Administrador vê todos os orçamentos salvos diretamente vinculados ao cliente correto
+        # Admin: Mostrar todos os orçamentos salvos sem restrições
         orcamentos = db.session.query(
             OrcamentoSalvo.id,
             OrcamentoSalvo.codigo,
@@ -1124,10 +1120,18 @@ def listar_orcamentos_salvos():
             OrcamentoSalvo.tipo_cliente,
             Cliente.nome.label("cliente_nome"),
             Cliente.dono.label("cliente_dono")
-        ).join(Cliente, Cliente.id == OrcamentoSalvo.cliente_id
-        ).order_by(OrcamentoSalvo.codigo.desc()).all()
+        ).join(
+            Orcamento,
+            db.func.instr(OrcamentoSalvo.orcamentos_ids, db.cast(Orcamento.id, db.String())) > 0
+        ).join(
+            Cliente, Cliente.id == Orcamento.cliente_id
+        ).group_by(
+            OrcamentoSalvo.id, Cliente.nome, Cliente.dono
+        ).order_by(
+            OrcamentoSalvo.codigo.desc()
+        ).all()
     else:
-        # Usuários comuns só veem os próprios clientes diretamente vinculados
+        # Usuário comum: Mostrar somente orçamentos salvos de clientes cadastrados por ele
         orcamentos = db.session.query(
             OrcamentoSalvo.id,
             OrcamentoSalvo.codigo,
@@ -1138,12 +1142,24 @@ def listar_orcamentos_salvos():
             OrcamentoSalvo.tipo_cliente,
             Cliente.nome.label("cliente_nome"),
             Cliente.dono.label("cliente_dono")
-        ).join(Cliente, Cliente.id == OrcamentoSalvo.cliente_id
-        ).filter(Cliente.dono == user_cpf
-        ).order_by(OrcamentoSalvo.codigo.desc()).all()
+        ).join(
+            Orcamento,
+            db.func.instr(OrcamentoSalvo.orcamentos_ids, db.cast(Orcamento.id, db.String())) > 0
+        ).join(
+            Cliente, Cliente.id == Orcamento.cliente_id
+        ).filter(
+            Cliente.dono == user_cpf
+        ).group_by(
+            OrcamentoSalvo.id, Cliente.nome, Cliente.dono
+        ).order_by(
+            OrcamentoSalvo.codigo.desc()
+        ).all()
 
-    # Dropdown filtrado corretamente
-    clientes = Cliente.query.all() if is_admin else Cliente.query.filter_by(dono=user_cpf).all()
+    # Dropdown filtrado corretamente com if/else também
+    if is_admin:
+        clientes = Cliente.query.all()
+    else:
+        clientes = Cliente.query.filter_by(dono=user_cpf).all()
 
     usuarios = Usuario.query.all()
 
@@ -1151,6 +1167,7 @@ def listar_orcamentos_salvos():
                            clientes=clientes,
                            usuarios=usuarios,
                            orcamentos=orcamentos)
+
 
 
 
