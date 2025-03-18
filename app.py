@@ -1108,39 +1108,36 @@ def listar_orcamentos_salvos():
     user_cpf = session.get("user_cpf")  # Obtém o CPF do usuário logado
     is_admin = session.get("admin")  # Verifica se o usuário é admin
 
-    # Se for administrador, mostrar todos os orçamentos sem restrições
-    if is_admin:
-        orcamentos = db.session.query(
-            db.func.min(OrcamentoSalvo.id).label("id"),
-            OrcamentoSalvo.codigo,
-            db.func.min(OrcamentoSalvo.data_salvo).label("data_salvo"),
-            db.func.min(OrcamentoSalvo.valor_total).label("valor_total"),
-            db.func.min(OrcamentoSalvo.criado_por).label("criado_por"),
-            db.func.min(OrcamentoSalvo.status).label("status"),
-            db.func.min(OrcamentoSalvo.tipo_cliente).label("tipo_cliente"),
-            db.func.min(Cliente.nome).label("cliente_nome"),
-            db.func.min(Cliente.dono).label("cliente_dono")  # CPF do dono do cliente
-        ).join(Orcamento, db.func.instr(OrcamentoSalvo.orcamentos_ids, db.cast(Orcamento.id, db.String())) > 0
-        ).join(Cliente, Cliente.id == Orcamento.cliente_id
-        ).group_by(OrcamentoSalvo.codigo
-        ).order_by(OrcamentoSalvo.codigo.desc()).all()
-    else:
-        # Para usuários comuns, mostrar apenas os orçamentos dos clientes que ele cadastrou sem duplicação
-        orcamentos = db.session.query(
-            db.func.min(OrcamentoSalvo.id).label("id"),
-            OrcamentoSalvo.codigo,
-            db.func.min(OrcamentoSalvo.data_salvo).label("data_salvo"),
-            db.func.min(OrcamentoSalvo.valor_total).label("valor_total"),
-            db.func.min(OrcamentoSalvo.criado_por).label("criado_por"),
-            db.func.min(OrcamentoSalvo.status).label("status"),
-            db.func.min(OrcamentoSalvo.tipo_cliente).label("tipo_cliente"),
-            db.func.min(Cliente.nome).label("cliente_nome"),
-            db.func.min(Cliente.dono).label("cliente_dono")  # CPF do dono do cliente
-        ).join(Orcamento, db.func.instr(OrcamentoSalvo.orcamentos_ids, db.cast(Orcamento.id, db.String())) > 0
-        ).join(Cliente, Cliente.id == Orcamento.cliente_id
-        ).filter(Cliente.dono == user_cpf  # 🔹 Esse filtro só se aplica a usuários normais
-        ).group_by(OrcamentoSalvo.codigo
-        ).order_by(OrcamentoSalvo.codigo.desc()).all()
+   orcamentos_salvos = OrcamentoSalvo.query.order_by(OrcamentoSalvo.codigo.desc()).all()
+
+resultado = []
+
+for orc_salvo in orcamentos_salvos:
+    primeiro_orcamento_id = int(orc_salvo.orcamentos_ids.split(",")[0])
+    primeiro_orcamento = Orcamento.query.get(primeiro_orcamento_id)
+
+    if not primeiro_orcamento:
+        continue
+
+    cliente = Cliente.query.get(primeiro_orcamento.cliente_id)
+    if not cliente:
+        continue
+
+    if is_admin or cliente.dono == user_cpf:
+        resultado.append({
+            'id': orc_salvo.id,
+            'codigo': orc_salvo.codigo,
+            'data_salvo': orc_salvo.data_salvo,
+            'valor_total': orc_salvo.valor_total,
+            'criado_por': orc_salvo.criado_por,
+            'status': orc_salvo.status,
+            'tipo_cliente': orc_salvo.tipo_cliente,
+            'cliente_nome': cliente.nome,
+            'cliente_dono': cliente.dono
+        })
+
+orcamentos = resultado  # Aqui que está a alteração principal
+
 
     # 🔹 Filtrar os clientes para o dropdown de busca
     if is_admin:
