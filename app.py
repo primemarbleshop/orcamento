@@ -284,11 +284,11 @@ def listar_orcamentos():
             profundidade_nicho_cal = 10 if 0 < profundidade_nicho < 10 else profundidade_nicho
             
             if tem_fundo == 'Sim':  # Verifica se o nicho tem fundo
-                area_nicho = ((comprimento_cal + 4) * (largura_cal + 4)) + (((comprimento_cal + 4) * profundidade_nicho_cal) * 2) + ((largura_cal * profundidade_nicho_cal) * 2)
+                area_nicho = ((comprimento_cal) * (largura_cal)) + (((comprimento_cal) * profundidade_nicho_cal) * 2) + ((largura_cal * profundidade_nicho_cal) * 2)
                 print(f"Nicho com fundo: Comprimento={comprimento}, Largura={largura}, Profundidade={profundidade_nicho}, Área={area_nicho}")
 
             else:  # Caso o nicho não tenha fundo
-                area_nicho = ((comprimento_cal + 4) + (largura_cal + 4)) * profundidade_nicho_cal * 2
+                area_nicho = ((comprimento_cal) + (largura_cal)) * profundidade_nicho_cal * 2
                 print(f"Nicho sem fundo: Comprimento={comprimento}, Largura={largura}, Profundidade={profundidade_nicho}, Área={area_nicho}")
 
             
@@ -675,11 +675,11 @@ def editar_orcamento(id):
             orcamento.largura_cal = 10 if 0 < orcamento.largura < 10 else orcamento.largura
             orcamento.profundidade_nicho_cal = 10 if 0 < orcamento.profundidade_nicho < 10 else orcamento.profundidade_nicho
             if orcamento.tem_fundo == 'Sim':  # Verifica se o nicho tem fundo
-                area_nicho = ((orcamento.comprimento_cal + 4) * (orcamento.largura_cal + 4)) + \
-                             (((orcamento.comprimento_cal + 4) * orcamento.profundidade_nicho_cal) * 2) + \
+                area_nicho = ((orcamento.comprimento_cal) * (orcamento.largura_cal)) + \
+                             (((orcamento.comprimento_cal) * orcamento.profundidade_nicho_cal) * 2) + \
                              ((orcamento.largura_cal * orcamento.profundidade_nicho_cal) * 2)
             else:  # Caso o nicho não tenha fundo
-                area_nicho = ((orcamento.comprimento_cal + 4) + (orcamento.largura_cal + 4)) * orcamento.profundidade_nicho_cal * 2
+                area_nicho = ((orcamento.comprimento_cal) + (orcamento.largura_cal)) * orcamento.profundidade_nicho_cal * 2
 
             # Verifica se há alisar e ajusta a área do nicho
             if orcamento.tem_alisar == 'Sim' and orcamento.largura_alisar > 0:
