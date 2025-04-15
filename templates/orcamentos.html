@@ -11,6 +11,21 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
 
     <script>
+
+	document.addEventListener("DOMContentLoaded", function () {
+    const tbody = document.getElementById("orcamento_table");
+    const rows = Array.from(tbody.querySelectorAll("tr"));
+
+    rows.sort((a, b) => {
+        const dataA = new Date(a.getAttribute("data-data"));
+        const dataB = new Date(b.getAttribute("data-data"));
+        return dataB - dataA; // Ordena da mais recente para a mais antiga
+    });
+
+    // Reanexar as linhas ordenadas
+    rows.forEach(row => tbody.appendChild(row));
+});
+	    
         $(document).ready(function() {
     // Aplicando Select2 aos selects com busca integrada
     $('#cliente_id, #material_id, #tipo_produto').select2({
