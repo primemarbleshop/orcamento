@@ -464,6 +464,8 @@ function toggleNichoFields() {
 <script>
 
 	
+
+// Função para buscar os materiais e montar a lista dinâmica
 document.getElementById('edit-selected').addEventListener('click', function () {
     const selecionados = Array.from(document.querySelectorAll('.selecionar-orcamento:checked'))
         .map(cb => cb.closest('tr').getAttribute('data-id'));
@@ -473,24 +475,40 @@ document.getElementById('edit-selected').addEventListener('click', function () {
         return;
     }
 
+    // Aqui vamos criar manualmente o Select2 dentro do SweetAlert
     Swal.fire({
         title: 'Selecione o Novo Material',
-        input: 'select',
-        inputOptions: {
-            {% for material in materiais %}
-            '{{ material.id }}': '{{ material.nome }}',
-            {% endfor %}
+        html: `
+            <select id="select-material" class="swal2-select2" style="width: 100%">
+                {% for material in materiais %}
+                    <option value="{{ material.id }}">{{ material.nome }}</option>
+                {% endfor %}
+            </select>
+        `,
+        didOpen: () => {
+            // Quando abrir o popup, aplica o Select2
+            $('#select-material').select2({
+                dropdownParent: $('.swal2-popup'),
+                placeholder: "Escolha o material",
+                allowClear: true,
+                width: '100%',
+                language: {
+                    noResults: function() {
+                        return "Nenhum material encontrado";
+                    }
+                }
+            });
         },
-        inputPlaceholder: 'Escolha um material',
-        showCancelButton: true,
-        confirmButtonText: 'Salvar',
-        cancelButtonText: 'Cancelar',
-        preConfirm: (novoMaterialId) => {
-            if (!novoMaterialId) {
+        preConfirm: () => {
+            const materialId = document.getElementById('select-material').value;
+            if (!materialId) {
                 Swal.showValidationMessage('Por favor, selecione um material.');
             }
-            return novoMaterialId;
-        }
+            return materialId;
+        },
+        showCancelButton: true,
+        confirmButtonText: 'Salvar',
+        cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {
             fetch('/orcamentos/editar_material_selecionados', {
@@ -514,6 +532,8 @@ document.getElementById('edit-selected').addEventListener('click', function () {
         }
     });
 });
+
+
 
 
 	
