@@ -1349,21 +1349,124 @@ def editar_material_selecionados():
     if not orcamento_ids or not material_id:
         return jsonify({'erro': 'Dados inválidos.'}), 400
 
+    material = Material.query.get(material_id)
+    if not material:
+        return jsonify({'erro': 'Material não encontrado.'}), 404
+
+    cuba_valores = {
+        'Embutir': 225,
+        'Esculpida': 0,
+        'Cuba Tradicional Inox': 225,
+        'Apoio Cliente': 125,
+        'Embutida Cliente': 125,
+        'Gourmet Cliente': 225,
+        'Tanque Inox': 500
+    }
+
+    cooktop_valor = 50  # Valor fixo para cooktop
+
     for id in orcamento_ids:
         orcamento = Orcamento.query.get(id)
         if orcamento:
             orcamento.material_id = material_id
 
-            # Atualiza o valor_total porque o valor do m² muda
-            material = Material.query.get(material_id)
-            if material:
-                comprimento_cal = max(orcamento.comprimento, 10)
-                largura_cal = max(orcamento.largura, 10)
-                valor_base = material.valor * (comprimento_cal * largura_cal / 10000)
-                orcamento.valor_total = valor_base * orcamento.quantidade  # Ajuste básico
+            valor_total_criar = 0
+
+            comprimento_cal = max(orcamento.comprimento, 10)
+            largura_cal = max(orcamento.largura, 10)
+
+            valor_base = material.valor * (comprimento_cal * largura_cal / 10000)
+
+            # Ajustes dependendo do tipo de produto
+            if orcamento.tipo_produto in ['Bancada', 'Lavatorio']:
+                if material.valor < 1000:
+                    valor_base *= 1.3
+                elif material.valor < 2000:
+                    valor_base *= 1.15
+                elif material.valor < 1000000:
+                    valor_base *= 1.1
+
+            if orcamento.tipo_produto == 'Ilharga Bipolida' and material.valor < 1000000:
+                valor_base *= 1.15
+
+            valor_total_criar += valor_base
+
+            # Se for Nicho, calcular área especial
+            if orcamento.tipo_produto == 'Nicho':
+                profundidade_nicho = max(orcamento.profundidade_nicho or 0, 10)
+                if orcamento.tem_fundo == 'Sim':
+                    area_nicho = (comprimento_cal * largura_cal) + (2 * comprimento_cal * profundidade_nicho) + (2 * largura_cal * profundidade_nicho)
+                else:
+                    area_nicho = 2 * (comprimento_cal + largura_cal) * profundidade_nicho
+
+                # Alisar
+                if orcamento.tem_alisar == 'Sim' and (orcamento.largura_alisar or 0) > 0:
+                    largura_alisar_cal = max(orcamento.largura_alisar, 10)
+                    area_nicho += ((comprimento_cal + (largura_alisar_cal * 2)) * largura_alisar_cal * 2) + \
+                                  ((largura_cal + (largura_alisar_cal * 2)) * largura_alisar_cal * 2)
+
+                valor_nicho = (area_nicho / 10000) * material.valor + 150
+                valor_total_criar = valor_nicho
+
+            # Se tiver saia
+            if orcamento.tipo_produto in ['Ilharga', 'Ilharga Bipolida', 'Bancada', 'Lavatorio']:
+                comprimento_saia_cal = max(orcamento.comprimento_saia or 0, 10)
+                largura_saia_cal = max(orcamento.largura_saia or 0, 10)
+                valor_saia = comprimento_saia_cal * largura_saia_cal * material.valor / 10000
+                valor_total_criar += valor_saia
+
+            # Se tiver fronte
+            if orcamento.tipo_produto in ['Bancada', 'Lavatorio']:
+                comprimento_fronte_cal = max(orcamento.comprimento_fronte or 0, 10)
+                largura_fronte_cal = max(orcamento.largura_fronte or 0, 10)
+                valor_fronte = comprimento_fronte_cal * largura_fronte_cal * material.valor / 10000
+                valor_total_criar += valor_fronte
+
+            # Pedra de Box
+            if orcamento.tipo_produto == 'Pedra de Box':
+                valor_pedra_box = valor_base + 30
+                valor_total_criar += valor_pedra_box
+
+            # Valor das cubas
+            if orcamento.tipo_cuba:
+                valor_cuba = cuba_valores.get(orcamento.tipo_cuba, 0)
+                valor_total_criar += valor_cuba * (orcamento.quantidade_cubas or 0)
+
+                if orcamento.tipo_cuba == 'Esculpida':
+                    comprimento_cuba = orcamento.comprimento_cuba or 0
+                    largura_cuba = orcamento.largura_cuba or 0
+                    profundidade_cuba = orcamento.profundidade_cuba or 0
+                    if orcamento.modelo_cuba == 'Prainha':
+                        m2_cuba = ((comprimento_cuba * largura_cuba) + (2 * largura_cuba * profundidade_cuba)) / 10000
+                    else:
+                        m2_cuba = ((comprimento_cuba * largura_cuba * 2) +
+                                   (2 * (comprimento_cuba + largura_cuba) * profundidade_cuba)) / 10000
+
+                    valor_cuba_esculpida = m2_cuba * material.valor * (orcamento.quantidade_cubas or 1) + 175
+                    valor_total_criar += valor_cuba_esculpida
+
+            # Cooktop
+            if orcamento.tem_cooktop == 'Sim':
+                valor_total_criar += cooktop_valor
+
+            # Outros custos
+            valor_total_criar += orcamento.outros_custos or 0
+
+            # Multiplicado pela quantidade
+            valor_total_criar *= orcamento.quantidade
+
+            # Se tiver RT
+            if orcamento.rt == 'Sim' and (orcamento.rt_percentual or 0) > 0:
+                valor_rt = valor_total_criar / (1 - orcamento.rt_percentual / 100) - valor_total_criar
+                valor_total_final = valor_total_criar + valor_rt
+            else:
+                valor_total_final = valor_total_criar
+
+            orcamento.valor_total = valor_total_final
 
     db.session.commit()
-    return jsonify({'mensagem': 'Materiais atualizados com sucesso.'})
+    return jsonify({'mensagem': 'Materiais atualizados e valores recalculados corretamente.'})
+
 
 
 
