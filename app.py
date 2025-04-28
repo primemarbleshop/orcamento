@@ -1271,7 +1271,22 @@ def atualizar_status_tipo_cliente():
         return jsonify({"success": False, "error": str(e)}), 500
         
 
+@app.route('/salvar_materiais_editados', methods=['POST'])
+def salvar_materiais_editados():
+    data = request.get_json()
+    orcamento_ids = data.get('orcamento_ids', [])
+    novo_material = data.get('novo_material')
 
+    if not orcamento_ids or not novo_material:
+        return 'Dados inválidos', 400
+
+    for orcamento_id in orcamento_ids:
+        orcamento = Orcamento.query.get(orcamento_id)
+        if orcamento:
+            orcamento.material = novo_material
+
+    db.session.commit()
+    return '', 204
 
 
 @app.route('/gerar_pdf_orcamento/<codigo>')
