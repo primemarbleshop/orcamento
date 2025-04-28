@@ -426,20 +426,19 @@ function toggleNichoFields() {
         </tr>
         {% endfor %}
 
-<!-- Popup de edição de material -->
-<div id="popup-editar-material" style="display:none; position:fixed; top:20%; left:50%; transform:translateX(-50%); background:white; padding:20px; border:1px solid #ccc; z-index:1000;">
-    <h4>Selecione o Novo Material</h4>
-    <select id="novoMaterial" class="form-control">
-  {% for material in materiais %}
-    <option value="{{ material.id }}">{{ material.nome }}</option>
-  {% endfor %}
-</select>
-    <br>
-    <button type="button" onclick="salvarNovoMaterial()" class="btn btn-success">Salvar</button>
-    <button type="button" onclick="fecharPopupEditarMaterial()" class="btn btn-secondary">Cancelar</button>
+<!-- Popup de edição de múltiplos materiais -->
+<div id="popup-editar-material" style="display:none; position:fixed; top:5%; left:50%; transform:translateX(-50%); background:white; padding:20px; border:1px solid #ccc; z-index:1000; width:80%; max-height:80%; overflow-y:auto;">
+    <h4>Editar Materiais dos Orçamentos Selecionados</h4>
+    <form id="formEditarMateriais">
+        <div id="lista-materiais">
+            <!-- Aqui dentro serão gerados dinamicamente os selects -->
+        </div>
+        <br>
+        <button type="button" onclick="salvarTodosMateriais()" class="btn btn-success">Salvar Tudo</button>
+        <button type="button" onclick="fecharPopupEditarMaterial()" class="btn btn-secondary">Cancelar</button>
+    </form>
 </div>
 
-<!-- Fundo escuro para o popup -->
 <div id="popup-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:999;" onclick="fecharPopupEditarMaterial()"></div>
     
     
@@ -483,13 +482,35 @@ function toggleNichoFields() {
 let idsSelecionadosParaEditar = [];
 
 function editarSelecionados() {
-    idsSelecionadosParaEditar = Array.from(document.querySelectorAll('.selecionar-orcamento:checked'))
-                                      .map(cb => cb.closest('tr').getAttribute('data-id'));
+    const selecionados = Array.from(document.querySelectorAll('.selecionar-orcamento:checked'));
 
-    if (idsSelecionadosParaEditar.length === 0) {
+    if (selecionados.length === 0) {
         alert("Por favor, selecione pelo menos um orçamento para editar.");
         return;
     }
+
+    idsSelecionadosParaEditar = selecionados.map(cb => cb.closest('tr').getAttribute('data-id'));
+
+    // Preencher a lista de materiais no popup
+    const listaMateriais = document.getElementById('lista-materiais');
+    listaMateriais.innerHTML = "";
+
+    idsSelecionadosParaEditar.forEach(id => {
+        const linha = document.createElement('div');
+        linha.classList.add('linha-material');
+
+        linha.innerHTML = `
+            <label>Orçamento #${id}</label>
+            <select class="form-control material-selecionado" data-id="${id}">
+                {% for material in materiais %}
+                    <option value="{{ material.nome }}">{{ material.nome }}</option>
+                {% endfor %}
+            </select>
+            <br>
+        `;
+
+        listaMateriais.appendChild(linha);
+    });
 
     document.getElementById("popup-editar-material").style.display = "block";
     document.getElementById("popup-overlay").style.display = "block";
@@ -500,19 +521,18 @@ function fecharPopupEditarMaterial() {
     document.getElementById("popup-overlay").style.display = "none";
 }
 
-function salvarNovoMaterial() {
-    const novoMaterial = document.getElementById("novoMaterial").value;
-    if (!novoMaterial) {
-        alert("Por favor, selecione um material.");
-        return;
-    }
+function salvarTodosMateriais() {
+    const materiaisAtualizados = Array.from(document.querySelectorAll('.material-selecionado')).map(select => ({
+        id: select.getAttribute('data-id'),
+        material: select.value
+    }));
 
     fetch("/editar_material_orcamentos", {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
         },
-        body: JSON.stringify({ ids: idsSelecionadosParaEditar, material: novoMaterial }),
+        body: JSON.stringify({ materiais: materiaisAtualizados }),
     })
     .then(response => {
         if (response.ok) {
