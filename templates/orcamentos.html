@@ -435,6 +435,10 @@ function toggleNichoFields() {
     <button onclick="enviarOrcamentos()" class="btn-acao btn-esquerda">
         Exibir Detalhes
     </button>
+	<button type="button" id="edit-selected" class="btn-acao">
+    Editar Material Selecionados
+</button>
+
 
     <button type="button" id="delete-selected" class="btn-acao btn-direita">
         Deletar Selecionados
@@ -458,6 +462,60 @@ function toggleNichoFields() {
 </br>
    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+
+	
+document.getElementById('edit-selected').addEventListener('click', function () {
+    const selecionados = Array.from(document.querySelectorAll('.selecionar-orcamento:checked'))
+        .map(cb => cb.closest('tr').getAttribute('data-id'));
+
+    if (selecionados.length === 0) {
+        Swal.fire('Atenção', 'Selecione pelo menos um orçamento.', 'warning');
+        return;
+    }
+
+    Swal.fire({
+        title: 'Selecione o Novo Material',
+        input: 'select',
+        inputOptions: {
+            {% for material in materiais %}
+            '{{ material.id }}': '{{ material.nome }}',
+            {% endfor %}
+        },
+        inputPlaceholder: 'Escolha um material',
+        showCancelButton: true,
+        confirmButtonText: 'Salvar',
+        cancelButtonText: 'Cancelar',
+        preConfirm: (novoMaterialId) => {
+            if (!novoMaterialId) {
+                Swal.showValidationMessage('Por favor, selecione um material.');
+            }
+            return novoMaterialId;
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('/orcamentos/editar_material_selecionados', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    orcamento_ids: selecionados,
+                    material_id: result.value
+                }),
+            })
+            .then(response => {
+                if (response.ok) {
+                    Swal.fire('Sucesso!', 'Materiais atualizados.', 'success')
+                    .then(() => location.reload());
+                } else {
+                    Swal.fire('Erro!', 'Não foi possível atualizar.', 'error');
+                }
+            });
+        }
+    });
+});
+
+
 	
 function toggleCubaFields() {
         var tipoCuba = document.getElementById("tipo_cuba").value;
