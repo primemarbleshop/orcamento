@@ -1492,7 +1492,6 @@ def duplicar_selecionados():
         for id in orcamento_ids:
             original = Orcamento.query.get(id)
             if original:
-                # Criar nova cópia
                 novo_orcamento = Orcamento(
                     cliente_id = original.cliente_id,
                     tipo_produto = original.tipo_produto,
@@ -1514,23 +1513,24 @@ def duplicar_selecionados():
                     largura_cuba = original.largura_cuba,
                     profundidade_cuba = original.profundidade_cuba,
                     tem_cooktop = original.tem_cooktop,
-                    tipo_produto_nicho = original.tipo_produto_nicho if hasattr(original, 'tipo_produto_nicho') else None,
                     profundidade_nicho = original.profundidade_nicho,
                     tem_fundo = original.tem_fundo,
                     tem_alisar = original.tem_alisar,
                     largura_alisar = original.largura_alisar,
                     valor_total = original.valor_total,
-                    data = datetime.utcnow(),  # Atualiza data para agora
-                    user_cpf = original.user_cpf  # Mantém o criador
+                    data = datetime.utcnow(),
+                    user_cpf = original.user_cpf,
+                    orcamento_salvo_id = None  # não herda vínculo
                 )
                 db.session.add(novo_orcamento)
 
         db.session.commit()
         return jsonify({'success': True})
-    
+
     except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'error': str(e)}), 500
+        import traceback
+        print(traceback.format_exc())
+        return jsonify({'success': False, 'error': traceback.format_exc()}), 500
 
 
 
