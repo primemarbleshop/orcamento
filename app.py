@@ -1340,6 +1340,32 @@ def gerar_pdf_orcamento(codigo):
 
     return response
 
+@app.route('/orcamentos/editar_material_selecionados', methods=['POST'])
+def editar_material_selecionados():
+    data = request.get_json()
+    orcamento_ids = data.get('orcamento_ids', [])
+    material_id = data.get('material_id')
+
+    if not orcamento_ids or not material_id:
+        return jsonify({'erro': 'Dados inválidos.'}), 400
+
+    for id in orcamento_ids:
+        orcamento = Orcamento.query.get(id)
+        if orcamento:
+            orcamento.material_id = material_id
+
+            # Atualiza o valor_total porque o valor do m² muda
+            material = Material.query.get(material_id)
+            if material:
+                comprimento_cal = max(orcamento.comprimento, 10)
+                largura_cal = max(orcamento.largura, 10)
+                valor_base = material.valor * (comprimento_cal * largura_cal / 10000)
+                orcamento.valor_total = valor_base * orcamento.quantidade  # Ajuste básico
+
+    db.session.commit()
+    return jsonify({'mensagem': 'Materiais atualizados com sucesso.'})
+
+
 
 
 
