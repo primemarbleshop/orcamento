@@ -1344,16 +1344,19 @@ def gerar_pdf_orcamento(codigo):
 @app.route('/editar_material_orcamentos', methods=['POST'])
 def editar_material_orcamentos():
     data = request.get_json()
-    ids = data.get('ids', [])
-    novo_material_id = data.get('material')
+    materiais = data.get('materiais', [])
 
-    if not ids or not novo_material_id:
-        return "Dados inválidos", 400
+    if not materiais:
+        return "Nenhum dado recebido", 400
 
     conn = sqlite3.connect('orcamentos.db')
     cursor = conn.cursor()
-    for orcamento_id in ids:
-        cursor.execute("UPDATE orcamentos SET material_id = ? WHERE id = ?", (novo_material_id, orcamento_id))
+
+    for item in materiais:
+        orcamento_id = item['id']
+        novo_material = item['material']
+        cursor.execute("UPDATE orcamentos SET material = ? WHERE id = ?", (novo_material, orcamento_id))
+
     conn.commit()
     conn.close()
     return "OK", 200
