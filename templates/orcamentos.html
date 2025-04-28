@@ -435,9 +435,15 @@ function toggleNichoFields() {
     <button onclick="enviarOrcamentos()" class="btn-acao btn-esquerda">
         Exibir Detalhes
     </button>
-	<button type="button" id="edit-selected" class="btn-acao">
+	
+<button type="button" id="edit-selected" class="btn-acao">
     Editar Material Selecionados
 </button>
+
+<button type="button" id="duplicate-selected" class="btn-acao">
+    Duplicar Selecionados
+</button>
+
 
 
     <button type="button" id="delete-selected" class="btn-acao btn-direita">
@@ -462,6 +468,47 @@ function toggleNichoFields() {
 </br>
    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+
+
+document.getElementById('duplicate-selected').addEventListener('click', function () {
+    const selecionados = Array.from(document.querySelectorAll('.selecionar-orcamento:checked'))
+        .map(cb => cb.closest('tr').getAttribute('data-id'));
+
+    if (selecionados.length === 0) {
+        Swal.fire('Atenção', 'Selecione pelo menos um orçamento para duplicar.', 'warning');
+        return;
+    }
+
+    Swal.fire({
+        title: 'Confirmar Duplicação?',
+        text: `Você deseja duplicar ${selecionados.length} orçamento(s)?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Sim, duplicar',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('/orcamentos/duplicar_selecionados', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ orcamento_ids: selecionados }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Sucesso!', 'Orçamentos duplicados com sucesso.', 'success')
+                    .then(() => location.reload());
+                } else {
+                    Swal.fire('Erro!', 'Não foi possível duplicar.', 'error');
+                }
+            });
+        }
+    });
+});
+
+
 
 	
 
