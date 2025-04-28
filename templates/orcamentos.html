@@ -425,22 +425,6 @@ function toggleNichoFields() {
             </td>
         </tr>
         {% endfor %}
-
-<!-- Popup de edição de múltiplos materiais -->
-<div id="popup-editar-material" style="display:none; position:fixed; top:5%; left:50%; transform:translateX(-50%); background:white; padding:20px; border:1px solid #ccc; z-index:1000; width:80%; max-height:80%; overflow-y:auto;">
-    <h4>Editar Materiais dos Orçamentos Selecionados</h4>
-    <form id="formEditarMateriais">
-        <div id="lista-materiais">
-            <!-- Aqui dentro serão gerados dinamicamente os selects -->
-        </div>
-        <br>
-        <button type="button" onclick="salvarTodosMateriais()" class="btn btn-success">Salvar Tudo</button>
-        <button type="button" onclick="fecharPopupEditarMaterial()" class="btn btn-secondary">Cancelar</button>
-    </form>
-</div>
-
-<div id="popup-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:999;" onclick="fecharPopupEditarMaterial()"></div>
-    
     
     </tbody>
 </table>
@@ -450,10 +434,6 @@ function toggleNichoFields() {
 <div class="container-botoes">
     <button onclick="enviarOrcamentos()" class="btn-acao btn-esquerda">
         Exibir Detalhes
-    </button>
-
-    <button type="button" onclick="editarSelecionados()" class="btn-acao btn-meio">
-        Editar Material Selecionados
     </button>
 
     <button type="button" id="delete-selected" class="btn-acao btn-direita">
@@ -478,71 +458,6 @@ function toggleNichoFields() {
 </br>
    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-
-let idsSelecionadosParaEditar = [];
-
-function editarSelecionados() {
-    const selecionados = Array.from(document.querySelectorAll('.selecionar-orcamento:checked'));
-
-    if (selecionados.length === 0) {
-        alert("Por favor, selecione pelo menos um orçamento para editar.");
-        return;
-    }
-
-    idsSelecionadosParaEditar = selecionados.map(cb => cb.closest('tr').getAttribute('data-id'));
-
-    // Preencher a lista de materiais no popup
-    const listaMateriais = document.getElementById('lista-materiais');
-    listaMateriais.innerHTML = "";
-
-    idsSelecionadosParaEditar.forEach(id => {
-        const linha = document.createElement('div');
-        linha.classList.add('linha-material');
-
-        linha.innerHTML = `
-            <label>Orçamento #${id}</label>
-            <select class="form-control material-selecionado" data-id="${id}">
-                {% for material in materiais %}
-                    <option value="{{ material.nome }}">{{ material.nome }}</option>
-                {% endfor %}
-            </select>
-            <br>
-        `;
-
-        listaMateriais.appendChild(linha);
-    });
-
-    document.getElementById("popup-editar-material").style.display = "block";
-    document.getElementById("popup-overlay").style.display = "block";
-}
-
-function fecharPopupEditarMaterial() {
-    document.getElementById("popup-editar-material").style.display = "none";
-    document.getElementById("popup-overlay").style.display = "none";
-}
-
-function salvarTodosMateriais() {
-    const materiaisAtualizados = Array.from(document.querySelectorAll('.material-selecionado')).map(select => ({
-        id: select.getAttribute('data-id'),
-        material: select.value
-    }));
-
-    fetch("/editar_material_orcamentos", {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ materiais: materiaisAtualizados }),
-    })
-    .then(response => {
-        if (response.ok) {
-            alert("Materiais atualizados com sucesso!");
-            location.reload();
-        } else {
-            alert("Erro ao atualizar os materiais.");
-        }
-    });
-}
 	
 function toggleCubaFields() {
         var tipoCuba = document.getElementById("tipo_cuba").value;
