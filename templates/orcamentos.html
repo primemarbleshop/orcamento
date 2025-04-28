@@ -428,11 +428,51 @@ function toggleNichoFields() {
     </tbody>
 </table>
 
+<!-- Modal de Edição de Materiais -->
+<div class="modal fade" id="modalEditarMateriais" tabindex="-1" role="dialog" aria-labelledby="modalEditarMateriaisLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalEditarMateriaisLabel">Selecione o Novo Material</h5>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Fechar">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+
+      <div class="modal-body">
+        <form id="formEditarMateriais">
+          <input type="hidden" id="orcamento_ids_hidden" name="orcamento_ids">
+
+          <div class="form-group">
+            <label for="novo_material">Novo Material:</label>
+            <select name="novo_material" id="novo_material" class="form-control" required>
+              {% for material in materiais %}
+                <option value="{{ material.nome }}">{{ material.nome }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+        </form>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-success" id="salvarMateriais">Salvar</button>
+      </div>
+
+    </div>
+  </div>
+</div>	
+
  </br>
 <div class="container-botoes">
     <button onclick="enviarOrcamentos()" class="btn-acao btn-esquerda">
         Exibir Detalhes
     </button>
+
+	<button id="editarSelecionados" type="button" class="btn btn-warning">Editar Selecionados</button>
+	
 
     <button type="button" id="delete-selected" class="btn-acao btn-direita">
         Deletar Selecionados
@@ -456,6 +496,52 @@ function toggleNichoFields() {
 </br>
    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
+	
+document.getElementById('editarSelecionados').addEventListener('click', function() {
+    let selecionados = [];
+    document.querySelectorAll('input[name="orcamento_ids"]:checked').forEach(function(checkbox) {
+        selecionados.push(checkbox.value);
+    });
+
+    if (selecionados.length === 0) {
+        alert('Selecione pelo menos um orçamento para editar.');
+        return;
+    }
+
+    // Armazena IDs selecionados no hidden input do Modal
+    document.getElementById('orcamento_ids_hidden').value = selecionados.join(',');
+
+    // Abre o Modal
+    $('#modalEditarMateriais').modal('show');
+});
+	
+document.getElementById('salvarMateriais').addEventListener('click', function() {
+    let novoMaterial = document.getElementById('novo_material').value;
+    let orcamentoIds = document.getElementById('orcamento_ids_hidden').value.split(',');
+
+    if (!novoMaterial || orcamentoIds.length === 0) {
+        alert('Erro ao salvar. Verifique os campos.');
+        return;
+    }
+
+    fetch('/salvar_materiais_editados', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            orcamento_ids: orcamentoIds,
+            novo_material: novoMaterial
+        })
+    })
+    .then(response => {
+        if (response.ok) {
+            location.reload();  // Atualiza a página para ver os materiais novos
+        } else {
+            alert('Erro ao atualizar materiais.');
+        }
+    });
+});
 
 function toggleCubaFields() {
         var tipoCuba = document.getElementById("tipo_cuba").value;
