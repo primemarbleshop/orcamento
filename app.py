@@ -1480,6 +1480,59 @@ def editar_material_selecionados():
 
 
 
+@app.route('/orcamentos/duplicar_selecionados', methods=['POST'])
+def duplicar_selecionados():
+    data = request.get_json()
+    orcamento_ids = data.get('orcamento_ids', [])
+
+    if not orcamento_ids:
+        return jsonify({'success': False, 'error': 'Nenhum orçamento selecionado.'}), 400
+
+    try:
+        for id in orcamento_ids:
+            original = Orcamento.query.get(id)
+            if original:
+                # Criar nova cópia
+                novo_orcamento = Orcamento(
+                    cliente_id = original.cliente_id,
+                    tipo_produto = original.tipo_produto,
+                    material_id = original.material_id,
+                    quantidade = original.quantidade,
+                    comprimento = original.comprimento,
+                    largura = original.largura,
+                    outros_custos = original.outros_custos,
+                    rt = original.rt,
+                    rt_percentual = original.rt_percentual,
+                    comprimento_saia = original.comprimento_saia,
+                    largura_saia = original.largura_saia,
+                    comprimento_fronte = original.comprimento_fronte,
+                    largura_fronte = original.largura_fronte,
+                    tipo_cuba = original.tipo_cuba,
+                    quantidade_cubas = original.quantidade_cubas,
+                    modelo_cuba = original.modelo_cuba,
+                    comprimento_cuba = original.comprimento_cuba,
+                    largura_cuba = original.largura_cuba,
+                    profundidade_cuba = original.profundidade_cuba,
+                    tem_cooktop = original.tem_cooktop,
+                    tipo_produto_nicho = original.tipo_produto_nicho if hasattr(original, 'tipo_produto_nicho') else None,
+                    profundidade_nicho = original.profundidade_nicho,
+                    tem_fundo = original.tem_fundo,
+                    tem_alisar = original.tem_alisar,
+                    largura_alisar = original.largura_alisar,
+                    valor_total = original.valor_total,
+                    data = datetime.utcnow(),  # Atualiza data para agora
+                    user_cpf = original.user_cpf  # Mantém o criador
+                )
+                db.session.add(novo_orcamento)
+
+        db.session.commit()
+        return jsonify({'success': True})
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 
 
 
