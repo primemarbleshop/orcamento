@@ -1518,9 +1518,10 @@ def duplicar_selecionados():
                     tem_alisar = original.tem_alisar,
                     largura_alisar = original.largura_alisar,
                     valor_total = original.valor_total,
-                    data = datetime.utcnow(),
-                    
+                    dono = original.dono,  # <<<< NOVO, ESSENCIAL
+                    data = datetime.utcnow()
                 )
+
                 db.session.add(novo_orcamento)
 
         db.session.commit()
