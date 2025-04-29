@@ -1519,7 +1519,7 @@ def duplicar_selecionados():
                     largura_alisar = original.largura_alisar,
                     valor_total = original.valor_total,
                     data = datetime.utcnow(),
-                    orcamento_salvo_id = None  # não herda vínculo
+                    
                 )
                 db.session.add(novo_orcamento)
 
