@@ -33,13 +33,13 @@
     <!-- 🔹 Cliente agora aparece para todos os usuários -->
     <label for="filtro_cliente">Cliente:</label>
     <select id="filtro_cliente" onchange="filtrarCliente()">
-        <option value="Todos">Todos</option>
-        {% for cliente in clientes %}
-            {% if session.get('admin') or cliente.dono == session.get('user_cpf') %}
-                <option value="{{ cliente.nome }}">{{ cliente.nome }}</option>
-            {% endif %}
-        {% endfor %}
-    </select>
+    <option value="Todos">Todos</option>
+    {% for cliente in clientes|sort(attribute='nome') %}
+        {% if session.get('admin') or cliente.dono == session.get('user_cpf') %}
+            <option value="{{ cliente.nome }}">{{ cliente.nome }}</option>
+        {% endif %}
+    {% endfor %}
+</select>
   <label for="filtro_status">Status:</label>
 <select id="filtro_status" onchange="filtrarTabela()">
     <option value="Todos">Todos</option>
@@ -144,8 +144,21 @@
 </br>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
+<script src="https://cdn.jsdelivr.net/npm/choices.js/public/assets/scripts/choices.min.js"></script>
+	
 <script>
+
+
+document.addEventListener('DOMContentLoaded', function () {
+    const selectCliente = document.getElementById('filtro_cliente');
+    if (selectCliente) {
+        new Choices(selectCliente, {
+            searchEnabled: true,
+            itemSelectText: '',
+            shouldSort: false // já ordenamos no backend
+        });
+    }
+});
 
 
 
