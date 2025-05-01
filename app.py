@@ -983,11 +983,22 @@ def alterar_senha():
         flash("Erro: Usuário não encontrado!", "error")
         return redirect(url_for('index'))
 
+    # ✅ Impede alteração da senha do admin
+    if usuario.nome.lower() == 'admin':
+        flash("A senha do usuário admin não pode ser alterada!", "error")
+        return redirect(url_for('index'))
+
     if request.method == 'POST':
-        nova_senha = request.form['nova_senha']
+        nova_senha = request.form.get('nova_senha')
+        confirmar_senha = request.form.get('confirmar_senha')
 
         if not nova_senha or len(nova_senha) < 6:
             flash("A senha deve ter pelo menos 6 caracteres!", "error")
+            return redirect(url_for('alterar_senha'))
+
+        # ✅ Confirmação de senha
+        if nova_senha != confirmar_senha:
+            flash("As senhas não coincidem!", "error")
             return redirect(url_for('alterar_senha'))
 
         try:
@@ -1000,6 +1011,7 @@ def alterar_senha():
             flash(f"Erro ao alterar senha: {str(e)}", "error")
 
     return render_template('alterar_senha.html')
+
 
 
 
