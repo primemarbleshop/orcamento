@@ -144,6 +144,10 @@
 </br>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<!-- Bibliotecas do Select2 -->
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 
 	
 <script>
@@ -312,7 +316,25 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 
+$(document).ready(function() {
+    $('#filtro_cliente').select2({
+        placeholder: "Selecione um cliente",
+        allowClear: true,
+        width: 'resolve'
+    });
 
+    // Reaplicando o filtro ao trocar o cliente
+    $('#filtro_cliente').on('change', function() {
+        const clienteSelecionado = $(this).val();
+        const linhasTabela = document.querySelectorAll("#orcamento_table tr");
+
+        linhasTabela.forEach(linha => {
+            const cliente = linha.getAttribute("data-cliente").trim();
+            const mostrar = (clienteSelecionado === "Todos" || cliente === clienteSelecionado);
+            linha.style.display = mostrar ? "" : "none";
+        });
+    });
+});
 
 
 </script>
