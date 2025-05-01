@@ -706,8 +706,13 @@ function confirmarExclusao(event, botao) {
             let clienteMatch = filtroCliente === "Todos" || cliente === filtroCliente;
             let dataMatch = true;
             if (filtroDataInicio && filtroDataFim) {
-                dataMatch = data >= filtroDataInicio && data <= filtroDataFim;
-            }
+	      // Adiciona 1 dia à data final
+	      const dataFimDate = new Date(filtroDataFim);
+	      dataFimDate.setDate(dataFimDate.getDate() + 1);
+	      const dataFimMaisUm = dataFimDate.toISOString().split("T")[0];
+	
+	      dataMatch = data >= filtroDataInicio && data < dataFimMaisUm;
+	     }
 
             if (clienteMatch && dataMatch) {
                 row.style.display = "";
