@@ -975,7 +975,7 @@ def criar_usuario():
 @app.route('/alterar_senha', methods=['GET', 'POST'])
 def alterar_senha():
     if 'user_cpf' not in session:
-        return redirect(url_for('login'))  # Redireciona se não estiver logado
+        return redirect(url_for('login'))
 
     usuario = Usuario.query.filter_by(cpf=session['user_cpf']).first()
 
@@ -983,8 +983,8 @@ def alterar_senha():
         flash("Erro: Usuário não encontrado!", "error")
         return redirect(url_for('index'))
 
-    # ✅ Impede alteração da senha do admin
-    if usuario.nome.lower() == 'admin':
+    # ✅ Impede alteração da senha se for admin
+    if usuario.is_admin:
         flash("A senha do usuário admin não pode ser alterada!", "error")
         return redirect(url_for('index'))
 
@@ -996,7 +996,6 @@ def alterar_senha():
             flash("A senha deve ter pelo menos 6 caracteres!", "error")
             return redirect(url_for('alterar_senha'))
 
-        # ✅ Confirmação de senha
         if nova_senha != confirmar_senha:
             flash("As senhas não coincidem!", "error")
             return redirect(url_for('alterar_senha'))
