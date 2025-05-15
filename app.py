@@ -1414,7 +1414,7 @@ def editar_material_selecionados():
                 area_nicho = 2 * (comprimento_cal + largura_cal) * profundidade_nicho
 
             if orcamento.tem_alisar == 'Sim' and (orcamento.largura_alisar or 0) > 0:
-                largura_alisar_cal = max(orcamento.largura_alisar, 10)
+                largura_alisar_cal = 10 if 0 < largura_alisar < 10 else largura_alisar
                 area_nicho += ((comprimento_cal + (largura_alisar_cal * 2)) * largura_alisar_cal * 2) + \
                               ((largura_cal + (largura_alisar_cal * 2)) * largura_alisar_cal * 2)
 
@@ -1423,15 +1423,15 @@ def editar_material_selecionados():
 
         # Saia
         if orcamento.tipo_produto in ['Ilharga', 'Ilharga Bipolida', 'Bancada', 'Lavatorio']:
-            comprimento_saia_cal = max(orcamento.comprimento_saia or 0, 10)
-            largura_saia_cal = max(orcamento.largura_saia or 0, 10)
+            comprimento_saia_cal = 10 if 0 < comprimento_saia < 10 else comprimento_saia
+            largura_saia_cal = 10 if 0 < largura_saia < 10 else largura_saia
             valor_saia = comprimento_saia_cal * largura_saia_cal * material.valor / 10000
             valor_total_criar += valor_saia
 
         # Fronte
         if orcamento.tipo_produto in ['Bancada', 'Lavatorio']:
-            comprimento_fronte_cal = max(orcamento.comprimento_fronte or 0, 10)
-            largura_fronte_cal = max(orcamento.largura_fronte or 0, 10)
+            comprimento_fronte_cal = 10 if 0 < comprimento_fronte < 10 else comprimento_fronte
+            largura_fronte_cal = 10 if 0 < largura_fronte < 10 else largura_fronte
             valor_fronte = comprimento_fronte_cal * largura_fronte_cal * material.valor / 10000
             valor_total_criar += valor_fronte
 
