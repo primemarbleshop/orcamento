@@ -552,22 +552,32 @@ def editar_cliente(id):
     cliente = Cliente.query.get(id)
 
     if request.method == 'POST':
-        novo_documento = request.form['documento']
+        nome = request.form['nome']
+        endereco = request.form['endereco']
+        telefone = request.form.get('telefone', '')
+        documento = request.form.get('documento', '').strip()  # Agora opcional
 
-        # Verificar se outro cliente já usa este documento
-        documento_existente = Cliente.query.filter(Cliente.documento == novo_documento, Cliente.id != id).first()
-        if documento_existente:
-            flash("Erro: Este CPF/CNPJ já está cadastrado em outro cliente!", "error")
-            return redirect(url_for('editar_cliente', id=id))
+        # Aplicar formatação
+        telefone = formatar_telefone(telefone)
+        documento = formatar_documento(documento)
 
-        # Atualizar os dados do cliente
-        cliente.nome = request.form['nome']
-        cliente.endereco = request.form['endereco']
-        cliente.telefone = request.form['telefone']
-        cliente.documento = novo_documento
+        # Verifica duplicidade apenas se o documento foi informado
+        if documento:
+            documento_existente = Cliente.query.filter(
+                Cliente.documento == documento, Cliente.id != id
+            ).first()
+            if documento_existente:
+                flash("Erro: Este CPF/CNPJ já está cadastrado em outro cliente!", "error")
+                return redirect(url_for('editar_cliente', id=id))
+
+        # Atualiza os dados
+        cliente.nome = nome
+        cliente.endereco = endereco
+        cliente.telefone = telefone
+        cliente.documento = documento  # Pode ser vazio
         db.session.commit()
 
-        
+        flash("Cliente atualizado com sucesso!", "success")
         return redirect(url_for('clientes'))
 
     return render_template('editar_cliente.html', cliente=cliente)
