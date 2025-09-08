@@ -1540,7 +1540,7 @@ def duplicar_selecionados():
                     largura_alisar = original.largura_alisar,
                     valor_total = original.valor_total,
                     dono = original.dono,  # <<<< NOVO, ESSENCIAL
-                    data = datetime.utcnow()
+                    data = datetime.now(br_tz)
                 )
 
                 db.session.add(novo_orcamento)
