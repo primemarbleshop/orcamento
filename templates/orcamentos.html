@@ -734,63 +734,64 @@ function confirmarExclusao(event, botao) {
         filterOrcamentos();
     });
 
-    // Salvar filtros no LocalStorage e aplicar ao carregar a página
     document.addEventListener("DOMContentLoaded", function () {
-        let filtroCliente = document.getElementById("filtro_cliente");
-        let filtroDataInicio = document.getElementById("filtro_data_inicio");
-        let filtroDataFim = document.getElementById("filtro_data_fim");
-        let tabelaOrcamentos = document.getElementById("orcamento_table");
+    // Seletores
+    const filtroCliente = document.getElementById("filtro_cliente");
+    const filtroDataInicio = document.getElementById("filtro_data_inicio");
+    const filtroDataFim = document.getElementById("filtro_data_fim");
 
-        if (localStorage.getItem("filtroCliente")) {
-            filtroCliente.value = localStorage.getItem("filtroCliente");
-        }
-        if (localStorage.getItem("filtroDataInicio")) {
-            filtroDataInicio.value = localStorage.getItem("filtroDataInicio");
-        }
-        if (localStorage.getItem("filtroDataFim")) {
-            filtroDataFim.value = localStorage.getItem("filtroDataFim");
-        }
+    // Inicializa Select2
+    $('#filtro_cliente').select2({
+        placeholder: "Selecione um cliente",
+        allowClear: true,
+        width: 'resolve'
+    });
 
+    // Restaurar valores do localStorage
+    if (localStorage.getItem("filtroCliente")) {
+        $('#filtro_cliente').val(localStorage.getItem("filtroCliente")).trigger('change');
+    }
+    if (localStorage.getItem("filtroDataInicio")) {
+        filtroDataInicio.value = localStorage.getItem("filtroDataInicio");
+    }
+    if (localStorage.getItem("filtroDataFim")) {
+        filtroDataFim.value = localStorage.getItem("filtroDataFim");
+    }
+
+    // Aplica os filtros ao carregar
+    filterOrcamentos();
+
+    // Salvar mudanças e reaplicar filtros
+    filtroCliente.addEventListener("change", function () {
+        localStorage.setItem("filtroCliente", this.value);
         filterOrcamentos();
+    });
 
-        filtroCliente.addEventListener("change", function () {
-            localStorage.setItem("filtroCliente", filtroCliente.value);
-            filterOrcamentos();
-        });
+    filtroDataInicio.addEventListener("change", function () {
+        localStorage.setItem("filtroDataInicio", this.value);
+        filterOrcamentos();
+    });
 
-        filtroDataInicio.addEventListener("change", function () {
-            localStorage.setItem("filtroDataInicio", filtroDataInicio.value);
-            filterOrcamentos();
-        });
-
-        filtroDataFim.addEventListener("change", function () {
-            localStorage.setItem("filtroDataFim", filtroDataFim.value);
-            filterOrcamentos();
-        });
+    filtroDataFim.addEventListener("change", function () {
+        localStorage.setItem("filtroDataFim", this.value);
+        filterOrcamentos();
     });
 
     // Formatar valores como moeda BRL
-    document.addEventListener("DOMContentLoaded", function () {
-        let valores = document.querySelectorAll(".valor-total");
-
-        valores.forEach(function (cell) {
-            let valor = parseFloat(cell.textContent);
-            if (!isNaN(valor)) {
-                cell.textContent = valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-            }
-        });
+    document.querySelectorAll(".valor-total").forEach(function (cell) {
+        let valor = parseFloat(cell.textContent);
+        if (!isNaN(valor)) {
+            cell.textContent = valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+        }
     });
-document.addEventListener("DOMContentLoaded", function () {
-    // Função para capturar IDs dos orçamentos selecionados e deletá-los
+
+    // Deletar orçamentos selecionados
     document.getElementById("delete-selected").addEventListener("click", function () {
         let selecionados = [];
 
-        // Pega todos os checkboxes marcados e captura os IDs das linhas correspondentes
         document.querySelectorAll('.selecionar-orcamento:checked').forEach((checkbox) => {
             let id = checkbox.closest('tr').getAttribute('data-id');
-            if (id) {
-                selecionados.push(id);
-            }
+            if (id) selecionados.push(id);
         });
 
         if (selecionados.length === 0) {
@@ -798,7 +799,6 @@ document.addEventListener("DOMContentLoaded", function () {
             return;
         }
 
-        // Exibe um alerta de confirmação antes de deletar
         Swal.fire({
             title: "Tem certeza?",
             text: "Essa ação não pode ser desfeita!",
@@ -809,38 +809,26 @@ document.addEventListener("DOMContentLoaded", function () {
             confirmButtonText: "Sim, deletar!"
         }).then((result) => {
             if (result.isConfirmed) {
-                // Enviar os IDs via AJAX para deletar
                 fetch("/orcamentos/delete_selecionados", {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ ids: selecionados })
                 })
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        Swal.fire("Deletado!", data.success, "success").then(() => {
-                            location.reload(); // Atualiza a página após a exclusão
-                        });
+                        Swal.fire("Deletado!", data.success, "success").then(() => location.reload());
                     } else {
                         Swal.fire("Erro!", data.error, "error");
                     }
                 })
-                .catch(error => {
+                .catch(() => {
                     Swal.fire("Erro!", "Erro ao deletar orçamentos!", "error");
                 });
             }
         });
     });
 });
-
-$(document).ready(function() {
-    $('#filtro_cliente').select2({
-        placeholder: "Selecione um cliente",
-        allowClear: true,
-        width: 'resolve'
-    });
 
 
 </script>
