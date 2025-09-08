@@ -678,26 +678,14 @@ function confirmarExclusao(event, botao) {
         let valorFinalSpan = document.getElementById("valor-final");
 
         function atualizarValorFinal() {
-    let total = 0;
-
-    checkboxes.forEach(checkbox => {
-        if (checkbox.checked) {
-            // Pega o valor da célula visível, remove "R$" e transforma em float
-            const linha = checkbox.closest("tr");
-            const valorCell = linha.querySelector(".valor-total");
-            let valorTexto = valorCell.textContent.replace("R$", "").replace(".", "").replace(",", ".");
-            let valor = parseFloat(valorTexto);
-
-            // Multiplica por 100 para trabalhar com centavos inteiros
-            total += Math.round(valor * 100);
+            let total = 0;
+            checkboxes.forEach(checkbox => {
+                if (checkbox.checked) {
+                    total += parseFloat(checkbox.dataset.valor);
+                }
+            });
+            valorFinalSpan.textContent = total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
         }
-    });
-
-    // Converte de volta para reais
-    total = total / 100;
-
-    valorFinalSpan.textContent = total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-}
 
         checkboxes.forEach(checkbox => {
             checkbox.addEventListener("change", atualizarValorFinal);
