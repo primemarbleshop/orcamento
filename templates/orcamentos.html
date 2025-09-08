@@ -731,18 +731,20 @@ function filterOrcamentos() {
         row.style.display = (clienteMatch && dataMatch) ? "" : "none";
     });
 
-    // Segundo: filtra por quantidade (últimos N)
-    if (filtroQuantidade !== 'all') {
-        let rowsVisiveis = rows.filter(row => row.style.display !== "none");
-        let total = rowsVisiveis.length;
-        let limite = parseInt(filtroQuantidade);
+    // Segundo: filtra por quantidade (primeiros N)
+	if (filtroQuantidade !== 'all') {
+    	let rowsVisiveis = Array.from(rows).filter(row => row.style.display !== "none");
+    	let limite = parseInt(filtroQuantidade);
 
-        rowsVisiveis.forEach((row, index) => {
-            if (index < total - limite) {
-                row.style.display = "none";
-            }
-        });
-    }
+    	rowsVisiveis.forEach((row, index) => {
+        	if (index >= limite) {
+           	 row.style.display = "none"; // Oculta tudo além dos primeiros N
+        	} else {
+           	 row.style.display = ""; // Mantém os primeiros visíveis
+       	 }
+    	});
+	}
+
 }
 
 // Inicializar os filtros com a data atual ao carregar a página
