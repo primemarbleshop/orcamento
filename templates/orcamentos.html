@@ -734,61 +734,63 @@ function confirmarExclusao(event, botao) {
         filterOrcamentos();
     });
 
+    // Salvar filtros no LocalStorage e aplicar ao carregar a página
     document.addEventListener("DOMContentLoaded", function () {
-    const filtroCliente = document.getElementById("filtro_cliente");
-    const filtroDataInicio = document.getElementById("filtro_data_inicio");
-    const filtroDataFim = document.getElementById("filtro_data_fim");
+        let filtroCliente = document.getElementById("filtro_cliente");
+        let filtroDataInicio = document.getElementById("filtro_data_inicio");
+        let filtroDataFim = document.getElementById("filtro_data_fim");
+        let tabelaOrcamentos = document.getElementById("orcamento_table");
 
-    // Inicializa Select2
-    $('#filtro_cliente').select2({
-        placeholder: "Selecione um cliente",
-        allowClear: true,
-        width: 'resolve'
-    });
-
-    // Restaura valores do localStorage
-    const clienteSalvo = localStorage.getItem("filtroCliente");
-    if (clienteSalvo) {
-        $('#filtro_cliente').val(clienteSalvo).trigger('change'); // ATUALIZA SELECT2
-    }
-    if (localStorage.getItem("filtroDataInicio")) {
-        filtroDataInicio.value = localStorage.getItem("filtroDataInicio");
-    }
-    if (localStorage.getItem("filtroDataFim")) {
-        filtroDataFim.value = localStorage.getItem("filtroDataFim");
-    }
-
-    // Aplica filtros ao carregar
-    filterOrcamentos();
-
-    // Salvar mudanças
-    filtroCliente.addEventListener("change", function () {
-        localStorage.setItem("filtroCliente", this.value);
-        filterOrcamentos();
-    });
-    filtroDataInicio.addEventListener("change", function () {
-        localStorage.setItem("filtroDataInicio", this.value);
-        filterOrcamentos();
-    });
-    filtroDataFim.addEventListener("change", function () {
-        localStorage.setItem("filtroDataFim", this.value);
-        filterOrcamentos();
-    });
-
-    // Formatar valores como BRL
-    document.querySelectorAll(".valor-total").forEach(cell => {
-        const valor = parseFloat(cell.textContent);
-        if (!isNaN(valor)) {
-            cell.textContent = valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+        if (localStorage.getItem("filtroCliente")) {
+            filtroCliente.value = localStorage.getItem("filtroCliente");
         }
+        if (localStorage.getItem("filtroDataInicio")) {
+            filtroDataInicio.value = localStorage.getItem("filtroDataInicio");
+        }
+        if (localStorage.getItem("filtroDataFim")) {
+            filtroDataFim.value = localStorage.getItem("filtroDataFim");
+        }
+
+        filterOrcamentos();
+
+        filtroCliente.addEventListener("change", function () {
+            localStorage.setItem("filtroCliente", filtroCliente.value);
+            filterOrcamentos();
+        });
+
+        filtroDataInicio.addEventListener("change", function () {
+            localStorage.setItem("filtroDataInicio", filtroDataInicio.value);
+            filterOrcamentos();
+        });
+
+        filtroDataFim.addEventListener("change", function () {
+            localStorage.setItem("filtroDataFim", filtroDataFim.value);
+            filterOrcamentos();
+        });
     });
 
-    // Deletar orçamentos selecionados
+    // Formatar valores como moeda BRL
+    document.addEventListener("DOMContentLoaded", function () {
+        let valores = document.querySelectorAll(".valor-total");
+
+        valores.forEach(function (cell) {
+            let valor = parseFloat(cell.textContent);
+            if (!isNaN(valor)) {
+                cell.textContent = valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+            }
+        });
+    });
+document.addEventListener("DOMContentLoaded", function () {
+    // Função para capturar IDs dos orçamentos selecionados e deletá-los
     document.getElementById("delete-selected").addEventListener("click", function () {
         let selecionados = [];
-        document.querySelectorAll('.selecionar-orcamento:checked').forEach(cb => {
-            const id = cb.closest('tr').getAttribute('data-id');
-            if (id) selecionados.push(id);
+
+        // Pega todos os checkboxes marcados e captura os IDs das linhas correspondentes
+        document.querySelectorAll('.selecionar-orcamento:checked').forEach((checkbox) => {
+            let id = checkbox.closest('tr').getAttribute('data-id');
+            if (id) {
+                selecionados.push(id);
+            }
         });
 
         if (selecionados.length === 0) {
@@ -796,6 +798,7 @@ function confirmarExclusao(event, botao) {
             return;
         }
 
+        // Exibe um alerta de confirmação antes de deletar
         Swal.fire({
             title: "Tem certeza?",
             text: "Essa ação não pode ser desfeita!",
@@ -804,21 +807,56 @@ function confirmarExclusao(event, botao) {
             confirmButtonColor: "#d33",
             cancelButtonColor: "#3085d6",
             confirmButtonText: "Sim, deletar!"
-        }).then(result => {
+        }).then((result) => {
             if (result.isConfirmed) {
+                // Enviar os IDs via AJAX para deletar
                 fetch("/orcamentos/delete_selecionados", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
                     body: JSON.stringify({ ids: selecionados })
                 })
-                .then(res => res.json())
+                .then(response => response.json())
                 .then(data => {
-                    if (data.success) Swal.fire("Deletado!", data.success, "success").then(() => location.reload());
-                    else Swal.fire("Erro!", data.error, "error");
+                    if (data.success) {
+                        Swal.fire("Deletado!", data.success, "success").then(() => {
+                            location.reload(); // Atualiza a página após a exclusão
+                        });
+                    } else {
+                        Swal.fire("Erro!", data.error, "error");
+                    }
                 })
-                .catch(() => Swal.fire("Erro!", "Erro ao deletar orçamentos!", "error"));
+                .catch(error => {
+                    Swal.fire("Erro!", "Erro ao deletar orçamentos!", "error");
+                });
             }
         });
+    });
+});
+
+$(document).ready(function() {
+    const filtroCliente = $('#filtro_cliente');
+
+    // Restaurar valor do localStorage antes de inicializar o Select2
+    const clienteSalvo = localStorage.getItem("filtroCliente") || "Todos";
+    filtroCliente.val(clienteSalvo);
+
+    // Inicializar Select2
+    filtroCliente.select2({
+        placeholder: "Selecione um cliente",
+        allowClear: true,
+        width: 'resolve'
+    });
+
+    // Aplicar filtro após restaurar valor
+    filterOrcamentos();
+
+    // Salvar no localStorage e filtrar sempre que mudar
+    filtroCliente.on('change', function() {
+        const clienteSelecionado = $(this).val() || "Todos"; // Caso limpe o select
+        localStorage.setItem("filtroCliente", clienteSelecionado);
+        filterOrcamentos();
     });
 });
 
