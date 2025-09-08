@@ -61,6 +61,15 @@
     <option value="Indicação Marcenaria">Indicação Marcenaria</option>
 </select>
 
+<label for="filtro_quantidade">Exibir últimos:</label>
+<select id="filtro_quantidade" onchange="filterOrcamentos()">
+    <option value="15">15</option>
+    <option value="30">30</option>
+    <option value="50">50</option>
+    <option value="100">100</option>
+    <option value="all">Todos</option>
+</select>
+	
 </div>
 
 </br>
@@ -216,83 +225,78 @@ document.addEventListener("DOMContentLoaded", function() {
 
 });
 
-function filtrarCodigo() {
-    const codigoBusca = document.getElementById("filtro_codigo").value.trim().toLowerCase();
-    const linhasTabela = document.querySelectorAll("#orcamento_table tr");
+// 🔹 Função principal que aplica todos os filtros
+function filterOrcamentos() {
+    const codigoBusca = document.getElementById("filtro_codigo")?.value.trim().toLowerCase() || "";
+    const criadoPorSelecionado = document.getElementById("filtro_criado_por")?.value || "Todos";
+    const clienteSelecionado = document.getElementById("filtro_cliente")?.value || "Todos";
+    const statusSelecionado = document.getElementById("filtro_status")?.value || "Todos";
+    const tipoClienteSelecionado = document.getElementById("filtro_tipo_cliente")?.value || "Todos";
+    const filtroQuantidadeValue = document.getElementById("filtro_quantidade")?.value || "all";
 
+    const linhasTabela = Array.from(document.querySelectorAll("#orcamento_table tr"));
+
+    // Primeiro aplica todos os filtros "normais"
     linhasTabela.forEach(linha => {
         const codigo = linha.querySelector("td:nth-child(1)")?.textContent.trim().toLowerCase() || "";
-        linha.style.display = codigo.includes(codigoBusca) ? "" : "none";
-    });
-}
-function filtrarCriadoPor() {
-    const criadoPorSelecionado = document.getElementById("filtro_criado_por").value;
-    const linhasTabela = document.querySelectorAll("#orcamento_table tr");
-
-    linhasTabela.forEach(linha => {
         const criadoPor = linha.querySelector("td:nth-child(2)")?.textContent.trim() || "";
-        linha.style.display = (criadoPorSelecionado === "Todos" || criadoPor === criadoPorSelecionado) ? "" : "none";
-    });
-}
-
-document.addEventListener("DOMContentLoaded", function () {
-
-    function filtrarCliente() {
-        const clienteSelecionado = document.getElementById("filtro_cliente").value;
-        const linhasTabela = document.querySelectorAll("#orcamento_table tr");
-
-        linhasTabela.forEach(linha => {
-            const cliente = linha.getAttribute("data-cliente").trim();
-
-            let exibir = true;
-
-            if (clienteSelecionado !== "Todos" && cliente !== clienteSelecionado) {
-                exibir = false;
-            }
-
-            linha.style.display = exibir ? "" : "none";
-        });
-    }
-
-    document.getElementById("filtro_cliente").addEventListener("change", filtrarCliente);
-});
-
-
-function filtrarTabela() {
-    const statusSelecionado = document.getElementById("filtro_status").value;
-    const tipoClienteSelecionado = document.getElementById("filtro_tipo_cliente").value;
-    const linhasTabela = document.querySelectorAll("#orcamento_table tr");
-
-    linhasTabela.forEach(linha => {
-        const status = linha.querySelector(".status-select").value.trim(); // Pega o valor do select
-        const tipoCliente = linha.querySelector(".tipo-cliente-select").value.trim(); // Pega o valor do select
+        const cliente = linha.getAttribute("data-cliente")?.trim() || "";
+        const status = linha.querySelector(".status-select")?.value.trim() || "";
+        const tipoCliente = linha.querySelector(".tipo-cliente-select")?.value.trim() || "";
 
         let exibir = true;
 
-        if (statusSelecionado !== "Todos" && status !== statusSelecionado) {
-            exibir = false;
-        }
-        if (tipoClienteSelecionado !== "Todos" && tipoCliente !== tipoClienteSelecionado) {
-            exibir = false;
-        }
+        if (codigoBusca && !codigo.includes(codigoBusca)) exibir = false;
+        if (criadoPorSelecionado !== "Todos" && criadoPor !== criadoPorSelecionado) exibir = false;
+        if (clienteSelecionado !== "Todos" && cliente !== clienteSelecionado) exibir = false;
+        if (statusSelecionado !== "Todos" && status !== statusSelecionado) exibir = false;
+        if (tipoClienteSelecionado !== "Todos" && tipoCliente !== tipoClienteSelecionado) exibir = false;
 
         linha.style.display = exibir ? "" : "none";
     });
+
+    // Agora aplica o filtro de quantidade (mantém apenas os primeiros N visíveis)
+    if (filtroQuantidadeValue !== "all") {
+        const limite = parseInt(filtroQuantidadeValue);
+        const linhasVisiveis = linhasTabela.filter(linha => linha.style.display !== "none");
+
+        linhasVisiveis.forEach((linha, index) => {
+            linha.style.display = (index < limite) ? "" : "none";
+        });
+    }
 }
 
-// Eventos para filtrar ao mudar os selects
-document.getElementById("filtro_status").addEventListener("change", filtrarTabela);
-document.getElementById("filtro_tipo_cliente").addEventListener("change", filtrarTabela);
+// 🔹 Salvar e restaurar filtros do LocalStorage
+document.addEventListener("DOMContentLoaded", function () {
+    const filtros = ["filtro_codigo", "filtro_criado_por", "filtro_cliente", "filtro_status", "filtro_tipo_cliente", "filtro_quantidade"];
 
+    filtros.forEach(id => {
+        const elem = document.getElementById(id);
+        if (elem && localStorage.getItem(id)) {
+            elem.value = localStorage.getItem(id);
+        }
+        if (elem) {
+            elem.addEventListener("change", function () {
+                localStorage.setItem(id, this.value);
+                filterOrcamentos();
+            });
+        }
+    });
+
+    // Aplica os filtros ao carregar
+    filterOrcamentos();
+});
+
+// 🔹 Botão salvar (atualizar status e tipo cliente)
 document.addEventListener("DOMContentLoaded", function() {
     document.querySelectorAll(".btn-salvar").forEach(button => {
         button.addEventListener("click", function() {
             let orcamentoId = this.getAttribute("data-id");
-            let linha = this.closest("tr"); // Pegamos a linha correta
-            let status = linha.querySelector(".status-select").value; // Pegando o valor selecionado
-            let tipoCliente = linha.querySelector(".tipo-cliente-select").value; // Pegando o valor selecionado
+            let linha = this.closest("tr");
+            let status = linha.querySelector(".status-select").value;
+            let tipoCliente = linha.querySelector(".tipo-cliente-select").value;
 
-            fetch("/atualizar_status_tipo_cliente", {  // Nome da nova rota
+            fetch("/atualizar_status_tipo_cliente", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -316,6 +320,7 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 });
 
+// 🔹 Select2 no filtro de cliente
 $(document).ready(function() {
     $('#filtro_cliente').select2({
         placeholder: "Selecione um cliente",
@@ -323,21 +328,12 @@ $(document).ready(function() {
         width: 'resolve'
     });
 
-    // Reaplicando o filtro ao trocar o cliente
     $('#filtro_cliente').on('change', function() {
-        const clienteSelecionado = $(this).val();
-        const linhasTabela = document.querySelectorAll("#orcamento_table tr");
-
-        linhasTabela.forEach(linha => {
-            const cliente = linha.getAttribute("data-cliente").trim();
-            const mostrar = (clienteSelecionado === "Todos" || cliente === clienteSelecionado);
-            linha.style.display = mostrar ? "" : "none";
-        });
-
-        // 🔽 Força o fechamento da lista do Select2 após seleção
+        filterOrcamentos();
         $(this).select2('close');
     });
 });
+
 
 
 
