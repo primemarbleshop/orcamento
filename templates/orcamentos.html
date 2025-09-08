@@ -330,6 +330,18 @@ function toggleNichoFields() {
 <label for="filtro_data_fim">Data Final:</label>
 <input type="date" id="filtro_data_fim" onchange="filterOrcamentos()">
 
+<!-- Filtro por Quantidade de Orçamentos -->
+<label for="filtro_quantidade">Mostrar:</label>
+<select id="filtro_quantidade" onchange="filterOrcamentos()">
+    <option value="15">Últimos 15</option>
+    <option value="30">Últimos 30</option>
+    <option value="50">Últimos 50</option>
+    <option value="100">Últimos 100</option>
+    <option value="all">Todos</option>
+</select>
+
+
+	
     <style>
 /* Contêiner para alinhar os botões */
 .container-botoes {
@@ -692,82 +704,106 @@ function confirmarExclusao(event, botao) {
         });
     });
 
-    // Filtrar orçamentos por cliente e data
-    function filterOrcamentos() {
-        let filtroCliente = document.getElementById("filtro_cliente").value;
-        let filtroDataInicio = document.getElementById("filtro_data_inicio").value;
-        let filtroDataFim = document.getElementById("filtro_data_fim").value;
-        let rows = document.querySelectorAll("#orcamento_table tr");
+    // Filtrar orçamentos por cliente, data e quantidade
+function filterOrcamentos() {
+    let filtroCliente = document.getElementById("filtro_cliente").value;
+    let filtroDataInicio = document.getElementById("filtro_data_inicio").value;
+    let filtroDataFim = document.getElementById("filtro_data_fim").value;
+    let filtroQuantidade = document.getElementById("filtro_quantidade").value;
+    let rows = Array.from(document.querySelectorAll("#orcamento_table tr"));
 
-        rows.forEach(row => {
-            let cliente = row.getAttribute("data-cliente");
-            let data = row.getAttribute("data-data");
+    // Primeiro: filtra por cliente e data
+    rows.forEach(row => {
+        let cliente = row.getAttribute("data-cliente");
+        let data = row.getAttribute("data-data");
 
-            let clienteMatch = filtroCliente === "Todos" || cliente === filtroCliente;
-            let dataMatch = true;
-            if (filtroDataInicio && filtroDataFim) {
-	      // Adiciona 1 dia à data final
-	      const dataFimDate = new Date(filtroDataFim);
-	      dataFimDate.setDate(dataFimDate.getDate() + 1);
-	      const dataFimMaisUm = dataFimDate.toISOString().split("T")[0];
-	
-	      dataMatch = data >= filtroDataInicio && data < dataFimMaisUm;
-	     }
+        let clienteMatch = filtroCliente === "Todos" || cliente === filtroCliente;
+        let dataMatch = true;
 
-            if (clienteMatch && dataMatch) {
-                row.style.display = "";
-            } else {
+        if (filtroDataInicio && filtroDataFim) {
+            const dataFimDate = new Date(filtroDataFim);
+            dataFimDate.setDate(dataFimDate.getDate() + 1); // adiciona 1 dia à data final
+            const dataFimMaisUm = dataFimDate.toISOString().split("T")[0];
+
+            dataMatch = data >= filtroDataInicio && data < dataFimMaisUm;
+        }
+
+        row.style.display = (clienteMatch && dataMatch) ? "" : "none";
+    });
+
+    // Segundo: filtra por quantidade (últimos N)
+    if (filtroQuantidade !== 'all') {
+        let rowsVisiveis = rows.filter(row => row.style.display !== "none");
+        let total = rowsVisiveis.length;
+        let limite = parseInt(filtroQuantidade);
+
+        rowsVisiveis.forEach((row, index) => {
+            if (index < total - limite) {
                 row.style.display = "none";
             }
         });
     }
+}
 
-    // Inicializar os filtros com a data atual ao carregar a página
-    document.addEventListener("DOMContentLoaded", function () {
-        let filtroDataInicio = document.getElementById("filtro_data_inicio");
-        let filtroDataFim = document.getElementById("filtro_data_fim");
-        let today = new Date().toISOString().split('T')[0];
+// Inicializar os filtros com a data atual ao carregar a página
+document.addEventListener("DOMContentLoaded", function () {
+    let filtroDataInicio = document.getElementById("filtro_data_inicio");
+    let filtroDataFim = document.getElementById("filtro_data_fim");
+    let today = new Date().toISOString().split('T')[0];
 
-        filtroDataInicio.value = today;
-        filtroDataFim.value = today;
+    filtroDataInicio.value = today;
+    filtroDataFim.value = today;
 
+    filterOrcamentos();
+});
+
+// Salvar filtros no LocalStorage e aplicar ao carregar a página
+document.addEventListener("DOMContentLoaded", function () {
+    let filtroCliente = document.getElementById("filtro_cliente");
+    let filtroDataInicio = document.getElementById("filtro_data_inicio");
+    let filtroDataFim = document.getElementById("filtro_data_fim");
+    let filtroQuantidade = document.getElementById("filtro_quantidade"); // novo filtro
+
+    // Restaurar valores salvos no LocalStorage
+    if (localStorage.getItem("filtroCliente")) {
+        filtroCliente.value = localStorage.getItem("filtroCliente");
+    }
+    if (localStorage.getItem("filtroDataInicio")) {
+        filtroDataInicio.value = localStorage.getItem("filtroDataInicio");
+    }
+    if (localStorage.getItem("filtroDataFim")) {
+        filtroDataFim.value = localStorage.getItem("filtroDataFim");
+    }
+    if (localStorage.getItem("filtroQuantidade")) {
+        filtroQuantidade.value = localStorage.getItem("filtroQuantidade");
+    }
+
+    // Aplicar filtros inicialmente
+    filterOrcamentos();
+
+    // Salvar no LocalStorage e aplicar filtro sempre que mudar
+    filtroCliente.addEventListener("change", function () {
+        localStorage.setItem("filtroCliente", filtroCliente.value);
         filterOrcamentos();
     });
 
-    // Salvar filtros no LocalStorage e aplicar ao carregar a página
-    document.addEventListener("DOMContentLoaded", function () {
-        let filtroCliente = document.getElementById("filtro_cliente");
-        let filtroDataInicio = document.getElementById("filtro_data_inicio");
-        let filtroDataFim = document.getElementById("filtro_data_fim");
-        let tabelaOrcamentos = document.getElementById("orcamento_table");
-
-        if (localStorage.getItem("filtroCliente")) {
-            filtroCliente.value = localStorage.getItem("filtroCliente");
-        }
-        if (localStorage.getItem("filtroDataInicio")) {
-            filtroDataInicio.value = localStorage.getItem("filtroDataInicio");
-        }
-        if (localStorage.getItem("filtroDataFim")) {
-            filtroDataFim.value = localStorage.getItem("filtroDataFim");
-        }
-
+    filtroDataInicio.addEventListener("change", function () {
+        localStorage.setItem("filtroDataInicio", filtroDataInicio.value);
         filterOrcamentos();
-
-        filtroCliente.addEventListener("change", function () {
-            localStorage.setItem("filtroCliente", filtroCliente.value);
-            filterOrcamentos();
-        });
-
-        filtroDataInicio.addEventListener("change", function () {
-            localStorage.setItem("filtroDataInicio", filtroDataInicio.value);
-            filterOrcamentos();
-        });
-
-        filtroDataFim.addEventListener("change", function () {
-            localStorage.setItem("filtroDataFim", filtroDataFim.value);
-            filterOrcamentos();
-        });
     });
+
+    filtroDataFim.addEventListener("change", function () {
+        localStorage.setItem("filtroDataFim", filtroDataFim.value);
+        filterOrcamentos();
+    });
+
+    filtroQuantidade.addEventListener("change", function () {
+        localStorage.setItem("filtroQuantidade", filtroQuantidade.value);
+        filterOrcamentos();
+    });
+});
+
+
 
     // Formatar valores como moeda BRL
     document.addEventListener("DOMContentLoaded", function () {
