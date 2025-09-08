@@ -358,13 +358,11 @@ def listar_orcamentos():
 
         valor_total_criar *= quantidade
 
-        valor_rt = 0.0  # Inicializa valor_rt como 0.0 para evitar erros
+        valor_rt = 0.0
         if rt == 'Sim' and rt_percentual > 0:
-            # Fórmula corrigida para usar o rt_percentual em forma numérica
             valor_rt = valor_total_criar / (1 - rt_percentual / 100) - valor_total_criar
-            valor_total = valor_total_criar + valor_rt
-        else:
-            valor_total = valor_total_criar + valor_rt
+
+        valor_total = round(valor_total_criar + valor_rt, 2)
 
         
         modelo_cuba = request.form.get("modelo_cuba", "").strip()
@@ -771,10 +769,10 @@ def editar_orcamento(id):
         # **Aplicando RT**
         if orcamento.rt == 'Sim' and orcamento.rt_percentual > 0:
             valor_rt = valor_total_criar / (1 - orcamento.rt_percentual / 100) - valor_total_criar
-            orcamento.valor_total = valor_total_criar + valor_rt
-        else:
-            orcamento.valor_total = valor_total_criar + valor_rt
 
+        # Arredonda apenas o valor final
+        orcamento.valor_total = round(valor_total_criar + valor_rt, 2)
+        
         orcamento_salvo = OrcamentoSalvo.query.filter(OrcamentoSalvo.orcamentos_ids.contains(str(orcamento.id))).first()
         if orcamento_salvo:
             atualizar_valor_orcamento_salvo(orcamento_salvo.id)
@@ -1485,7 +1483,7 @@ def editar_material_selecionados():
         else:
             valor_total_final = valor_total_criar
 
-        orcamento.valor_total = valor_total_final
+        orcamento.valor_total = round(valor_total_final, 2)
 
     db.session.commit()
 
