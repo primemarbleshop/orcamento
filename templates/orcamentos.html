@@ -735,7 +735,6 @@ function confirmarExclusao(event, botao) {
     });
 
     document.addEventListener("DOMContentLoaded", function () {
-    // Seletores
     const filtroCliente = document.getElementById("filtro_cliente");
     const filtroDataInicio = document.getElementById("filtro_data_inicio");
     const filtroDataFim = document.getElementById("filtro_data_fim");
@@ -747,9 +746,10 @@ function confirmarExclusao(event, botao) {
         width: 'resolve'
     });
 
-    // Restaurar valores do localStorage
-    if (localStorage.getItem("filtroCliente")) {
-        $('#filtro_cliente').val(localStorage.getItem("filtroCliente")).trigger('change');
+    // Restaura valores do localStorage
+    const clienteSalvo = localStorage.getItem("filtroCliente");
+    if (clienteSalvo) {
+        $('#filtro_cliente').val(clienteSalvo).trigger('change'); // ATUALIZA SELECT2
     }
     if (localStorage.getItem("filtroDataInicio")) {
         filtroDataInicio.value = localStorage.getItem("filtroDataInicio");
@@ -758,28 +758,26 @@ function confirmarExclusao(event, botao) {
         filtroDataFim.value = localStorage.getItem("filtroDataFim");
     }
 
-    // Aplica os filtros ao carregar
+    // Aplica filtros ao carregar
     filterOrcamentos();
 
-    // Salvar mudanças e reaplicar filtros
+    // Salvar mudanças
     filtroCliente.addEventListener("change", function () {
         localStorage.setItem("filtroCliente", this.value);
         filterOrcamentos();
     });
-
     filtroDataInicio.addEventListener("change", function () {
         localStorage.setItem("filtroDataInicio", this.value);
         filterOrcamentos();
     });
-
     filtroDataFim.addEventListener("change", function () {
         localStorage.setItem("filtroDataFim", this.value);
         filterOrcamentos();
     });
 
-    // Formatar valores como moeda BRL
-    document.querySelectorAll(".valor-total").forEach(function (cell) {
-        let valor = parseFloat(cell.textContent);
+    // Formatar valores como BRL
+    document.querySelectorAll(".valor-total").forEach(cell => {
+        const valor = parseFloat(cell.textContent);
         if (!isNaN(valor)) {
             cell.textContent = valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
         }
@@ -788,9 +786,8 @@ function confirmarExclusao(event, botao) {
     // Deletar orçamentos selecionados
     document.getElementById("delete-selected").addEventListener("click", function () {
         let selecionados = [];
-
-        document.querySelectorAll('.selecionar-orcamento:checked').forEach((checkbox) => {
-            let id = checkbox.closest('tr').getAttribute('data-id');
+        document.querySelectorAll('.selecionar-orcamento:checked').forEach(cb => {
+            const id = cb.closest('tr').getAttribute('data-id');
             if (id) selecionados.push(id);
         });
 
@@ -807,29 +804,23 @@ function confirmarExclusao(event, botao) {
             confirmButtonColor: "#d33",
             cancelButtonColor: "#3085d6",
             confirmButtonText: "Sim, deletar!"
-        }).then((result) => {
+        }).then(result => {
             if (result.isConfirmed) {
                 fetch("/orcamentos/delete_selecionados", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ ids: selecionados })
                 })
-                .then(response => response.json())
+                .then(res => res.json())
                 .then(data => {
-                    if (data.success) {
-                        Swal.fire("Deletado!", data.success, "success").then(() => location.reload());
-                    } else {
-                        Swal.fire("Erro!", data.error, "error");
-                    }
+                    if (data.success) Swal.fire("Deletado!", data.success, "success").then(() => location.reload());
+                    else Swal.fire("Erro!", data.error, "error");
                 })
-                .catch(() => {
-                    Swal.fire("Erro!", "Erro ao deletar orçamentos!", "error");
-                });
+                .catch(() => Swal.fire("Erro!", "Erro ao deletar orçamentos!", "error"));
             }
         });
     });
 });
-
 
 </script>
 
