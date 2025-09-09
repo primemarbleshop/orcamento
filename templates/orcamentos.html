@@ -149,41 +149,6 @@ function toggleNichoFields() {
     {% endfor %}
 </select>
 <br>
-<div>
-    <label for="ambiente">Ambiente:</label>
-    <select id="ambiente" name="ambiente" required>
-        {% for ambiente in ambientes %}
-            <option value="{{ ambiente.nome }}" {% if orcamento and orcamento.ambiente == ambiente.nome %}selected{% endif %}>
-                {{ ambiente.nome }}
-            </option>
-        {% endfor %}
-    </select>
-
-    <!-- Botões -->
-    <button type="button" id="btnAddAmbiente" title="Adicionar Ambiente">➕</button>
-    <button type="button" id="btnDelAmbiente" title="Remover Ambiente">🗑️</button>
-</div>
-
-<!-- Input escondido quando selecionar "Adicionar novo" -->
-<input type="text" id="novo_ambiente" name="novo_ambiente" placeholder="Digite o novo ambiente" style="display:none; margin-top:5px;">
-
-	<!-- Popup de adicionar ambiente -->
-<div id="popupAdd" style="display:none; position:fixed; top:50%; left:50%;
-     transform:translate(-50%,-50%); background:#fff; border:1px solid #ccc; padding:20px; z-index:1000;">
-    <h3>Adicionar Ambiente</h3>
-    <input type="text" id="popup_novo_ambiente" placeholder="Digite o nome do ambiente">
-    <button id="popupSalvar">Salvar</button>
-    <button id="popupCancelar">Cancelar</button>
-</div>
-
-<!-- Popup de confirmação de exclusão -->
-<div id="popupDel" style="display:none; position:fixed; top:50%; left:50%;
-     transform:translate(-50%,-50%); background:#fff; border:1px solid #ccc; padding:20px; z-index:1000;">
-    <h3>Confirmar Exclusão</h3>
-    <p id="msgDelAmbiente"></p>
-    <button id="confirmDel">Sim</button>
-    <button onclick="document.getElementById('popupDel').style.display='none'">Cancelar</button>
-</div>
 
         <label for="tipo_produto">Tipo de Produto:</label>
         <select name="tipo_produto" id="tipo_produto" onchange="toggleFields()"required>
@@ -438,8 +403,7 @@ function toggleNichoFields() {
                 <th>Criado por</th>
             {% endif %}
             <th>Cliente</th>
-			<th>Ambiente</th>
-			<th>Produto</th>
+            <th>Produto</th>
             <th>Material</th>
             <th>Qtd</th>
             <th>Comprimento</th>
@@ -451,39 +415,33 @@ function toggleNichoFields() {
         </tr>
     </thead>
     <tbody id="orcamento_table">  <!-- Adicionamos um ID para facilitar -->
-    {% for orcamento, nome_usuario in orcamentos %}
-    <tr data-id="{{ orcamento.id }}" 
-        data-cliente="{{ orcamento.cliente.nome }}" 
-        data-ambiente="{{ orcamento.ambiente }}" 
-        data-data="{{ orcamento.data.strftime('%Y-%m-%d %H:%M:%S') }}">
-        
-        <td><input type="checkbox" class="selecionar-orcamento" data-valor="{{ orcamento.valor_total }}"></td>
-        
-        {% if is_admin %}
-            <td>{{ nome_usuario }}</td> <!-- Exibe o nome do usuário que criou -->
-        {% endif %}
-        
-        <td>{{ orcamento.cliente.nome }}</td>
-        <td>{{ orcamento.ambiente }}</td>   <!-- Novo campo ambiente -->
-        <td>{{ orcamento.tipo_produto }}</td>
-        <td>{{ orcamento.material.nome }}</td>
-        <td>{{ orcamento.quantidade }}</td>
-        <td>{{ orcamento.comprimento }}</td>
-        <td>{{ orcamento.largura }}</td>
-        <td>{{ orcamento.outros_custos }}</td>
-        <td class="valor-total">{{ orcamento.valor_total }}</td>
-        <td>{{ orcamento.data.strftime('%d-%m-%y') }}</td>
-        <td>
-            <form action="{{ url_for('editar_orcamento', id=orcamento.id) }}" method="GET" style="display:inline;">
-                <button type="submit" class="btn-editar">Editar</button>
-            </form> |
-            <form action="{{ url_for('deletar_orcamento', id=orcamento.id) }}" method="POST" onsubmit="confirmarExclusao(event, this)" style="display:inline;">
-                <button type="submit" class="btn-deletar">Deletar</button>
-            </form>
-        </td>
-    </tr>
-    {% endfor %}
-</tbody>
+        {% for orcamento, nome_usuario in orcamentos %}
+        <tr data-id="{{ orcamento.id }}" data-cliente="{{ orcamento.cliente.nome }}" data-data="{{ orcamento.data.strftime('%Y-%m-%d %H:%M:%S') }}">
+            <td><input type="checkbox" class="selecionar-orcamento" data-valor="{{ orcamento.valor_total }}"></td>
+            {% if is_admin %}
+                <td>{{ nome_usuario }}</td> <!-- Exibe o nome do usuário que criou -->
+            {% endif %}
+            <td>{{ orcamento.cliente.nome }}</td>
+            <td>{{ orcamento.tipo_produto }}</td>
+            <td>{{ orcamento.material.nome }}</td>
+            <td>{{ orcamento.quantidade }}</td>
+            <td>{{ orcamento.comprimento }}</td>
+            <td>{{ orcamento.largura }}</td>
+            <td>{{ orcamento.outros_custos }}</td>
+            <td class="valor-total">{{ orcamento.valor_total }}</td>
+            <td>{{ orcamento.data.strftime('%d-%m-%y') }}</td>
+            <td>
+                <form action="{{ url_for('editar_orcamento', id=orcamento.id) }}" method="GET" style="display:inline;">
+                    <button type="submit" class="btn-editar">Editar</button>
+                </form> |
+                <form action="{{ url_for('deletar_orcamento', id=orcamento.id) }}" method="POST" onsubmit="confirmarExclusao(event, this)" style="display:inline;">
+                    <button type="submit" class="btn-deletar">Deletar</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    
+    </tbody>
 </table>
 
 </br>
@@ -939,126 +897,6 @@ $(document).ready(function() {
         filterOrcamentos();
     });
 });
-
-document.addEventListener("DOMContentLoaded", function () {
-    const selectAmbiente = document.getElementById("ambiente");
-    const inputNovo = document.getElementById("novo_ambiente");
-    const btnAddAmbiente = document.getElementById("btnAddAmbiente");
-    const btnDelAmbiente = document.getElementById("btnDelAmbiente");
-
-    const popupAdd = document.getElementById("popupAdd");
-    const popupInput = document.getElementById("popup_novo_ambiente");
-    const popupSalvar = document.getElementById("popupSalvar");
-    const popupCancelar = document.getElementById("popupCancelar");
-
-    const popupDel = document.getElementById("popupDel");
-    const confirmDel = document.getElementById("confirmDel");
-    const msgDelAmbiente = document.getElementById("msgDelAmbiente");
-
-    // Mostrar input se escolher "+ Adicionar novo ambiente"
-    selectAmbiente.addEventListener("change", function () {
-        if (this.value === "__novo__") {
-            inputNovo.style.display = "inline-block";
-            inputNovo.focus();
-        } else {
-            inputNovo.style.display = "none";
-        }
-    });
-
-    // Botão + abre popup
-    btnAddAmbiente.addEventListener("click", () => {
-        popupAdd.style.display = "block";
-        popupInput.focus();
-    });
-
-    // Cancelar popup
-    popupCancelar.addEventListener("click", () => {
-        popupAdd.style.display = "none";
-        popupInput.value = '';
-    });
-// 1️⃣ Primeiro, pegar os elementos do DOM
-const btnAddAmbiente = document.getElementById('btnAddAmbiente');
-const btnDelAmbiente = document.getElementById('btnDelAmbiente');
-const popupAdd = document.getElementById('popupAdd');
-const popupDel = document.getElementById('popupDel');
-const popupInput = document.getElementById('popup_novo_ambiente');
-const popupSalvar = document.getElementById('popupSalvar');
-const popupCancelar = document.getElementById('popupCancelar');
-const confirmDel = document.getElementById('confirmDel');
-const msgDelAmbiente = document.getElementById('msgDelAmbiente');
-const selectAmbiente = document.getElementById('ambiente');
-
-// 2️⃣ Depois, registrar os event listeners
-
-// Abrir popup de adicionar ambiente
-btnAddAmbiente.addEventListener("click", () => {
-    popupAdd.style.display = "block";
-    popupInput.focus();
-});
-
-// Cancelar popup
-popupCancelar.addEventListener("click", () => {
-    popupAdd.style.display = "none";
-    popupInput.value = '';
-});
-
-// Salvar novo ambiente do popup
-popupSalvar.addEventListener("click", () => {
-    const novo = popupInput.value.trim();
-    if (!novo) return;
-
-    fetch("/adicionar_ambiente", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body: `novo_ambiente=${encodeURIComponent(novo)}`
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            const option = document.createElement('option');
-            option.value = data.nome;
-            option.text = data.nome;
-            selectAmbiente.add(option, selectAmbiente.options[0]);
-            selectAmbiente.value = data.nome;
-            popupAdd.style.display = "none";
-            popupInput.value = '';
-        } else {
-            alert(data.error);
-        }
-    });
-});
-
-// Abrir popup de exclusão
-btnDelAmbiente.addEventListener('click', () => {
-    const selecionado = selectAmbiente.value;
-    if (!selecionado) {
-        alert("Selecione um ambiente para excluir.");
-        return;
-    }
-    msgDelAmbiente.textContent = `Deseja realmente excluir o ambiente "${selecionado}"?`;
-    popupDel.style.display = 'block';
-});
-
-// Confirmar exclusão do ambiente
-confirmDel.addEventListener('click', () => {
-    const selecionado = selectAmbiente.value;
-    if (!selecionado) return;
-
-    fetch(`/remover_ambiente/${encodeURIComponent(selecionado)}`, { method: "POST" })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                const option = selectAmbiente.querySelector(`option[value="${selecionado}"]`);
-                if (option) option.remove();
-                popupDel.style.display = "none";
-            } else {
-                alert(data.error);
-            }
-        });
-});
-
-    
-
 
 </script>
 
