@@ -1551,6 +1551,7 @@ def duplicar_selecionados():
                     valor_total = original.valor_total,
                     dono = original.dono,  # <<<< NOVO, ESSENCIAL
                     data = datetime.now(br_tz)
+                    ambiente=orcamento.ambiente
                 )
 
                 db.session.add(novo_orcamento)
