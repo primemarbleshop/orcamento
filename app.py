@@ -1580,12 +1580,16 @@ def atualizar_ambiente():
 @app.route("/adicionar_ambiente", methods=["POST"])
 def adicionar_ambiente():
     novo = request.form.get("novo_ambiente")
-    if novo:
-        # Salva na tabela ambientes
-        ambiente = Ambiente(nome=novo)
-        db.session.add(ambiente)
-        db.session.commit()
-    return redirect(url_for("orcamentos"))
+    if not novo:
+        return jsonify({"error": "Nome do ambiente é obrigatório"}), 400
+
+    if Ambiente.query.filter_by(nome=novo).first():
+        return jsonify({"error": "Ambiente já existe"}), 400
+
+    ambiente = Ambiente(nome=novo)
+    db.session.add(ambiente)
+    db.session.commit()
+    return jsonify({"success": True, "nome": ambiente.nome})
 
 @app.route("/remover_ambiente/<string:nome>", methods=["POST"])
 def remover_ambiente(nome):
