@@ -151,20 +151,32 @@ function toggleNichoFields() {
 <br>
 	<!-- Novo Campo Ambiente -->
 <label for="ambiente">Ambiente:</label>
-<select id="ambiente" name="ambiente" required>
-    {% for ambiente in ambientes %}
-        <option value="{{ ambiente }}">{{ ambiente }}</option>
-    {% endfor %}
-    <option value="__novo__">+ Adicionar novo ambiente</option>
-</select>
+<div style="display:flex; align-items:center; gap:5px;">
+    <select id="ambiente" name="ambiente" required>
+        {% for ambiente in ambientes %}
+            <option value="{{ ambiente }}">{{ ambiente }}</option>
+        {% endfor %}
+        <option value="__novo__">+ Adicionar novo ambiente</option>
+    </select>
+
+    <!-- Botão de adicionar -->
+    <button type="button" id="btnAddAmbiente" title="Adicionar Ambiente" style="padding:5px;">➕</button>
+    <!-- Botão de remover -->
+    <button type="button" id="btnDelAmbiente" title="Remover Ambiente" style="padding:5px;">🗑️</button>
+</div>
 
 <!-- Input escondido que aparece só quando escolher "Adicionar novo" -->
 <input type="text" id="novo_ambiente" name="novo_ambiente" 
        placeholder="Digite o novo ambiente" style="display:none; margin-top:5px;">
-<button type="button" id="remover_ambiente" style="display:none; margin-left:5px;">
-    Remover ambiente selecionado
-</button><br>
 
+<!-- Popup de confirmação de exclusão -->
+<div id="popupDel" style="display:none; position:fixed; top:50%; left:50%; 
+     transform:translate(-50%,-50%); background:#fff; border:1px solid #ccc; padding:20px; z-index:1000;">
+    <h3>Confirmar Exclusão</h3>
+    <p id="msgDelAmbiente"></p>
+    <button id="confirmDel">Sim</button>
+    <button onclick="document.getElementById('popupDel').style.display='none'">Cancelar</button>
+</div>
 
         <label for="tipo_produto">Tipo de Produto:</label>
         <select name="tipo_produto" id="tipo_produto" onchange="toggleFields()"required>
@@ -924,38 +936,78 @@ $(document).ready(function() {
 document.addEventListener("DOMContentLoaded", function () {
     const selectAmbiente = document.getElementById("ambiente");
     const inputNovo = document.getElementById("novo_ambiente");
-    const btnRemover = document.getElementById("remover_ambiente");
+    const btnAddAmbiente = document.getElementById("btnAddAmbiente");
+    const btnDelAmbiente = document.getElementById("btnDelAmbiente");
 
     // Mostrar input se escolher "Adicionar novo ambiente"
     selectAmbiente.addEventListener("change", function () {
         if (this.value === "__novo__") {
             inputNovo.style.display = "inline-block";
-            btnRemover.style.display = "none";
+            inputNovo.focus();
         } else {
             inputNovo.style.display = "none";
-            btnRemover.style.display = "inline-block";
         }
     });
 
-    // Clique em "Remover ambiente"
-    btnRemover.addEventListener("click", function () {
-        const ambienteSelecionado = selectAmbiente.value;
-        if (ambienteSelecionado && ambienteSelecionado !== "__novo__") {
-            if (confirm(`Tem certeza que deseja excluir o ambiente "${ambienteSelecionado}"?`)) {
-                fetch(`/remover_ambiente/${ambienteSelecionado}`, { method: "POST" })
-                    .then(resp => resp.json())
-                    .then(data => {
-                        if (data.success) {
-                            alert("Ambiente removido!");
-                            location.reload();
-                        } else {
-                            alert("Erro ao remover ambiente: " + data.error);
-                        }
-                    });
-            }
+    // Adicionar novo ambiente
+    btnAddAmbiente.addEventListener("click", () => {
+        let novo = '';
+        if (selectAmbiente.value === '__novo__') {
+            novo = inputNovo.value.trim();
+        } else {
+            novo = prompt('Digite o nome do novo ambiente:').trim();
+        }
+
+        if (novo) {
+            const option = document.createElement('option');
+            option.value = novo;
+            option.text = novo;
+            selectAmbiente.add(option, selectAmbiente.options[0]); // adiciona no início
+            selectAmbiente.value = novo;
+            inputNovo.style.display = 'none';
+            inputNovo.value = '';
+            saveAmbientes();
         }
     });
+
+    // Remover ambiente selecionado via popup de confirmação
+    btnDelAmbiente.addEventListener('click', () => {
+        const selecionado = selectAmbiente.value;
+        if (!selecionado || selecionado === '__novo__') {
+            alert('Selecione um ambiente válido para remover.');
+            return;
+        }
+        if (confirm(`Deseja remover o ambiente "${selecionado}"?`)) {
+            const option = selectAmbiente.querySelector(`option[value="${selecionado}"]`);
+            if (option) option.remove();
+            saveAmbientes();
+        }
+    });
+
+    // Funções para salvar/restaurar ambientes no localStorage
+    function saveAmbientes() {
+        const arr = Array.from(selectAmbiente.options)
+                         .map(o => o.value)
+                         .filter(v => v && v !== '__novo__');
+        localStorage.setItem('ambientes', JSON.stringify(arr));
+    }
+
+    function loadAmbientes() {
+        const arr = JSON.parse(localStorage.getItem('ambientes') || '[]');
+        arr.forEach(a => {
+            if (!Array.from(selectAmbiente.options).some(o => o.value === a)) {
+                const option = document.createElement('option');
+                option.value = a;
+                option.text = a;
+                selectAmbiente.add(option, selectAmbiente.options[0]);
+            }
+        });
+    }
+
+    // Carregar ambientes ao iniciar
+    loadAmbientes();
 });
+
 
 </script>
 
