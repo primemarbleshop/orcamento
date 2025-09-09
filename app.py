@@ -375,6 +375,13 @@ def listar_orcamentos():
         if not modelo_cuba:  
             modelo_cuba = "Normal"  # Define "Normal" como padrão se estiver vazio
 
+        # Validando o ambiente
+        ambiente = request.form.get("ambiente")
+        if ambiente and Ambiente.query.filter_by(nome=ambiente).first():
+            ambiente_valido = ambiente
+        else:
+            ambiente_valido = None
+        
          # Criando e salvando o orçamento
         if cliente_id and material_id:
             novo_orcamento = Orcamento(
@@ -404,7 +411,7 @@ def listar_orcamentos():
                 valor_total=valor_total,
                 modelo_cuba=modelo_cuba,
                 dono=session['user_cpf'],
-                ambiente=request.form.get("ambiente")
+                ambiente=ambiente_valido
                
                     
             )
@@ -447,7 +454,7 @@ def listar_orcamentos():
 
     # Materiais são compartilhados entre todos os usuários
     materiais = Material.query.order_by(Material.nome).all()
-
+    ambientes = Ambiente.query.order_by(Ambiente.nome).all()
     # Verifica se o usuário logado é administrador
     is_admin = session.get('admin', False)
 
@@ -457,6 +464,7 @@ def listar_orcamentos():
         orcamentos=orcamentos,
         clientes=clientes,
         materiais=materiais,
+        ambientes=ambientes,
         is_admin=is_admin  # Passando a variável para o template
     )
 
