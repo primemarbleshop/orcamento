@@ -144,7 +144,6 @@ class Orcamento(db.Model):
 
     # Ajuste de fuso horário na data
     data = db.Column(db.DateTime, default=lambda: datetime.now(br_tz))
-    ambiente = db.Column(db.String(100), nullable=True)
     
     
 
@@ -172,10 +171,6 @@ class Orcamento(db.Model):
     # **Campos para Alisar**
     tem_alisar = db.Column(db.String(50), default="Não")
     largura_alisar = db.Column(db.Float, default=0.0)
-    
-class Ambiente(db.Model):   # ✅ NOVO MODELO
-    id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(100), unique=True, nullable=False)
 
 
 # Função para inicializar o banco de dados
@@ -209,7 +204,6 @@ def listar_orcamentos():
         rt_percentual = float(request.form.get('rt_percentual', 0) or 0)  # Agora numérico, ex.: 10 para 10%
         data_atual = datetime.now(br_tz)
         dono = session['user_cpf']  # Captura o CPF do usuário logado
-        
 
         
 
@@ -375,13 +369,6 @@ def listar_orcamentos():
         if not modelo_cuba:  
             modelo_cuba = "Normal"  # Define "Normal" como padrão se estiver vazio
 
-        # Validando o ambiente
-        ambiente = request.form.get("ambiente")
-        if ambiente and Ambiente.query.filter_by(nome=ambiente).first():
-            ambiente_valido = ambiente
-        else:
-            ambiente_valido = None
-        
          # Criando e salvando o orçamento
         if cliente_id and material_id:
             novo_orcamento = Orcamento(
@@ -410,8 +397,7 @@ def listar_orcamentos():
                 largura_alisar=largura_alisar,
                 valor_total=valor_total,
                 modelo_cuba=modelo_cuba,
-                dono=session['user_cpf'],
-                ambiente=ambiente_valido
+                dono=session['user_cpf']
                
                     
             )
@@ -454,7 +440,7 @@ def listar_orcamentos():
 
     # Materiais são compartilhados entre todos os usuários
     materiais = Material.query.order_by(Material.nome).all()
-    ambientes = Ambiente.query.order_by(Ambiente.nome).all()
+
     # Verifica se o usuário logado é administrador
     is_admin = session.get('admin', False)
 
@@ -464,7 +450,6 @@ def listar_orcamentos():
         orcamentos=orcamentos,
         clientes=clientes,
         materiais=materiais,
-        ambientes=ambientes,
         is_admin=is_admin  # Passando a variável para o template
     )
 
@@ -611,18 +596,15 @@ def editar_orcamento(id):
     if not orcamento:
         flash("Erro: Orçamento não encontrado!", "error")
         return redirect(url_for('listar_orcamentos'))
-    
+
     # Obtendo CPF do usuário logado
     usuario_cpf = session.get('user_cpf')  
-    
+
     # Filtrar apenas os clientes cujo dono é o usuário logado
     clientes = Cliente.query.filter_by(dono=usuario_cpf).all()
-    
+
     materiais = Material.query.all()
-    
-    # ADICIONADO: buscar todos os ambientes do banco
-    ambientes = [row[0] for row in db.session.query(Orcamento.ambiente).distinct().order_by(Orcamento.ambiente).all()]
-    
+
     orcamentos_salvos = (
         db.session.query(OrcamentoSalvo)
         .join(Orcamento, db.func.instr(OrcamentoSalvo.orcamentos_ids, db.cast(Orcamento.id, db.String())) > 0)
@@ -664,7 +646,6 @@ def editar_orcamento(id):
         orcamento.tem_alisar = request.form.get('tem_alisar', orcamento.tem_alisar)
         orcamento.largura_alisar = float(request.form.get('largura_alisar', orcamento.largura_alisar or 0) or 0)
         orcamento.modelo_cuba = request.form.get('modelo_cuba', 'Normal')
-        orcamento.ambiente = request.form.get('ambiente', orcamento.ambiente)
         
 
 
@@ -830,8 +811,7 @@ def editar_orcamento(id):
         orcamento=orcamento,
         clientes=clientes,
         materiais=materiais,
-        orcamentos_salvos=orcamentos_salvos,
-        ambientes=ambientes
+        orcamentos_salvos=orcamentos_salvos
     )
 
 
@@ -1558,8 +1538,7 @@ def duplicar_selecionados():
                     largura_alisar = original.largura_alisar,
                     valor_total = original.valor_total,
                     dono = original.dono,  # <<<< NOVO, ESSENCIAL
-                    data = datetime.now(br_tz),
-                    ambiente=orcamento.ambiente
+                    data = datetime.now(br_tz)
                 )
 
                 db.session.add(novo_orcamento)
@@ -1573,40 +1552,6 @@ def duplicar_selecionados():
         return jsonify({'success': False, 'error': traceback.format_exc()}), 500
 
 
-
-@app.route("/atualizar_ambiente", methods=["POST"])
-def atualizar_ambiente():
-    data = request.get_json()
-    orcamento = Orcamento.query.get(data["id"])
-    if not orcamento:
-        return jsonify({"error": "Orçamento não encontrado"}), 404
-
-    orcamento.ambiente = data["ambiente"]
-    db.session.commit()
-    return jsonify({"success": "Ambiente atualizado com sucesso!"})
-
-@app.route("/adicionar_ambiente", methods=["POST"])
-def adicionar_ambiente():
-    novo = request.form.get("novo_ambiente")
-    if not novo:
-        return jsonify({"error": "Nome do ambiente é obrigatório"}), 400
-
-    if Ambiente.query.filter_by(nome=novo).first():
-        return jsonify({"error": "Ambiente já existe"}), 400
-
-    ambiente = Ambiente(nome=novo)
-    db.session.add(ambiente)
-    db.session.commit()
-    return jsonify({"success": True, "nome": ambiente.nome})
-
-@app.route("/remover_ambiente/<string:nome>", methods=["POST"])
-def remover_ambiente(nome):
-    ambiente = Ambiente.query.filter_by(nome=nome).first()
-    if ambiente:
-        db.session.delete(ambiente)
-        db.session.commit()
-        return jsonify({"success": True})
-    return jsonify({"success": False, "error": "Ambiente não encontrado"})
 
 
 
