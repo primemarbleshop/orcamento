@@ -144,6 +144,7 @@ class Orcamento(db.Model):
 
     # Ajuste de fuso horário na data
     data = db.Column(db.DateTime, default=lambda: datetime.now(br_tz))
+    ambiente = db.Column(db.String(100), nullable=True)
     
     
 
@@ -204,6 +205,7 @@ def listar_orcamentos():
         rt_percentual = float(request.form.get('rt_percentual', 0) or 0)  # Agora numérico, ex.: 10 para 10%
         data_atual = datetime.now(br_tz)
         dono = session['user_cpf']  # Captura o CPF do usuário logado
+        orcamento.ambiente = request.form.get("ambiente") or orcamento.ambiente
 
         
 
@@ -398,6 +400,7 @@ def listar_orcamentos():
                 valor_total=valor_total,
                 modelo_cuba=modelo_cuba,
                 dono=session['user_cpf']
+                ambiente=request.form.get("ambiente")
                
                     
             )
@@ -1552,6 +1555,17 @@ def duplicar_selecionados():
         return jsonify({'success': False, 'error': traceback.format_exc()}), 500
 
 
+
+@app.route("/atualizar_ambiente", methods=["POST"])
+def atualizar_ambiente():
+    data = request.get_json()
+    orcamento = Orcamento.query.get(data["id"])
+    if not orcamento:
+        return jsonify({"error": "Orçamento não encontrado"}), 404
+
+    orcamento.ambiente = data["ambiente"]
+    db.session.commit()
+    return jsonify({"success": "Ambiente atualizado com sucesso!"})
 
 
 
