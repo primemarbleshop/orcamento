@@ -38,3 +38,7 @@ class OrcamentoSalvo(db.Model):
     data_salvo = db.Column(db.DateTime, default=db.func.current_timestamp())
     orcamento_id = db.Column(db.Integer, db.ForeignKey('orcamento.id'), nullable=False)
     orcamento = db.relationship('Orcamento', backref=db.backref('salvo', lazy=True))
+
+class Ambiente(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False, unique=True)
