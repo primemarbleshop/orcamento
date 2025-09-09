@@ -1567,6 +1567,25 @@ def atualizar_ambiente():
     db.session.commit()
     return jsonify({"success": "Ambiente atualizado com sucesso!"})
 
+@app.route("/adicionar_ambiente", methods=["POST"])
+def adicionar_ambiente():
+    novo = request.form.get("novo_ambiente")
+    if novo:
+        # Salva na tabela ambientes
+        ambiente = Ambiente(nome=novo)
+        db.session.add(ambiente)
+        db.session.commit()
+    return redirect(url_for("orcamentos"))
+
+@app.route("/remover_ambiente/<string:nome>", methods=["POST"])
+def remover_ambiente(nome):
+    ambiente = Ambiente.query.filter_by(nome=nome).first()
+    if ambiente:
+        db.session.delete(ambiente)
+        db.session.commit()
+        return jsonify({"success": True})
+    return jsonify({"success": False, "error": "Ambiente não encontrado"})
+
 
 
 
