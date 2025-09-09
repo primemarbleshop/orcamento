@@ -149,8 +149,7 @@ function toggleNichoFields() {
     {% endfor %}
 </select>
 <br>
-	<!-- Novo Campo Ambiente -->
-<label for="ambiente">Ambiente:</label>
+	<label for="ambiente">Ambiente:</label>
 <div style="display:flex; align-items:center; gap:5px;">
     <select id="ambiente" name="ambiente" required>
         {% for ambiente in ambientes %}
@@ -159,18 +158,25 @@ function toggleNichoFields() {
         <option value="__novo__">+ Adicionar novo ambiente</option>
     </select>
 
-    <!-- Botão de adicionar -->
-    <button type="button" id="btnAddAmbiente" title="Adicionar Ambiente" style="padding:5px;">➕</button>
-    <!-- Botão de remover -->
-    <button type="button" id="btnDelAmbiente" title="Remover Ambiente" style="padding:5px;">🗑️</button>
+    <!-- Botões -->
+    <button type="button" id="btnAddAmbiente" title="Adicionar Ambiente">➕</button>
+    <button type="button" id="btnDelAmbiente" title="Remover Ambiente">🗑️</button>
 </div>
 
-<!-- Input escondido que aparece só quando escolher "Adicionar novo" -->
-<input type="text" id="novo_ambiente" name="novo_ambiente" 
-       placeholder="Digite o novo ambiente" style="display:none; margin-top:5px;">
+<!-- Input escondido quando selecionar "Adicionar novo" -->
+<input type="text" id="novo_ambiente" name="novo_ambiente" placeholder="Digite o novo ambiente" style="display:none; margin-top:5px;">
+
+	<!-- Popup de adicionar ambiente -->
+<div id="popupAdd" style="display:none; position:fixed; top:50%; left:50%;
+     transform:translate(-50%,-50%); background:#fff; border:1px solid #ccc; padding:20px; z-index:1000;">
+    <h3>Adicionar Ambiente</h3>
+    <input type="text" id="popup_novo_ambiente" placeholder="Digite o nome do ambiente">
+    <button id="popupSalvar">Salvar</button>
+    <button id="popupCancelar">Cancelar</button>
+</div>
 
 <!-- Popup de confirmação de exclusão -->
-<div id="popupDel" style="display:none; position:fixed; top:50%; left:50%; 
+<div id="popupDel" style="display:none; position:fixed; top:50%; left:50%;
      transform:translate(-50%,-50%); background:#fff; border:1px solid #ccc; padding:20px; z-index:1000;">
     <h3>Confirmar Exclusão</h3>
     <p id="msgDelAmbiente"></p>
@@ -939,7 +945,16 @@ document.addEventListener("DOMContentLoaded", function () {
     const btnAddAmbiente = document.getElementById("btnAddAmbiente");
     const btnDelAmbiente = document.getElementById("btnDelAmbiente");
 
-    // Mostrar input se escolher "Adicionar novo ambiente"
+    const popupAdd = document.getElementById("popupAdd");
+    const popupInput = document.getElementById("popup_novo_ambiente");
+    const popupSalvar = document.getElementById("popupSalvar");
+    const popupCancelar = document.getElementById("popupCancelar");
+
+    const popupDel = document.getElementById("popupDel");
+    const confirmDel = document.getElementById("confirmDel");
+    const msgDelAmbiente = document.getElementById("msgDelAmbiente");
+
+    // Mostrar input se escolher "+ Adicionar novo ambiente"
     selectAmbiente.addEventListener("change", function () {
         if (this.value === "__novo__") {
             inputNovo.style.display = "inline-block";
@@ -949,46 +964,58 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
-    // Adicionar novo ambiente
+    // Botão + abre popup
     btnAddAmbiente.addEventListener("click", () => {
-        let novo = '';
-        if (selectAmbiente.value === '__novo__') {
-            novo = inputNovo.value.trim();
-        } else {
-            novo = prompt('Digite o nome do novo ambiente:').trim();
-        }
+        popupAdd.style.display = "block";
+        popupInput.focus();
+    });
 
+    // Cancelar popup
+    popupCancelar.addEventListener("click", () => {
+        popupAdd.style.display = "none";
+        popupInput.value = '';
+    });
+
+    // Salvar novo ambiente do popup
+    popupSalvar.addEventListener("click", () => {
+        const novo = popupInput.value.trim();
         if (novo) {
             const option = document.createElement('option');
             option.value = novo;
             option.text = novo;
-            selectAmbiente.add(option, selectAmbiente.options[0]); // adiciona no início
+            selectAmbiente.add(option, selectAmbiente.options[0]);
             selectAmbiente.value = novo;
-            inputNovo.style.display = 'none';
-            inputNovo.value = '';
+            popupAdd.style.display = 'none';
+            popupInput.value = '';
             saveAmbientes();
         }
     });
 
-    // Remover ambiente selecionado via popup de confirmação
+    // Botão lixeira abre popup de confirmação
     btnDelAmbiente.addEventListener('click', () => {
         const selecionado = selectAmbiente.value;
         if (!selecionado || selecionado === '__novo__') {
             alert('Selecione um ambiente válido para remover.');
             return;
         }
-        if (confirm(`Deseja remover o ambiente "${selecionado}"?`)) {
-            const option = selectAmbiente.querySelector(`option[value="${selecionado}"]`);
-            if (option) option.remove();
-            saveAmbientes();
-        }
+        msgDelAmbiente.innerText = `Deseja remover o ambiente "${selecionado}"?`;
+        popupDel.style.display = 'block';
     });
 
-    // Funções para salvar/restaurar ambientes no localStorage
+    // Confirmar exclusão
+    confirmDel.addEventListener('click', () => {
+        const selecionado = selectAmbiente.value;
+        const option = selectAmbiente.querySelector(`option[value="${selecionado}"]`);
+        if (option) option.remove();
+        popupDel.style.display = 'none';
+        saveAmbientes();
+    });
+
+    // Funções localStorage
     function saveAmbientes() {
         const arr = Array.from(selectAmbiente.options)
-                         .map(o => o.value)
-                         .filter(v => v && v !== '__novo__');
+            .map(o => o.value)
+            .filter(v => v && v !== '__novo__');
         localStorage.setItem('ambientes', JSON.stringify(arr));
     }
 
@@ -1004,7 +1031,6 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Carregar ambientes ao iniciar
     loadAmbientes();
 });
 
