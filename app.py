@@ -209,7 +209,7 @@ def listar_orcamentos():
         rt_percentual = float(request.form.get('rt_percentual', 0) or 0)  # Agora numérico, ex.: 10 para 10%
         data_atual = datetime.now(br_tz)
         dono = session['user_cpf']  # Captura o CPF do usuário logado
-        orcamento.ambiente = request.form.get("ambiente") or orcamento.ambiente
+        
 
         
 
