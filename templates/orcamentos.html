@@ -149,6 +149,35 @@ function toggleNichoFields() {
     {% endfor %}
 </select>
 <br>
+<!-- Ambiente -->
+<div class="form-group">
+    <label for="ambiente">Ambiente</label>
+    <div style="display: flex; align-items: center; gap: 8px;">
+        <select id="ambiente" name="ambiente" class="form-control"></select>
+        <button type="button" id="btnAddAmbiente" class="btn btn-success">+</button>
+        <button type="button" id="btnDeleteAmbiente" class="btn btn-danger">🗑</button>
+    </div>
+</div>
+<br>
+<!-- Popup adicionar ambiente -->
+<div id="popupAddAmbiente" class="popup" style="display:none;">
+    <div class="popup-content">
+        <h4>Cadastrar Ambiente</h4>
+        <input type="text" id="novoAmbienteNome" placeholder="Nome do ambiente" class="form-control">
+        <br>
+        <button id="confirmAddAmbiente" class="btn btn-primary">Salvar</button>
+        <button onclick="fecharPopup('popupAddAmbiente')" class="btn btn-secondary">Cancelar</button>
+    </div>
+</div>
+
+<!-- Popup deletar ambiente -->
+<div id="popupDeleteAmbiente" class="popup" style="display:none;">
+    <div class="popup-content">
+        <h4>Tem certeza que deseja excluir este ambiente?</h4>
+        <button id="confirmDeleteAmbiente" class="btn btn-danger">Sim, excluir</button>
+        <button onclick="fecharPopup('popupDeleteAmbiente')" class="btn btn-secondary">Cancelar</button>
+    </div>
+</div>
 
         <label for="tipo_produto">Tipo de Produto:</label>
         <select name="tipo_produto" id="tipo_produto" onchange="toggleFields()"required>
@@ -897,6 +926,69 @@ $(document).ready(function() {
         filterOrcamentos();
     });
 });
+
+// Carregar ambientes
+function carregarAmbientes() {
+    fetch("/ambientes")
+        .then(res => res.json())
+        .then(data => {
+            const select = document.getElementById("ambiente");
+            select.innerHTML = "";
+            data.forEach(a => {
+                const opt = document.createElement("option");
+                opt.value = a.id;
+                opt.textContent = a.nome;
+                select.appendChild(opt);
+            });
+        });
+}
+
+// Abrir e fechar popups
+function abrirPopup(id) { document.getElementById(id).style.display = "block"; }
+function fecharPopup(id) { document.getElementById(id).style.display = "none"; }
+
+// Botões
+document.getElementById("btnAddAmbiente").addEventListener("click", () => abrirPopup("popupAddAmbiente"));
+document.getElementById("btnDeleteAmbiente").addEventListener("click", () => {
+    if (!document.getElementById("ambiente").value) return alert("Selecione um ambiente");
+    abrirPopup("popupDeleteAmbiente");
+});
+
+// Confirmar adicionar
+document.getElementById("confirmAddAmbiente").addEventListener("click", () => {
+    const nome = document.getElementById("novoAmbienteNome").value.trim();
+    if (!nome) return alert("Digite um nome");
+
+    fetch("/adicionar_ambiente", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: "nome=" + encodeURIComponent(nome)
+    })
+    .then(res => res.json())
+    .then(() => {
+        fecharPopup("popupAddAmbiente");
+        document.getElementById("novoAmbienteNome").value = "";
+        carregarAmbientes();
+    });
+});
+
+// Confirmar deletar
+document.getElementById("confirmDeleteAmbiente").addEventListener("click", () => {
+    const id = document.getElementById("ambiente").value;
+    fetch("/deletar_ambiente", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: "id=" + encodeURIComponent(id)
+    })
+    .then(res => res.json())
+    .then(() => {
+        fecharPopup("popupDeleteAmbiente");
+        carregarAmbientes();
+    });
+});
+
+// Inicializa ambientes
+document.addEventListener("DOMContentLoaded", carregarAmbientes);
 
 </script>
 
