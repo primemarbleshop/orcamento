@@ -172,6 +172,10 @@ class Orcamento(db.Model):
     # **Campos para Alisar**
     tem_alisar = db.Column(db.String(50), default="Não")
     largura_alisar = db.Column(db.Float, default=0.0)
+    
+class Ambiente(db.Model):   # ✅ NOVO MODELO
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), unique=True, nullable=False)
 
 
 # Função para inicializar o banco de dados
@@ -399,7 +403,7 @@ def listar_orcamentos():
                 largura_alisar=largura_alisar,
                 valor_total=valor_total,
                 modelo_cuba=modelo_cuba,
-                dono=session['user_cpf']
+                dono=session['user_cpf'],
                 ambiente=request.form.get("ambiente")
                
                     
