@@ -149,6 +149,22 @@ function toggleNichoFields() {
     {% endfor %}
 </select>
 <br>
+	<!-- Novo Campo Ambiente -->
+<label for="ambiente">Ambiente:</label>
+<select id="ambiente" name="ambiente" required>
+    {% for ambiente in ambientes %}
+        <option value="{{ ambiente }}">{{ ambiente }}</option>
+    {% endfor %}
+    <option value="__novo__">+ Adicionar novo ambiente</option>
+</select>
+
+<!-- Input escondido que aparece só quando escolher "Adicionar novo" -->
+<input type="text" id="novo_ambiente" name="novo_ambiente" 
+       placeholder="Digite o novo ambiente" style="display:none; margin-top:5px;">
+<button type="button" id="remover_ambiente" style="display:none; margin-left:5px;">
+    Remover ambiente selecionado
+</button><br>
+
 
         <label for="tipo_produto">Tipo de Produto:</label>
         <select name="tipo_produto" id="tipo_produto" onchange="toggleFields()"required>
@@ -403,7 +419,8 @@ function toggleNichoFields() {
                 <th>Criado por</th>
             {% endif %}
             <th>Cliente</th>
-            <th>Produto</th>
+			<th>Ambiente</th>
+			<th>Produto</th>
             <th>Material</th>
             <th>Qtd</th>
             <th>Comprimento</th>
@@ -415,33 +432,39 @@ function toggleNichoFields() {
         </tr>
     </thead>
     <tbody id="orcamento_table">  <!-- Adicionamos um ID para facilitar -->
-        {% for orcamento, nome_usuario in orcamentos %}
-        <tr data-id="{{ orcamento.id }}" data-cliente="{{ orcamento.cliente.nome }}" data-data="{{ orcamento.data.strftime('%Y-%m-%d %H:%M:%S') }}">
-            <td><input type="checkbox" class="selecionar-orcamento" data-valor="{{ orcamento.valor_total }}"></td>
-            {% if is_admin %}
-                <td>{{ nome_usuario }}</td> <!-- Exibe o nome do usuário que criou -->
-            {% endif %}
-            <td>{{ orcamento.cliente.nome }}</td>
-            <td>{{ orcamento.tipo_produto }}</td>
-            <td>{{ orcamento.material.nome }}</td>
-            <td>{{ orcamento.quantidade }}</td>
-            <td>{{ orcamento.comprimento }}</td>
-            <td>{{ orcamento.largura }}</td>
-            <td>{{ orcamento.outros_custos }}</td>
-            <td class="valor-total">{{ orcamento.valor_total }}</td>
-            <td>{{ orcamento.data.strftime('%d-%m-%y') }}</td>
-            <td>
-                <form action="{{ url_for('editar_orcamento', id=orcamento.id) }}" method="GET" style="display:inline;">
-                    <button type="submit" class="btn-editar">Editar</button>
-                </form> |
-                <form action="{{ url_for('deletar_orcamento', id=orcamento.id) }}" method="POST" onsubmit="confirmarExclusao(event, this)" style="display:inline;">
-                    <button type="submit" class="btn-deletar">Deletar</button>
-                </form>
-            </td>
-        </tr>
-        {% endfor %}
-    
-    </tbody>
+    {% for orcamento, nome_usuario in orcamentos %}
+    <tr data-id="{{ orcamento.id }}" 
+        data-cliente="{{ orcamento.cliente.nome }}" 
+        data-ambiente="{{ orcamento.ambiente }}" 
+        data-data="{{ orcamento.data.strftime('%Y-%m-%d %H:%M:%S') }}">
+        
+        <td><input type="checkbox" class="selecionar-orcamento" data-valor="{{ orcamento.valor_total }}"></td>
+        
+        {% if is_admin %}
+            <td>{{ nome_usuario }}</td> <!-- Exibe o nome do usuário que criou -->
+        {% endif %}
+        
+        <td>{{ orcamento.cliente.nome }}</td>
+        <td>{{ orcamento.ambiente }}</td>   <!-- Novo campo ambiente -->
+        <td>{{ orcamento.tipo_produto }}</td>
+        <td>{{ orcamento.material.nome }}</td>
+        <td>{{ orcamento.quantidade }}</td>
+        <td>{{ orcamento.comprimento }}</td>
+        <td>{{ orcamento.largura }}</td>
+        <td>{{ orcamento.outros_custos }}</td>
+        <td class="valor-total">{{ orcamento.valor_total }}</td>
+        <td>{{ orcamento.data.strftime('%d-%m-%y') }}</td>
+        <td>
+            <form action="{{ url_for('editar_orcamento', id=orcamento.id) }}" method="GET" style="display:inline;">
+                <button type="submit" class="btn-editar">Editar</button>
+            </form> |
+            <form action="{{ url_for('deletar_orcamento', id=orcamento.id) }}" method="POST" onsubmit="confirmarExclusao(event, this)" style="display:inline;">
+                <button type="submit" class="btn-deletar">Deletar</button>
+            </form>
+        </td>
+    </tr>
+    {% endfor %}
+</tbody>
 </table>
 
 </br>
@@ -895,6 +918,42 @@ $(document).ready(function() {
         const clienteSelecionado = $(this).val() || "Todos"; // Caso limpe o select
         localStorage.setItem("filtroCliente", clienteSelecionado);
         filterOrcamentos();
+    });
+});
+
+document.addEventListener("DOMContentLoaded", function () {
+    const selectAmbiente = document.getElementById("ambiente");
+    const inputNovo = document.getElementById("novo_ambiente");
+    const btnRemover = document.getElementById("remover_ambiente");
+
+    // Mostrar input se escolher "Adicionar novo ambiente"
+    selectAmbiente.addEventListener("change", function () {
+        if (this.value === "__novo__") {
+            inputNovo.style.display = "inline-block";
+            btnRemover.style.display = "none";
+        } else {
+            inputNovo.style.display = "none";
+            btnRemover.style.display = "inline-block";
+        }
+    });
+
+    // Clique em "Remover ambiente"
+    btnRemover.addEventListener("click", function () {
+        const ambienteSelecionado = selectAmbiente.value;
+        if (ambienteSelecionado && ambienteSelecionado !== "__novo__") {
+            if (confirm(`Tem certeza que deseja excluir o ambiente "${ambienteSelecionado}"?`)) {
+                fetch(`/remover_ambiente/${ambienteSelecionado}`, { method: "POST" })
+                    .then(resp => resp.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert("Ambiente removido!");
+                            location.reload();
+                        } else {
+                            alert("Erro ao remover ambiente: " + data.error);
+                        }
+                    });
+            }
+        }
     });
 });
 
