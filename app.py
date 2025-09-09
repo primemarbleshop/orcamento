@@ -603,15 +603,18 @@ def editar_orcamento(id):
     if not orcamento:
         flash("Erro: Orçamento não encontrado!", "error")
         return redirect(url_for('listar_orcamentos'))
-
+    
     # Obtendo CPF do usuário logado
     usuario_cpf = session.get('user_cpf')  
-
+    
     # Filtrar apenas os clientes cujo dono é o usuário logado
     clientes = Cliente.query.filter_by(dono=usuario_cpf).all()
-
+    
     materiais = Material.query.all()
-
+    
+    # ADICIONADO: buscar todos os ambientes do banco
+    ambientes = Ambiente.query.order_by(Ambiente.nome).all()  # Lista de todos os ambientes
+    
     orcamentos_salvos = (
         db.session.query(OrcamentoSalvo)
         .join(Orcamento, db.func.instr(OrcamentoSalvo.orcamentos_ids, db.cast(Orcamento.id, db.String())) > 0)
@@ -820,6 +823,7 @@ def editar_orcamento(id):
         clientes=clientes,
         materiais=materiais,
         orcamentos_salvos=orcamentos_salvos
+        ambientes=ambientes
     )
 
 
