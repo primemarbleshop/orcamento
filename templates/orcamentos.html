@@ -151,10 +151,12 @@ function toggleNichoFields() {
 <br>
 <div <label for="ambiente">Ambiente:</label>
         <select id="ambiente" name="ambiente" required>
-        {% for ambiente in ambientes %}
-            <option value="{{ ambiente }}">{{ ambiente }}</option>
-        {% endfor %}
-            </select>
+    {% for ambiente in ambientes %}
+        <option value="{{ ambiente.nome }}" {% if orcamento and orcamento.ambiente == ambiente.nome %}selected{% endif %}>
+            {{ ambiente.nome }}
+        </option>
+    {% endfor %}
+</select>
 
     <!-- Botões -->
     <button type="button" id="btnAddAmbiente" title="Adicionar Ambiente">➕</button>
@@ -973,64 +975,51 @@ document.addEventListener("DOMContentLoaded", function () {
         popupAdd.style.display = "none";
         popupInput.value = '';
     });
+// Salvar novo ambiente do popup
+popupSalvar.addEventListener("click", () => {
+    const novo = popupInput.value.trim();
+    if (!novo) return;
 
-    // Salvar novo ambiente do popup
-    popupSalvar.addEventListener("click", () => {
-        const novo = popupInput.value.trim();
-        if (novo) {
+    fetch("/adicionar_ambiente", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: `novo_ambiente=${encodeURIComponent(novo)}`
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.success) {
             const option = document.createElement('option');
-            option.value = novo;
-            option.text = novo;
+            option.value = data.nome;
+            option.text = data.nome;
             selectAmbiente.add(option, selectAmbiente.options[0]);
-            selectAmbiente.value = novo;
-            popupAdd.style.display = 'none';
+            selectAmbiente.value = data.nome;
+            popupAdd.style.display = "none";
             popupInput.value = '';
-            saveAmbientes();
+        } else {
+            alert(data.error);
         }
     });
+});
 
-    // Botão lixeira abre popup de confirmação
-    btnDelAmbiente.addEventListener('click', () => {
-        const selecionado = selectAmbiente.value;
-        if (!selecionado || selecionado === '__novo__') {
-            alert('Selecione um ambiente válido para remover.');
-            return;
-        }
-        msgDelAmbiente.innerText = `Deseja remover o ambiente "${selecionado}"?`;
-        popupDel.style.display = 'block';
-    });
+// Confirmar exclusão do ambiente
+confirmDel.addEventListener('click', () => {
+    const selecionado = selectAmbiente.value;
+    if (!selecionado) return;
 
-    // Confirmar exclusão
-    confirmDel.addEventListener('click', () => {
-        const selecionado = selectAmbiente.value;
-        const option = selectAmbiente.querySelector(`option[value="${selecionado}"]`);
-        if (option) option.remove();
-        popupDel.style.display = 'none';
-        saveAmbientes();
-    });
-
-    // Funções localStorage
-    function saveAmbientes() {
-        const arr = Array.from(selectAmbiente.options)
-            .map(o => o.value)
-            .filter(v => v && v !== '__novo__');
-        localStorage.setItem('ambientes', JSON.stringify(arr));
-    }
-
-    function loadAmbientes() {
-        const arr = JSON.parse(localStorage.getItem('ambientes') || '[]');
-        arr.forEach(a => {
-            if (!Array.from(selectAmbiente.options).some(o => o.value === a)) {
-                const option = document.createElement('option');
-                option.value = a;
-                option.text = a;
-                selectAmbiente.add(option, selectAmbiente.options[0]);
+    fetch(`/remover_ambiente/${encodeURIComponent(selecionado)}`, { method: "POST" })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const option = selectAmbiente.querySelector(`option[value="${selecionado}"]`);
+                if (option) option.remove();
+                popupDel.style.display = "none";
+            } else {
+                alert(data.error);
             }
         });
-    }
-
-    loadAmbientes();
 });
+
+    
 
 
 </script>
