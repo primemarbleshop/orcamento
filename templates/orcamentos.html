@@ -149,14 +149,15 @@ function toggleNichoFields() {
     {% endfor %}
 </select>
 <br>
-<div <label for="ambiente">Ambiente:</label>
-        <select id="ambiente" name="ambiente" required>
-    {% for ambiente in ambientes %}
-        <option value="{{ ambiente.nome }}" {% if orcamento and orcamento.ambiente == ambiente.nome %}selected{% endif %}>
-            {{ ambiente.nome }}
-        </option>
-    {% endfor %}
-</select>
+<div>
+    <label for="ambiente">Ambiente:</label>
+    <select id="ambiente" name="ambiente" required>
+        {% for ambiente in ambientes %}
+            <option value="{{ ambiente.nome }}" {% if orcamento and orcamento.ambiente == ambiente.nome %}selected{% endif %}>
+                {{ ambiente.nome }}
+            </option>
+        {% endfor %}
+    </select>
 
     <!-- Botões -->
     <button type="button" id="btnAddAmbiente" title="Adicionar Ambiente">➕</button>
@@ -975,6 +976,32 @@ document.addEventListener("DOMContentLoaded", function () {
         popupAdd.style.display = "none";
         popupInput.value = '';
     });
+// 1️⃣ Primeiro, pegar os elementos do DOM
+const btnAddAmbiente = document.getElementById('btnAddAmbiente');
+const btnDelAmbiente = document.getElementById('btnDelAmbiente');
+const popupAdd = document.getElementById('popupAdd');
+const popupDel = document.getElementById('popupDel');
+const popupInput = document.getElementById('popup_novo_ambiente');
+const popupSalvar = document.getElementById('popupSalvar');
+const popupCancelar = document.getElementById('popupCancelar');
+const confirmDel = document.getElementById('confirmDel');
+const msgDelAmbiente = document.getElementById('msgDelAmbiente');
+const selectAmbiente = document.getElementById('ambiente');
+
+// 2️⃣ Depois, registrar os event listeners
+
+// Abrir popup de adicionar ambiente
+btnAddAmbiente.addEventListener("click", () => {
+    popupAdd.style.display = "block";
+    popupInput.focus();
+});
+
+// Cancelar popup
+popupCancelar.addEventListener("click", () => {
+    popupAdd.style.display = "none";
+    popupInput.value = '';
+});
+
 // Salvar novo ambiente do popup
 popupSalvar.addEventListener("click", () => {
     const novo = popupInput.value.trim();
@@ -999,6 +1026,17 @@ popupSalvar.addEventListener("click", () => {
             alert(data.error);
         }
     });
+});
+
+// Abrir popup de exclusão
+btnDelAmbiente.addEventListener('click', () => {
+    const selecionado = selectAmbiente.value;
+    if (!selecionado) {
+        alert("Selecione um ambiente para excluir.");
+        return;
+    }
+    msgDelAmbiente.textContent = `Deseja realmente excluir o ambiente "${selecionado}"?`;
+    popupDel.style.display = 'block';
 });
 
 // Confirmar exclusão do ambiente
