@@ -1550,7 +1550,7 @@ def duplicar_selecionados():
                     largura_alisar = original.largura_alisar,
                     valor_total = original.valor_total,
                     dono = original.dono,  # <<<< NOVO, ESSENCIAL
-                    data = datetime.now(br_tz)
+                    data = datetime.now(br_tz),
                     ambiente=orcamento.ambiente
                 )
 
