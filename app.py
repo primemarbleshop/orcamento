@@ -613,7 +613,7 @@ def editar_orcamento(id):
     materiais = Material.query.all()
     
     # ADICIONADO: buscar todos os ambientes do banco
-    ambientes = [row[0] for row in db.session.query(Orcamento.ambiente).distinct().order_by(Orcamento.ambiente).all()]
+    ambientes = Ambiente.query.order_by(Ambiente.nome).all()
     
     orcamentos_salvos = (
         db.session.query(OrcamentoSalvo)
