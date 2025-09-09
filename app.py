@@ -12,7 +12,7 @@ import requests
 import base64
 import os
 
-from models import db, Orcamento, OrcamentoSalvo, Usuario  # Modelos do SQLAlchemy
+from models import db, Orcamento, OrcamentoSalvo, Usuario, Ambiente  # Modelos do SQLAlchemy
 
 # 📌 Importa Configuração Externa
 from config import Config
@@ -1550,6 +1550,31 @@ def duplicar_selecionados():
         import traceback
         print(traceback.format_exc())
         return jsonify({'success': False, 'error': traceback.format_exc()}), 500
+
+@app.route("/ambientes")
+def listar_ambientes():
+    ambientes = Ambiente.query.order_by(Ambiente.nome).all()
+    return jsonify([{"id": a.id, "nome": a.nome} for a in ambientes])
+
+@app.route("/adicionar_ambiente", methods=["POST"])
+def adicionar_ambiente():
+    nome = request.form.get("nome")
+    if not nome:
+        return jsonify({"error": "Nome obrigatório"}), 400
+    novo = Ambiente(nome=nome)
+    db.session.add(novo)
+    db.session.commit()
+    return jsonify({"success": True})
+
+@app.route("/deletar_ambiente", methods=["POST"])
+def deletar_ambiente():
+    id_ = request.form.get("id")
+    ambiente = Ambiente.query.get(id_)
+    if not ambiente:
+        return jsonify({"error": "Ambiente não encontrado"}), 404
+    db.session.delete(ambiente)
+    db.session.commit()
+    return jsonify({"success": True})
 
 
 
