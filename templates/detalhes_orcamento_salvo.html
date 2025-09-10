@@ -584,6 +584,17 @@
             {% endif %}
         </div>
     </div>
+    
+    <!-- Formulário para salvar as alterações do rodapé -->
+    {% if not pdf %}
+    <form action="{{ url_for('salvar_rodape_orcamento', codigo=codigo_orcamento) }}" method="POST" id="rodapeForm">
+        <input type="hidden" name="prazo_entrega" id="formPrazoEntrega" value="{{ prazo_entrega }}">
+        <input type="hidden" name="desconto_avista" id="formDescontoAvista" value="{{ desconto_avista }}">
+        <input type="hidden" name="desconto_parcelado" id="formDescontoParcelado" value="{{ desconto_parcelado }}">
+        <input type="hidden" name="observacoes" id="formObservacoes" value="{{ observacoes }}">
+        <button type="submit" class="btn-save" style="margin-top: 15px;">Salvar Alterações do Rodapé</button>
+    </form>
+    {% endif %}
 </div>
 
 <br>
@@ -648,11 +659,20 @@
             }
         }
         
+        // Atualizar também os campos do formulário hidden
+        if (campo === 'deliveryDays') {
+            document.getElementById('formPrazoEntrega').value = inputElement.value;
+        } else if (campo === 'discount1') {
+            document.getElementById('formDescontoAvista').value = inputElement.value;
+        } else if (campo === 'discount2') {
+            document.getElementById('formDescontoParcelado').value = inputElement.value;
+        } else if (campo === 'observacoes') {
+            document.getElementById('formObservacoes').value = inputElement.value;
+        }
+        
         // Voltar para modo de visualização
         displayElement.style.display = 'block';
         editElement.style.display = 'none';
-        
-        // Aqui você pode adicionar código para salvar no servidor se necessário
     }
     
     // Função para cancelar edição
@@ -698,6 +718,12 @@
     // Inicializar cálculos quando a página carregar
     document.addEventListener('DOMContentLoaded', function() {
         atualizarParcelamentoCartao(valorTotalFloat);
+        
+        // Preencher os campos do formulário hidden com os valores iniciais
+        document.getElementById('formPrazoEntrega').value = {{ prazo_entrega }};
+        document.getElementById('formDescontoAvista').value = {{ desconto_avista }};
+        document.getElementById('formDescontoParcelado').value = {{ desconto_parcelado }};
+        document.getElementById('formObservacoes').value = "{{ observacoes }}";
     });
 </script>
     
