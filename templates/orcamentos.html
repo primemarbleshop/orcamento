@@ -104,7 +104,13 @@
         
         .valor-total {
             font-weight: bold;
-            color: var(--success);
+            color: #000000; /* Alterado para preto */
+        }
+        
+        .valor-final {
+            font-weight: bold;
+            color: #000000; /* Alterado para preto */
+            font-size: 1.2rem;
         }
         
         .dynamic-field {
@@ -212,12 +218,12 @@
                     <div class="row" id="common_fields">
                         <div class="col-md-6 col-lg-3 form-section">
                             <label for="comprimento" class="form-label">Comprimento (cm):</label>
-                            <input type="number" id="comprimento" name="comprimento" class="form-control" step="0.01" min="0" required pattern="[0-9]+([.,][0-9]+)?">
+                            <input type="number" id="comprimento" name="comprimento" class="form-control" step="0.01" min="0" required pattern="[0-9]+([,][0-9]+)?">
                         </div>
 
                         <div class="col-md-6 col-lg-3 form-section">
                             <label for="largura" class="form-label">Largura (cm):</label>
-                            <input type="number" id="largura" name="largura" class="form-control" step="0.01" min="0" required pattern="[0-9]+([.,][0-9]+)?">
+                            <input type="number" id="largura" name="largura" class="form-control" step="0.01" min="0" required pattern="[0-9]+([,][0-9]+)?">
                         </div>
                     </div>
 
@@ -239,7 +245,7 @@
         <div class="card card-custom">
             <div class="card-header card-header-custom d-flex justify-content-between align-items-center">
                 <h5 class="m-0 font-weight-bold"><i class="fas fa-list me-2"></i>Lista de Orçamentos</h5>
-                <h5 class="m-0 font-weight-bold">Valor Final: <span id="valor-final" class="valor-total">R$ 0,00</span></h5>
+                <h5 class="m-0 font-weight-bold">Valor Final: <span id="valor-final" class="valor-final">R$ 0,00</span></h5>
             </div>
             <div class="card-body">
                 <!-- Filtros -->
@@ -321,7 +327,7 @@
                                 <td>{{ orcamento.comprimento }}</td>
                                 <td>{{ orcamento.largura }}</td>
                                 <td>{{ orcamento.outros_custos }}</td>
-                                <td class="valor-total">{{ orcamento.valor_total }}</td>
+                                <td class="valor-total">{{ "R$ {:,.2f}".format(orcamento.valor_total).replace(",", "X").replace(".", ",").replace("X", ".") }}</td>
                                 <td>{{ orcamento.data.strftime('%d-%m-%y') }}</td>
                                 <td>
                                     <div class="action-buttons">
@@ -390,7 +396,7 @@
                     </div>
                     <div class="col-md-6 form-section">
                         <label for="outros_custos" class="form-label">Outros Custos (R$):</label>
-                        <input type="number" id="outros_custos" name="outros_custos" class="form-control" step="0.01" min="0" value="0">
+                        <input type="number" id="outros_custos" name="outros_custos" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
                     </div>
                     <div class="col-md-6 form-section">
                         <label for="rt" class="form-label">Há RT?</label>
@@ -400,7 +406,7 @@
                         </select>
                         <div id="rt_percent_field" style="display: none;" class="mt-2">
                             <label for="rt_percentual" class="form-label">Porcentagem RT (%):</label>
-                            <input type="number" id="rt_percentual" name="rt_percentual" class="form-control" step="0.01" min="0" value="0">
+                            <input type="number" id="rt_percentual" name="rt_percentual" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
                         </div>
                     </div>
                 </div>
@@ -415,11 +421,11 @@
                         </div>
                         <div class="col-md-6 form-section">
                             <label for="comprimento_saia" class="form-label">Comprimento Saia (cm):</label>
-                            <input type="number" id="comprimento_saia" name="comprimento_saia" class="form-control" step="0.01" min="0" value="0">
+                            <input type="number" id="comprimento_saia" name="comprimento_saia" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
                         </div>
                         <div class="col-md-6 form-section">
                             <label for="largura_saia" class="form-label">Largura Saia (cm):</label>
-                            <input type="number" id="largura_saia" name="largura_saia" class="form-control" step="0.01" min="0" value="0">
+                            <input type="number" id="largura_saia" name="largura_saia" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
                         </div>
                 `;
                 
@@ -427,11 +433,11 @@
                 camposEspecificos += `
                         <div class="col-md-6 form-section">
                             <label for="comprimento_fronte" class="form-label">Comprimento Fronte (cm):</label>
-                            <input type="number" id="comprimento_fronte" name="comprimento_fronte" class="form-control" step="0.01" min="0" value="0">
+                            <input type="number" id="comprimento_fronte" name="comprimento_fronte" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
                         </div>
                         <div class="col-md-6 form-section">
                             <label for="largura_fronte" class="form-label">Largura Fronte (cm):</label>
-                            <input type="number" id="largura_fronte" name="largura_fronte" class="form-control" step="0.01" min="0" value="0">
+                            <input type="number" id="largura_fronte" name="largura_fronte" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
                         </div>
                     </div>
                 `;
@@ -450,6 +456,9 @@
                                 <option value="Esculpida">Esculpida</option>
                                 <option value="Cuba Tradicional Inox">Cuba Tradicional Inox</option>
                                 <option value="Apoio Cliente">Apoio Cliente</option>
+                                <option value="Embutida Cliente">Embutida Cliente</option>
+                                <option value="Gourmet Cliente">Gourmet Cliente</option>
+                                <option value="Tanque Inox">Tanque Inox</option>
                             </select>
                         </div>
                         <div class="col-md-4 form-section">
@@ -463,19 +472,30 @@
                                 <option value="Sim">Sim</option>
                             </select>
                         </div>
+                        <div class="col-md-12" id="cuba_esculpida_fields" style="display: none;">
+                            <div class="row mt-3">
+                                <div class="col-md-4 form-section">
+                                    <label for="modelo_cuba" class="form-label">Modelo da Cuba:</label>
+                                    <select name="modelo_cuba" id="modelo_cuba" class="form-select">
+                                        <option value="Normal">Normal</option>
+                                        <option value="Prainha">Prainha</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
                         <div class="col-md-12" id="medidas_cuba_fields" style="display: none;">
                             <div class="row mt-3">
                                 <div class="col-md-4 form-section">
                                     <label for="comprimento_cuba" class="form-label">Comprimento Cuba (cm):</label>
-                                    <input type="number" id="comprimento_cuba" name="comprimento_cuba" class="form-control" step="0.01" min="0" value="0">
+                                    <input type="number" id="comprimento_cuba" name="comprimento_cuba" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
                                 </div>
                                 <div class="col-md-4 form-section">
                                     <label for="largura_cuba" class="form-label">Largura Cuba (cm):</label>
-                                    <input type="number" id="largura_cuba" name="largura_cuba" class="form-control" step="0.01" min="0" value="0">
+                                    <input type="number" id="largura_cuba" name="largura_cuba" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
                                 </div>
                                 <div class="col-md-4 form-section">
                                     <label for="profundidade_cuba" class="form-label">Profundidade Cuba (cm):</label>
-                                    <input type="number" id="profundidade_cuba" name="profundidade_cuba" class="form-control" step="0.01" min="0" value="0">
+                                    <input type="number" id="profundidade_cuba" name="profundidade_cuba" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
                                 </div>
                             </div>
                         </div>
@@ -492,11 +512,11 @@
                         </div>
                         <div class="col-md-6 form-section">
                             <label for="comprimento_saia" class="form-label">Comprimento Saia (cm):</label>
-                            <input type="number" id="comprimento_saia" name="comprimento_saia" class="form-control" step="0.01" min="0" value="0">
+                            <input type="number" id="comprimento_saia" name="comprimento_saia" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
                         </div>
                         <div class="col-md-6 form-section">
                             <label for="largura_saia" class="form-label">Largura Saia (cm):</label>
-                            <input type="number" id="largura_saia" name="largura_saia" class="form-control" step="0.01" min="0" value="0">
+                            <input type="number" id="largura_saia" name="largura_saia" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
                         </div>
                     </div>
                 `;
@@ -511,7 +531,7 @@
                         </div>
                         <div class="col-md-4 form-section">
                             <label for="profundidade_nicho" class="form-label">Profundidade (cm):</label>
-                            <input type="number" id="profundidade_nicho" name="profundidade_nicho" class="form-control" step="0.01" min="0" value="0">
+                            <input type="number" id="profundidade_nicho" name="profundidade_nicho" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
                         </div>
                         <div class="col-md-4 form-section">
                             <label for="tem_fundo" class="form-label">Tem Fundo?</label>
@@ -531,7 +551,7 @@
                             <div class="row mt-3">
                                 <div class="col-md-6 form-section">
                                     <label for="largura_alisar" class="form-label">Largura Alisar (cm):</label>
-                                    <input type="number" id="largura_alisar" name="largura_alisar" class="form-control" step="0.01" min="0" value="0">
+                                    <input type="number" id="largura_alisar" name="largura_alisar" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
                                 </div>
                             </div>
                         </div>
@@ -554,11 +574,14 @@
         function toggleCubaFields() {
             const tipoCuba = document.getElementById("tipo_cuba").value;
             const medidasCubaFields = document.getElementById("medidas_cuba_fields");
+            const cubaEsculpidaFields = document.getElementById("cuba_esculpida_fields");
             
             if (tipoCuba === "Esculpida") {
                 medidasCubaFields.style.display = "block";
+                cubaEsculpidaFields.style.display = "block";
             } else {
                 medidasCubaFields.style.display = "none";
+                cubaEsculpidaFields.style.display = "none";
             }
         }
 
@@ -622,7 +645,7 @@
                 total += parseFloat(checkbox.dataset.valor);
             });
             document.getElementById('valor-final').textContent = 
-                total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                "R$ " + total.toFixed(2).replace(".", ",");
         }
 
         // Adicionar event listener para os checkboxes
@@ -676,6 +699,23 @@
             
             // Reanexar as linhas ordenadas
             rows.forEach(row => tbody.appendChild(row));
+            
+            // Carregar filtros salvos
+            if (localStorage.getItem('filtroCliente')) {
+                document.getElementById('filtro_cliente').value = localStorage.getItem('filtroCliente');
+            }
+            if (localStorage.getItem('filtroDataInicio')) {
+                document.getElementById('filtro_data_inicio').value = localStorage.getItem('filtroDataInicio');
+            }
+            if (localStorage.getItem('filtroDataFim')) {
+                document.getElementById('filtro_data_fim').value = localStorage.getItem('filtroDataFim');
+            }
+            if (localStorage.getItem('filtroQuantidade')) {
+                document.getElementById('filtro_quantidade').value = localStorage.getItem('filtroQuantidade');
+            }
+            
+            // Aplicar filtros ao carregar a página
+            filterOrcamentos();
         });
 
         // Função para enviar orçamentos selecionados
@@ -869,14 +909,47 @@
             const filtroDataFim = document.getElementById('filtro_data_fim').value;
             const filtroQuantidade = document.getElementById('filtro_quantidade').value;
             
+            const rows = document.querySelectorAll('#orcamento_table tr');
+            let visibleCount = 0;
+            
+            rows.forEach(row => {
+                const cliente = row.getAttribute('data-cliente');
+                const dataStr = row.getAttribute('data-data');
+                const data = dataStr.split(' ')[0]; // Pegar apenas a data (YYYY-MM-DD)
+                
+                let show = true;
+                
+                // Filtrar por cliente
+                if (filtroCliente !== 'Todos' && cliente !== filtroCliente) {
+                    show = false;
+                }
+                
+                // Filtrar por data
+                if (filtroDataInicio && data < filtroDataInicio) {
+                    show = false;
+                }
+                if (filtroDataFim && data > filtroDataFim) {
+                    show = false;
+                }
+                
+                // Aplicar filtro de quantidade
+                if (show && filtroQuantidade !== 'all' && visibleCount >= parseInt(filtroQuantidade)) {
+                    show = false;
+                }
+                
+                if (show) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
             // Salvar filtros no localStorage
             localStorage.setItem('filtroCliente', filtroCliente);
             localStorage.setItem('filtroDataInicio', filtroDataInicio);
             localStorage.setItem('filtroDataFim', filtroDataFim);
             localStorage.setItem('filtroQuantidade', filtroQuantidade);
-            
-            // Implementação simplificada para demonstração
-            console.log("Filtrando orçamentos...", {filtroCliente, filtroDataInicio, filtroDataFim, filtroQuantidade});
         }
 
         // Função para resetar os filtros
