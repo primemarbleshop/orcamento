@@ -214,24 +214,6 @@
         border-radius: 3px;
     }
 
-    /* Estilos para o formulário de edição do rodapé */
-    .rodape-editavel {
-        background-color: #f8f9fa;
-        padding: 15px;
-        border: 1px solid #dee2e6;
-        border-radius: 5px;
-        margin-bottom: 20px;
-    }
-    
-    .rodape-editavel h4 {
-        margin-top: 0;
-        color: #495057;
-    }
-    
-    .rodape-editavel .form-control {
-        margin-bottom: 10px;
-    }
-
     @media print {
         @page {
            margin: 5mm; /* Margens reduzidas para melhor aproveitamento */
@@ -323,11 +305,6 @@
         .payment-option:last-child {
             border-right: none;
         }
-        
-        /* Oculta o formulário de edição do rodapé na impressão */
-        .rodape-editavel {
-            display: none !important;
-        }
     }
 
     .cliente-header h2,
@@ -411,42 +388,6 @@
         <span class="info-normal">{{ orcamentos[0].cliente.telefone }}</span>
     </p>
 </div>
-
-<!-- Formulário para editar o rodapé (apenas na visualização normal, não no PDF) -->
-{% if not pdf %}
-<form action="{{ url_for('salvar_rodape_orcamento', codigo=codigo_orcamento) }}" method="POST">
-    <div class="rodape-editavel">
-        <h4>Configurações do Rodapé:</h4>
-        <div class="row">
-            <div class="col-md-3">
-                <label>Prazo de Entrega (dias):</label>
-                <input type="number" name="prazo_entrega" value="{{ prazo_entrega }}" class="form-control">
-            </div>
-            <div class="col-md-3">
-                <label>Desconto à Vista (%):</label>
-                <input type="number" name="desconto_avista" value="{{ desconto_avista }}" class="form-control">
-            </div>
-            <div class="col-md-3">
-                <label>Desconto Parcelado (%):</label>
-                <input type="number" name="desconto_parcelado" value="{{ desconto_parcelado }}" class="form-control">
-            </div>
-        </div>
-        <div class="row mt-2">
-            <div class="col-md-12">
-                <label>Observações:</label>
-                <textarea name="observacoes" class="form-control" rows="3">{{ observacoes }}</textarea>
-            </div>
-        </div>
-        <div class="row mt-2">
-            <div class="col-md-12">
-                <button type="submit" class="btn btn-primary">Salvar Rodapé</button>
-                <a href="{{ url_for('gerar_pdf_orcamento', codigo=codigo_orcamento) }}" 
-                   class="btn btn-success" target="_blank">Gerar PDF</a>
-            </div>
-        </div>
-    </div>
-</form>
-{% endif %}
 
 <h2>Detalhes do Orçamento</h2>
 <p class="orcamento-info">
