@@ -5,14 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Detalhes dos Orçamentos</title>
     <style>
-    /* Reduzir tamanho geral das fontes para 80% do original */
+    /* Estilos gerais */
     body {
         font-size: 15px;
         font-family: Arial, sans-serif;
         line-height: 1.3;
     }
 
-    /* Reduzindo tamanho das tabelas */
     table {
         width: 100%;
         border-collapse: collapse;
@@ -31,7 +30,6 @@
         font-size: 13px;
     }
 
-    /* Reduzindo cabeçalhos do cliente */
     .cliente-header {
         font-size: 15px;
         font-weight: bold;
@@ -39,7 +37,6 @@
         margin-bottom: 5px;
     }
 
-    /* Reduzindo cabeçalhos de produtos */
     .produto-header {
         font-size: 15px;
         font-weight: bold;
@@ -47,14 +44,6 @@
         margin-bottom: 5px;
     }
 
-    /* Reduzir tamanho do botão de impressão */
-    .print-button {
-        font-size: 14px;
-        padding: 6px 10px;
-        margin: 5px;
-    }
-
-    /* Reduzindo informações do cliente */
     .cliente-info {
         font-size: 13px;
         color: #555;
@@ -109,7 +98,7 @@
         word-wrap: break-word;
     }
 
-    /* Estilos para o rodapé - MODIFICADO para ser mais compacto */
+    /* Estilos para o rodapé */
     .orcamento-footer {
         margin-top: 15px;
         padding: 8px;
@@ -216,29 +205,61 @@
         margin: 2px 0;
     }
 
-    /* REMOVIDO o fundo sombreado e ajustado a formatação */
+    /* Estilo restaurado para o parcelamento */
     .parcelamento-simplificado {
-        font-weight: normal; /* Alterado para normal */
-        padding: 3px 0; /* Removido padding lateral */
+        font-weight: bold;
+        padding: 3px 5px;
+        border-radius: 3px;
         margin-top: 3px;
-        display: block;
+        display: inline-block;
         font-size: 13px;
-        background-color: transparent; /* Removido fundo colorido */
+        background-color: #f0f8ff;
     }
 
-    /* REMOVIDO o negrito da informação do cartão */
     .cartao-info {
-        font-weight: normal; /* Alterado para normal */
+        font-weight: normal;
         margin: 3px 0;
         font-size: 13px;
     }
 
-    /* Adicionado estilo para valor em negrito */
-    .valor-destaque {
+    /* Estilos para os botões (alinhados à esquerda) */
+    .btn-container {
+        margin: 10px 0;
+        text-align: left; /* Alterado para left */
+    }
+
+    /* Estilo para o botão Gerar PDF (similar ao dos orçamentos salvos) */
+    .btn-pdf {
+        display: inline-block;
+        padding: 10px 20px;
+        background-color: #2196F3; /* Azul */
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
         font-weight: bold;
+        margin-right: 10px;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+    }
+
+    /* Estilo para o botão Voltar (similar ao da página editar orçamentos) */
+    .btn-voltar {
+        display: inline-block;
+        padding: 10px 20px;
+        background-color: #4CAF50; /* Verde */
+        color: white;
+        text-decoration: none;
+        border-radius: 4px;
+        font-weight: bold;
+        margin-right: 10px;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
     }
 
     @media print {
+        /* Estilos de impressão mantidos */
         @page {
            margin: 5mm;
         }
@@ -289,7 +310,7 @@
             font-size: 13px;
         }
 
-        .print-button, .btn-voltar, .btn-edit, .btn-save, .btn-cancel {
+        .print-button, .btn-voltar, .btn-edit, .btn-save, .btn-cancel, .btn-pdf {
             display: none !important;
         }
         
@@ -408,22 +429,6 @@
 
     .detalhes-orcamento {
         margin-top: 3px;
-    }
-    
-    .btn-container {
-        margin: 10px 0;
-        text-align: center;
-    }
-    
-    .btn-voltar {
-        display: inline-block;
-        padding: 8px 15px;
-        background-color: #4CAF50;
-        color: white;
-        text-decoration: none;
-        border-radius: 4px;
-        font-weight: bold;
-        margin-top: 10px;
     }
     </style>
 </head>
@@ -575,8 +580,8 @@
                     <div class="cartao-info">
                         Pagamento de 100% na aprovação do orçamento
                     </div>
-                    <div class="parcelamento-simplificado">
-                        <span class="valor-destaque">R$ {{ valor_total_final }} em até 10x sem juros</span>
+                    <div class="parcelamento-simplificado" id="parcelamentoSimplificado">
+                        <!-- Será preenchido via JavaScript -->
                     </div>
                 </div>
                 
@@ -619,7 +624,7 @@
                     
                     {% if not pdf %}
                     <div id="discount2Edit" class="edit-mode" style="display: none;">
-                        <input type="number" id="discount2Input" class="edit-field" value="{{ desconto_parcelado }}" min="0" max="100">% de desconto
+                        <input type="number" id="discount2Input" class="edit-field" value="{{ desconto_parcelado }}" min="0, max="100">% de desconto
                         <button class="btn-save" onclick="saveValue('discount2')">Salvar</button>
                         <button class="btn-cancel" onclick="cancelEdit('discount2')">Cancelar</button>
                     </div>
@@ -657,14 +662,10 @@
     {% endif %}
 </div>
 
-<br>
-
-<!-- Botão de impressão -->
+<!-- Botões (removido o de imprimir, alinhados à esquerda) -->
 {% if not pdf %}
 <div class="btn-container">
-    <button class="print-button" onclick="window.print()">Imprimir</button>
-    <button onclick="window.location.href='/gerar_pdf_orcamento/{{ codigo_orcamento }}'">Gerar PDF</button>
-    <br>
+    <button class="btn-pdf" onclick="window.location.href='/gerar_pdf_orcamento/{{ codigo_orcamento }}'">Gerar PDF</button>
     <a href="/orcamentos_salvos" class="btn-voltar">Voltar para Orçamentos Salvos</a>
 </div>
 {% endif %}
@@ -746,10 +747,38 @@
         
         document.getElementById('valorAvista').textContent = (valorTotalFloat * (1 - desconto1/100)).toFixed(2);
         document.getElementById('valorParcelado').textContent = (valorTotalFloat * (1 - desconto2/100)).toFixed(2);
+        
+        // Atualizar parcelamento cartão
+        atualizarParcelamentoSimplificado(valorTotalFloat);
     }
     
-    // Inicializar quando a página carregar
+    // Função para determinar o número máximo de parcelas baseado no valor
+    function calcularMaxParcelas(valorTotal) {
+        if (valorTotal >= 1000) return 10;
+        if (valorTotal >= 900) return 9;
+        if (valorTotal >= 800) return 8;
+        if (valorTotal >= 700) return 7;
+        if (valorTotal >= 600) return 6;
+        if (valorTotal >= 500) return 5;
+        if (valorTotal >= 400) return 4;
+        if (valorTotal >= 300) return 3;
+        if (valorTotal >= 200) return 2;
+        return 1;
+    }
+    
+    // Função para atualizar a exibição simplificada do parcelamento
+    function atualizarParcelamentoSimplificado(valorTotal) {
+        const maxParcelas = calcularMaxParcelas(valorTotal);
+        const valorParcela = valorTotal / maxParcelas;
+        
+        const elemento = document.getElementById('parcelamentoSimplificado');
+        elemento.textContent = `R$ ${valorTotal.toFixed(2)} em até ${maxParcelas}x sem juros`;
+    }
+    
+    // Inicializar cálculos quando a página carregar
     document.addEventListener('DOMContentLoaded', function() {
+        atualizarParcelamentoSimplificado(valorTotalFloat);
+        
         // Preencher os campos do formulário hidden com os valores iniciais
         document.getElementById('formPrazoEntrega').value = {{ prazo_entrega }};
         document.getElementById('formDescontoAvista').value = {{ desconto_avista }};
