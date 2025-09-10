@@ -3,370 +3,449 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerenciar Materiais</title>
-    
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Select2 -->
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
-    
+    <title>Detalhes dos Orçamentos - Prime Marble Shop</title>
     <style>
         :root {
-            --primary: #4e73df;
-            --secondary: #6c757d;
-            --success: #1cc88a;
-            --danger: #e74a3b;
-            --warning: #f6c23e;
-            --light: #f8f9fc;
-            --dark: #5a5c69;
+            --primary-black: #000000;
+            --primary-yellow: #FFD700;
+            --secondary-yellow: #FFED85;
+            --light-gray: #f5f5f5;
+            --white: #ffffff;
+            --dark-text: #333333;
         }
         
         body {
-            background-color: #f8f9fc;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        .card-custom {
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            border: none;
-        }
-        
-        .card-header-custom {
-            background: linear-gradient(135deg, var(--primary) 0%, #2a3d8f 100%);
-            color: white;
-            border-radius: 10px 10px 0 0 !important;
-            padding: 15px 20px;
-        }
-        
-        .btn-custom-primary {
-            background-color: var(--primary);
-            border-color: var(--primary);
-            color: white;
-        }
-        
-        .btn-custom-primary:hover {
-            background-color: #2e59d9;
-            border-color: #2e59d9;
-            color: white;
-        }
-        
-        .btn-custom-danger {
-            background-color: var(--danger);
-            border-color: var(--danger);
-            color: white;
-        }
-        
-        .btn-custom-danger:hover {
-            background-color: #be2617;
-            border-color: #be2617;
-            color: white;
-        }
-        
-        .btn-custom-success {
-            background-color: var(--success);
-            border-color: var(--success);
-            color: white;
-        }
-        
-        .btn-custom-success:hover {
-            background-color: #17a673;
-            border-color: #17a673;
-            color: white;
-        }
-        
-        .table th {
-            background: linear-gradient(135deg, var(--primary) 0%, #2a3d8f 100%);
-            color: white;
-            vertical-align: middle;
-        }
-        
-        .filtro-section {
-            background-color: white;
+            font-size: 14px;
+            color: var(--dark-text);
+            line-height: 1.4;
+            margin: 0;
             padding: 15px;
+            background-color: var(--white);
+        }
+        
+        /* Container principal */
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: var(--white);
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
             border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            overflow: hidden;
         }
         
-        .form-section {
-            margin-bottom: 15px;
-        }
-        
-        .action-buttons {
+        /* Cabeçalho com cores da empresa */
+        .header {
+            background: var(--primary-black);
+            color: var(--white);
+            padding: 20px;
+            position: relative;
             display: flex;
-            gap: 10px;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
+        
+        .company-info {
+            flex: 1;
+        }
+        
+        .company-info h1 {
+            color: var(--primary-yellow);
+            margin: 0 0 10px 0;
+            font-size: 24px;
+        }
+        
+        .company-info p {
+            margin: 4px 0;
+            font-size: 13px;
+        }
+        
+        .logo-container {
+            text-align: right;
+        }
+        
+        .logo-empresa {
+            height: 100px;
+            width: auto;
+            max-width: 200px;
+        }
+        
+        /* Informações do cliente */
+        .client-info {
+            background: var(--light-gray);
+            padding: 15px 20px;
+            border-left: 4px solid var(--primary-yellow);
+        }
+        
+        .client-info h2 {
+            color: var(--primary-black);
+            margin: 0 0 10px 0;
+            font-size: 18px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .client-info h2:before {
+            content: "👤";
+            margin-right: 8px;
+        }
+        
+        .client-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 8px;
+        }
+        
+        .client-detail {
+            display: flex;
+        }
+        
+        .client-detail strong {
+            min-width: 70px;
+            color: var(--primary-black);
+        }
+        
+        /* Informações do orçamento */
+        .budget-info {
+            padding: 15px 20px;
+            background: var(--secondary-yellow);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             flex-wrap: wrap;
         }
         
-        .valor-total {
+        .budget-details {
+            font-size: 14px;
+        }
+        
+        .budget-details strong {
+            color: var(--primary-black);
+        }
+        
+        .total-box {
+            background: var(--primary-black);
+            color: var(--primary-yellow);
+            padding: 10px 15px;
+            border-radius: 5px;
             font-weight: bold;
-            color: #000000;
+            font-size: 16px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
         }
         
-        .page-header {
-            border-bottom: 1px solid #e3e6f0;
-            padding-bottom: 15px;
-            margin-bottom: 25px;
+        /* Tabelas de produtos */
+        .products-section {
+            padding: 15px 20px;
         }
         
-        .checkbox-cell {
-            width: 40px;
+        .product-type-header {
+            background: var(--primary-black);
+            color: var(--primary-yellow);
+            padding: 8px 12px;
+            margin: 15px 0 10px 0;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 15px;
+            font-size: 13px;
+        }
+        
+        th {
+            background: var(--primary-yellow);
+            color: var(--primary-black);
+            padding: 8px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        
+        td {
+            padding: 8px;
+            border: 1px solid #ddd;
+        }
+        
+        tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        
+        .valor-tabela {
+            font-weight: bold;
+            color: var(--primary-black);
+        }
+        
+        /* Botões de ação */
+        .action-buttons {
+            padding: 15px 20px;
             text-align: center;
+            background: var(--light-gray);
+            border-top: 1px solid #ddd;
         }
         
-        .actions-cell {
-            width: 120px;
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            margin: 0 10px;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            transition: all 0.3s;
         }
         
-        @media (max-width: 768px) {
-            .action-buttons {
-                flex-direction: column;
+        .btn-primary {
+            background: var(--primary-black);
+            color: var(--primary-yellow);
+        }
+        
+        .btn-primary:hover {
+            background: #333;
+        }
+        
+        .btn-secondary {
+            background: var(--primary-yellow);
+            color: var(--primary-black);
+        }
+        
+        .btn-secondary:hover {
+            background: #e6c200;
+        }
+        
+        /* Estilos para impressão */
+        @media print {
+            @page {
+                margin: 10mm;
             }
             
-            .btn-action {
-                width: 100%;
-                margin-bottom: 5px;
+            body {
+                padding: 0;
+                font-size: 12px;
+                background: white;
             }
+            
+            .container {
+                box-shadow: none;
+                max-width: 100%;
+            }
+            
+            .action-buttons, .btn {
+                display: none !important;
+            }
+            
+            .header {
+                padding: 10mm 0 5mm 0;
+                background: white !important;
+                color: black !important;
+            }
+            
+            .company-info h1 {
+                color: black !important;
+            }
+            
+            .logo-empresa {
+                height: 80px;
+            }
+            
+            .client-info {
+                background: white !important;
+                border-left: 2px solid black;
+            }
+            
+            .budget-info {
+                background: white !important;
+                border-bottom: 2px solid var(--primary-yellow);
+            }
+            
+            .total-box {
+                background: black !important;
+                color: yellow !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            
+            .product-type-header {
+                background: black !important;
+                color: yellow !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            
+            th {
+                background: yellow !important;
+                color: black !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            
+            table {
+                page-break-inside: avoid;
+            }
+            
+            .product-type-header {
+                page-break-after: avoid;
+            }
+        }
+        
+        /* Ajuste para textos longos */
+        .wrap-text {
+            word-break: break-word;
         }
     </style>
 </head>
 <body>
-    <div class="container-fluid py-4">
-        <!-- Cabeçalho -->
-        <div class="page-header">
-            <div class="row align-items-center">
-                <div class="col">
-                    <h1 class="h3 text-gray-800"><i class="fas fa-boxes me-2"></i>Gerenciar Materiais</h1>
+    <div class="container">
+        <!-- Cabeçalho com logo e informações da empresa -->
+        <div class="header">
+            <div class="company-info">
+                <h1>Prime Marble Shop</h1>
+                <p><strong>Endereço:</strong> Estrada do Engenho, 1800 - Bangu</p>
+                <p><strong>CNPJ:</strong> 39.903.780/0001-15</p>
+                <p><strong>Telefone:</strong> (21) 99999-9999</p>
+            </div>
+            <div class="logo-container">
+                <img src="{{ logo_url }}" alt="Logo da Empresa" class="logo-empresa">
+            </div>
+        </div>
+        
+        <!-- Informações do cliente -->
+        <div class="client-info">
+            <h2>Cliente</h2>
+            <div class="client-details">
+                <div class="client-detail">
+                    <strong>Nome:</strong>
+                    <span class="wrap-text">{{ cliente_nome }}</span>
                 </div>
-                <div class="col-auto">
-                    <a href="/" class="btn btn-custom-primary">
-                        <i class="fas fa-home me-1"></i> Voltar para a Página Inicial
-                    </a>
+                <div class="client-detail">
+                    <strong>Endereço:</strong>
+                    <span class="wrap-text">{{ orcamentos[0].cliente.endereco }}</span>
+                </div>
+                <div class="client-detail">
+                    <strong>Telefone:</strong>
+                    <span>{{ orcamentos[0].cliente.telefone }}</span>
+                </div>
+                <div class="client-detail">
+                    <strong>Documento:</strong>
+                    <span>{{ orcamentos[0].cliente.documento }}</span>
                 </div>
             </div>
         </div>
-
-        <!-- Card do formulário de material -->
-        <div class="card card-custom mb-4">
-            <div class="card-header card-header-custom">
-                <h5 class="m-0 font-weight-bold"><i class="fas fa-plus-circle me-2"></i>Novo Material</h5>
+        
+        <!-- Informações do orçamento -->
+        <div class="budget-info">
+            <div class="budget-details">
+                <p><strong>Orçamento:</strong> {{ codigo_orcamento }}</p>
+                <p><strong>Data:</strong> {{ data_salvo.strftime('%d/%m/%Y') }}</p>
             </div>
-            <div class="card-body">
-                <form method="POST" id="materialForm">
-                    <div class="row">
-                        <div class="col-md-6 form-section">
-                            <label for="nome" class="form-label">Nome do Material:</label>
-                            <input type="text" id="nome" name="nome" class="form-control" required>
-                        </div>
-
-                        <div class="col-md-6 form-section">
-                            <label for="valor" class="form-label">Valor (R$):</label>
-                            <input type="number" id="valor" name="valor" class="form-control" step="0.01" min="0" required>
-                        </div>
-                    </div>
-
-                    <div class="row mt-3">
-                        <div class="col-md-12 text-end">
-                            <button type="submit" class="btn btn-custom-success">
-                                <i class="fas fa-save me-1"></i> Adicionar Material
-                            </button>
-                        </div>
-                    </div>
-                </form>
+            <div class="total-box">
+                Valor Total: {{ valor_total_final }}
             </div>
         </div>
-
-        <!-- Card da lista de materiais -->
-        <div class="card card-custom">
-            <div class="card-header card-header-custom d-flex justify-content-between align-items-center">
-                <h5 class="m-0 font-weight-bold"><i class="fas fa-list me-2"></i>Lista de Materiais</h5>
-                <div class="d-flex align-items-center">
-                    <span class="me-2">Total:</span>
-                    <span id="total-materiais" class="badge bg-primary fs-6">{{ materiais|length }}</span>
-                </div>
-            </div>
-            <div class="card-body">
-                <!-- Filtros -->
-                <div class="row filtro-section">
-                    <div class="col-md-6 mb-2">
-                        <label for="filtro_nome" class="form-label">Filtrar por Nome:</label>
-                        <input type="text" id="filtro_nome" class="form-control" placeholder="Digite para filtrar..." onkeyup="filterMateriais()">
-                    </div>
-
-                    <div class="col-md-3 mb-2">
-                        <label for="filtro_valor_min" class="form-label">Valor Mínimo:</label>
-                        <input type="number" id="filtro_valor_min" class="form-control" step="0.01" min="0" onchange="filterMateriais()">
-                    </div>
-
-                    <div class="col-md-3 mb-2">
-                        <label for="filtro_valor_max" class="form-label">Valor Máximo:</label>
-                        <input type="number" id="filtro_valor_max" class="form-control" step="0.01" min="0" onchange="filterMateriais()">
-                    </div>
-
-                    <div class="col-md-12 d-flex justify-content-end">
-                        <button type="button" class="btn btn-custom-primary" onclick="resetFilters()">
-                            <i class="fas fa-sync-alt me-1"></i> Limpar Filtros
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Tabela de materiais -->
-                <div class="table-responsive">
-                    <table class="table table-striped table-bordered table-hover">
-                        <thead>
-                            <tr>
-                                <th>Nome</th>
-                                <th>Valor (R$)</th>
-                                <th class="actions-cell">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="materiais_table">
-                            {% for material in materiais %}
-                            <tr data-id="{{ material.id }}" data-nome="{{ material.nome }}" data-valor="{{ material.valor }}">
-                                <td>{{ material.nome }}</td>
-                                <td class="valor-total">{{ "R$ {:,.2f}".format(material.valor).replace(",", "X").replace(".", ",").replace("X", ".") }}</td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <a href="{{ url_for('editar_material', id=material.id) }}" class="btn btn-sm btn-custom-primary" title="Editar">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <form action="{{ url_for('deletar_material', id=material.id) }}" method="POST" class="d-inline" onsubmit="confirmarExclusao(event, this)">
-                                            <button type="submit" class="btn btn-sm btn-custom-danger" title="Excluir">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-
-                <!-- Mensagem quando não há resultados -->
-                <div id="no-results" class="alert alert-info mt-3" style="display: none;">
-                    <i class="fas fa-info-circle me-2"></i> Nenhum material encontrado com os filtros aplicados.
-                </div>
-            </div>
+        
+        <!-- Produtos por tipo -->
+        <div class="products-section">
+            {% set tipos_produtos = {} %}
+            {% for orcamento in orcamentos %}
+                {% if orcamento.tipo_produto not in tipos_produtos %}
+                    {% set tipos_produtos = tipos_produtos.update({orcamento.tipo_produto: []}) or tipos_produtos %}
+                {% endif %}
+                {% set _ = tipos_produtos[orcamento.tipo_produto].append(orcamento) %}
+            {% endfor %}
+            
+            {% for tipo, produtos in tipos_produtos.items() %}
+                <div class="product-type-header">{{ tipo }}</div>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Material</th>
+                            <th>Qtd</th>
+                            <th>Comp.</th>
+                            <th>Larg.</th>
+                            {% if tipo in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
+                            <th>Saia</th>
+                            {% endif %}
+                            {% if tipo in ["Bancada", "Lavatorio"] %}
+                            <th>Fronte</th>
+                            {% endif %}
+                            {% if tipo in ["Bancada", "Lavatorio"] %}
+                            <th>Cuba</th>
+                            {% endif %}
+                            {% if tipo == "Bancada" %}
+                            <th>Cooktop</th>
+                            {% endif %}
+                            {% if tipo in ["Nicho", "Nicho Sem Fundo"] %}
+                            <th>Profund.</th>
+                            <th>Fundo</th>
+                            <th>Alisar</th>
+                            {% endif %}
+                            <th>Outros Custos</th>
+                            <th>Valor</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for produto in produtos %}
+                        <tr>
+                            <td>{{ produto.material.nome }}</td>
+                            <td>{{ produto.quantidade }}</td>
+                            <td>{{ produto.comprimento }} cm</td>
+                            <td>{{ produto.largura }} cm</td>
+                            {% if tipo in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
+                            <td>
+                                {% if produto.comprimento_saia or produto.largura_saia %}
+                                    {{ produto.comprimento_saia }} x {{ produto.largura_saia }} cm
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            {% endif %}
+                            {% if tipo in ["Bancada", "Lavatorio"] %}
+                            <td>
+                                {% if produto.comprimento_fronte or produto.largura_fronte %}
+                                    {{ produto.comprimento_fronte }} x {{ produto.largura_fronte }} cm
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            {% endif %}
+                            {% if tipo in ["Bancada", "Lavatorio"] %}
+                            <td>
+                                {% if produto.tipo_cuba == "Esculpida" %}
+                                    Esculpida ({{ produto.quantidade_cubas }}) - {{ produto.comprimento_cuba }} x {{ produto.largura_cuba }} x {{ produto.profundidade_cuba }} cm
+                                {% elif produto.tipo_cuba %}
+                                    {{ produto.tipo_cuba }} ({{ produto.quantidade_cubas }})
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            {% endif %}
+                            {% if tipo == "Bancada" %}
+                            <td>{% if produto.tem_cooktop == "Sim" %}Sim{% else %}-{% endif %}</td>
+                            {% endif %}
+                            {% if tipo in ["Nicho", "Nicho Sem Fundo"] %}
+                            <td>{{ produto.profundidade_nicho }} cm</td>
+                            <td>{% if produto.tem_fundo == "Sim" %}Sim{% else %}Não{% endif %}</td>
+                            <td>{% if produto.tem_alisar == "Sim" %}Sim ({{ produto.largura_alisar }} cm){% else %}Não{% endif %}</td>
+                            {% endif %}
+                            <td>R$ {{ "%.2f"|format(produto.outros_custos) }}</td>
+                            <td class="valor-tabela">R$ {{ "%.2f"|format(produto.valor_total) }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% endfor %}
         </div>
+        
+        <!-- Botões de ação -->
+        {% if not pdf %}
+        <div class="action-buttons">
+            <button class="btn btn-primary" onclick="window.print()">Imprimir</button>
+            <button class="btn btn-secondary" onclick="window.location.href='/gerar_pdf_orcamento/{{ codigo_orcamento }}'">Gerar PDF</button>
+            <a href="/orcamentos_salvos" class="btn btn-primary">Voltar para Orçamentos Salvos</a>
+        </div>
+        {% endif %}
     </div>
-
-    <!-- JavaScript Libraries -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-    <script>
-        // Função para confirmar exclusão
-        function confirmarExclusao(event, form) {
-            event.preventDefault();
-            
-            Swal.fire({
-                title: "Tem certeza?",
-                text: "Essa ação não pode ser desfeita!",
-                icon: "warning",
-                showCancelButton: true,
-                confirmButtonColor: "#d33",
-                cancelButtonColor: "#3085d6",
-                confirmButtonText: "Sim, deletar!",
-                cancelButtonText: "Cancelar"
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    form.submit();
-                }
-            });
-        }
-
-        // Função para filtrar materiais
-        function filterMateriais() {
-            const filtroNome = document.getElementById('filtro_nome').value.toLowerCase();
-            const filtroValorMin = parseFloat(document.getElementById('filtro_valor_min').value) || 0;
-            const filtroValorMax = parseFloat(document.getElementById('filtro_valor_max').value) || Number.MAX_SAFE_INTEGER;
-            
-            const rows = document.querySelectorAll('#materiais_table tr');
-            let visibleCount = 0;
-            
-            rows.forEach(row => {
-                const nome = row.getAttribute('data-nome').toLowerCase();
-                const valor = parseFloat(row.getAttribute('data-valor'));
-                
-                let show = true;
-                
-                // Filtrar por nome
-                if (filtroNome && !nome.includes(filtroNome)) {
-                    show = false;
-                }
-                
-                // Filtrar por valor mínimo
-                if (valor < filtroValorMin) {
-                    show = false;
-                }
-                
-                // Filtrar por valor máximo
-                if (valor > filtroValorMax) {
-                    show = false;
-                }
-                
-                if (show) {
-                    row.style.display = '';
-                    visibleCount++;
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-            
-            // Mostrar ou ocultar mensagem de nenhum resultado
-            const noResults = document.getElementById('no-results');
-            if (visibleCount === 0) {
-                noResults.style.display = 'block';
-            } else {
-                noResults.style.display = 'none';
-            }
-            
-            // Atualizar contador
-            document.getElementById('total-materiais').textContent = visibleCount;
-            
-            // Salvar filtros no localStorage
-            localStorage.setItem('filtroNomeMateriais', filtroNome);
-            localStorage.setItem('filtroValorMinMateriais', filtroValorMin);
-            localStorage.setItem('filtroValorMaxMateriais', filtroValorMax === Number.MAX_SAFE_INTEGER ? '' : filtroValorMax);
-        }
-
-        // Função para resetar os filtros
-        function resetFilters() {
-            document.getElementById('filtro_nome').value = '';
-            document.getElementById('filtro_valor_min').value = '';
-            document.getElementById('filtro_valor_max').value = '';
-            
-            // Limpar localStorage
-            localStorage.removeItem('filtroNomeMateriais');
-            localStorage.removeItem('filtroValorMinMateriais');
-            localStorage.removeItem('filtroValorMaxMateriais');
-            
-            filterMateriais();
-        }
-
-        // Carregar filtros salvos ao iniciar a página
-        document.addEventListener('DOMContentLoaded', function() {
-            // Carregar filtros do localStorage
-            if (localStorage.getItem('filtroNomeMateriais')) {
-                document.getElementById('filtro_nome').value = localStorage.getItem('filtroNomeMateriais');
-            }
-            if (localStorage.getItem('filtroValorMinMateriais')) {
-                document.getElementById('filtro_valor_min').value = localStorage.getItem('filtroValorMinMateriais');
-            }
-            if (localStorage.getItem('filtroValorMaxMateriais')) {
-                document.getElementById('filtro_valor_max').value = localStorage.getItem('filtroValorMaxMateriais');
-            }
-            
-            // Aplicar filtros ao carregar a página
-            filterMateriais();
-        });
-    </script>
 </body>
 </html>
