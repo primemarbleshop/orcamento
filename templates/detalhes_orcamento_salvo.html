@@ -4,8 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Detalhes dos Orçamentos</title>
+    <!-- Adicionando Bootstrap e Font Awesome para manter consistência -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-    /* Estilos gerais */
+    /* Estilos anteriores mantidos */
     body {
         font-size: 15px;
         font-family: Arial, sans-serif;
@@ -98,7 +101,6 @@
         word-wrap: break-word;
     }
 
-    /* Estilos para o rodapé */
     .orcamento-footer {
         margin-top: 15px;
         padding: 8px;
@@ -205,7 +207,13 @@
         margin: 2px 0;
     }
 
-    /* Estilo restaurado para o parcelamento */
+    .payment-highlight {
+        font-weight: bold;
+        color: #000;
+        padding: 2px;
+        border-radius: 2px;
+    }
+
     .parcelamento-simplificado {
         font-weight: bold;
         padding: 3px 5px;
@@ -217,49 +225,49 @@
     }
 
     .cartao-info {
-        font-weight: normal;
+        font-weight: bold;
         margin: 3px 0;
         font-size: 13px;
     }
 
-    /* Estilos para os botões (alinhados à esquerda) */
+    /* NOVOS ESTILOS PARA OS BOTÕES */
+    .btn-custom-primary {
+        background-color: #4e73df;
+        border-color: #4e73df;
+        color: white;
+    }
+    
+    .btn-custom-primary:hover {
+        background-color: #2e59d9;
+        border-color: #2e59d9;
+        color: white;
+    }
+    
+    .btn-custom-success {
+        background-color: #1cc88a;
+        border-color: #1cc88a;
+        color: white;
+    }
+    
+    .btn-custom-success:hover {
+        background-color: #17a673;
+        border-color: #17a673;
+        color: white;
+    }
+    
     .btn-container {
         margin: 10px 0;
-        text-align: left; /* Alterado para left */
+        text-align: left; /* Alterado para alinhar à esquerda */
     }
 
-    /* Estilo para o botão Gerar PDF (similar ao dos orçamentos salvos) */
-    .btn-pdf {
-        display: inline-block;
-        padding: 10px 20px;
-        background-color: #2196F3; /* Azul */
-        color: white;
-        text-decoration: none;
-        border-radius: 4px;
-        font-weight: bold;
-        margin-right: 10px;
-        border: none;
-        cursor: pointer;
-        font-size: 14px;
-    }
-
-    /* Estilo para o botão Voltar (similar ao da página editar orçamentos) */
-    .btn-voltar {
-        display: inline-block;
-        padding: 10px 20px;
-        background-color: #4CAF50; /* Verde */
-        color: white;
-        text-decoration: none;
-        border-radius: 4px;
-        font-weight: bold;
-        margin-right: 10px;
-        border: none;
-        cursor: pointer;
-        font-size: 14px;
+    /* Ajuste para prazo de entrega na mesma linha */
+    .prazo-entrega-container {
+        display: flex;
+        align-items: center;
+        gap: 5px;
     }
 
     @media print {
-        /* Estilos de impressão mantidos */
         @page {
            margin: 5mm;
         }
@@ -310,7 +318,7 @@
             font-size: 13px;
         }
 
-        .print-button, .btn-voltar, .btn-edit, .btn-save, .btn-cancel, .btn-pdf {
+        .print-button, .btn-voltar, .btn-edit, .btn-save, .btn-cancel {
             display: none !important;
         }
         
@@ -544,7 +552,7 @@
                 <td>{% if produto.tem_alisar == "Sim" %}{{ produto.largura_alisar }} cm{% else %}-{% endif %}</td>
                 {% endif %}
                 <td>R$ {{ "%.2f"|format(produto.outros_custos) }}</td>
-                <td class="valor-tabela">R$ {{ "%.2f"|format(produto.valor_total) }}</td>
+                <td>R$ {{ "%.2f"|format(produto.valor_total) }}</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -556,10 +564,14 @@
     <div class="footer-section">
         <div class="footer-title">Prazo de Entrega:</div>
         <div class="footer-content">
-            <span id="deliveryDaysDisplay">{{ prazo_entrega }}</span> dias úteis
-            {% if not pdf %}
-            <button class="btn-edit" onclick="toggleEdit('deliveryDays')">Editar</button>
+            <div class="prazo-entrega-container">
+                <span id="deliveryDaysDisplay">{{ prazo_entrega }}</span> dias úteis
+                {% if not pdf %}
+                <button class="btn-edit" onclick="toggleEdit('deliveryDays')">Editar</button>
+                {% endif %}
+            </div>
             
+            {% if not pdf %}
             <div id="deliveryDaysEdit" class="edit-mode" style="display: none;">
                 <input type="number" id="deliveryDaysInput" class="edit-field" value="{{ prazo_entrega }}" min="1">
                 dias úteis
@@ -581,7 +593,7 @@
                         Pagamento de 100% na aprovação do orçamento
                     </div>
                     <div class="parcelamento-simplificado" id="parcelamentoSimplificado">
-                        <!-- Será preenchido via JavaScript -->
+                         {{ valor_total_final }} em até 10x sem juros
                     </div>
                 </div>
                 
@@ -624,7 +636,7 @@
                     
                     {% if not pdf %}
                     <div id="discount2Edit" class="edit-mode" style="display: none;">
-                        <input type="number" id="discount2Input" class="edit-field" value="{{ desconto_parcelado }}" min="0, max="100">% de desconto
+                        <input type="number" id="discount2Input" class="edit-field" value="{{ desconto_parcelado }}" min="0" max="100">% de desconto
                         <button class="btn-save" onclick="saveValue('discount2')">Salvar</button>
                         <button class="btn-cancel" onclick="cancelEdit('discount2')">Cancelar</button>
                     </div>
@@ -662,11 +674,20 @@
     {% endif %}
 </div>
 
-<!-- Botões (removido o de imprimir, alinhados à esquerda) -->
+<br>
+
+<!-- Botões de ação - MODIFICADOS conforme solicitado -->
 {% if not pdf %}
 <div class="btn-container">
-    <button class="btn-pdf" onclick="window.location.href='/gerar_pdf_orcamento/{{ codigo_orcamento }}'">Gerar PDF</button>
-    <a href="/orcamentos_salvos" class="btn-voltar">Voltar para Orçamentos Salvos</a>
+    <!-- Botão Gerar PDF com formatação igual à página de orçamentos salvos -->
+    <button class="btn btn-custom-success btn-pdf" onclick="window.location.href='/gerar_pdf_orcamento/{{ codigo_orcamento }}'" title="Gerar PDF">
+        <i class="fas fa-file-pdf"></i> Gerar PDF
+    </button>
+    
+    <!-- Botão Voltar com formatação igual à página editar orçamento -->
+    <a href="/orcamentos_salvos" class="btn btn-custom-primary ms-2">
+        <i class="fas fa-arrow-left me-1"></i> Voltar para Orçamentos Salvos
+    </a>
 </div>
 {% endif %}
 
