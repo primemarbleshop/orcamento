@@ -90,15 +90,17 @@ class Material(db.Model):
     valor = db.Column(db.Float, nullable=False)  # Mantido apenas uma vez
 
 class OrcamentoSalvo(db.Model):
+    __tablename__ = 'orcamento_salvo'
+    
     id = db.Column(db.Integer, primary_key=True)
-    codigo = db.Column(db.String(20), unique=True, nullable=False)
-    orcamentos_ids = db.Column(db.Text, nullable=False)
+    codigo = db.Column(db.String, unique=True, nullable=False)
+    orcamentos_ids = db.Column(db.Text)
     data_salvo = db.Column(db.DateTime, default=datetime.utcnow)
-    # Novos campos para o rodapé
-    prazo_entrega = db.Column(db.Integer, default=15)
-    desconto_avista = db.Column(db.Integer, default=5)
-    desconto_parcelado = db.Column(db.Integer, default=10)
-    observacoes = db.Column(db.Text, default="Medidas sujeitas a confirmação no local. Valores válidos por 7 dias.")
+    prazo_entrega = db.Column(db.String)
+    desconto_avista = db.Column(db.Float)
+    desconto_parcelado = db.Column(db.Float)
+    observacoes = db.Column(db.Text)
+    valor_total = db.Column(db.Float) 
 
     @property
     def cliente_nome(self):
