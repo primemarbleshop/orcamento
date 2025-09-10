@@ -152,6 +152,13 @@
             justify-content: flex-end;
         }
         
+        .middle-action-buttons {
+            margin: 20px 0;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        
         @media (max-width: 768px) {
             .action-buttons {
                 flex-direction: column;
@@ -162,7 +169,7 @@
                 margin-bottom: 5px;
             }
             
-            .top-action-buttons {
+            .top-action-buttons, .middle-action-buttons {
                 flex-direction: column;
             }
         }
@@ -182,16 +189,6 @@
                     </a>
                 </div>
             </div>
-        </div>
-
-        <!-- Botões de ação superiores -->
-        <div class="top-action-buttons">
-            <button type="button" id="gerar-pdf-selected" class="btn btn-custom-primary">
-                <i class="fas fa-file-pdf me-1"></i> Gerar PDF Selecionados
-            </button>
-            <button type="button" id="salvar-todos" class="btn btn-custom-success">
-                <i class="fas fa-save me-1"></i> Salvar Todas as Alterações
-            </button>
         </div>
 
         <!-- Card da lista de orçamentos salvos -->
@@ -274,13 +271,23 @@
                     </div>
                 </div>
 
+                <!-- Botões de ação entre filtros e tabela -->
+                <div class="middle-action-buttons">
+                    <button type="button" id="gerar-pdf-selected" class="btn btn-custom-primary">
+                        <i class="fas fa-file-pdf me-1"></i> Gerar PDF Selecionados
+                    </button>
+                    <button type="button" id="salvar-todos" class="btn btn-custom-success">
+                        <i class="fas fa-save me-1"></i> Salvar Todas as Alterações
+                    </button>
+                </div>
+
                 <!-- Tabela de orçamentos salvos -->
                 <div class="table-responsive">
                     <table class="table table-striped table-bordered table-hover">
                         <thead>
                             <tr>
                                 <th class="checkbox-cell">
-                                    <input type="checkbox" id="select-all" onclick="toggleSelectAll(this)">
+                                    <!-- Checkbox all removido conforme solicitado -->
                                 </th>
                                 <th>Código</th>
                                 {% if session.get('admin') %}
@@ -359,14 +366,6 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-        // Função para selecionar/deselecionar todos os checkboxes
-        function toggleSelectAll(source) {
-            const checkboxes = document.querySelectorAll('.selecionar-orcamento');
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = source.checked;
-            });
-        }
-
         // Função para filtrar orçamentos
         function filterOrcamentos() {
             const filtroCodigo = document.getElementById('filtro_codigo').value.trim().toLowerCase();
@@ -562,7 +561,7 @@
                 });
             });
 
-            // 🔹 Botão para salvar todas as alterações
+            // 🔹 Botão para salvar todas as alterações (agora salva todos os orçamentos visíveis)
             document.getElementById("salvar-todos").addEventListener("click", function() {
                 const updates = [];
                 document.querySelectorAll("#orcamento_table tr").forEach(row => {
@@ -580,7 +579,7 @@
                 });
 
                 if (updates.length === 0) {
-                    Swal.fire("Atenção", "Nenhuma alteração para salvar!", "warning");
+                    Swal.fire("Atenção", "Nenhum orçamento para salvar!", "warning");
                     return;
                 }
 
