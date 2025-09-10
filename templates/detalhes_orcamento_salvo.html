@@ -108,6 +108,80 @@
     max-width: 75%;
     word-wrap: break-word;
 }
+
+/* Estilos para o rodapé */
+.orcamento-footer {
+    margin-top: 30px;
+    padding: 15px;
+    border-top: 2px solid #333;
+    background-color: #f9f9f9;
+    page-break-inside: avoid;
+}
+
+.footer-section {
+    margin-bottom: 15px;
+}
+
+.footer-title {
+    font-weight: bold;
+    margin-bottom: 5px;
+    font-size: 14px;
+}
+
+.footer-content {
+    font-size: 13px;
+}
+
+.edit-mode {
+    background-color: #fffde7;
+    padding: 10px;
+    border: 1px dashed #ccc;
+}
+
+.edit-field {
+    width: 60px;
+    margin: 0 5px;
+}
+
+.payment-option {
+    margin-bottom: 8px;
+}
+
+.installment-calc {
+    margin-top: 5px;
+    font-size: 12px;
+    color: #555;
+}
+
+.btn-edit {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    margin-top: 10px;
+    font-size: 12px;
+}
+
+.btn-save {
+    background-color: #2196F3;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    margin-right: 5px;
+    font-size: 12px;
+}
+
+.btn-cancel {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    padding: 5px 10px;
+    cursor: pointer;
+    font-size: 12px;
+}
+
 @media print {
     @page {
        margin: 5mm; /* Margens reduzidas para melhor aproveitamento */
@@ -167,6 +241,23 @@
     /* Oculta botões e links na impressão */
     .print-button, .btn-voltar {
         display: none !important;
+    }
+    
+    .btn-edit, .btn-save, .btn-cancel {
+        display: none !important;
+    }
+    
+    .edit-mode {
+        background-color: transparent;
+        border: none;
+        padding: 0;
+    }
+    
+    input, select {
+        border: none;
+        background: transparent;
+        appearance: none;
+        -webkit-appearance: none;
     }
 }
 
@@ -349,6 +440,91 @@ p strong {
     </table>
 {% endfor %}
 
+<!-- Rodapé do orçamento -->
+<div class="orcamento-footer">
+    <div class="footer-section">
+        <div class="footer-title">Prazo de Entrega:</div>
+        <div class="footer-content">
+            <span id="deliveryDaysDisplay">{{ prazo_entrega }}</span> dias úteis
+            <button class="btn-edit" onclick="toggleEdit('deliveryDays')">Editar</button>
+            
+            <div id="deliveryDaysEdit" class="edit-mode" style="display: none;">
+                <input type="number" id="deliveryDaysInput" class="edit-field" value="{{ prazo_entrega }}" min="1">
+                dias úteis
+                <button class="btn-save" onclick="saveValue('deliveryDays')">Salvar</button>
+                <button class="btn-cancel" onclick="cancelEdit('deliveryDays')">Cancelar</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer-section">
+        <div class="footer-title">Condições de Pagamento:</div>
+        <div class="footer-content">
+            <div class="payment-option">
+                1. À vista (Dinheiro/PIX): 
+                <span id="discount1Display">{{ desconto_avista }}</span>% de desconto
+                <button class="btn-edit" onclick="toggleEdit('discount1')">Editar</button>
+                
+                <div id="discount1Edit" class="edit-mode" style="display: none;">
+                    <input type="number" id="discount1Input" class="edit-field" value="{{ desconto_avista }}" min="0" max="100">% de desconto
+                    <button class="btn-save" onclick="saveValue('discount1')">Salvar</button>
+                    <button class="btn-cancel" onclick="cancelEdit('discount1')">Cancelar</button>
+                </div>
+                <div>• Sinal de 50% e 50% na entrega</div>
+                <div class="installment-calc">
+                    Valor com desconto: R$ <span id="valorAvista">{{ "%.2f"|format(valor_total_float * (1 - desconto_avista/100)) }}</span>
+                </div>
+            </div>
+            
+            <div class="payment-option">
+                2. Parcelado (Dinheiro/PIX): 
+                <span id="discount2Display">{{ desconto_parcelado }}</span>% de desconto
+                <button class="btn-edit" onclick="toggleEdit('discount2')">Editar</button>
+                
+                <div id="discount2Edit" class="edit-mode" style="display: none;">
+                    <input type="number" id="discount2Input" class="edit-field" value="{{ desconto_parcelado }}" min="0" max="100">% de desconto
+                    <button class="btn-save" onclick="saveValue('discount2')">Salvar</button>
+                    <button class="btn-cancel" onclick="cancelEdit('discount2')">Cancelar</button>
+                </div>
+                <div>• Sinal de 80% e 20% na entrega</div>
+                <div class="installment-calc">
+                    Valor com desconto: R$ <span id="valorParcelado">{{ "%.2f"|format(valor_total_float * (1 - desconto_parcelado/100)) }}</span>
+                </div>
+            </div>
+            
+            <div class="payment-option">
+                3. Cartão de Crédito: 
+                <div>• Até 10x sem juros (parcelas mínimas de R$ 100,00)</div>
+                <div class="installment-calc">
+                    Opções de parcelamento:
+                    <span id="parcelamentoCartao">
+                        {% for i in range(1, 11) %}
+                            {% set parcela = valor_total_float / i %}
+                            {% if parcela >= 100 or i == 1 %}
+                                {{ i }}x de R$ {{ "%.2f"|format(parcela) }}{% if not loop.last %}, {% endif %}
+                            {% endif %}
+                        {% endfor %}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer-section">
+        <div class="footer-title">Observações:</div>
+        <div class="footer-content">
+            <div id="observacoesDisplay">{{ observacoes }}</div>
+            <button class="btn-edit" onclick="toggleEdit('observacoes')">Editar</button>
+            
+            <div id="observacoesEdit" class="edit-mode" style="display: none;">
+                <textarea id="observacoesInput" rows="3" style="width: 100%;">{{ observacoes }}</textarea>
+                <button class="btn-save" onclick="saveValue('observacoes')">Salvar</button>
+                <button class="btn-cancel" onclick="cancelEdit('observacoes')">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <br>
 
 <!-- Botão de impressão -->
@@ -371,6 +547,98 @@ p strong {
 </br>
 </br>
 
+<script>
+    // Variáveis globais para armazenar os valores
+    let valoresOriginais = {};
+    const valorTotalFloat = {{ valor_total_float }};
+    
+    // Função para alternar entre modo de visualização e edição
+    function toggleEdit(campo) {
+        const displayElement = document.getElementById(campo + 'Display');
+        const editElement = document.getElementById(campo + 'Edit');
+        
+        // Salvar valor original para possível cancelamento
+        if (campo === 'observacoes') {
+            valoresOriginais[campo] = document.getElementById(campo + 'Input').value;
+        } else {
+            valoresOriginais[campo] = document.getElementById(campo + 'Input').value;
+        }
+        
+        // Alternar visibilidade
+        displayElement.style.display = 'none';
+        editElement.style.display = 'block';
+    }
+    
+    // Função para salvar valores editados
+    function saveValue(campo) {
+        const displayElement = document.getElementById(campo + 'Display');
+        const editElement = document.getElementById(campo + 'Edit');
+        const inputElement = document.getElementById(campo + 'Input');
+        
+        // Atualizar valor exibido
+        if (campo === 'observacoes') {
+            displayElement.innerHTML = inputElement.value.replace(/\n/g, '<br>');
+        } else {
+            displayElement.textContent = inputElement.value;
+            
+            // Atualizar cálculos se for desconto
+            if (campo === 'discount1' || campo === 'discount2') {
+                atualizarCalculos();
+            }
+        }
+        
+        // Voltar para modo de visualização
+        displayElement.style.display = 'block';
+        editElement.style.display = 'none';
+        
+        // Aqui você pode adicionar código para salvar no servidor se necessário
+    }
+    
+    // Função para cancelar edição
+    function cancelEdit(campo) {
+        const displayElement = document.getElementById(campo + 'Display');
+        const editElement = document.getElementById(campo + 'Edit');
+        const inputElement = document.getElementById(campo + 'Input');
+        
+        // Restaurar valor original
+        inputElement.value = valoresOriginais[campo];
+        
+        // Voltar para modo de visualização
+        displayElement.style.display = 'block';
+        editElement.style.display = 'none';
+    }
+    
+    // Função para atualizar cálculos de valores com desconto
+    function atualizarCalculos() {
+        const desconto1 = parseFloat(document.getElementById('discount1Input').value);
+        const desconto2 = parseFloat(document.getElementById('discount2Input').value);
+        
+        document.getElementById('valorAvista').textContent = (valorTotalFloat * (1 - desconto1/100)).toFixed(2).replace('.', ',');
+        document.getElementById('valorParcelado').textContent = (valorTotalFloat * (1 - desconto2/100)).toFixed(2).replace('.', ',');
+        
+        // Atualizar parcelamento cartão
+        atualizarParcelamentoCartao(valorTotalFloat);
+    }
+    
+    // Função para atualizar opções de parcelamento no cartão
+    function atualizarParcelamentoCartao(valorTotal) {
+        let opcoesParcelamento = [];
+        
+        for (let i = 1; i <= 10; i++) {
+            const valorParcela = valorTotal / i;
+            if (valorParcela >= 100 || i === 1) {
+                opcoesParcelamento.push(`${i}x de R$ ${valorParcela.toFixed(2).replace('.', ',')}`);
+            }
+        }
+        
+        document.getElementById('parcelamentoCartao').textContent = opcoesParcelamento.join(', ');
+    }
+    
+    // Inicializar cálculos quando a página carregar
+    document.addEventListener('DOMContentLoaded', function() {
+        atualizarParcelamentoCartao(valorTotalFloat);
+    });
+</script>
     
 </body>
 </html>
