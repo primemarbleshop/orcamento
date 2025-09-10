@@ -4,314 +4,486 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Editar Orçamento</title>
-
-<!-- Adicionando o Select2 para pesquisa dentro do select -->
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Select2 -->
     <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script> <!-- jQuery (necessário para Select2) -->
+    
+    <style>
+        :root {
+            --primary: #4e73df;
+            --secondary: #6c757d;
+            --success: #1cc88a;
+            --danger: #e74a3b;
+            --warning: #f6c23e;
+            --light: #f8f9fc;
+            --dark: #5a5c69;
+        }
+        
+        body {
+            background-color: #f8f9fc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+        }
+        
+        .card-custom {
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            border: none;
+        }
+        
+        .card-header-custom {
+            background: linear-gradient(135deg, var(--primary) 0%, #2a3d8f 100%);
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+            padding: 15px 20px;
+        }
+        
+        .btn-custom-primary {
+            background-color: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+        
+        .btn-custom-primary:hover {
+            background-color: #2e59d9;
+            border-color: #2e59d9;
+            color: white;
+        }
+        
+        .btn-custom-danger {
+            background-color: var(--danger);
+            border-color: var(--danger);
+            color: white;
+        }
+        
+        .btn-custom-danger:hover {
+            background-color: #be2617;
+            border-color: #be2617;
+            color: white;
+        }
+        
+        .btn-custom-success {
+            background-color: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+        
+        .btn-custom-success:hover {
+            background-color: #17a673;
+            border-color: #17a673;
+            color: white;
+        }
+        
+        .dynamic-field {
+            background-color: var(--light);
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--primary);
+        }
+        
+        .form-section {
+            margin-bottom: 15px;
+        }
+        
+        .page-header {
+            border-bottom: 1px solid #e3e6f0;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .select2-container {
+            width: 100% !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <!-- Cabeçalho -->
+        <div class="page-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h1 class="h3 text-gray-800"><i class="fas fa-edit me-2"></i>Editar Orçamento</h1>
+                </div>
+                <div class="col-auto">
+                    <a href="/orcamentos" class="btn btn-custom-primary">
+                        <i class="fas fa-arrow-left me-1"></i> Voltar para Orçamentos
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card do formulário de edição -->
+        <div class="card card-custom">
+            <div class="card-header card-header-custom">
+                <h5 class="m-0 font-weight-bold"><i class="fas fa-pencil-alt me-2"></i>Editar Orçamento #{{ orcamento.id }}</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="orcamentoForm">
+                    <div class="row">
+                        <div class="col-md-6 col-lg-3 form-section">
+                            <label for="cliente_id" class="form-label">Cliente:</label>
+                            <select name="cliente_id" id="cliente_id" class="form-select select2">
+                                {% for cliente in clientes %}
+                                    <option value="{{ cliente.id }}" {% if cliente.id == orcamento.cliente_id %}selected{% endif %}>
+                                        {{ cliente.nome }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6 col-lg-3 form-section">
+                            <label for="tipo_produto" class="form-label">Tipo de Produto:</label>
+                            <select name="tipo_produto" id="tipo_produto" class="form-select select2" onchange="toggleFields()" required>
+                                <option value="" disabled>Selecione o tipo de produto</option>
+                                <option value="Pedra Simples" {% if orcamento.tipo_produto == 'Pedra Simples' %}selected{% endif %}>Pedra Simples</option>
+                                <option value="Bancada" {% if orcamento.tipo_produto == 'Bancada' %}selected{% endif %}>Bancada</option>
+                                <option value="Lavatorio" {% if orcamento.tipo_produto == 'Lavatorio' %}selected{% endif %}>Lavatorio</option>
+                                <option value="Ilharga" {% if orcamento.tipo_produto == 'Ilharga' %}selected{% endif %}>Ilharga</option>
+                                <option value="Ilharga Bipolida" {% if orcamento.tipo_produto == 'Ilharga Bipolida' %}selected{% endif %}>Ilharga Bipolida</option>
+                                <option value="Pedra de Box" {% if orcamento.tipo_produto == 'Pedra de Box' %}selected{% endif %}>Pedra de Box</option>
+                                <option value="Nicho" {% if orcamento.tipo_produto == 'Nicho' %}selected{% endif %}>Nicho</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6 col-lg-3 form-section">
+                            <label for="material_id" class="form-label">Material:</label>
+                            <select name="material_id" id="material_id" class="form-select select2">
+                                {% for material in materiais %}
+                                    <option value="{{ material.id }}" {% if material.id == orcamento.material_id %}selected{% endif %}>
+                                        {{ material.nome }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-6 col-lg-3 form-section">
+                            <label for="quantidade" class="form-label">Quantidade:</label>
+                            <input type="number" id="quantidade" name="quantidade" class="form-control" value="{{ orcamento.quantidade }}" required>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6 col-lg-3 form-section">
+                            <label for="comprimento" class="form-label">Comprimento (cm):</label>
+                            <input type="number" id="comprimento" name="comprimento" class="form-control" value="{{ orcamento.comprimento }}" step="0.01" min="0" required pattern="[0-9]+([,][0-9]+)?">
+                        </div>
+
+                        <div class="col-md-6 col-lg-3 form-section">
+                            <label for="largura" class="form-label">Largura (cm):</label>
+                            <input type="number" id="largura" name="largura" class="form-control" value="{{ orcamento.largura }}" step="0.01" min="0" required pattern="[0-9]+([,][0-9]+)?">
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-3 form-section">
+                            <label for="outros_custos" class="form-label">Outros Custos (R$):</label>
+                            <input type="number" id="outros_custos" name="outros_custos" class="form-control" value="{{ orcamento.outros_custos }}" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
+                        </div>
+                        
+                        <div class="col-md-6 col-lg-3 form-section">
+                            <label for="rt" class="form-label">Há RT?</label>
+                            <select name="rt" id="rt" class="form-select" onchange="toggleRTFields()">
+                                <option value="Não" {% if orcamento.rt == 'Não' %}selected{% endif %}>Não</option>
+                                <option value="Sim" {% if orcamento.rt == 'Sim' %}selected{% endif %}>Sim</option>
+                            </select>
+                            <div id="rt_percent_field" style="display: {% if orcamento.rt == 'Sim' %}block{% else %}none{% endif %};" class="mt-2">
+                                <label for="rt_percentual" class="form-label">Porcentagem RT (%):</label>
+                                <input type="number" id="rt_percentual" name="rt_percentual" class="form-control" value="{{ orcamento.rt_percentual }}" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Campos dinâmicos -->
+                    <div id="dynamicFieldsContainer">
+                        <!-- Os campos dinâmicos serão inseridos aqui via JavaScript -->
+                    </div>
+                    
+                    <!-- Vincular a orçamento salvo -->
+                    <div class="row mt-3">
+                        <div class="col-md-6 form-section">
+                            <label for="orcamento_salvo" class="form-label">Vincular a Orçamento Salvo:</label>
+                            <select name="orcamento_salvo_id" id="orcamento_salvo" class="form-select select2">
+                                <option value="">Nenhum</option>
+                                {% for orcamento_salvo in orcamentos_salvos %}
+                                    <option value="{{ orcamento_salvo.id }}" {% if orcamento.orcamento_salvo_id == orcamento_salvo.id %}selected{% endif %}>
+                                        {{ orcamento_salvo.codigo }} - {{ orcamento_salvo.cliente_nome }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-md-12">
+                            <button type="button" class="btn btn-secondary" onclick="window.history.back()">
+                                <i class="fas fa-times me-1"></i> Cancelar
+                            </button>
+                            <button type="submit" class="btn btn-custom-success ms-2">
+                                <i class="fas fa-save me-1"></i> Salvar Alterações
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Libraries -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
     <script>
-
-	
-
-    // Chama a função ao carregar a página para garantir que os campos corretos apareçam
-    document.addEventListener("DOMContentLoaded", function () {
-        toggleCubaFields();
-    });
-
-$(document).ready(function() {
-        // Aplicando Select2 aos selects com a mesma formatação do 'orcamento_salvo'
-        $('#orcamento_salvo, #cliente_id, #tipo_produto, #material_id').select2({
-            width: 'auto', // O mesmo estilo de largura
-            placeholder: "Selecione", // Textos de placeholder
-            allowClear: true, // Permite limpar a seleção
-            dropdownAutoWidth: true, // Ajuste automático da largura do dropdown
-            minimumInputLength: 0, // Permite a pesquisa desde o início
-            language: {
-                noResults: function () {
-                    return "Nenhum resultado encontrado"; // Mensagem de erro
-                }
-            }
-        });
-    });
-
+        // Função para mostrar/ocultar campos dinâmicos
         function toggleFields() {
             const tipoProduto = document.getElementById('tipo_produto').value;
-
-            // Oculta todos os campos dinâmicos inicialmente
-            document.getElementById('saia_fields').style.display = 'none';
-            document.getElementById('fronte_fields').style.display = 'none';
-            document.getElementById('cuba_fields').style.display = 'none';
-            document.getElementById('cooktop_field').style.display = 'none';
-            document.getElementById('Soleira_fields').style.display = 'none';
-            document.getElementById('ilharga_fields').style.display = 'none';
-            document.getElementById('nicho_fields').style.display = 'none';
-
-            // Exibe os campos específicos para Bancada
-            if (tipoProduto === 'Bancada') {
-                document.getElementById('saia_fields').style.display = 'block';
-                document.getElementById('fronte_fields').style.display = 'block';
-                document.getElementById('cuba_fields').style.display = 'block';
-                document.getElementById('cooktop_field').style.display = 'block';
-            }
-
-            // Exibe os campos específicos para Lavatorio
-            if (tipoProduto === 'Lavatorio') {
-                document.getElementById('saia_fields').style.display = 'block';
-                document.getElementById('fronte_fields').style.display = 'block';
-                document.getElementById('cuba_fields').style.display = 'block';
-            }
-
-            // Exibe os campos específicos para Soleira
-            if (tipoProduto === 'Pedra Simples') {
-                document.getElementById('soleira_fields').style.display = 'block';
-            }
-
-            // Exibe os campos específicos para Ilharga e Ilharga Bipolida
-            if (tipoProduto === 'Ilharga' || tipoProduto === 'Ilharga Bipolida') {
-                document.getElementById('saia_fields').style.display = 'block';
-            }
-
-            // Exibe os campos específicos para Nicho
-            if (tipoProduto === 'Nicho') {
-                document.getElementById('nicho_fields').style.display = 'block';
-            }
-        }
-
-        // Inicializa os campos dinâmicos com base no tipo de produto ao carregar a página
-        function initializeFields() {
-            toggleFields();
-        }
-
-function toggleCubaFields() {
-        const tipoCuba = document.getElementById('tipo_cuba').value;
-        const medidasCubaFields = document.getElementById('medidas_cuba_fields');
-        medidasCubaFields.style.display = (tipoCuba === 'Esculpida') ? 'block' : 'none';
-    }
-
-    // Chamar a função ao carregar a página para garantir que os campos corretos apareçam
-    document.addEventListener("DOMContentLoaded", function () {
-        toggleCubaFields();
-    });
-    </script>
-<style>
-    .select2-container {
-        width: auto
- !important; /* Faz a caixa ocupar toda a largura */
-    }
-
-    .select2-selection {
-        height: 24px !important; /* Altura similar a um input padrão */
-        
-        
-    }
-
-    .select2-selection__rendered {
-        font-size: 14px; /* Ajusta o tamanho da fonte */
-        
-    }
-
-    .select2-selection__arrow {
-        height: 20px !important; /* Ajusta o ícone da seta */
-    }
-</style>
-
-</head>
-<body onload="initializeFields()">
-    <h1>Editar Orçamento</h1>
-	
-
-
-</br>
-    <form method="POST">
-<label for="orcamento_salvo">Vincular a Orçamento Salvo:</label>
-<select name="orcamento_salvo_id" id="orcamento_salvo" class="form-control select2">
-    <option value="">Nenhum</option>
-    {% for orcamento_salvo in orcamentos_salvos %}
-        <option value="{{ orcamento_salvo.id }}" {% if orcamento.orcamento_salvo_id == orcamento_salvo.id %}selected{% endif %}>
-            {{ orcamento_salvo.codigo }} - {{ orcamento_salvo.cliente_nome }}
-        </option>
-    {% endfor %}
-</select>
-
-</br>
-        <label for="cliente_id">Cliente:</label>
-        <select name="cliente_id" id="cliente_id">
-            {% for cliente in clientes %}
-                <option value="{{ cliente.id }}" {% if cliente.id == orcamento.cliente_id %}selected{% endif %}>{{ cliente.nome }}</option>
-            {% endfor %}
-        </select><br>
-
-        <label for="tipo_produto">Tipo de Produto:</label>
-        <select name="tipo_produto" id="tipo_produto" onchange="toggleFields()" required>
-	    <option value="" disabled selected>Selecione o tipo de produto</option>
-            <option value="Pedra Simples" {% if orcamento.tipo_produto == 'Pedra Simples' %}selected{% endif %}>Pedra Simples</option>
-	    <option value="Bancada" {% if orcamento.tipo_produto == 'Bancada' %}selected{% endif %}>Bancada</option>
-            <option value="Lavatorio" {% if orcamento.tipo_produto == 'Lavatorio' %}selected{% endif %}>Lavatorio</option>
-            <option value="Ilharga" {% if orcamento.tipo_produto == 'Ilharga' %}selected{% endif %}>Ilharga</option>
-            <option value="Ilharga Bipolida" {% if orcamento.tipo_produto == 'Ilharga Bipolida' %}selected{% endif %}>Ilharga Bipolida</option>
-            <option value="Nicho" {% if orcamento.tipo_produto == 'Nicho' %}selected{% endif %}>Nicho</option>
-	    <option value="Pedra de Box" {% if orcamento.tipo_produto == 'Pedra de Box' %}selected{% endif %}>Pedra de Box</option>
-        </select><br>
-
-        <label for="material_id">Material:</label>
-        <select name="material_id" id="material_id">
-            {% for material in materiais %}
-                <option value="{{ material.id }}" {% if material.id == orcamento.material_id %}selected{% endif %}>{{ material.nome }}</option>
-            {% endfor %}
-        </select><br>
-
-        <label for="quantidade">Quantidade:</label>
-    <input type="number" id="quantidade" name="quantidade" value="{{ orcamento.quantidade }}" step="1" min="1" required><br>
-
-    <label for="comprimento">Comprimento:</label>
-    <input type="number" id="comprimento" name="comprimento" value="{{ orcamento.comprimento }}" step="0.01" min="0" required pattern="[0-9]+([.,][0-9]+)?"><br>
-
-    <label for="largura">Largura:</label>
-    <input type="number" id="largura" name="largura" value="{{ orcamento.largura }}" step="0.01" min="0" required pattern="[0-9]+([.,][0-9]+)?"><br>
-
-    <label for="outros_custos">Outros Custos:</label>
-    <input type="number" id="outros_custos" name="outros_custos" value="{{ orcamento.outros_custos }}" step="0.01" min="0" pattern="[0-9]+([.,][0-9]+)?"><br>
-
-    <label for="rt">RT:</label>
-    <select name="rt" id="rt">
-        <option value="Não" {% if orcamento.rt == 'Não' %}selected{% endif %}>Não</option>
-        <option value="Sim" {% if orcamento.rt == 'Sim' %}selected{% endif %}>Sim</option>
-    </select><br>
-
-         <label for="rt_percentual">Porcentagem RT:</label>
-    <input type="number" id="rt_percentual" name="rt_percentual" value="{{ orcamento.rt_percentual }}" step="0.01" min="0" pattern="[0-9]+([.,][0-9]+)?"><br>
-
-        <!-- Campos Dinâmicos para Bancada e Lavatorio -->
-        <div id="saia_fields" style="display: none;">
-            <h3>Medidas da Saia</h3>
-            <label for="comprimento_saia">Comprimento Saia:</label>
-        <input type="number" id="comprimento_saia" name="comprimento_saia" value="{{ orcamento.comprimento_saia }}" step="0.01" min="0" pattern="[0-9]+([.,][0-9]+)?"><br>
-
-        <label for="largura_saia">Largura Saia:</label>
-        <input type="number" id="largura_saia" name="largura_saia" value="{{ orcamento.largura_saia }}" step="0.01" min="0" pattern="[0-9]+([.,][0-9]+)?"><br>
-        </div>
-
-        <div id="fronte_fields" style="display: none;">
-            <h3>Medidas do Fronte</h3>
-            <label for="comprimento_fronte">Comprimento Fronte:</label>
-        <input type="number" id="comprimento_fronte" name="comprimento_fronte" value="{{ orcamento.comprimento_fronte }}" step="0.01" min="0" pattern="[0-9]+([.,][0-9]+)?"><br>
-
-        <label for="largura_fronte">Largura Fronte:</label>
-        <input type="number" id="largura_fronte" name="largura_fronte" value="{{ orcamento.largura_fronte }}" step="0.01" min="0" pattern="[0-9]+([.,][0-9]+)?"><br>
-        </div>
-
-       <div id="cuba_fields" style="display: none;">
-    <h3>Modelo de Cuba</h3>
-    <label for="tipo_cuba">Tipo de Cuba:</label>
-    <select name="tipo_cuba" id="tipo_cuba" onchange="toggleCubaFields()">
-        <option value="">Selecione...</option>
-        <option value="Embutir" {% if orcamento and orcamento.tipo_cuba == 'Embutir' %}selected{% endif %}>Embutir</option>
-        <option value="Esculpida" {% if orcamento and orcamento.tipo_cuba == 'Esculpida' %}selected{% endif %}>Esculpida</option>
-        <option value="Cuba Tradicional Inox" {% if orcamento and orcamento.tipo_cuba == 'Cuba Tradicional Inox' %}selected{% endif %}>Cuba Tradicional Inox</option>
-        <option value="Apoio Cliente" {% if orcamento and orcamento.tipo_cuba == 'Apoio Cliente' %}selected{% endif %}>Apoio Cliente</option>
-        <option value="Embutida Cliente" {% if orcamento and orcamento.tipo_cuba == 'Embutida Cliente' %}selected{% endif %}>Embutida Cliente</option>
-        <option value="Gourmet Cliente" {% if orcamento and orcamento.tipo_cuba == 'Gourmet Cliente' %}selected{% endif %}>Gourmet Cliente</option>
-        <option value="Tanque Inox" {% if orcamento and orcamento.tipo_cuba == 'Tanque Inox' %}selected{% endif %}>Tanque Inox</option>
-    </select><br>
-<label for="quantidade_cubas">Quantidade de Cubas:</label>
-        <input type="number" id="quantidade_cubas" name="quantidade_cubas" 
-            value="{{ orcamento.quantidade_cubas if orcamento and orcamento.quantidade_cubas is not none else '' }}" 
-            step="1" >
-
- 
-<div id="modelo_cuba_field" style="display: none;">
-    <label for="modelo_cuba">Modelo da Cuba Esculpida:</label>
-    <select name="modelo_cuba" id="modelo_cuba">
-        <option value="Normal" {% if orcamento and orcamento.modelo_cuba == 'Normal' %}selected{% endif %}>Normal</option>
-        <option value="Prainha" {% if orcamento and orcamento.modelo_cuba == 'Prainha' %}selected{% endif %}>Prainha</option>
-    </select>
-</div>
-
-
-    <div id="medidas_cuba_fields" style="display: none;">
-        <h3>Medidas da Cuba Esculpida</h3>
-        <label for="comprimento_cuba">Comprimento Cuba:</label>
-        <input type="number" id="comprimento_cuba" name="comprimento_cuba" value="{{ orcamento.comprimento_cuba or '' }}" step="0.01" min="0">
-        <br>
-
-        <label for="largura_cuba">Largura Cuba:</label>
-        <input type="number" id="largura_cuba" name="largura_cuba" value="{{ orcamento.largura_cuba or '' }}" step="0.01" min="0">
-        <br>
-
-        <label for="profundidade_cuba">Profundidade Cuba:</label>
-        <input type="number" id="profundidade_cuba" name="profundidade_cuba" value="{{ orcamento.profundidade_cuba or '' }}" step="0.01" min="0">
-        <br>
-    </div>
-</div>
-
-
-
-        <div id="cooktop_field" style="display: none;">
-            <label for="tem_cooktop">Tem Cooktop?</label>
-            <select name="tem_cooktop" id="tem_cooktop">
+            const container = document.getElementById('dynamicFieldsContainer');
+            
+            // Limpar container
+            container.innerHTML = '';
+            
+            // Campos específicos para cada tipo de produto
+            if (tipoProduto === 'Bancada' || tipoProduto === 'Lavatorio') {
+                let camposEspecificos = `
+                    <div class="row dynamic-field">
+                        <div class="col-md-12">
+                            <h5><i class="fas fa-ruler-combined me-2"></i>Acabamentos</h5>
+                        </div>
+                        <div class="col-md-6 form-section">
+                            <label for="comprimento_saia" class="form-label">Comprimento Saia (cm):</label>
+                            <input type="number" id="comprimento_saia" name="comprimento_saia" class="form-control" value="{{ orcamento.comprimento_saia }}" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
+                        </div>
+                        <div class="col-md-6 form-section">
+                            <label for="largura_saia" class="form-label">Largura Saia (cm):</label>
+                            <input type="number" id="largura_saia" name="largura_saia" class="form-control" value="{{ orcamento.largura_saia }}" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
+                        </div>
+                `;
                 
-                <option value="Não" {% if orcamento.tem_cooktop == 'Não' %}selected{% endif %}>Não</option>
-		<option value="Sim" {% if orcamento.tem_cooktop == 'Sim' %}selected{% endif %}>Sim</option>
-            </select><br>
-        </div>
-
-        <!-- Campos Dinâmicos para Soleira -->
-        <div id="Soleira_fields" style="display: none;"></div>
-
-        <!-- Campos Dinâmicos para Ilharga e Ilharga Bipolida -->
-        <div id="ilharga_fields" style="display: none;">
-            <h3>Medidas da Saia</h3>
-            <label for="comprimento_saia">Comprimento Saia:</label>
-             <input type="number" id="comprimento_saia" name="comprimento_saia" value="{{ orcamento.comprimento_saia }}" step="0.01" min="0" pattern="[0-9]+([.,][0-9]+)?"><br>
-            <label for="largura_saia">Largura Saia:</label>
-             <input type="number" id="largura_saia" name="largura_saia" value="{{ orcamento.largura_saia }}" step="0.01" min="0" pattern="[0-9]+([.,][0-9]+)?"><br>
-        </div>
-
-        <!-- Campos Dinâmicos para Nicho -->
-        <div id="nicho_fields" style="display: none;">
-            <h3>Medidas do Nicho</h3>
-            <label for="profundidade_nicho">Profundidade:</label>
-            <input type="number" id="profundidade_nicho" name="profundidade_nicho" value="{{ orcamento.profundidade_nicho }}" step="0.01" min="0" pattern="[0-9]+([.,][0-9]+)?"><br>
-            <label for="tem_fundo">Tem Fundo?</label>
-            <select name="tem_fundo" id="tem_fundo">
-                <option value="Sim" {% if orcamento.tem_fundo == 'Sim' %}selected{% endif %}>Sim</option>
-                <option value="Não" {% if orcamento.tem_fundo == 'Não' %}selected{% endif %}>Não</option>
-            </select><br>
-            <label for="tem_alisar">Tem Alisar?</label>
-            <select name="tem_alisar" id="tem_alisar">
-                <option value="Sim" {% if orcamento.tem_alisar == 'Sim' %}selected{% endif %}>Sim</option>
-                <option value="Não" {% if orcamento.tem_alisar == 'Não' %}selected{% endif %}>Não</option>
-            </select><br>
-            <label for="largura_alisar">Largura do Alisar:</label>
-            <input type="number" id="largura_alisar" name="largura_alisar" value="{{ orcamento.largura_alisar }}" step="0.01" min="0" pattern="[0-9]+([.,][0-9]+)?"><br>
-        </div>
-
-        <button type="submit">Salvar Alterações</button>
-    </form>
-</br>
-<a href="/orcamentos" class="btn btn-secondary">Voltar para Gerenciar Orçamentos</a>
-
-<script>
-    function toggleCubaFields() {
-        var tipoCuba = document.getElementById("tipo_cuba").value;
-        var modeloCubaField = document.getElementById("modelo_cuba_field");
-        var medidasCubaFields = document.getElementById("medidas_cuba_fields");
-
-        if (tipoCuba === "Esculpida") {
-            modeloCubaField.style.display = "block";
-            medidasCubaFields.style.display = "block";
-        } else {
-            modeloCubaField.style.display = "none";
-            medidasCubaFields.style.display = "none";
+                // Adicionar campos de fronte apenas para Bancada e Lavatorio
+                camposEspecificos += `
+                        <div class="col-md-6 form-section">
+                            <label for="comprimento_fronte" class="form-label">Comprimento Fronte (cm):</label>
+                            <input type="number" id="comprimento_fronte" name="comprimento_fronte" class="form-control" value="{{ orcamento.comprimento_fronte }}" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
+                        </div>
+                        <div class="col-md-6 form-section">
+                            <label for="largura_fronte" class="form-label">Largura Fronte (cm):</label>
+                            <input type="number" id="largura_fronte" name="largura_fronte" class="form-control" value="{{ orcamento.largura_fronte }}" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
+                        </div>
+                    </div>
+                `;
+                
+                // Campos de cuba (apenas para Bancada e Lavatorio)
+                camposEspecificos += `
+                    <div class="row dynamic-field">
+                        <div class="col-md-12">
+                            <h5><i class="fas fa-tint me-2"></i>Configurações da Cuba</h5>
+                        </div>
+                        <div class="col-md-4 form-section">
+                            <label for="tipo_cuba" class="form-label">Tipo de Cuba:</label>
+                            <select name="tipo_cuba" id="tipo_cuba" class="form-select" onchange="toggleCubaFields()">
+                                <option value="">Selecione...</option>
+                                <option value="Embutir" {% if orcamento.tipo_cuba == 'Embutir' %}selected{% endif %}>Embutir</option>
+                                <option value="Esculpida" {% if orcamento.tipo_cuba == 'Esculpida' %}selected{% endif %}>Esculpida</option>
+                                <option value="Cuba Tradicional Inox" {% if orcamento.tipo_cuba == 'Cuba Tradicional Inox' %}selected{% endif %}>Cuba Tradicional Inox</option>
+                                <option value="Apoio Cliente" {% if orcamento.tipo_cuba == 'Apoio Cliente' %}selected{% endif %}>Apoio Cliente</option>
+                                <option value="Embutida Cliente" {% if orcamento.tipo_cuba == 'Embutida Cliente' %}selected{% endif %}>Embutida Cliente</option>
+                                <option value="Gourmet Cliente" {% if orcamento.tipo_cuba == 'Gourmet Cliente' %}selected{% endif %}>Gourmet Cliente</option>
+                                <option value="Tanque Inox" {% if orcamento.tipo_cuba == 'Tanque Inox' %}selected{% endif %}>Tanque Inox</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 form-section">
+                            <label for="quantidade_cubas" class="form-label">Quantidade de Cubas:</label>
+                            <input type="number" id="quantidade_cubas" name="quantidade_cubas" class="form-control" value="{{ orcamento.quantidade_cubas }}" min="1">
+                        </div>
+                    </div>
+                `;
+                
+                // Campos de cooktop (apenas para Bancada)
+                if (tipoProduto === 'Bancada') {
+                    camposEspecificos += `
+                        <div class="row dynamic-field">
+                            <div class="col-md-12">
+                                <h5><i class="fas fa-fire me-2"></i>Configurações do Cooktop</h5>
+                            </div>
+                            <div class="col-md-4 form-section">
+                                <label for="tem_cooktop" class="form-label">Tem Cooktop?</label>
+                                <select name="tem_cooktop" id="tem_cooktop" class="form-select">
+                                    <option value="Não" {% if orcamento.tem_cooktop == 'Não' %}selected{% endif %}>Não</option>
+                                    <option value="Sim" {% if orcamento.tem_cooktop == 'Sim' %}selected{% endif %}>Sim</option>
+                                </select>
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                // Campos específicos para cuba esculpida
+                camposEspecificos += `
+                    <div class="col-md-12" id="cuba_esculpida_fields" style="display: {% if orcamento.tipo_cuba == 'Esculpida' %}block{% else %}none{% endif %};">
+                        <div class="row mt-3">
+                            <div class="col-md-4 form-section">
+                                <label for="modelo_cuba" class="form-label">Modelo da Cuba:</label>
+                                <select name="modelo_cuba" id="modelo_cuba" class="form-select">
+                                    <option value="Normal" {% if orcamento.modelo_cuba == 'Normal' %}selected{% endif %}>Normal</option>
+                                    <option value="Prainha" {% if orcamento.modelo_cuba == 'Prainha' %}selected{% endif %}>Prainha</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-12" id="medidas_cuba_fields" style="display: {% if orcamento.tipo_cuba == 'Esculpida' %}block{% else %}none{% endif %};">
+                        <div class="row mt-3">
+                            <div class="col-md-4 form-section">
+                                <label for="comprimento_cuba" class="form-label">Comprimento Cuba (cm):</label>
+                                <input type="number" id="comprimento_cuba" name="comprimento_cuba" class="form-control" value="{{ orcamento.comprimento_cuba }}" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
+                            </div>
+                            <div class="col-md-4 form-section">
+                                <label for="largura_cuba" class="form-label">Largura Cuba (cm):</label>
+                                <input type="number" id="largura_cuba" name="largura_cuba" class="form-control" value="{{ orcamento.largura_cuba }}" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
+                            </div>
+                            <div class="col-md-4 form-section">
+                                <label for="profundidade_cuba" class="form-label">Profundidade Cuba (cm):</label>
+                                <input type="number" id="profundidade_cuba" name="profundidade_cuba" class="form-control" value="{{ orcamento.profundidade_cuba }}" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                container.innerHTML = camposEspecificos;
+            } 
+            else if (tipoProduto === 'Ilharga' || tipoProduto === 'Ilharga Bipolida') {
+                let camposEspecificos = `
+                    <div class="row dynamic-field">
+                        <div class="col-md-12">
+                            <h5><i class="fas fa-ruler-combined me-2"></i>Acabamentos</h5>
+                        </div>
+                        <div class="col-md-6 form-section">
+                            <label for="comprimento_saia" class="form-label">Comprimento Saia (cm):</label>
+                            <input type="number" id="comprimento_saia" name="comprimento_saia" class="form-control" value="{{ orcamento.comprimento_saia }}" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
+                        </div>
+                        <div class="col-md-6 form-section">
+                            <label for="largura_saia" class="form-label">Largura Saia (cm):</label>
+                            <input type="number" id="largura_saia" name="largura_saia" class="form-control" value="{{ orcamento.largura_saia }}" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
+                        </div>
+                    </div>
+                `;
+                
+                container.innerHTML = camposEspecificos;
+            }
+            else if (tipoProduto === 'Nicho') {
+                let camposEspecificos = `
+                    <div class="row dynamic-field">
+                        <div class="col-md-12">
+                            <h5><i class="fas fa-box-open me-2"></i>Configurações do Nicho</h5>
+                        </div>
+                        <div class="col-md-4 form-section">
+                            <label for="profundidade_nicho" class="form-label">Profundidade (cm):</label>
+                            <input type="number" id="profundidade_nicho" name="profundidade_nicho" class="form-control" value="{{ orcamento.profundidade_nicho }}" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
+                        </div>
+                        <div class="col-md-4 form-section">
+                            <label for="tem_fundo" class="form-label">Tem Fundo?</label>
+                            <select name="tem_fundo" id="tem_fundo" class="form-select">
+                                <option value="Sim" {% if orcamento.tem_fundo == 'Sim' %}selected{% endif %}>Sim</option>
+                                <option value="Não" {% if orcamento.tem_fundo == 'Não' %}selected{% endif %}>Não</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 form-section">
+                            <label for="tem_alisar" class="form-label">Alisar:</label>
+                            <select name="tem_alisar" id="tem_alisar" class="form-select" onchange="toggleAlisarFields()">
+                                <option value="Não" {% if orcamento.tem_alisar == 'Não' %}selected{% endif %}>Não</option>
+                                <option value="Sim" {% if orcamento.tem_alisar == 'Sim' %}selected{% endif %}>Sim</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12" id="alisar_fields" style="display: {% if orcamento.tem_alisar == 'Sim' %}block{% else %}none{% endif %};">
+                            <div class="row mt-3">
+                                <div class="col-md-6 form-section">
+                                    <label for="largura_alisar" class="form-label">Largura Alisar (cm):</label>
+                                    <input type="number" id="largura_alisar" name="largura_alisar" class="form-control" value="{{ orcamento.largura_alisar }}" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                container.innerHTML = camposEspecificos;
+            }
+            else {
+                // Para outros tipos de produtos (Pedra Simples, Pedra de Box, etc.)
+                container.innerHTML = '';
+            }
         }
-    }
 
-    // Garante que os campos corretos apareçam ao carregar a página
-    document.addEventListener("DOMContentLoaded", function () {
-        toggleCubaFields();
-    });
-</script>
+        // Função para mostrar/ocultar campos de cuba esculpida
+        function toggleCubaFields() {
+            const tipoCuba = document.getElementById("tipo_cuba").value;
+            const medidasCubaFields = document.getElementById("medidas_cuba_fields");
+            const cubaEsculpidaFields = document.getElementById("cuba_esculpida_fields");
+            
+            if (tipoCuba === "Esculpida") {
+                medidasCubaFields.style.display = "block";
+                cubaEsculpidaFields.style.display = "block";
+            } else {
+                medidasCubaFields.style.display = "none";
+                cubaEsculpidaFields.style.display = "none";
+            }
+        }
 
+        // Função para mostrar/ocultar campo de porcentagem RT
+        function toggleRTFields() {
+            const temRT = document.getElementById("rt").value;
+            const rtPercentField = document.getElementById("rt_percent_field");
+            
+            if (temRT === "Sim") {
+                rtPercentField.style.display = "block";
+            } else {
+                rtPercentField.style.display = "none";
+            }
+        }
 
+        // Função para mostrar/ocultar campos de alisar
+        function toggleAlisarFields() {
+            const temAlisar = document.getElementById("tem_alisar").value;
+            const alisarFields = document.getElementById("alisar_fields");
+            
+            if (temAlisar === "Sim") {
+                alisarFields.style.display = "block";
+            } else {
+                alisarFields.style.display = "none";
+            }
+        }
+
+        // Inicialização quando o documento estiver pronto
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar Select2
+            $('#cliente_id, #material_id, #tipo_produto, #orcamento_salvo').select2({
+                width: '100%',
+                placeholder: "Selecione",
+                allowClear: true
+            });
+            
+            // Carregar campos dinâmicos com base no tipo de produto atual
+            toggleFields();
+            
+            // Restaurar seleções do localStorage
+            if (localStorage.getItem('edit_cliente_id')) {
+                $('#cliente_id').val(localStorage.getItem('edit_cliente_id')).trigger('change');
+            }
+            if (localStorage.getItem('edit_tipo_produto')) {
+                $('#tipo_produto').val(localStorage.getItem('edit_tipo_produto')).trigger('change');
+            }
+            if (localStorage.getItem('edit_material_id')) {
+                $('#material_id').val(localStorage.getItem('edit_material_id')).trigger('change');
+            }
+            
+            // Salvar seleções no localStorage
+            $('#cliente_id, #tipo_produto, #material_id').on('change', function() {
+                localStorage.setItem('edit_' + this.id, $(this).val());
+            });
+        });
+    </script>
 </body>
 </html>
