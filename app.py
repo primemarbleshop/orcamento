@@ -1495,7 +1495,7 @@ def editar_material_selecionados():
     for orcamento_salvo in orcamentos_salvos:
         atualizar_valor_orcamento_salvo(orcamento_salvo.id)
 
-    return jsonify({'mensagem': 'Materiais atualizados, valores recalculados e orçamentos salvos atualizados.'})
+    return jsonify({'success': 'Materiais atualizados, valores recalculados e orçamentos salvos atualizados.'})
 
 
 
