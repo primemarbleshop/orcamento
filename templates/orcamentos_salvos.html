@@ -4,343 +4,657 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Orçamentos Salvos</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Select2 -->
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
+    
     <style>
-        table { width: 100%; border-collapse: collapse; }
-        th, td { border: 1px solid black; padding: 8px; text-align: left; }
-        th { background-color: #f2f2f2; }
+        :root {
+            --primary: #4e73df;
+            --secondary: #6c757d;
+            --success: #1cc88a;
+            --danger: #e74a3b;
+            --warning: #f6c23e;
+            --light: #f8f9fc;
+            --dark: #5a5c69;
+        }
+        
+        body {
+            background-color: #f8f9fc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .card-custom {
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            border: none;
+        }
+        
+        .card-header-custom {
+            background: linear-gradient(135deg, var(--primary) 0%, #2a3d8f 100%);
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+            padding: 15px 20px;
+        }
+        
+        .btn-custom-primary {
+            background-color: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+        
+        .btn-custom-primary:hover {
+            background-color: #2e59d9;
+            border-color: #2e59d9;
+            color: white;
+        }
+        
+        .btn-custom-danger {
+            background-color: var(--danger);
+            border-color: var(--danger);
+            color: white;
+        }
+        
+        .btn-custom-danger:hover {
+            background-color: #be2617;
+            border-color: #be2617;
+            color: white;
+        }
+        
+        .btn-custom-success {
+            background-color: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+        
+        .btn-custom-success:hover {
+            background-color: #17a673;
+            border-color: #17a673;
+            color: white;
+        }
+        
+        .table th {
+            background: linear-gradient(135deg, var(--primary) 0%, #2a3d8f 100%);
+            color: white;
+            vertical-align: middle;
+        }
+        
+        .filtro-section {
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .form-section {
+            margin-bottom: 15px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .valor-total {
+            font-weight: bold;
+            color: #000000;
+        }
+        
+        .valor-final {
+            font-weight: bold;
+            color: #ffffff;
+            font-size: 1.2rem;
+        }
+        
+        .page-header {
+            border-bottom: 1px solid #e3e6f0;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .checkbox-cell {
+            width: 40px;
+            text-align: center;
+        }
+        
+        .actions-cell {
+            width: 120px;
+        }
+        
+        .status-badge {
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        
+        .status-em-espera {
+            background-color: #f6c23e;
+            color: #000;
+        }
+        
+        .status-aprovado {
+            background-color: #1cc88a;
+            color: #fff;
+        }
+        
+        .status-declinado {
+            background-color: #e74a3b;
+            color: #fff;
+        }
+        
+        @media (max-width: 768px) {
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .btn-action {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+        }
     </style>
 </head>
 <body>
+    <div class="container-fluid py-4">
+        <!-- Cabeçalho -->
+        <div class="page-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h1 class="h3 text-gray-800"><i class="fas fa-save me-2"></i>Orçamentos Salvos</h1>
+                </div>
+                <div class="col-auto">
+                    <a href="/" class="btn btn-custom-primary">
+                        <i class="fas fa-home me-1"></i> Voltar para a Página Inicial
+                    </a>
+                </div>
+            </div>
+        </div>
 
+        <!-- Card da lista de orçamentos salvos -->
+        <div class="card card-custom">
+            <div class="card-header card-header-custom d-flex justify-content-between align-items-center">
+                <h5 class="m-0 font-weight-bold"><i class="fas fa-list me-2"></i>Lista de Orçamentos Salvos</h5>
+            </div>
+            <div class="card-body">
+                <!-- Filtros -->
+                <div class="row filtro-section">
+                    <div class="col-md-3 mb-2">
+                        <label for="filtro_codigo" class="form-label">Código:</label>
+                        <input type="text" id="filtro_codigo" class="form-control" placeholder="Digite o código..." onkeyup="filterOrcamentos()">
+                    </div>
 
+                    {% if session.get('admin') %}
+                    <div class="col-md-3 mb-2">
+                        <label for="filtro_criado_por" class="form-label">Criado Por:</label>
+                        <select id="filtro_criado_por" class="form-select" onchange="filterOrcamentos()">
+                            <option value="Todos">Todos</option>
+                            {% for usuario in usuarios %}
+                                <option value="{{ usuario.nome }}">{{ usuario.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
 
-    <h1>Orçamentos Salvos</h1>
+                    <div class="col-md-3 mb-2">
+                        <label for="filtro_cliente" class="form-label">Cliente:</label>
+                        <select id="filtro_cliente" class="form-select" onchange="filterOrcamentos()">
+                            <option value="Todos">Todos</option>
+                            {% for cliente in clientes|sort(attribute='nome') %}
+                                {% if session.get('admin') or cliente.dono == session.get('user_cpf') %}
+                                    <option value="{{ cliente.nome }}">{{ cliente.nome }}</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                    </div>
 
-<div class="filtros-container">
-    <label for="filtro_codigo">Código:</label>
-    <input type="text" id="filtro_codigo" placeholder="Digite o código..." onkeyup="filtrarCodigo()">
+                    <div class="col-md-3 mb-2">
+                        <label for="filtro_status" class="form-label">Status:</label>
+                        <select id="filtro_status" class="form-select" onchange="filterOrcamentos()">
+                            <option value="Todos">Todos</option>
+                            <option value="Em Espera">Em Espera</option>
+                            <option value="Aprovado">Aprovado</option>
+                            <option value="Declinado">Declinado</option>
+                        </select>
+                    </div>
 
-    {% if session.get('admin') %}
-    <label for="filtro_criado_por">Criado Por:</label>
-    <select id="filtro_criado_por" onchange="filtrarCriadoPor()">
-        <option value="Todos">Todos</option>
-        {% for usuario in usuarios %}
-            <option value="{{ usuario.nome }}">{{ usuario.nome }}</option>
-        {% endfor %}
-    </select>
-    {% endif %}
+                    <div class="col-md-3 mb-2">
+                        <label for="filtro_tipo_cliente" class="form-label">Tipo Cliente:</label>
+                        <select id="filtro_tipo_cliente" class="form-select" onchange="filterOrcamentos()">
+                            <option value="Todos">Todos</option>
+                            <option value="Cliente de Porta">Cliente de Porta</option>
+                            <option value="Carteira de Cliente">Carteira de Cliente</option>
+                            <option value="Trafego Pago Google">Trafego Pago Google</option>
+                            <option value="Trafego Pago Meta">Trafego Pago Meta</option>
+                            <option value="Indicação Arquiteto">Indicação Arquiteto</option>
+                            <option value="Indicação Construtor">Indicação Construtor</option>
+                            <option value="Indicação Cliente">Indicação Cliente</option>
+                            <option value="Indicação Marcenaria">Indicação Marcenaria</option>
+                        </select>
+                    </div>
 
-    <!-- 🔹 Cliente agora aparece para todos os usuários -->
-    <label for="filtro_cliente">Cliente:</label>
-    <select id="filtro_cliente" onchange="filtrarCliente()">
-    <option value="Todos">Todos</option>
-    {% for cliente in clientes|sort(attribute='nome') %}
-        {% if session.get('admin') or cliente.dono == session.get('user_cpf') %}
-            <option value="{{ cliente.nome }}">{{ cliente.nome }}</option>
-        {% endif %}
-    {% endfor %}
-</select>
-  <label for="filtro_status">Status:</label>
-<select id="filtro_status" onchange="filtrarTabela()">
-    <option value="Todos">Todos</option>
-    <option value="Em Espera">Em Espera</option>
-    <option value="Aprovado">Aprovado</option>
-    <option value="Declinado">Declinado</option>
-</select>
+                    <div class="col-md-3 mb-2">
+                        <label for="filtro_quantidade" class="form-label">Mostrar:</label>
+                        <select id="filtro_quantidade" class="form-select" onchange="filterOrcamentos()">
+                            <option value="15">Últimos 15</option>
+                            <option value="30">Últimos 30</option>
+                            <option value="50">Últimos 50</option>
+                            <option value="100">Últimos 100</option>
+                            <option value="all">Todos</option>
+                        </select>
+                    </div>
 
-<label for="filtro_tipo_cliente">Tipo Cliente:</label>
-<select id="filtro_tipo_cliente" onchange="filtrarTabela()">
-    <option value="Todos">Todos</option>
-    <option value="Cliente de Porta">Cliente de Porta</option>
-    <option value="Carteira de Cliente">Carteira de Cliente</option>
-    <option value="Trafego Pago Google">Trafego Pago Google</option>
-    <option value="Trafego Pago Meta">Trafego Pago Meta</option>
-    <option value="Indicação Arquiteto">Indicação Arquiteto</option>
-    <option value="Indicação Construtor">Indicação Construtor</option>
-    <option value="Indicação Cliente">Indicação Cliente</option>
-    <option value="Indicação Marcenaria">Indicação Marcenaria</option>
-</select>
+                    <div class="col-md-3 mb-2 d-flex align-items-end">
+                        <button type="button" class="btn btn-custom-primary w-100" onclick="resetFilters()">
+                            <i class="fas fa-sync-alt me-1"></i> Limpar Filtros
+                        </button>
+                    </div>
+                </div>
 
-<!-- Filtro por Quantidade de Orçamentos -->
-<label for="filtro_quantidade">Mostrar:</label>
-<select id="filtro_quantidade" onchange="filterOrcamentos()">
-    <option value="15">Últimos 15</option>
-    <option value="30">Últimos 30</option>
-    <option value="50">Últimos 50</option>
-    <option value="100">Últimos 100</option>
-    <option value="all">Todos</option>
-</select>
-	
-</div>
+                <!-- Tabela de orçamentos salvos -->
+                <div class="table-responsive">
+                    <table class="table table-striped table-bordered table-hover">
+                        <thead>
+                            <tr>
+                                <th class="checkbox-cell">
+                                    <input type="checkbox" id="select-all" onclick="toggleSelectAll(this)">
+                                </th>
+                                <th>Código</th>
+                                {% if session.get('admin') %}
+                                    <th>Criado Por</th>
+                                {% endif %}
+                                <th>Cliente</th>
+                                <th>Data</th>
+                                <th>Valor Total</th>
+                                <th>Status</th>
+                                <th>Tipo Cliente</th>
+                                <th class="actions-cell">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orcamento_table">
+                            {% for orcamento in orcamentos %}
+                            <tr 
+                                data-codigo="{{ orcamento.codigo | lower }}"
+                                data-cliente="{{ orcamento.cliente_nome }}"
+                                data-criado-por="{{ orcamento.criado_por }}"
+                                data-status="{{ orcamento.status }}"
+                                data-tipo-cliente="{{ orcamento.tipo_cliente }}"
+                            >
+                                <td class="checkbox-cell">
+                                    <input type="checkbox" class="selecionar-orcamento" data-id="{{ orcamento.id }}">
+                                </td>
+                                <td>{{ orcamento.codigo }}</td>
+                                {% if session.get('admin') %}
+                                    <td>{{ orcamento.criado_por }}</td>
+                                {% endif %}
+                                <td>{{ orcamento.cliente_nome }}</td>
+                                <td>{{ orcamento.data_salvo.strftime('%d/%m/%Y') }}</td>
+                                <td class="valor-total">R$ {{ "%.2f"|format(orcamento.valor_total) }}</td>
+                                <td>
+                                    <select class="form-select form-select-sm status-select">
+                                        <option value="Em Espera" {% if orcamento.status == "Em Espera" %}selected{% endif %}>Em Espera</option>
+                                        <option value="Aprovado" {% if orcamento.status == "Aprovado" %}selected{% endif %}>Aprovado</option>
+                                        <option value="Declinado" {% if orcamento.status == "Declinado" %}selected{% endif %}>Declinado</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <select class="form-select form-select-sm tipo-cliente-select">
+                                        <option value="Selecionar" {% if not orcamento.tipo_cliente or orcamento.tipo_cliente == "Selecionar" %}selected{% endif %}>Selecionar</option>
+                                        <option value="Cliente de Porta" {% if orcamento.tipo_cliente == "Cliente de Porta" %}selected{% endif %}>Cliente de Porta</option>
+                                        <option value="Carteira de Cliente" {% if orcamento.tipo_cliente == "Carteira de Cliente" %}selected{% endif %}>Carteira de Cliente</option>
+                                        <option value="Trafego Pago Google" {% if orcamento.tipo_cliente == "Trafego Pago Google" %}selected{% endif %}>Trafego Pago Google</option>
+                                        <option value="Trafego Pago Meta" {% if orcamento.tipo_cliente == "Trafego Pago Meta" %}selected{% endif %}>Trafego Pago Meta</option>
+                                        <option value="Indicação Arquiteto" {% if orcamento.tipo_cliente == "Indicação Arquiteto" %}selected{% endif %}>Indicação Arquiteto</option>
+                                        <option value="Indicação Construtor" {% if orcamento.tipo_cliente == "Indicação Construtor" %}selected{% endif %}>Indicação Construtor</option>
+                                        <option value="Indicação Cliente" {% if orcamento.tipo_cliente == "Indicação Cliente" %}selected{% endif %}>Indicação Cliente</option>
+                                        <option value="Indicação Marcenaria" {% if orcamento.tipo_cliente == "Indicação Marcenaria" %}selected{% endif %}>Indicação Marcenaria</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <button class="btn btn-sm btn-custom-primary btn-visualizar" data-url="{{ url_for('detalhes_orcamento_salvo', codigo=orcamento.codigo) }}" title="Visualizar">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-custom-success btn-salvar" data-id="{{ orcamento.id }}" title="Salvar Alterações">
+                                            <i class="fas fa-save"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-custom-danger btn-deletar" data-id="{{ orcamento.id }}" title="Deletar">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
 
-</br>
+                <!-- Botões de ação -->
+                <div class="row mt-4">
+                    <div class="col-md-12">
+                        <div class="d-flex flex-wrap gap-2">
+                            <button type="button" id="gerar-pdf-selected" class="btn btn-custom-primary">
+                                <i class="fas fa-file-pdf me-1"></i> Gerar PDF
+                            </button>
+                            <button type="button" id="salvar-todos" class="btn btn-custom-success">
+                                <i class="fas fa-save me-1"></i> Salvar Todas as Alterações
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
+    <!-- JavaScript Libraries -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <table>
-    <thead>
-        <tr>
-            <th>Código</th>
-            {% if session.get('admin') %} <!-- Somente para administradores -->
-                <th>Criado Por</th>
+    <script>
+        // Função para selecionar/deselecionar todos os checkboxes
+        function toggleSelectAll(source) {
+            const checkboxes = document.querySelectorAll('.selecionar-orcamento');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = source.checked;
+            });
+        }
+
+        // Função para filtrar orçamentos
+        function filterOrcamentos() {
+            const filtroCodigo = document.getElementById('filtro_codigo').value.trim().toLowerCase();
+            const filtroCriadoPor = document.getElementById('filtro_criado_por')?.value || 'Todos';
+            const filtroCliente = document.getElementById('filtro_cliente').value;
+            const filtroStatus = document.getElementById('filtro_status').value;
+            const filtroTipoCliente = document.getElementById('filtro_tipo_cliente').value;
+            const filtroQuantidade = document.getElementById('filtro_quantidade').value;
+            
+            const rows = document.querySelectorAll('#orcamento_table tr');
+            let visibleCount = 0;
+            
+            rows.forEach(row => {
+                const codigo = row.getAttribute('data-codigo');
+                const criadoPor = row.getAttribute('data-criado-por');
+                const cliente = row.getAttribute('data-cliente');
+                const status = row.querySelector('.status-select').value;
+                const tipoCliente = row.querySelector('.tipo-cliente-select').value;
+                
+                let show = true;
+                
+                // Filtrar por código
+                if (filtroCodigo && !codigo.includes(filtroCodigo)) {
+                    show = false;
+                }
+                
+                // Filtrar por criado por (apenas para admin)
+                if (filtroCriadoPor !== 'Todos' && criadoPor !== filtroCriadoPor) {
+                    show = false;
+                }
+                
+                // Filtrar por cliente
+                if (filtroCliente !== 'Todos' && cliente !== filtroCliente) {
+                    show = false;
+                }
+                
+                // Filtrar por status
+                if (filtroStatus !== 'Todos' && status !== filtroStatus) {
+                    show = false;
+                }
+                
+                // Filtrar por tipo de cliente
+                if (filtroTipoCliente !== 'Todos' && tipoCliente !== filtroTipoCliente) {
+                    show = false;
+                }
+                
+                // Aplicar filtro de quantidade
+                if (show && filtroQuantidade !== 'all' && visibleCount >= parseInt(filtroQuantidade)) {
+                    show = false;
+                }
+                
+                if (show) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Salvar filtros no localStorage
+            localStorage.setItem('filtroCodigo', filtroCodigo);
+            if (document.getElementById('filtro_criado_por')) {
+                localStorage.setItem('filtroCriadoPor', filtroCriadoPor);
+            }
+            localStorage.setItem('filtroCliente', filtroCliente);
+            localStorage.setItem('filtroStatus', filtroStatus);
+            localStorage.setItem('filtroTipoCliente', filtroTipoCliente);
+            localStorage.setItem('filtroQuantidade', filtroQuantidade);
+        }
+
+        // Função para resetar os filtros
+        function resetFilters() {
+            document.getElementById('filtro_codigo').value = '';
+            if (document.getElementById('filtro_criado_por')) {
+                document.getElementById('filtro_criado_por').value = 'Todos';
+            }
+            document.getElementById('filtro_cliente').value = 'Todos';
+            document.getElementById('filtro_status').value = 'Todos';
+            document.getElementById('filtro_tipo_cliente').value = 'Todos';
+            document.getElementById('filtro_quantidade').value = '15';
+            
+            // Limpar localStorage
+            localStorage.removeItem('filtroCodigo');
+            localStorage.removeItem('filtroCriadoPor');
+            localStorage.removeItem('filtroCliente');
+            localStorage.removeItem('filtroStatus');
+            localStorage.removeItem('filtroTipoCliente');
+            localStorage.removeItem('filtroQuantidade');
+            
+            filterOrcamentos();
+        }
+
+        document.addEventListener("DOMContentLoaded", function() {
+            // Inicializar Select2 nos selects de filtro
+            $('#filtro_cliente, #filtro_status, #filtro_tipo_cliente, #filtro_quantidade').select2({
+                width: '100%',
+                placeholder: "Selecione",
+                allowClear: true
+            });
+
+            {% if session.get('admin') %}
+            $('#filtro_criado_por').select2({
+                width: '100%',
+                placeholder: "Selecione",
+                allowClear: true
+            });
             {% endif %}
-            <th>Cliente</th>
-            <th>Data</th>
-            <th>Valor Total</th>
-            <th>Status</th>
-            <th>Tipo Cliente</th>
-            <th>Ações</th>
-        </tr>
-    </thead>
-    <tbody id="orcamento_table">
-    {% for orcamento in orcamentos %}
-    <tr 
-        data-codigo="{{ orcamento.codigo | lower }}"
-        data-cliente="{{ orcamento.cliente_nome }}"
-    >
-        <td>{{ orcamento.codigo }}</td>
-        {% if session.get('admin') %}
-            <td>{{ orcamento.criado_por }}</td>
-        {% endif %}
-        <td>{{ orcamento.cliente_nome }}</td>
-        <td>{{ orcamento.data_salvo.strftime('%d/%m/%Y') }}</td>
-        <td>R$ {{ "%.2f"|format(orcamento.valor_total) }}</td>
-    <td>
-                <select class="status-select">
-                    <option value="Em Espera" {% if orcamento.status == "Em Espera" %}selected{% endif %}>Em Espera</option>
-                    <option value="Aprovado" {% if orcamento.status == "Aprovado" %}selected{% endif %}>Aprovado</option>
-                    <option value="Declinado" {% if orcamento.status == "Declinado" %}selected{% endif %}>Declinado</option>
-                </select>
-            </td>
 
-            <!-- 🔹 Tipo Cliente como Lista Suspensa -->
-            <td>
-                <select class="tipo-cliente-select">
-                    <option value="Selecionar" {% if not orcamento.tipo_cliente or orcamento.tipo_cliente == "Selecionar" %}selected{% endif %}>Selecionar</option>
-                    <option value="Cliente de Porta" {% if orcamento.tipo_cliente == "Cliente de Porta" %}selected{% endif %}>Cliente de Porta</option>
-                    <option value="Carteira de Cliente" {% if orcamento.tipo_cliente == "Carteira de Cliente" %}selected{% endif %}>Carteira de Cliente</option>
-                    <option value="Trafego Pago Google" {% if orcamento.tipo_cliente == "Trafego Pago Google" %}selected{% endif %}>Trafego Pago Google</option>
-                    <option value="Trafego Pago Meta" {% if orcamento.tipo_cliente == "Trafego Pago Meta" %}selected{% endif %}>Trafego Pago Meta</option>
-                    <option value="Indicação Arquiteto" {% if orcamento.tipo_cliente == "Indicação Arquiteto" %}selected{% endif %}>Indicação Arquiteto</option>
-                    <option value="Indicação Construtor" {% if orcamento.tipo_cliente == "Indicação Construtor" %}selected{% endif %}>Indicação Construtor</option>
-                    <option value="Indicação Cliente" {% if orcamento.tipo_cliente == "Indicação Cliente" %}selected{% endif %}>Indicação Cliente</option>
-                    <option value="Indicação Marcenaria" {% if orcamento.tipo_cliente == "Indicação Marcenaria" %}selected{% endif %}>Indicação Marcenaria</option>
-                </select>
-            </td>
-
-        <td>
-
-            <button class="btn-visualizar" data-url="{{ url_for('detalhes_orcamento_salvo', codigo=orcamento.codigo) }}">Visualizar</button>
-	    <button class="btn-salvar" data-id="{{ orcamento.id }}">Salvar</button>
-            <button class="btn-deletar" data-id="{{ orcamento.id }}">Deletar</button>
-        </td>
-    </tr>
-    {% endfor %}
-    </tbody>
-    </table>
-
-</br>
-</br>
-
-
-    <a href="/">Voltar para a Página Inicial</a>
-</br>
-</br>
-</br>
-</br>
-</br>
-</br>
-</br>
-</br>
-</br>
-
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<!-- Bibliotecas do Select2 -->
-<script src="https://cdn.jsdelivr.net/npm/jquery@3.6.0/dist/jquery.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
-<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
-
-	
-<script>
-
-
-document.addEventListener("DOMContentLoaded", function() {
-
-    // 🔹 Ação para o botão "Visualizar"
-    document.querySelectorAll(".btn-visualizar").forEach(button => {
-        button.addEventListener("click", function() {
-            let url = this.getAttribute("data-url");
-            if (url) {
-                window.location.href = url;
-            } else {
-                Swal.fire("Erro!", "URL inválida para visualização.", "error");
+            // Restaurar filtros do localStorage
+            if (localStorage.getItem('filtroCodigo')) {
+                document.getElementById('filtro_codigo').value = localStorage.getItem('filtroCodigo');
             }
-        });
-    });
-
-    // 🔹 Ação para o botão "Deletar" com SweetAlert2
-    document.querySelectorAll(".btn-deletar").forEach(button => {
-        button.addEventListener("click", function() {
-            let orcamentoId = this.getAttribute("data-id");
-
-            if (!orcamentoId) {
-                Swal.fire("Erro!", "ID do orçamento não encontrado.", "error");
-                return;
+            if (localStorage.getItem('filtroCriadoPor') && document.getElementById('filtro_criado_por')) {
+                document.getElementById('filtro_criado_por').value = localStorage.getItem('filtroCriadoPor');
+                $('#filtro_criado_por').trigger('change');
+            }
+            if (localStorage.getItem('filtroCliente')) {
+                document.getElementById('filtro_cliente').value = localStorage.getItem('filtroCliente');
+                $('#filtro_cliente').trigger('change');
+            }
+            if (localStorage.getItem('filtroStatus')) {
+                document.getElementById('filtro_status').value = localStorage.getItem('filtroStatus');
+                $('#filtro_status').trigger('change');
+            }
+            if (localStorage.getItem('filtroTipoCliente')) {
+                document.getElementById('filtro_tipo_cliente').value = localStorage.getItem('filtroTipoCliente');
+                $('#filtro_tipo_cliente').trigger('change');
+            }
+            if (localStorage.getItem('filtroQuantidade')) {
+                document.getElementById('filtro_quantidade').value = localStorage.getItem('filtroQuantidade');
+                $('#filtro_quantidade').trigger('change');
             }
 
-            Swal.fire({
-                title: "Tem certeza?",
-                text: "Essa ação não pode ser desfeita!",
-                icon: "warning",
-                showCancelButton: true,
-                confirmButtonColor: "#d33",
-                cancelButtonColor: "#3085d6",
-                confirmButtonText: "Sim, deletar!",
-                cancelButtonText: "Cancelar"
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    fetch(`/deletar_orcamento_salvo/${orcamentoId}`, {
-                        method: "POST"
+            // Aplicar filtros ao carregar a página
+            filterOrcamentos();
+
+            // 🔹 Ação para o botão "Visualizar"
+            document.querySelectorAll(".btn-visualizar").forEach(button => {
+                button.addEventListener("click", function() {
+                    let url = this.getAttribute("data-url");
+                    if (url) {
+                        window.location.href = url;
+                    } else {
+                        Swal.fire("Erro!", "URL inválida para visualização.", "error");
+                    }
+                });
+            });
+
+            // 🔹 Ação para o botão "Deletar" com SweetAlert2
+            document.querySelectorAll(".btn-deletar").forEach(button => {
+                button.addEventListener("click", function() {
+                    let orcamentoId = this.getAttribute("data-id");
+
+                    if (!orcamentoId) {
+                        Swal.fire("Erro!", "ID do orçamento não encontrado.", "error");
+                        return;
+                    }
+
+                    Swal.fire({
+                        title: "Tem certeza?",
+                        text: "Essa ação não pode ser desfeita!",
+                        icon: "warning",
+                        showCancelButton: true,
+                        confirmButtonColor: "#d33",
+                        cancelButtonColor: "#3085d6",
+                        confirmButtonText: "Sim, deletar!",
+                        cancelButtonText: "Cancelar"
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            fetch(`/deletar_orcamento_salvo/${orcamentoId}`, {
+                                method: "POST"
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    Swal.fire({
+                                        title: "Deletado!",
+                                        text: "O orçamento foi excluído com sucesso.",
+                                        icon: "success",
+                                        timer: 2000,
+                                        showConfirmButton: false
+                                    });
+                                    setTimeout(() => location.reload(), 2000);
+                                } else {
+                                    Swal.fire("Erro!", "Não foi possível excluir o orçamento.", "error");
+                                }
+                            })
+                            .catch(() => {
+                                Swal.fire("Erro!", "Erro na comunicação com o servidor.", "error");
+                            });
+                        }
+                    });
+                });
+            });
+
+            // 🔹 Botão salvar (atualizar status e tipo cliente)
+            document.querySelectorAll(".btn-salvar").forEach(button => {
+                button.addEventListener("click", function() {
+                    let orcamentoId = this.getAttribute("data-id");
+                    let linha = this.closest("tr");
+                    let status = linha.querySelector(".status-select").value;
+                    let tipoCliente = linha.querySelector(".tipo-cliente-select").value;
+
+                    fetch("/atualizar_status_tipo_cliente", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({
+                            id: orcamentoId,
+                            status: status,
+                            tipo_cliente: tipoCliente
+                        })
                     })
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
-                            Swal.fire({
-                                title: "Deletado!",
-                                text: "O orçamento foi excluído com sucesso.",
-                                icon: "success",
-                                timer: 2000,
-                                showConfirmButton: false
-                            });
-                            setTimeout(() => location.reload(), 2000);
+                            Swal.fire("Sucesso!", "Orçamento atualizado com sucesso!", "success");
                         } else {
-                            Swal.fire("Erro!", "Não foi possível excluir o orçamento.", "error");
+                            Swal.fire("Erro!", data.error, "error");
                         }
                     })
                     .catch(() => {
                         Swal.fire("Erro!", "Erro na comunicação com o servidor.", "error");
                     });
+                });
+            });
+
+            // 🔹 Botão para salvar todas as alterações
+            document.getElementById("salvar-todos").addEventListener("click", function() {
+                const updates = [];
+                document.querySelectorAll("#orcamento_table tr").forEach(row => {
+                    const id = row.querySelector(".selecionar-orcamento").getAttribute("data-id");
+                    const status = row.querySelector(".status-select").value;
+                    const tipoCliente = row.querySelector(".tipo-cliente-select").value;
+                    
+                    updates.push({
+                        id: id,
+                        status: status,
+                        tipo_cliente: tipoCliente
+                    });
+                });
+
+                if (updates.length === 0) {
+                    Swal.fire("Atenção", "Nenhuma alteração para salvar!", "warning");
+                    return;
                 }
-            });
-        });
-    });
 
-});
-
-// 🔹 Função principal que aplica todos os filtros
-function filterOrcamentos() {
-    const codigoBusca = document.getElementById("filtro_codigo")?.value.trim().toLowerCase() || "";
-    const criadoPorSelecionado = document.getElementById("filtro_criado_por")?.value || "Todos";
-    const clienteSelecionado = document.getElementById("filtro_cliente")?.value || "Todos";
-    const statusSelecionado = document.getElementById("filtro_status")?.value || "Todos";
-    const tipoClienteSelecionado = document.getElementById("filtro_tipo_cliente")?.value || "Todos";
-    const filtroQuantidadeValue = document.getElementById("filtro_quantidade")?.value || "all";
-
-    const linhasTabela = Array.from(document.querySelectorAll("#orcamento_table tr"));
-
-    // Primeiro aplica todos os filtros "normais"
-    linhasTabela.forEach(linha => {
-        const codigo = linha.querySelector("td:nth-child(1)")?.textContent.trim().toLowerCase() || "";
-        const criadoPor = linha.querySelector("td:nth-child(2)")?.textContent.trim() || "";
-        const cliente = linha.getAttribute("data-cliente")?.trim() || "";
-        const status = linha.querySelector(".status-select")?.value.trim() || "";
-        const tipoCliente = linha.querySelector(".tipo-cliente-select")?.value.trim() || "";
-
-        let exibir = true;
-
-        if (codigoBusca && !codigo.includes(codigoBusca)) exibir = false;
-        if (criadoPorSelecionado !== "Todos" && criadoPor !== criadoPorSelecionado) exibir = false;
-        if (clienteSelecionado !== "Todos" && cliente !== clienteSelecionado) exibir = false;
-        if (statusSelecionado !== "Todos" && status !== statusSelecionado) exibir = false;
-        if (tipoClienteSelecionado !== "Todos" && tipoCliente !== tipoClienteSelecionado) exibir = false;
-
-        linha.style.display = exibir ? "" : "none";
-    });
-
-    // Agora aplica o filtro de quantidade (mantém apenas os primeiros N visíveis)
-    if (filtroQuantidadeValue !== "all") {
-        const limite = parseInt(filtroQuantidadeValue);
-        const linhasVisiveis = linhasTabela.filter(linha => linha.style.display !== "none");
-
-        linhasVisiveis.forEach((linha, index) => {
-            linha.style.display = (index < limite) ? "" : "none";
-        });
-    }
-}
-
-// 🔹 Salvar e restaurar filtros do LocalStorage
-document.addEventListener("DOMContentLoaded", function () {
-    const filtros = ["filtro_codigo", "filtro_criado_por", "filtro_cliente", "filtro_status", "filtro_tipo_cliente", "filtro_quantidade"];
-
-    filtros.forEach(id => {
-        const elem = document.getElementById(id);
-        if (elem && localStorage.getItem(id)) {
-            elem.value = localStorage.getItem(id);
-        }
-        if (elem) {
-            elem.addEventListener("change", function () {
-                localStorage.setItem(id, this.value);
-                filterOrcamentos();
-            });
-        }
-    });
-
-    // Aplica os filtros ao carregar
-    filterOrcamentos();
-});
-
-// 🔹 Botão salvar (atualizar status e tipo cliente)
-document.addEventListener("DOMContentLoaded", function() {
-    document.querySelectorAll(".btn-salvar").forEach(button => {
-        button.addEventListener("click", function() {
-            let orcamentoId = this.getAttribute("data-id");
-            let linha = this.closest("tr");
-            let status = linha.querySelector(".status-select").value;
-            let tipoCliente = linha.querySelector(".tipo-cliente-select").value;
-
-            fetch("/atualizar_status_tipo_cliente", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    id: orcamentoId,
-                    status: status,
-                    tipo_cliente: tipoCliente
+                fetch("/atualizar_status_tipo_cliente_lote", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ updates: updates })
                 })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire("Sucesso!", "Orçamento atualizado com sucesso!", "success");
-                } else {
-                    Swal.fire("Erro!", data.error, "error");
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire("Sucesso!", "Todas as alterações foram salvas com sucesso!", "success");
+                    } else {
+                        Swal.fire("Erro!", data.error, "error");
+                    }
+                })
+                .catch(() => {
+                    Swal.fire("Erro!", "Erro na comunicação com o servidor.", "error");
+                });
+            });
+
+            // 🔹 Botão para gerar PDF dos selecionados
+            document.getElementById("gerar-pdf-selected").addEventListener("click", function() {
+                const selecionados = [];
+                document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
+                    selecionados.push(checkbox.closest('tr').querySelector('.btn-visualizar').getAttribute('data-url').split('/').pop());
+                });
+                
+                if (selecionados.length === 0) {
+                    Swal.fire("Atenção", "Selecione pelo menos um orçamento para gerar PDF!", "warning");
+                    return;
                 }
-            })
-            .catch(() => {
-                Swal.fire("Erro!", "Erro na comunicação com o servidor.", "error");
+                
+                if (selecionados.length === 1) {
+                    // Se apenas um, redireciona diretamente
+                    window.location.href = `/gerar_pdf_orcamento/${selecionados[0]}`;
+                } else {
+                    // Se múltiplos, abre cada um em uma nova aba
+                    selecionados.forEach(codigo => {
+                        window.open(`/gerar_pdf_orcamento/${codigo}`, '_blank');
+                    });
+                }
             });
         });
-    });
-});
-
-// 🔹 Select2 no filtro de cliente
-$(document).ready(function() {
-    $('#filtro_cliente').select2({
-        placeholder: "Selecione um cliente",
-        allowClear: true,
-        width: 'resolve'
-    });
-
-    $('#filtro_cliente').on('change', function() {
-        filterOrcamentos();
-        $(this).select2('close');
-    });
-});
-
-
-
-
-
-
-</script>
-
+    </script>
 </body>
 </html>
