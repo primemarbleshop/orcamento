@@ -113,6 +113,7 @@
         border-top: 2px solid #333;
         background-color: #f9f9f9;
         page-break-inside: avoid;
+        font-size: 14px; /* Reduzindo a fonte do rodapé */
     }
 
     .footer-section {
@@ -122,11 +123,11 @@
     .footer-title {
         font-weight: bold;
         margin-bottom: 5px;
-        font-size: 14px;
+        font-size: 14px; /* Reduzido de 14px */
     }
 
     .footer-content {
-        font-size: 13px;
+        font-size: 13px; /* Reduzido de 13px */
     }
 
     .edit-mode {
@@ -154,9 +155,9 @@
 
     .installment-calc {
         margin-top: 5px;
-        font-size: 12px;
-        color: #333; /* Tornando mais escuro para melhor visibilidade */
-        font-weight: bold; /* Destacando mais */
+        font-size: 12px; /* Reduzido de 12px */
+        color: #333;
+        font-weight: bold;
     }
 
     .btn-edit {
@@ -197,21 +198,30 @@
 
     .payment-option h4 {
         margin: 0 0 8px 0;
-        font-size: 13px;
+        font-size: 13px; /* Reduzido de 13px */
         color: #000;
     }
 
     .payment-detail {
-        font-size: 12px;
+        font-size: 12px; /* Reduzido de 12px */
         margin: 3px 0;
     }
 
     .payment-highlight {
         font-weight: bold;
         color: #000;
-        background-color: #f0f0f0;
         padding: 3px;
         border-radius: 3px;
+    }
+
+    /* Novo estilo para parcelamento simplificado */
+    .parcelamento-simplificado {
+        font-weight: bold;
+        padding: 3px 5px;
+        border-radius: 3px;
+        margin-top: 5px;
+        display: inline-block;
+        font-size: 11px;
     }
 
     @media print {
@@ -304,6 +314,31 @@
         
         .payment-option:last-child {
             border-right: none;
+        }
+
+        /* Ajustes de impressão para o rodapé */
+        .orcamento-footer {
+            font-size: 10px !important;
+        }
+        
+        .footer-title {
+            font-size: 10px !important;
+        }
+        
+        .footer-content {
+            font-size: 9px !important;
+        }
+        
+        .payment-option h4 {
+            font-size: 10px !important;
+        }
+        
+        .payment-detail, .installment-calc {
+            font-size: 9px !important;
+        }
+        
+        .parcelamento-simplificado {
+            font-size: 9px !important;
         }
     }
 
@@ -507,16 +542,8 @@
                 <!-- Cartão de Crédito (agora primeiro) -->
                 <div class="payment-option">
                     <h4>3. Cartão de Crédito</h4>
-                     <div class="installment-calc payment-highlight">
-                        Opções de parcelamento:
-                        <span id="parcelamentoCartao">
-                            {% for i in range(1, 11) %}
-                                {% set parcela = valor_total_float / i %}
-                                {% if parcela >= 100 or i == 1 %}
-                                    {{ i }}x de R$ {{ "%.2f"|format(parcela) }}{% if not loop.last %}, {% endif %}
-                                {% endif %}
-                            {% endfor %}
-                        </span>
+                    <div class="parcelamento-simplificado" id="parcelamentoSimplificado">
+                        <!-- Será preenchido via JavaScript -->
                     </div>
                 </div>
                 
@@ -530,7 +557,7 @@
                         {% endif %}
                     </div>
                     <div class="payment-detail">• Sinal de 50% e 50% na entrega</div>
-                    <div class="installment-calc payment-highlight">
+                    <div class="installment-calc">
                         Valor com desconto: R$ <span id="valorAvista">{{ "%.2f"|format(valor_total_float * (1 - desconto_avista/100)) }}</span>
                     </div>
                     
@@ -553,7 +580,7 @@
                         {% endif %}
                     </div>
                     <div class="payment-detail">• Sinal de 80% e 20% na entrega</div>
-                    <div class="installment-calc payment-highlight">
+                    <div class="installment-calc">
                         Valor com desconto: R$ <span id="valorParcelado">{{ "%.2f"|format(valor_total_float * (1 - desconto_parcelado/100)) }}</span>
                     </div>
                     
@@ -698,26 +725,405 @@
         document.getElementById('valorParcelado').textContent = (valorTotalFloat * (1 - desconto2/100)).toFixed(2).replace('.', ',');
         
         // Atualizar parcelamento cartão
-        atualizarParcelamentoCartao(valorTotalFloat);
+        atualizarParcelamentoSimplificado(valorTotalFloat);
     }
     
-    // Função para atualizar opções de parcelamento no cartão
-    function atualizarParcelamentoCartao(valorTotal) {
-        let opcoesParcelamento = [];
+    // Função para determinar o número máximo de parcelas baseado no valor
+    function calcularMaxParcelas(valorTotal) {
+        if (valorTotal >= 1000) return 10;
+        if (valorTotal >= 900) return 9;
+        if (valorTotal >= 800) return 8;
+        if (valorTotal >= 700) return 7;
+        if (valorTotal >= 600) return 6;
+        if (valorTotal >= 500) return 5;
+        if (valorTotal >= 400) return 4;
+        if (valorTotal >= 300) return 3;
+        if (valorTotal >= 200) return 2;
+        return 1;
+    }
+    
+    // Função para atualizar a exibição simplificada do parcelamento
+    function atualizarParcelamentoSimplificado(valorTotal) {
+        const maxParcelas = calcularMaxParcelas(valorTotal);
+        const valorParcela = valorTotal / maxParcelas;
         
-        for (let i = 1; i <= 10; i++) {
-            const valorParcela = valorTotal / i;
-            if (valorParcela >= 100 || i === 1) {
-                opcoesParcelamento.push(`${i}x de R$ ${valorParcela.toFixed(2).replace('.', ',')}`);
-            }
-        }
-        
-        document.getElementById('parcelamentoCartao').textContent = opcoesParcelamento.join(', ');
+        const elemento = document.getElementById('parcelamentoSimplificado');
+        elemento.textContent = `Parcelamento em até ${maxParcelas}x de R$ ${valorParcela.toFixed(2).replace('.', ',')}`;
     }
     
     // Inicializar cálculos quando a página carregar
     document.addEventListener('DOMContentLoaded', function() {
-        atualizarParcelamentoCartao(valorTotalFloat);
+        atualizarParcelamentoSimplificado(valorTotalFloat);
+        
+        // Preencher os campos do formulário hidden com os valores iniciais
+        document.getElementById('formPrazoEntrega').value = {{ prazo_entrega }};
+        document.getElementById('formDescontoAvista').value = {{ desconto_avista }};
+        document.getElementById('formDescontoParcelado').value = {{ desconto_parcelado }};
+        document.getElementById('formObservacoes').value = "{{ observacoes }}";
+    });
+</script>
+    
+</body>
+</html>
+</head>
+<body>
+<div class="header-container">
+    <img src="{{ logo_url }}" alt="Logo da Empresa" class="logo-empresa">
+</div>
+
+<div class="empresa-header">
+    <h1>Prime Marble Shop</h1>
+    <p><strong>Endereço:</strong> Estrada do Engenho, 1800 - Bangu</p>
+    <p><strong>CNPJ:</strong> 39.903.780/0001-15</p>
+    <!-- ADICIONANDO O TELEFONE DO USUÁRIO AQUI -->
+    <p><strong>Telefone:</strong> <span class="info-normal">{{ telefone_usuario }}</span></p>
+</div>
+
+<div class="cliente-header">
+    <h2>
+        <strong>Cliente:</strong>
+        <span class="wrap-text">{{ cliente_nome }}</span>
+    </h2>
+    <p>
+        <strong>Endereço:</strong>
+        <span class="wrap-text info-normal">{{ orcamentos[0].cliente.endereco }}</span>
+    </p>
+    <p>
+        <strong>Telefone:</strong>
+        <span class="info-normal">{{ orcamentos[0].cliente.telefone }}</span>
+    </p>
+</div>
+
+<h2>Detalhes do Orçamento</h2>
+<p class="orcamento-info">
+    <strong>Orçamento:</strong> {{ codigo_orcamento }}<br>
+    <strong>Data:</strong> {{ data_salvo.strftime('%d/%m/%Y') }}
+</p>
+<div class="total-box">
+    Valor Total: <span id="valorTotal">{{ valor_total_final }}</span>
+</div>
+
+<br>
+
+{% set tipos_produtos = {} %}
+
+{% for orcamento in orcamentos %}
+    {% if orcamento.tipo_produto not in tipos_produtos %}
+        {% set tipos_produtos = tipos_produtos.update({orcamento.tipo_produto: []}) or tipos_produtos %}
+    {% endif %}
+    {% set _ = tipos_produtos[orcamento.tipo_produto].append(orcamento) %}
+{% endfor %}
+
+{% for tipo, produtos in tipos_produtos.items() %}
+    <div class="produto-header"> {{ tipo }}</div>
+    <table>
+        <thead>
+            <tr>
+                <th>Material</th>
+                <th>Qtd</th>
+                <th>Comp.</th>
+                <th>Larg.</th>
+                {% if tipo in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
+                <th>Saia</th>
+                {% endif %}
+                {% if tipo in ["Bancada", "Lavatorio"] %}
+                <th>Fronte</th>
+                {% endif %}
+                {% if tipo in ["Bancada", "Lavatorio"] %}
+                <th>Cuba</th>
+                {% endif %}
+                {% if tipo == "Bancada" %}
+                <th>Cooktop</th>
+                {% endif %}
+                {% if tipo in ["Nicho", "Nicho Sem Fundo"] %}
+                <th>Profundidade</th>
+                <th>Fundo</th>
+                <th>Alisar</th>
+                <th>Larg. do Alisar</th>
+                {% endif %}
+                <th>Outros Custos</th>
+                <th>Valor</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for produto in produtos %}
+            <tr>
+                <td>{{ produto.material.nome }}</td>
+                <td>{{ produto.quantidade }}</td>
+                <td>{{ produto.comprimento }} cm</td>
+                <td>{{ produto.largura }} cm</td>
+                {% if tipo in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
+                <td>{{ produto.comprimento_saia }} x {{ produto.largura_saia }} cm</td>
+                {% endif %}
+                {% if tipo in ["Bancada", "Lavatorio"] %}
+                <td>{{ produto.comprimento_fronte }} x {{ produto.largura_fronte }} cm</td>
+                {% endif %}
+                {% if tipo in ["Bancada", "Lavatorio"] %}
+                <td>
+                    {% if produto.tipo_cuba == "Esculpida" %}
+                        Esculpida ({{ produto.quantidade_cubas }}) - {{ produto.comprimento_cuba }} x {{ produto.largura_cuba }} x {{ produto.profundidade_cuba }} cm
+                    {% elif produto.tipo_cuba %}
+                        {{ produto.tipo_cuba }} ({{ produto.quantidade_cubas }})
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                {% endif %}
+                {% if tipo == "Bancada" %}
+                <td>{% if produto.tem_cooktop == "Sim" %}Sim{% else %}-{% endif %}</td>
+                {% endif %}
+                {% if tipo in ["Nicho", "Nicho Sem Fundo"] %}
+                <td>{{ produto.profundidade_nicho }} cm</td>
+                <td>{% if produto.tem_fundo == "Sim" %}Sim{% else %}Não{% endif %}</td>
+                <td>{% if produto.tem_alisar == "Sim" %}Sim{% else %}Não{% endif %}</td>
+                <td>{% if produto.tem_alisar == "Sim" %}{{ produto.largura_alisar }} cm{% else %}-{% endif %}</td>
+                {% endif %}
+                <td>R$ {{ "%.2f"|format(produto.outros_custos) }}</td>
+                <td class="valor-tabela">R$ {{ "%.2f"|format(produto.valor_total) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endfor %}
+
+<!-- Rodapé do orçamento -->
+<div class="orcamento-footer">
+    <div class="footer-section">
+        <div class="footer-title">Prazo de Entrega:</div>
+        <div class="footer-content">
+            <span id="deliveryDaysDisplay">{{ prazo_entrega }}</span> dias úteis
+            {% if not pdf %}
+            <button class="btn-edit" onclick="toggleEdit('deliveryDays')">Editar</button>
+            
+            <div id="deliveryDaysEdit" class="edit-mode" style="display: none;">
+                <input type="number" id="deliveryDaysInput" class="edit-field" value="{{ prazo_entrega }}" min="1">
+                dias úteis
+                <button class="btn-save" onclick="saveValue('deliveryDays')">Salvar</button>
+                <button class="btn-cancel" onclick="cancelEdit('deliveryDays')">Cancelar</button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="footer-section">
+        <div class="footer-title">Condições de Pagamento:</div>
+        <div class="footer-content">
+            <div class="payment-options-container">
+                <!-- Cartão de Crédito (agora primeiro) -->
+                <div class="payment-option">
+                    <h4>1. Cartão de Crédito</h4>
+                    <div class="parcelamento-simplificado" id="parcelamentoSimplificado">
+                        <!-- Será preenchido via JavaScript -->
+                    </div>
+                </div>
+                
+                <!-- À vista (Dinheiro/PIX) -->
+                <div class="payment-option">
+                    <h4>2. À vista (Dinheiro/PIX)</h4>
+                    <div class="payment-detail">
+                        <span id="discount1Display">{{ desconto_avista }}</span>% de desconto
+                        {% if not pdf %}
+                        <button class="btn-edit" onclick="toggleEdit('discount1')">Editar</button>
+                        {% endif %}
+                    </div>
+                    <div class="payment-detail">• Sinal de 50% e 50% na entrega</div>
+                    <div class="installment-calc">
+                        Valor com desconto: R$ <span id="valorAvista">{{ "%.2f"|format(valor_total_float * (1 - desconto_avista/100)) }}</span>
+                    </div>
+                    
+                    {% if not pdf %}
+                    <div id="discount1Edit" class="edit-mode" style="display: none;">
+                        <input type="number" id="discount1Input" class="edit-field" value="{{ desconto_avista }}" min="0" max="100">% de desconto
+                        <button class="btn-save" onclick="saveValue('discount1')">Salvar</button>
+                        <button class="btn-cancel" onclick="cancelEdit('discount1')">Cancelar</button>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Parcelado (Dinheiro/PIX) -->
+                <div class="payment-option">
+                    <h4>3. À vista (Dinheiro/PIX)</h4>
+                    <div class="payment-detail">
+                        <span id="discount2Display">{{ desconto_parcelado }}</span>% de desconto
+                        {% if not pdf %}
+                        <button class="btn-edit" onclick="toggleEdit('discount2')">Editar</button>
+                        {% endif %}
+                    </div>
+                    <div class="payment-detail">• Sinal de 80% e 20% na entrega</div>
+                    <div class="installment-calc">
+                        Valor com desconto: R$ <span id="valorParcelado">{{ "%.2f"|format(valor_total_float * (1 - desconto_parcelado/100)) }}</span>
+                    </div>
+                    
+                    {% if not pdf %}
+                    <div id="discount2Edit" class="edit-mode" style="display: none;">
+                        <input type="number" id="discount2Input" class="edit-field" value="{{ desconto_parcelado }}" min="0" max="100">% de desconto
+                        <button class="btn-save" onclick="saveValue('discount2')">Salvar</button>
+                        <button class="btn-cancel" onclick="cancelEdit('discount2')">Cancelar</button>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer-section">
+        <div class="footer-title">Observações:</div>
+        <div class="footer-content">
+            <div id="observacoesDisplay">{{ observacoes }}</div>
+            {% if not pdf %}
+            <button class="btn-edit" onclick="toggleEdit('observacoes')">Editar</button>
+            
+            <div id="observacoesEdit" class="edit-mode" style="display: none;">
+                <textarea id="observacoesInput" rows="3" style="width: 100%;">{{ observacoes }}</textarea>
+                <button class="btn-save" onclick="saveValue('observacoes')">Salvar</button>
+                <button class="btn-cancel" onclick="cancelEdit('observacoes')">Cancelar</button>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Formulário para salvar as alterações do rodapé -->
+    {% if not pdf %}
+    <form action="{{ url_for('salvar_rodape_orcamento', codigo=codigo_orcamento) }}" method="POST" id="rodapeForm">
+        <input type="hidden" name="prazo_entrega" id="formPrazoEntrega" value="{{ prazo_entrega }}">
+        <input type="hidden" name="desconto_avista" id="formDescontoAvista" value="{{ desconto_avista }}">
+        <input type="hidden" name="desconto_parcelado" id="formDescontoParcelado" value="{{ desconto_parcelado }}">
+        <input type="hidden" name="observacoes" id="formObservacoes" value="{{ observacoes }}">
+        <button type="submit" class="btn-save" style="margin-top: 15px;">Salvar Alterações do Rodapé</button>
+    </form>
+    {% endif %}
+</div>
+
+<br>
+
+<!-- Botão de impressão -->
+{% if not pdf %}
+    <!--<button class="print-button" onclick="window.print()">Imprimir</button> -->
+    </br>
+    <button onclick="window.location.href='/gerar_pdf_orcamento/{{ codigo_orcamento }}'">Gerar PDF</button>
+    </br>
+    </br>
+    <h2><a href="/orcamentos_salvos" class="btn-voltar">Voltar para Orçamentos Salvos</a></h2>
+{% endif %}
+</br>
+</br>
+</br>
+</br>
+</br>
+</br>
+</br>
+</br>    
+</br>
+</br>
+
+<script>
+    // Variáveis globais para armazenar os valores
+    let valoresOriginais = {};
+    const valorTotalFloat = {{ valor_total_float }};
+    
+    // Função para alternar entre modo de visualização e edição
+    function toggleEdit(campo) {
+        const displayElement = document.getElementById(campo + 'Display');
+        const editElement = document.getElementById(campo + 'Edit');
+        
+        // Salvar valor original para possível cancelamento
+        if (campo === 'observacoes') {
+            valoresOriginais[campo] = document.getElementById(campo + 'Input').value;
+        } else {
+            valoresOriginais[campo] = document.getElementById(campo + 'Input').value;
+        }
+        
+        // Alternar visibilidade
+        displayElement.style.display = 'none';
+        editElement.style.display = 'block';
+    }
+    
+    // Função para salvar valores editados
+    function saveValue(campo) {
+        const displayElement = document.getElementById(campo + 'Display');
+        const editElement = document.getElementById(campo + 'Edit');
+        const inputElement = document.getElementById(campo + 'Input');
+        
+        // Atualizar valor exibido
+        if (campo === 'observacoes') {
+            displayElement.innerHTML = inputElement.value.replace(/\n/g, '<br>');
+        } else {
+            displayElement.textContent = inputElement.value;
+            
+            // Atualizar cálculos se for desconto
+            if (campo === 'discount1' || campo === 'discount2') {
+                atualizarCalculos();
+            }
+        }
+        
+        // Atualizar também os campos do formulário hidden
+        if (campo === 'deliveryDays') {
+            document.getElementById('formPrazoEntrega').value = inputElement.value;
+        } else if (campo === 'discount1') {
+            document.getElementById('formDescontoAvista').value = inputElement.value;
+        } else if (campo === 'discount2') {
+            document.getElementById('formDescontoParcelado').value = inputElement.value;
+        } else if (campo === 'observacoes') {
+            document.getElementById('formObservacoes').value = inputElement.value;
+        }
+        
+        // Voltar para modo de visualização
+        displayElement.style.display = 'block';
+        editElement.style.display = 'none';
+    }
+    
+    // Função para cancelar edição
+    function cancelEdit(campo) {
+        const displayElement = document.getElementById(campo + 'Display');
+        const editElement = document.getElementById(campo + 'Edit');
+        const inputElement = document.getElementById(campo + 'Input');
+        
+        // Restaurar valor original
+        inputElement.value = valoresOriginais[campo];
+        
+        // Voltar para modo de visualização
+        displayElement.style.display = 'block';
+        editElement.style.display = 'none';
+    }
+    
+    // Função para atualizar cálculos de valores com desconto
+    function atualizarCalculos() {
+        const desconto1 = parseFloat(document.getElementById('discount1Input').value);
+        const desconto2 = parseFloat(document.getElementById('discount2Input').value);
+        
+        document.getElementById('valorAvista').textContent = (valorTotalFloat * (1 - desconto1/100)).toFixed(2).replace('.', ',');
+        document.getElementById('valorParcelado').textContent = (valorTotalFloat * (1 - desconto2/100)).toFixed(2).replace('.', ',');
+        
+        // Atualizar parcelamento cartão
+        atualizarParcelamentoSimplificado(valorTotalFloat);
+    }
+    
+    // Função para determinar o número máximo de parcelas baseado no valor
+    function calcularMaxParcelas(valorTotal) {
+        if (valorTotal >= 1000) return 10;
+        if (valorTotal >= 900) return 9;
+        if (valorTotal >= 800) return 8;
+        if (valorTotal >= 700) return 7;
+        if (valorTotal >= 600) return 6;
+        if (valorTotal >= 500) return 5;
+        if (valorTotal >= 400) return 4;
+        if (valorTotal >= 300) return 3;
+        if (valorTotal >= 200) return 2;
+        return 1;
+    }
+    
+    // Função para atualizar a exibição simplificada do parcelamento
+    function atualizarParcelamentoSimplificado(valorTotal) {
+        const maxParcelas = calcularMaxParcelas(valorTotal);
+        const valorParcela = valorTotal / maxParcelas;
+        
+        const elemento = document.getElementById('parcelamentoSimplificado');
+        elemento.textContent = `Parcelamento em até ${maxParcelas}x de R$ ${valorParcela.toFixed(2).replace('.', ',')}`;
+    }
+    
+    // Inicializar cálculos quando a página carregar
+    document.addEventListener('DOMContentLoaded', function() {
+        atualizarParcelamentoSimplificado(valorTotalFloat);
         
         // Preencher os campos do formulário hidden com os valores iniciais
         document.getElementById('formPrazoEntrega').value = {{ prazo_entrega }};
