@@ -1210,7 +1210,7 @@ def detalhes_orcamento_salvo(codigo):
     prazo_entrega = 15
     desconto_avista = 5
     desconto_parcelado = 10
-    observacoes = "Medidas sujeitas a confirmação no local. Valores válidos por 30 dias."
+    observacoes = "Medidas sujeitas a confirmação no local. Valores válidos por 7 dias."
 
     return render_template(
         "detalhes_orcamento_salvo.html",
