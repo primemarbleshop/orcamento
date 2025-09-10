@@ -156,7 +156,7 @@
             margin: 20px 0;
             display: flex;
             gap: 10px;
-            justify-content: flex-end;
+            justify-content: flex-start; /* Alterado para esquerda */
         }
         
         @media (max-width: 768px) {
@@ -271,10 +271,10 @@
                     </div>
                 </div>
 
-                <!-- Botões de ação entre filtros e tabela -->
+                <!-- Botões de ação entre filtros e tabela (agora do lado esquerdo) -->
                 <div class="middle-action-buttons">
-                    <button type="button" id="gerar-pdf-selected" class="btn btn-custom-primary">
-                        <i class="fas fa-file-pdf me-1"></i> Gerar PDF Selecionados
+                    <button type="button" id="gerar-pdf" class="btn btn-custom-primary">
+                        <i class="fas fa-file-pdf me-1"></i> Gerar PDF
                     </button>
                     <button type="button" id="salvar-todos" class="btn btn-custom-success">
                         <i class="fas fa-save me-1"></i> Salvar Todas as Alterações
@@ -561,10 +561,13 @@
                 });
             });
 
-            // 🔹 Botão para salvar todas as alterações (agora salva todos os orçamentos visíveis)
+            // 🔹 Botão para salvar todas as alterações (corrigido)
             document.getElementById("salvar-todos").addEventListener("click", function() {
+                // Coletar todas as alterações
                 const updates = [];
-                document.querySelectorAll("#orcamento_table tr").forEach(row => {
+                const rows = document.querySelectorAll("#orcamento_table tr");
+                
+                rows.forEach(row => {
                     if (row.style.display !== 'none') { // Apenas linhas visíveis
                         const id = row.querySelector(".selecionar-orcamento").getAttribute("data-id");
                         const status = row.querySelector(".status-select").value;
@@ -583,26 +586,41 @@
                     return;
                 }
 
+                // Mostrar loading
+                Swal.fire({
+                    title: 'Salvando alterações...',
+                    text: 'Por favor, aguarde.',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                // Enviar todas as alterações de uma vez
                 fetch("/atualizar_status_tipo_cliente_lote", {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
                     body: JSON.stringify({ updates: updates })
                 })
                 .then(response => response.json())
                 .then(data => {
+                    Swal.close();
                     if (data.success) {
                         Swal.fire("Sucesso!", "Todas as alterações foram salvas com sucesso!", "success");
                     } else {
-                        Swal.fire("Erro!", data.error, "error");
+                        Swal.fire("Erro!", data.error || "Ocorreu um erro ao salvar as alterações.", "error");
                     }
                 })
-                .catch(() => {
-                    Swal.fire("Erro!", "Erro na comunicação com o servidor.", "error");
+                .catch(error => {
+                    Swal.close();
+                    Swal.fire("Erro!", "Erro na comunicação com o servidor: " + error, "error");
                 });
             });
 
-            // 🔹 Botão para gerar PDF dos selecionados
-            document.getElementById("gerar-pdf-selected").addEventListener("click", function() {
+            // 🔹 Botão para gerar PDF (simplificado)
+            document.getElementById("gerar-pdf").addEventListener("click", function() {
                 const selecionados = [];
                 document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
                     if (checkbox.closest('tr').style.display !== 'none') { // Apenas linhas visíveis
