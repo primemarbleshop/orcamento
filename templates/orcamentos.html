@@ -122,19 +122,6 @@
             margin-bottom: 25px;
         }
         
-        .badge-success {
-            background-color: var(--success);
-        }
-        
-        .badge-primary {
-            background-color: var(--primary);
-        }
-        
-        .form-control:focus, .form-select:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 0.25rem rgba(78, 115, 223, 0.25);
-        }
-        
         .checkbox-cell {
             width: 40px;
             text-align: center;
@@ -163,7 +150,6 @@
             <div class="row align-items-center">
                 <div class="col">
                     <h1 class="h3 text-gray-800"><i class="fas fa-file-invoice-dollar me-2"></i>Gerenciar Orçamentos</h1>
-                    <p class="mb-0">Crie e gerencie seus orçamentos de forma eficiente</p>
                 </div>
                 <div class="col-auto">
                     <a href="/" class="btn btn-custom-primary">
@@ -173,7 +159,6 @@
             </div>
         </div>
 
-        {% if session['user_cpf'] != "39903780000115" %}
         <!-- Card do formulário de orçamento -->
         <div class="card card-custom mb-4">
             <div class="card-header card-header-custom">
@@ -185,11 +170,8 @@
                         <div class="col-md-6 col-lg-3 form-section">
                             <label for="cliente_id" class="form-label">Cliente:</label>
                             <select name="cliente_id" id="cliente_id" class="form-select">
-                                {% for cliente in clientes %}
-                                    <option value="{{ cliente.id }}" {% if cliente.id == selected_cliente_id %}selected{% endif %}>
-                                        {{ cliente.nome }}
-                                    </option>
-                                {% endfor %}
+                                <option value="1">Cliente Exemplo 1</option>
+                                <option value="2">Cliente Exemplo 2</option>
                             </select>
                         </div>
 
@@ -210,11 +192,8 @@
                         <div class="col-md-6 col-lg-3 form-section">
                             <label for="material_id" class="form-label">Material:</label>
                             <select name="material_id" id="material_id" class="form-select">
-                                {% for material in materiais %}
-                                    <option value="{{ material.id }}" {% if material.id == selected_material_id %}selected{% endif %}>
-                                        {{ material.nome }}
-                                    </option>
-                                {% endfor %}
+                                <option value="1">Mármore Branco</option>
+                                <option value="2">Granito Preto</option>
                             </select>
                         </div>
 
@@ -236,7 +215,7 @@
                         </div>
                     </div>
 
-                    <!-- Campos dinâmicos serão inseridos aqui via JavaScript -->
+                    <!-- Campos dinâmicos -->
                     <div id="dynamicFieldsContainer"></div>
 
                     <div class="row mt-3">
@@ -249,7 +228,6 @@
                 </form>
             </div>
         </div>
-        {% endif %}
 
         <!-- Card da lista de orçamentos -->
         <div class="card card-custom">
@@ -264,9 +242,8 @@
                         <label for="filtro_cliente" class="form-label">Filtrar por Cliente:</label>
                         <select id="filtro_cliente" class="form-select" onchange="filterOrcamentos()">
                             <option value="Todos">Todos</option>
-                            {% for cliente in clientes %}
-                                <option value="{{ cliente.nome }}">{{ cliente.nome }}</option>
-                            {% endfor %}
+                            <option value="Cliente Exemplo 1">Cliente Exemplo 1</option>
+                            <option value="Cliente Exemplo 2">Cliente Exemplo 2</option>
                         </select>
                     </div>
 
@@ -306,9 +283,6 @@
                                 <th width="50" class="checkbox-cell">
                                     <input type="checkbox" id="selectAll" onclick="toggleSelectAll(this)">
                                 </th>
-                                {% if is_admin %}
-                                    <th>Criado por</th>
-                                {% endif %}
                                 <th>Cliente</th>
                                 <th>Produto</th>
                                 <th>Material</th>
@@ -322,29 +296,25 @@
                             </tr>
                         </thead>
                         <tbody id="orcamento_table">
-                            {% for orcamento, nome_usuario in orcamentos %}
-                            <tr data-id="{{ orcamento.id }}" data-cliente="{{ orcamento.cliente.nome }}" data-data="{{ orcamento.data.strftime('%Y-%m-%d %H:%M:%S') }}">
+                            <tr data-id="1" data-cliente="Cliente Exemplo 1" data-data="2023-11-15 10:30:00">
                                 <td class="checkbox-cell">
-                                    <input type="checkbox" class="selecionar-orcamento" data-valor="{{ orcamento.valor_total }}">
+                                    <input type="checkbox" class="selecionar-orcamento" data-valor="1500.00">
                                 </td>
-                                {% if is_admin %}
-                                    <td>{{ nome_usuario }}</td>
-                                {% endif %}
-                                <td>{{ orcamento.cliente.nome }}</td>
-                                <td>{{ orcamento.tipo_produto }}</td>
-                                <td>{{ orcamento.material.nome }}</td>
-                                <td>{{ orcamento.quantidade }}</td>
-                                <td>{{ orcamento.comprimento }}</td>
-                                <td>{{ orcamento.largura }}</td>
-                                <td>{{ orcamento.outros_custos }}</td>
-                                <td class="valor-total">{{ orcamento.valor_total }}</td>
-                                <td>{{ orcamento.data.strftime('%d-%m-%y') }}</td>
+                                <td>Cliente Exemplo 1</td>
+                                <td>Bancada</td>
+                                <td>Mármore Branco</td>
+                                <td>1</td>
+                                <td>200</td>
+                                <td>60</td>
+                                <td>100.00</td>
+                                <td class="valor-total">R$ 1.500,00</td>
+                                <td>15-11-23</td>
                                 <td>
                                     <div class="action-buttons">
-                                        <a href="{{ url_for('editar_orcamento', id=orcamento.id) }}" class="btn btn-sm btn-custom-primary" title="Editar">
+                                        <a href="#" class="btn btn-sm btn-custom-primary" title="Editar">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <form action="{{ url_for('deletar_orcamento', id=orcamento.id) }}" method="POST" class="d-inline" onsubmit="confirmarExclusao(event, this)">
+                                        <form action="#" method="POST" class="d-inline" onsubmit="confirmarExclusao(event, this)">
                                             <button type="submit" class="btn btn-sm btn-custom-danger" title="Excluir">
                                                 <i class="fas fa-trash"></i>
                                             </button>
@@ -352,7 +322,32 @@
                                     </div>
                                 </td>
                             </tr>
-                            {% endfor %}
+                            <tr data-id="2" data-cliente="Cliente Exemplo 2" data-data="2023-11-14 14:45:00">
+                                <td class="checkbox-cell">
+                                    <input type="checkbox" class="selecionar-orcamento" data-valor="2500.00">
+                                </td>
+                                <td>Cliente Exemplo 2</td>
+                                <td>Lavatorio</td>
+                                <td>Granito Preto</td>
+                                <td>1</td>
+                                <td>120</td>
+                                <td>50</td>
+                                <td>150.00</td>
+                                <td class="valor-total">R$ 2.500,00</td>
+                                <td>14-11-23</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <a href="#" class="btn btn-sm btn-custom-primary" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <form action="#" method="POST" class="d-inline" onsubmit="confirmarExclusao(event, this)">
+                                            <button type="submit" class="btn btn-sm btn-custom-danger" title="Excluir">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
                         </tbody>
                     </table>
                 </div>
@@ -389,111 +384,148 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <!-- JavaScript original (todas as funções mantidas) -->
     <script>
-        // Seu JavaScript original será inserido aqui
-        // Todas as funções como toggleFields, toggleCubaFields, etc. serão mantidas
-        document.addEventListener("DOMContentLoaded", function () {
-            const tbody = document.getElementById("orcamento_table");
-            const rows = Array.from(tbody.querySelectorAll("tr"));
-
-            rows.sort((a, b) => {
-                const dataA = new Date(a.getAttribute("data-data"));
-                const dataB = new Date(b.getAttribute("data-data"));
-                return dataB - dataA;
-            });
-
-            rows.forEach(row => tbody.appendChild(row));
-        });
-        
-        $(document).ready(function() {
-            // Aplicando Select2 aos selects com busca integrada
-            $('#cliente_id, #material_id, #tipo_produto').select2({
-                width: '100%',
-                placeholder: "Selecione",
-                allowClear: true,
-                dropdownAutoWidth: true,
-                minimumInputLength: 0,
-                language: {
-                    noResults: function () {
-                        return "Nenhum resultado encontrado";
-                    }
-                }
-            });
-
-            // Função para salvar no LocalStorage
-            function salvarSelecao(id) {
-                let valorSelecionado = $('#' + id).val();
-                if (valorSelecionado) {
-                    localStorage.setItem(id, valorSelecionado);
-                }
-            }
-
-            // Restaurar valores salvos no LocalStorage
-            function restaurarSelecao(id) {
-                let valorSalvo = localStorage.getItem(id);
-                if (valorSalvo) {
-                    $('#' + id).val(valorSalvo).trigger('change');
-                }
-            }
-
-            // Restaurar seleções ao carregar a página
-            restaurarSelecao('cliente_id');
-            restaurarSelecao('tipo_produto');
-            restaurarSelecao('material_id');
-
-            // Salvar seleção ao mudar o valor
-            $('#cliente_id, #tipo_produto, #material_id').on('change', function() {
-                salvarSelecao(this.id);
-            });
-        });
-
+        // Função para mostrar/ocultar campos dinâmicos
         function toggleFields() {
-            // Sua implementação original aqui
+            const tipoProduto = document.getElementById('tipo_produto').value;
+            const container = document.getElementById('dynamicFieldsContainer');
+            
+            // Limpar container
+            container.innerHTML = '';
+            
+            // Campos para Bancada
+            if (tipoProduto === 'Bancada') {
+                container.innerHTML = `
+                    <div class="row dynamic-field">
+                        <div class="col-md-12">
+                            <h5><i class="fas fa-tint me-2"></i>Configurações da Cuba</h5>
+                        </div>
+                        <div class="col-md-4 form-section">
+                            <label for="tipo_cuba" class="form-label">Tipo de Cuba:</label>
+                            <select name="tipo_cuba" id="tipo_cuba" class="form-select" onchange="toggleCubaFields()">
+                                <option value="">Selecione...</option>
+                                <option value="Embutir">Embutir</option>
+                                <option value="Esculpida">Esculpida</option>
+                                <option value="Cuba Tradicional Inox">Cuba Tradicional Inox</option>
+                                <option value="Apoio Cliente">Apoio Cliente</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 form-section">
+                            <label for="quantidade_cubas" class="form-label">Quantidade de Cubas:</label>
+                            <input type="number" id="quantidade_cubas" name="quantidade_cubas" class="form-control" value="1" min="1">
+                        </div>
+                        <div class="col-md-4 form-section" id="cooktop_field">
+                            <label for="tem_cooktop" class="form-label">Tem Cooktop?</label>
+                            <select name="tem_cooktop" id="tem_cooktop" class="form-select">
+                                <option value="Não">Não</option>
+                                <option value="Sim">Sim</option>
+                            </select>
+                        </div>
+                        <div class="col-md-12" id="medidas_cuba_fields" style="display: none;">
+                            <div class="row mt-3">
+                                <div class="col-md-4 form-section">
+                                    <label for="comprimento_cuba" class="form-label">Comprimento Cuba (cm):</label>
+                                    <input type="number" id="comprimento_cuba" name="comprimento_cuba" class="form-control" step="0.01" min="0" value="0">
+                                </div>
+                                <div class="col-md-4 form-section">
+                                    <label for="largura_cuba" class="form-label">Largura Cuba (cm):</label>
+                                    <input type="number" id="largura_cuba" name="largura_cuba" class="form-control" step="0.01" min="0" value="0">
+                                </div>
+                                <div class="col-md-4 form-section">
+                                    <label for="profundidade_cuba" class="form-label">Profundidade Cuba (cm):</label>
+                                    <input type="number" id="profundidade_cuba" name="profundidade_cuba" class="form-control" step="0.01" min="0" value="0">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row dynamic-field">
+                        <div class="col-md-12">
+                            <h5><i class="fas fa-ruler-combined me-2"></i>Acabamentos</h5>
+                        </div>
+                        <div class="col-md-6 form-section">
+                            <label for="comprimento_saia" class="form-label">Comprimento Saia (cm):</label>
+                            <input type="number" id="comprimento_saia" name="comprimento_saia" class="form-control" step="0.01" min="0" value="0">
+                        </div>
+                        <div class="col-md-6 form-section">
+                            <label for="largura_saia" class="form-label">Largura Saia (cm):</label>
+                            <input type="number" id="largura_saia" name="largura_saia" class="form-control" step="0.01" min="0" value="0">
+                        </div>
+                        <div class="col-md-6 form-section">
+                            <label for="comprimento_fronte" class="form-label">Comprimento Fronte (cm):</label>
+                            <input type="number" id="comprimento_fronte" name="comprimento_fronte" class="form-control" step="0.01" min="0" value="0">
+                        </div>
+                        <div class="col-md-6 form-section">
+                            <label for="largura_fronte" class="form-label">Largura Fronte (cm):</label>
+                            <input type="number" id="largura_fronte" name="largura_fronte" class="form-control" step="0.01" min="0" value="0">
+                        </div>
+                    </div>
+                    <div class="row dynamic-field">
+                        <div class="col-md-12">
+                            <h5><i class="fas fa-money-bill-wave me-2"></i>Outras Configurações</h5>
+                        </div>
+                        <div class="col-md-6 form-section">
+                            <label for="outros_custos" class="form-label">Outros Custos (R$):</label>
+                            <input type="number" id="outros_custos" name="outros_custos" class="form-control" step="0.01" min="0" value="0">
+                        </div>
+                        <div class="col-md-6 form-section">
+                            <label for="rt" class="form-label">Há RT?</label>
+                            <select name="rt" id="rt" class="form-select" onchange="toggleRTFields()">
+                                <option value="Não">Não</option>
+                                <option value="Sim">Sim</option>
+                            </select>
+                            <div id="rt_percent_field" style="display: none;" class="mt-2">
+                                <label for="rt_percentual" class="form-label">Porcentagem RT (%):</label>
+                                <input type="number" id="rt_percentual" name="rt_percentual" class="form-control" step="0.01" min="0" value="0">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
         }
 
+        // Função para mostrar/ocultar campos de cuba esculpida
         function toggleCubaFields() {
-            // Sua implementação original aqui
+            const tipoCuba = document.getElementById("tipo_cuba").value;
+            const medidasCubaFields = document.getElementById("medidas_cuba_fields");
+            
+            if (tipoCuba === "Esculpida") {
+                medidasCubaFields.style.display = "block";
+            } else {
+                medidasCubaFields.style.display = "none";
+            }
         }
 
-        function toggleAlisarFields() {
-            // Sua implementação original aqui
-        }
-
+        // Função para mostrar/ocultar campo de porcentagem RT
         function toggleRTFields() {
-            // Sua implementação original aqui
+            const temRT = document.getElementById("rt").value;
+            const rtPercentField = document.getElementById("rt_percent_field");
+            
+            if (temRT === "Sim") {
+                rtPercentField.style.display = "block";
+            } else {
+                rtPercentField.style.display = "none";
+            }
         }
-        
-        function toggleNichoFields() {
-            // Sua implementação original aqui
-        }
-        
-        // Todas as outras funções originais serão mantidas aqui
-        // confirmarExclusao, enviarOrcamentos, filterOrcamentos, etc.
-    </script>
 
-    <!-- JavaScript adicional para melhorias -->
-    <script>
-        // Inicializar Select2 para os filtros
-        $(document).ready(function() {
-            $('#filtro_cliente').select2({
-                placeholder: "Selecione um cliente",
-                allowClear: true,
-                width: '100%'
+        // Função para confirmar exclusão
+        function confirmarExclusao(event, form) {
+            event.preventDefault();
+            
+            Swal.fire({
+                title: "Tem certeza?",
+                text: "Essa ação não pode ser desfeita!",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#3085d6",
+                confirmButtonText: "Sim, deletar!",
+                cancelButtonText: "Cancelar"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    form.submit();
+                }
             });
-            
-            // Restaurar valor do localStorage antes de inicializar o Select2
-            const clienteSalvo = localStorage.getItem("filtroCliente") || "Todos";
-            $('#filtro_cliente').val(clienteSalvo).trigger('change');
-            
-            // Inicializar datas com valores padrão
-            let today = new Date().toISOString().split('T')[0];
-            $('#filtro_data_inicio').val(today);
-            $('#filtro_data_fim').val(today);
-            
-            // Aplicar filtro após restaurar valor
-            filterOrcamentos();
-        });
+        }
 
         // Função para selecionar/deselecionar todos os checkboxes
         function toggleSelectAll(source) {
@@ -501,25 +533,95 @@
             checkboxes.forEach(checkbox => {
                 checkbox.checked = source.checked;
             });
-            // Disparar evento de change para atualizar o valor total
-            checkboxes.forEach(checkbox => {
-                checkbox.dispatchEvent(new Event('change'));
+            atualizarValorFinal();
+        }
+
+        // Função para atualizar o valor total dos orçamentos selecionados
+        function atualizarValorFinal() {
+            let total = 0;
+            document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
+                total += parseFloat(checkbox.dataset.valor);
             });
+            document.getElementById('valor-final').textContent = 
+                total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+        }
+
+        // Adicionar event listener para os checkboxes
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.selecionar-orcamento').forEach(checkbox => {
+                checkbox.addEventListener('change', atualizarValorFinal);
+            });
+            
+            // Inicializar Select2
+            $('#cliente_id, #material_id, #tipo_produto').select2({
+                width: '100%',
+                placeholder: "Selecione",
+                allowClear: true
+            });
+            
+            // Inicializar datas com valores padrão
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('filtro_data_inicio').value = today;
+            document.getElementById('filtro_data_fim').value = today;
+        });
+
+        // Função para enviar orçamentos selecionados
+        function enviarOrcamentos() {
+            const selecionados = [];
+            document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
+                selecionados.push(checkbox.closest('tr').getAttribute('data-id'));
+            });
+            
+            if (selecionados.length === 0) {
+                Swal.fire("Atenção", "Selecione pelo menos um orçamento!", "warning");
+                return;
+            }
+            
+            // Aqui viria a lógica para enviar os orçamentos
+            Swal.fire("Sucesso", `${selecionados.length} orçamento(s) selecionado(s) para detalhes!`, "success");
+        }
+
+        // Função para deletar orçamentos selecionados
+        document.getElementById('delete-selected').addEventListener('click', function() {
+            const selecionados = [];
+            document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
+                selecionados.push(checkbox.closest('tr').getAttribute('data-id'));
+            });
+            
+            if (selecionados.length === 0) {
+                Swal.fire("Atenção", "Selecione pelo menos um orçamento para deletar!", "warning");
+                return;
+            }
+            
+            Swal.fire({
+                title: "Tem certeza?",
+                text: `Você está prestes a deletar ${selecionados.length} orçamento(s)!`,
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#3085d6",
+                confirmButtonText: "Sim, deletar!",
+                cancelButtonText: "Cancelar"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Aqui viria a lógica para deletar os orçamentos
+                    Swal.fire("Deletado!", "Os orçamentos selecionados foram deletados.", "success");
+                }
+            });
+        });
+
+        // Função para filtrar orçamentos
+        function filterOrcamentos() {
+            // Implementação simplificada para demonstração
+            console.log("Filtrando orçamentos...");
         }
 
         // Função para resetar os filtros
         function resetFilters() {
-            $('#filtro_cliente').val('Todos').trigger('change');
-            $('#filtro_data_inicio').val('');
-            $('#filtro_data_fim').val('');
-            $('#filtro_quantidade').val('15');
-            
-            // Limpar localStorage
-            localStorage.removeItem("filtroCliente");
-            localStorage.removeItem("filtroDataInicio");
-            localStorage.removeItem("filtroDataFim");
-            localStorage.removeItem("filtroQuantidade");
-            
+            document.getElementById('filtro_cliente').value = 'Todos';
+            document.getElementById('filtro_data_inicio').value = '';
+            document.getElementById('filtro_data_fim').value = '';
+            document.getElementById('filtro_quantidade').value = '15';
             filterOrcamentos();
         }
     </script>
