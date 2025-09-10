@@ -465,38 +465,53 @@
                             <label for="quantidade_cubas" class="form-label">Quantidade de Cubas:</label>
                             <input type="number" id="quantidade_cubas" name="quantidade_cubas" class="form-control" value="1" min="1">
                         </div>
-                        <div class="col-md-4 form-section">
-                            <label for="tem_cooktop" class="form-label">Tem Cooktop?</label>
-                            <select name="tem_cooktop" id="tem_cooktop" class="form-select">
-                                <option value="Não">Não</option>
-                                <option value="Sim">Sim</option>
-                            </select>
-                        </div>
-                        <div class="col-md-12" id="cuba_esculpida_fields" style="display: none;">
-                            <div class="row mt-3">
-                                <div class="col-md-4 form-section">
-                                    <label for="modelo_cuba" class="form-label">Modelo da Cuba:</label>
-                                    <select name="modelo_cuba" id="modelo_cuba" class="form-select">
-                                        <option value="Normal">Normal</option>
-                                        <option value="Prainha">Prainha</option>
-                                    </select>
-                                </div>
+                    </div>
+                `;
+                
+                // Campos de cooktop (apenas para Bancada)
+                if (tipoProduto === 'Bancada') {
+                    camposEspecificos += `
+                        <div class="row dynamic-field">
+                            <div class="col-md-12">
+                                <h5><i class="fas fa-fire me-2"></i>Configurações do Cooktop</h5>
+                            </div>
+                            <div class="col-md-4 form-section">
+                                <label for="tem_cooktop" class="form-label">Tem Cooktop?</label>
+                                <select name="tem_cooktop" id="tem_cooktop" class="form-select">
+                                    <option value="Não">Não</option>
+                                    <option value="Sim">Sim</option>
+                                </select>
                             </div>
                         </div>
-                        <div class="col-md-12" id="medidas_cuba_fields" style="display: none;">
-                            <div class="row mt-3">
-                                <div class="col-md-4 form-section">
-                                    <label for="comprimento_cuba" class="form-label">Comprimento Cuba (cm):</label>
-                                    <input type="number" id="comprimento_cuba" name="comprimento_cuba" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
-                                </div>
-                                <div class="col-md-4 form-section">
-                                    <label for="largura_cuba" class="form-label">Largura Cuba (cm):</label>
-                                    <input type="number" id="largura_cuba" name="largura_cuba" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
-                                </div>
-                                <div class="col-md-4 form-section">
-                                    <label for="profundidade_cuba" class="form-label">Profundidade Cuba (cm):</label>
-                                    <input type="number" id="profundidade_cuba" name="profundidade_cuba" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
-                                </div>
+                    `;
+                }
+                
+                // Campos específicos para cuba esculpida
+                camposEspecificos += `
+                    <div class="col-md-12" id="cuba_esculpida_fields" style="display: none;">
+                        <div class="row mt-3">
+                            <div class="col-md-4 form-section">
+                                <label for="modelo_cuba" class="form-label">Modelo da Cuba:</label>
+                                <select name="modelo_cuba" id="modelo_cuba" class="form-select">
+                                    <option value="Normal">Normal</option>
+                                    <option value="Prainha">Prainha</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-12" id="medidas_cuba_fields" style="display: none;">
+                        <div class="row mt-3">
+                            <div class="col-md-4 form-section">
+                                <label for="comprimento_cuba" class="form-label">Comprimento Cuba (cm):</label>
+                                <input type="number" id="comprimento_cuba" name="comprimento_cuba" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
+                            </div>
+                            <div class="col-md-4 form-section">
+                                <label for="largura_cuba" class="form-label">Largura Cuba (cm):</label>
+                                <input type="number" id="largura_cuba" name="largura_cuba" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
+                            </div>
+                            <div class="col-md-4 form-section">
+                                <label for="profundidade_cuba" class="form-label">Profundidade Cuba (cm):</label>
+                                <input type="number" id="profundidade_cuba" name="profundidade_cuba" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
                             </div>
                         </div>
                     </div>
@@ -892,7 +907,7 @@
                                 location.reload();
                             });
                         } else {
-                            Swal.fire("Erro!", data.error, "error");
+                            Swal.fire("Erro!", data.error || "Erro ao atualizar materiais", "error");
                         }
                     })
                     .catch(error => {
