@@ -1195,16 +1195,22 @@ def detalhes_orcamento_salvo(codigo):
     # Buscar os detalhes dos orçamentos vinculados
     orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
 
-    # 🔥 CORREÇÃO: Buscar informações do usuário que criou o orçamento
-    # Agora buscamos pelo NOME do usuário (que está em criado_por)
-    usuario = Usuario.query.filter_by(nome=orcamento_salvo.criado_por).first()
-    telefone_usuario = usuario.telefone if usuario else "Não informado"
-
     # Calcular o valor total
     valor_total_final = sum(o.valor_total for o in orcamentos)
+    valor_total_float = valor_total_final  # Guardando o valor numérico para cálculos
 
     # ✅ Adicionando a URL da logo para o template
     logo_url = "https://orcamento-t9w2.onrender.com/static/logo.jpg"
+    
+    # Buscar telefone do usuário
+    usuario = Usuario.query.filter_by(cpf=session.get('user_cpf')).first()
+    telefone_usuario = usuario.telefone if usuario else ""
+
+    # Valores padrão para o rodapé
+    prazo_entrega = 15
+    desconto_avista = 5
+    desconto_parcelado = 10
+    observacoes = "Medidas sujeitas a confirmação no local. Valores válidos por 30 dias."
 
     return render_template(
         "detalhes_orcamento_salvo.html",
@@ -1214,7 +1220,12 @@ def detalhes_orcamento_salvo(codigo):
         cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
         orcamentos=orcamentos,
         valor_total_final="R$ {:,.2f}".format(valor_total_final).replace(",", "X").replace(".", ",").replace("X", "."),
-        telefone_usuario=telefone_usuario  # 🔥 Agora passando o telefone corretamente
+        valor_total_float=valor_total_float,  # Passando o valor numérico também
+        telefone_usuario=telefone_usuario,
+        prazo_entrega=prazo_entrega,
+        desconto_avista=desconto_avista,
+        desconto_parcelado=desconto_parcelado,
+        observacoes=observacoes
     )
 
 
