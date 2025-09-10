@@ -145,12 +145,21 @@
 
 .payment-option {
     margin-bottom: 8px;
+    flex: 1;
+    min-width: 0;
+    padding: 0 10px;
+    border-right: 1px solid #ddd;
+}
+
+.payment-option:last-child {
+    border-right: none;
 }
 
 .installment-calc {
     margin-top: 5px;
     font-size: 12px;
-    color: #555;
+    color: #333; /* Tornando mais escuro para melhor visibilidade */
+    font-weight: bold; /* Destacando mais */
 }
 
 .btn-edit {
@@ -180,6 +189,32 @@
     padding: 5px 10px;
     cursor: pointer;
     font-size: 12px;
+}
+
+.payment-options-container {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+.payment-option h4 {
+    margin: 0 0 8px 0;
+    font-size: 13px;
+    color: #000;
+}
+
+.payment-detail {
+    font-size: 12px;
+    margin: 3px 0;
+}
+
+.payment-highlight {
+    font-weight: bold;
+    color: #000;
+    background-color: #f0f0f0;
+    padding: 3px;
+    border-radius: 3px;
 }
 
 @media print {
@@ -259,6 +294,22 @@
         appearance: none;
         -webkit-appearance: none;
     }
+    
+    .payment-options-container {
+        display: flex;
+        justify-content: space-between;
+    }
+    
+    .payment-option {
+        flex: 1;
+        min-width: 0;
+        padding: 0 10px;
+        border-right: 1px solid #ddd;
+    }
+    
+    .payment-option:last-child {
+        border-right: none;
+    }
 }
 
 .cliente-header h2,
@@ -278,8 +329,6 @@
         word-wrap: break-word !important;
         vertical-align: top !important;
     }
-}
-  
 
 
 .header-container {
@@ -460,51 +509,59 @@ p strong {
     <div class="footer-section">
         <div class="footer-title">Condições de Pagamento:</div>
         <div class="footer-content">
-            <div class="payment-option">
-                1. À vista (Dinheiro/PIX): 
-                <span id="discount1Display">{{ desconto_avista }}</span>% de desconto
-                <button class="btn-edit" onclick="toggleEdit('discount1')">Editar</button>
+            <div class="payment-options-container">
+                <!-- Cartão de Crédito (agora primeiro) -->
+                <div class="payment-option">
+                    <h4>3. Cartão de Crédito</h4>
+                     <div class="installment-calc payment-highlight">
+                        Opções de parcelamento:
+                        <span id="parcelamentoCartao">
+                            {% for i in range(1, 11) %}
+                                {% set parcela = valor_total_float / i %}
+                                {% if parcela >= 100 or i == 1 %}
+                                    {{ i }}x de R$ {{ "%.2f"|format(parcela) }}{% if not loop.last %}, {% endif %}
+                                {% endif %}
+                            {% endfor %}
+                        </span>
+                    </div>
+                </div>
                 
-                <div id="discount1Edit" class="edit-mode" style="display: none;">
-                    <input type="number" id="discount1Input" class="edit-field" value="{{ desconto_avista }}" min="0" max="100">% de desconto
-                    <button class="btn-save" onclick="saveValue('discount1')">Salvar</button>
-                    <button class="btn-cancel" onclick="cancelEdit('discount1')">Cancelar</button>
+                <!-- À vista (Dinheiro/PIX) -->
+                <div class="payment-option">
+                    <h4>1. À vista (Dinheiro/PIX)</h4>
+                    <div class="payment-detail">
+                        <span id="discount1Display">{{ desconto_avista }}</span>% de desconto
+                        <button class="btn-edit" onclick="toggleEdit('discount1')">Editar</button>
+                    </div>
+                    <div class="payment-detail">• Sinal de 50% e 50% na entrega</div>
+                    <div class="installment-calc payment-highlight">
+                        Valor com desconto: R$ <span id="valorAvista">{{ "%.2f"|format(valor_total_float * (1 - desconto_avista/100)) }}</span>
+                    </div>
+                    
+                    <div id="discount1Edit" class="edit-mode" style="display: none;">
+                        <input type="number" id="discount1Input" class="edit-field" value="{{ desconto_avista }}" min="0" max="100">% de desconto
+                        <button class="btn-save" onclick="saveValue('discount1')">Salvar</button>
+                        <button class="btn-cancel" onclick="cancelEdit('discount1')">Cancelar</button>
+                    </div>
                 </div>
-                <div>• Sinal de 50% e 50% na entrega</div>
-                <div class="installment-calc">
-                    Valor com desconto: R$ <span id="valorAvista">{{ "%.2f"|format(valor_total_float * (1 - desconto_avista/100)) }}</span>
-                </div>
-            </div>
-            
-            <div class="payment-option">
-                2. Parcelado (Dinheiro/PIX): 
-                <span id="discount2Display">{{ desconto_parcelado }}</span>% de desconto
-                <button class="btn-edit" onclick="toggleEdit('discount2')">Editar</button>
                 
-                <div id="discount2Edit" class="edit-mode" style="display: none;">
-                    <input type="number" id="discount2Input" class="edit-field" value="{{ desconto_parcelado }}" min="0" max="100">% de desconto
-                    <button class="btn-save" onclick="saveValue('discount2')">Salvar</button>
-                    <button class="btn-cancel" onclick="cancelEdit('discount2')">Cancelar</button>
-                </div>
-                <div>• Sinal de 80% e 20% na entrega</div>
-                <div class="installment-calc">
-                    Valor com desconto: R$ <span id="valorParcelado">{{ "%.2f"|format(valor_total_float * (1 - desconto_parcelado/100)) }}</span>
-                </div>
-            </div>
-            
-            <div class="payment-option">
-                3. Cartão de Crédito: 
-                <div>• Até 10x sem juros (parcelas mínimas de R$ 100,00)</div>
-                <div class="installment-calc">
-                    Opções de parcelamento:
-                    <span id="parcelamentoCartao">
-                        {% for i in range(1, 11) %}
-                            {% set parcela = valor_total_float / i %}
-                            {% if parcela >= 100 or i == 1 %}
-                                {{ i }}x de R$ {{ "%.2f"|format(parcela) }}{% if not loop.last %}, {% endif %}
-                            {% endif %}
-                        {% endfor %}
-                    </span>
+                <!-- Parcelado (Dinheiro/PIX) -->
+                <div class="payment-option">
+                    <h4>2. Parcelado (Dinheiro/PIX)</h4>
+                    <div class="payment-detail">
+                        <span id="discount2Display">{{ desconto_parcelado }}</span>% de desconto
+                        <button class="btn-edit" onclick="toggleEdit('discount2')">Editar</button>
+                    </div>
+                    <div class="payment-detail">• Sinal de 80% e 20% na entrega</div>
+                    <div class="installment-calc payment-highlight">
+                        Valor com desconto: R$ <span id="valorParcelado">{{ "%.2f"|format(valor_total_float * (1 - desconto_parcelado/100)) }}</span>
+                    </div>
+                    
+                    <div id="discount2Edit" class="edit-mode" style="display: none;">
+                        <input type="number" id="discount2Input" class="edit-field" value="{{ desconto_parcelado }}" min="0" max="100">% de desconto
+                        <button class="btn-save" onclick="saveValue('discount2')">Salvar</button>
+                        <button class="btn-cancel" onclick="cancelEdit('discount2')">Cancelar</button>
+                    </div>
                 </div>
             </div>
         </div>
