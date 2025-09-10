@@ -1310,48 +1310,51 @@ def gerar_pdf_orcamento(codigo):
 
     ids = [int(id) for id in orcamento_salvo.orcamentos_ids.split(",")]
     orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
+    
+    # 🔥 CORREÇÃO: Buscar telefone do usuário para o PDF também
+    usuario = Usuario.query.filter_by(nome=orcamento_salvo.criado_por).first()
+    telefone_usuario = usuario.telefone if usuario else "Não informado"
+    
     valor_total_final = sum(o.valor_total for o in orcamentos)
 
-    # ✅ Renderizamos o HTML normalmente sem a logo
+    # ✅ Renderizamos o HTML com todas as variáveis necessárias
     rendered_html = render_template(
         "detalhes_orcamento_salvo.html",
+        logo_url="https://orcamento-t9w2.onrender.com/static/logo.jpg",
         codigo_orcamento=orcamento_salvo.codigo,
         data_salvo=orcamento_salvo.data_salvo,
         cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
         orcamentos=orcamentos,
         valor_total_final="R$ {:,.2f}".format(valor_total_final).replace(",", "X").replace(".", ",").replace("X", "."),
+        telefone_usuario=telefone_usuario,  # 🔥 AGORA PASSANDO O TELEFONE PARA O PDF TAMBÉM
         pdf=True
     )
 
-    # ✅ Criamos um arquivo temporário para armazenar o PDF sem a logo
+    # ✅ Criamos um arquivo temporário para armazenar o PDF
     temp_pdf_path = "/tmp/temp_orcamento.pdf"
     HTML(string=rendered_html, base_url="https://orcamento-t9w2.onrender.com").write_pdf(temp_pdf_path)
 
-    # ✅ Definição do caminho local para a logo SEM precisar baixar
+    # ✅ Definição do caminho local para a logo
     logo_path = "static/logo.jpg"
 
     # ✅ Inserir a logo no PDF diretamente do caminho local
     final_pdf_path = "/tmp/final_orcamento.pdf"
     doc = fitz.open(temp_pdf_path)
 
-   
+    if os.path.exists(logo_path):
+        page = doc[0]
+        page_width = page.rect.width
+        page_height = page.rect.height
 
-    if os.path.exists(logo_path):  # 🔥 Apenas adiciona a logo se o arquivo existir
-        page = doc[0]  # Pega a primeira página do PDF
-        page_width = page.rect.width  # Largura total da página
-        page_height = page.rect.height  # Altura total da página
+        logo_width = 240
+        logo_height = 120
 
-        logo_width = 240  # Ajuste conforme necessário
-        logo_height = 120  # Ajuste conforme necessário
-
-        # 🔥 Posiciona a logo no canto superior direito
         rect = fitz.Rect(page_width - logo_width - -20, 20, page_width - -20, 20 + logo_height)
-
         page.insert_image(rect, filename=logo_path)
     else:
         print("⚠️ Aviso: A logo não foi adicionada porque o arquivo local não foi encontrado.")
 
-    doc.save(final_pdf_path)  # Salva o PDF final com a logo (ou sem, caso não exista)
+    doc.save(final_pdf_path)
     doc.close()
 
     # ✅ Retornamos o PDF final com a logo inserida
