@@ -3,449 +3,372 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Detalhes dos Orçamentos - Prime Marble Shop</title>
-    <style>
-        :root {
-            --primary-black: #000000;
-            --primary-yellow: #FFD700;
-            --secondary-yellow: #FFED85;
-            --light-gray: #f5f5f5;
-            --white: #ffffff;
-            --dark-text: #333333;
-        }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            font-size: 14px;
-            color: var(--dark-text);
-            line-height: 1.4;
+    <title>Detalhes dos Orçamentos</title>
+   <style>
+    
+    /* Reduzir tamanho geral das fontes para 80% do original */
+    body {
+        font-size: 15px; /* Antes era 16px, agora reduzido 20% */
+    }
+
+    /* Reduzindo tamanho das tabelas */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 15px; /* Redução de 20% */
+    }
+
+    th, td {
+        border: 1px solid black;
+        padding: 3px; /* Redução leve do espaçamento */
+        text-align: left;
+    }
+
+    th {
+        background-color: #f2f2f2;
+        font-size: 14px; /* Mantendo maior que o texto normal */
+    }
+
+    /* Reduzindo cabeçalhos do cliente */
+    .cliente-header {
+        font-size: 15px; /* Antes era 20px, agora 16px */
+        font-weight: bold;
+        margin-top: 14px;
+        margin-bottom: 7px;
+    }
+
+    /* Reduzindo cabeçalhos de produtos */
+    .produto-header {
+        font-size: 15px; /* Antes era 18px, agora 15px */
+        font-weight: bold;
+        margin-top: 12px;
+        margin-bottom: 6px;
+    }
+
+    /* Reduzir tamanho do botão de impressão */
+    .print-button {
+        font-size: 14px; /* Antes era 16px */
+        padding: 8px;
+    }
+
+  
+
+    /* Reduzindo informações do cliente */
+    .cliente-info {
+        font-size: 13px;
+        color: #555;
+        font-weight: normal;
+    }
+
+
+.header-container {
+    display: flex;
+    justify-content: flex-start; /* Mantém o título alinhado à esquerda */
+    align-items: center; /* Alinha verticalmente */
+    position: relative; /* Define um contexto para posicionar a logo */
+    width: 100%; /* Ocupa toda a largura disponível */
+}
+
+.logo-empresa {
+    position: absolute;
+    right: 0; /* Move a logo totalmente para o canto direito */
+    top: 80px; /* Centraliza verticalmente em relação ao título */
+    transform: translateY(-50%); /* Ajuste fino para centralizar exatamente */
+    height: 150px; /* Ajuste conforme necessário */
+    width: auto; /* Mantém a proporção */
+}
+.total-box {
+    display: inline-block; /* Faz a largura se ajustar ao conteúdo */
+    background-color: #f8f9fa;
+    border: 2px solid #000;
+    padding: 8px 12px;
+    font-size: 16px;
+    font-weight: bold;
+    border-radius: 5px;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    margin-bottom: 10px; /* Espaço antes da tabela */
+    float: right; /* Move a caixa para o lado direito */
+} 
+       
+.cliente-header h2,
+.cliente-header p {
+    display: flex;
+    align-items: flex-start;
+    margin: 3px 0;
+}
+
+.cliente-header strong {
+    white-space: nowrap;
+    margin-right: 5px;
+}
+
+.wrap-text {
+    display: inline-block;
+    max-width: 75%;
+    word-wrap: break-word;
+}
+@media print {
+    @page {
+       margin: 5mm; /* Margens reduzidas para melhor aproveitamento */
+    }
+
+    /* Ajusta a logo para impressão */
+    .logo-empresa {
+        position: absolute;
+        top: 5mm;
+        right: 10mm;
+        height: 120px !important;
+        width: auto !important;
+    }
+
+      
+       body {
             margin: 0;
-            padding: 15px;
-            background-color: var(--white);
+            padding: 0;
         }
-        
-        /* Container principal */
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            background: var(--white);
-            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
-            border-radius: 8px;
-            overflow: hidden;
-        }
-        
-        /* Cabeçalho com cores da empresa */
-        .header {
-            background: var(--primary-black);
-            color: var(--white);
-            padding: 20px;
-            position: relative;
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-        }
-        
-        .company-info {
-            flex: 1;
-        }
-        
-        .company-info h1 {
-            color: var(--primary-yellow);
-            margin: 0 0 10px 0;
-            font-size: 24px;
-        }
-        
-        .company-info p {
-            margin: 4px 0;
-            font-size: 13px;
-        }
-        
-        .logo-container {
-            text-align: right;
-        }
-        
-        .logo-empresa {
-            height: 100px;
-            width: auto;
-            max-width: 200px;
-        }
-        
-        /* Informações do cliente */
-        .client-info {
-            background: var(--light-gray);
-            padding: 15px 20px;
-            border-left: 4px solid var(--primary-yellow);
-        }
-        
-        .client-info h2 {
-            color: var(--primary-black);
-            margin: 0 0 10px 0;
-            font-size: 18px;
-            display: flex;
-            align-items: center;
-        }
-        
-        .client-info h2:before {
-            content: "👤";
-            margin-right: 8px;
-        }
-        
-        .client-details {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 8px;
-        }
-        
-        .client-detail {
-            display: flex;
-        }
-        
-        .client-detail strong {
-            min-width: 70px;
-            color: var(--primary-black);
-        }
-        
-        /* Informações do orçamento */
-        .budget-info {
-            padding: 15px 20px;
-            background: var(--secondary-yellow);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        
-        .budget-details {
-            font-size: 14px;
-        }
-        
-        .budget-details strong {
-            color: var(--primary-black);
-        }
-        
-        .total-box {
-            background: var(--primary-black);
-            color: var(--primary-yellow);
-            padding: 10px 15px;
-            border-radius: 5px;
-            font-weight: bold;
-            font-size: 16px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
-        }
-        
-        /* Tabelas de produtos */
-        .products-section {
-            padding: 15px 20px;
-        }
-        
-        .product-type-header {
-            background: var(--primary-black);
-            color: var(--primary-yellow);
-            padding: 8px 12px;
-            margin: 15px 0 10px 0;
-            border-radius: 4px;
-            font-size: 16px;
-            font-weight: bold;
-        }
-        
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-bottom: 15px;
-            font-size: 13px;
-        }
-        
-        th {
-            background: var(--primary-yellow);
-            color: var(--primary-black);
-            padding: 8px;
-            text-align: left;
-            border: 1px solid #ddd;
-        }
-        
-        td {
-            padding: 8px;
-            border: 1px solid #ddd;
-        }
-        
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        
-        .valor-tabela {
-            font-weight: bold;
-            color: var(--primary-black);
-        }
-        
-        /* Botões de ação */
-        .action-buttons {
-            padding: 15px 20px;
-            text-align: center;
-            background: var(--light-gray);
-            border-top: 1px solid #ddd;
-        }
-        
-        .btn {
-            display: inline-block;
-            padding: 10px 20px;
-            margin: 0 10px;
-            border: none;
-            border-radius: 4px;
-            font-weight: bold;
-            cursor: pointer;
-            text-decoration: none;
-            transition: all 0.3s;
-        }
-        
-        .btn-primary {
-            background: var(--primary-black);
-            color: var(--primary-yellow);
-        }
-        
-        .btn-primary:hover {
-            background: #333;
-        }
-        
-        .btn-secondary {
-            background: var(--primary-yellow);
-            color: var(--primary-black);
-        }
-        
-        .btn-secondary:hover {
-            background: #e6c200;
-        }
-        
-        /* Estilos para impressão */
-        @media print {
-            @page {
-                margin: 10mm;
-            }
-            
-            body {
-                padding: 0;
-                font-size: 12px;
-                background: white;
-            }
-            
-            .container {
-                box-shadow: none;
-                max-width: 100%;
-            }
-            
-            .action-buttons, .btn {
-                display: none !important;
-            }
-            
-            .header {
-                padding: 10mm 0 5mm 0;
-                background: white !important;
-                color: black !important;
-            }
-            
-            .company-info h1 {
-                color: black !important;
-            }
-            
-            .logo-empresa {
-                height: 80px;
-            }
-            
-            .client-info {
-                background: white !important;
-                border-left: 2px solid black;
-            }
-            
-            .budget-info {
-                background: white !important;
-                border-bottom: 2px solid var(--primary-yellow);
-            }
-            
-            .total-box {
-                background: black !important;
-                color: yellow !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-            
-            .product-type-header {
-                background: black !important;
-                color: yellow !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-            
-            th {
-                background: yellow !important;
-                color: black !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-            
-            table {
-                page-break-inside: avoid;
-            }
-            
-            .product-type-header {
-                page-break-after: avoid;
-            }
-        }
-        
-        /* Ajuste para textos longos */
-        .wrap-text {
-            word-break: break-word;
-        }
-    </style>
+
+    /* Evita que títulos sejam separados */
+    .produto-header, .cliente-header {
+        page-break-after: avoid;
+        font-weight: bold;
+        font-size: 14px;
+    }
+
+    /* Permite quebra de tabelas, se necessário */
+    table {
+        page-break-inside: auto !important;
+        width: 100%;
+    }
+
+    th, td {
+        border: 1px solid black;
+        padding: 4px;
+        text-align: left;
+        font-size: 10px; /* 🔥 Fonte menor nas células */
+    }
+
+    /* Evita que o total seja separado do conteúdo */
+    .total-box {
+        font-size: 14px !important;
+        padding: 6px !important;
+        page-break-before: avoid; /* Mantém o total sempre na mesma página */
+        page-break-after: avoid;
+    }
+
+    
+    /* Evita separação de cliente e produtos */
+    .cliente-header {
+        page-break-after: avoid;
+        font-weight: bold;
+        font-size: 14px;
+    }
+
+    /* Oculta botões e links na impressão */
+    .print-button, .btn-voltar {
+        display: none !important;
+    }
+}
+
+.cliente-header h2,
+    .cliente-header p {
+        display: block !important; /* Troque flex por block */
+        margin: 3px 0 !important;
+    }
+
+    .cliente-header strong {
+        display: inline !important;
+        white-space: nowrap !important;
+    }
+
+    .wrap-text {
+        display: inline-block !important;
+        max-width: 60% !important;
+        word-wrap: break-word !important;
+        vertical-align: top !important;
+    }
+}
+  
+
+
+.header-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0; /* Remove espaço extra */
+}
+
+h1, h2, h3, p {
+    margin: 0; /* Remove qualquer margem extra */
+    padding: 0; /* Remove espaçamentos internos */
+    line-height: 1.2; /* Ajusta a altura da linha para reduzir espaços verticais */
+}
+
+.empresa-header, .cliente-header {
+    margin-bottom: 5px; /* Mantém um pequeno espaçamento */
+}
+
+.empresa-header h1, .cliente-header h2 {
+    font-size: 18px; /* Define o mesmo tamanho para os títulos */
+    margin-bottom: 3px; /* Reduz o espaço abaixo do título */
+    font-weight: bold;
+}
+
+p strong {
+    font-weight: bold; /* Mantém o rótulo em negrito */
+}
+
+.info-normal {
+    font-weight: normal; /* Remove o negrito dos dados do cliente */
+}
+
+.detalhes-orcamento {
+    margin-top: 5px; /* Reduz espaço antes do título "Detalhes do Orçamento" */
+}
+</style>
 </head>
 <body>
-    <div class="container">
-        <!-- Cabeçalho com logo e informações da empresa -->
-        <div class="header">
-            <div class="company-info">
-                <h1>Prime Marble Shop</h1>
-                <p><strong>Endereço:</strong> Estrada do Engenho, 1800 - Bangu</p>
-                <p><strong>CNPJ:</strong> 39.903.780/0001-15</p>
-                <p><strong>Telefone:</strong> (21) 99999-9999</p>
-            </div>
-            <div class="logo-container">
-                <img src="{{ logo_url }}" alt="Logo da Empresa" class="logo-empresa">
-            </div>
-        </div>
-        
-        <!-- Informações do cliente -->
-        <div class="client-info">
-            <h2>Cliente</h2>
-            <div class="client-details">
-                <div class="client-detail">
-                    <strong>Nome:</strong>
-                    <span class="wrap-text">{{ cliente_nome }}</span>
-                </div>
-                <div class="client-detail">
-                    <strong>Endereço:</strong>
-                    <span class="wrap-text">{{ orcamentos[0].cliente.endereco }}</span>
-                </div>
-                <div class="client-detail">
-                    <strong>Telefone:</strong>
-                    <span>{{ orcamentos[0].cliente.telefone }}</span>
-                </div>
-                <div class="client-detail">
-                    <strong>Documento:</strong>
-                    <span>{{ orcamentos[0].cliente.documento }}</span>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Informações do orçamento -->
-        <div class="budget-info">
-            <div class="budget-details">
-                <p><strong>Orçamento:</strong> {{ codigo_orcamento }}</p>
-                <p><strong>Data:</strong> {{ data_salvo.strftime('%d/%m/%Y') }}</p>
-            </div>
-            <div class="total-box">
-                Valor Total: {{ valor_total_final }}
-            </div>
-        </div>
-        
-        <!-- Produtos por tipo -->
-        <div class="products-section">
-            {% set tipos_produtos = {} %}
-            {% for orcamento in orcamentos %}
-                {% if orcamento.tipo_produto not in tipos_produtos %}
-                    {% set tipos_produtos = tipos_produtos.update({orcamento.tipo_produto: []}) or tipos_produtos %}
-                {% endif %}
-                {% set _ = tipos_produtos[orcamento.tipo_produto].append(orcamento) %}
-            {% endfor %}
-            
-            {% for tipo, produtos in tipos_produtos.items() %}
-                <div class="product-type-header">{{ tipo }}</div>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Material</th>
-                            <th>Qtd</th>
-                            <th>Comp.</th>
-                            <th>Larg.</th>
-                            {% if tipo in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
-                            <th>Saia</th>
-                            {% endif %}
-                            {% if tipo in ["Bancada", "Lavatorio"] %}
-                            <th>Fronte</th>
-                            {% endif %}
-                            {% if tipo in ["Bancada", "Lavatorio"] %}
-                            <th>Cuba</th>
-                            {% endif %}
-                            {% if tipo == "Bancada" %}
-                            <th>Cooktop</th>
-                            {% endif %}
-                            {% if tipo in ["Nicho", "Nicho Sem Fundo"] %}
-                            <th>Profund.</th>
-                            <th>Fundo</th>
-                            <th>Alisar</th>
-                            {% endif %}
-                            <th>Outros Custos</th>
-                            <th>Valor</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for produto in produtos %}
-                        <tr>
-                            <td>{{ produto.material.nome }}</td>
-                            <td>{{ produto.quantidade }}</td>
-                            <td>{{ produto.comprimento }} cm</td>
-                            <td>{{ produto.largura }} cm</td>
-                            {% if tipo in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
-                            <td>
-                                {% if produto.comprimento_saia or produto.largura_saia %}
-                                    {{ produto.comprimento_saia }} x {{ produto.largura_saia }} cm
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
-                            {% endif %}
-                            {% if tipo in ["Bancada", "Lavatorio"] %}
-                            <td>
-                                {% if produto.comprimento_fronte or produto.largura_fronte %}
-                                    {{ produto.comprimento_fronte }} x {{ produto.largura_fronte }} cm
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
-                            {% endif %}
-                            {% if tipo in ["Bancada", "Lavatorio"] %}
-                            <td>
-                                {% if produto.tipo_cuba == "Esculpida" %}
-                                    Esculpida ({{ produto.quantidade_cubas }}) - {{ produto.comprimento_cuba }} x {{ produto.largura_cuba }} x {{ produto.profundidade_cuba }} cm
-                                {% elif produto.tipo_cuba %}
-                                    {{ produto.tipo_cuba }} ({{ produto.quantidade_cubas }})
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
-                            {% endif %}
-                            {% if tipo == "Bancada" %}
-                            <td>{% if produto.tem_cooktop == "Sim" %}Sim{% else %}-{% endif %}</td>
-                            {% endif %}
-                            {% if tipo in ["Nicho", "Nicho Sem Fundo"] %}
-                            <td>{{ produto.profundidade_nicho }} cm</td>
-                            <td>{% if produto.tem_fundo == "Sim" %}Sim{% else %}Não{% endif %}</td>
-                            <td>{% if produto.tem_alisar == "Sim" %}Sim ({{ produto.largura_alisar }} cm){% else %}Não{% endif %}</td>
-                            {% endif %}
-                            <td>R$ {{ "%.2f"|format(produto.outros_custos) }}</td>
-                            <td class="valor-tabela">R$ {{ "%.2f"|format(produto.valor_total) }}</td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            {% endfor %}
-        </div>
-        
-        <!-- Botões de ação -->
-        {% if not pdf %}
-        <div class="action-buttons">
-            <button class="btn btn-primary" onclick="window.print()">Imprimir</button>
-            <button class="btn btn-secondary" onclick="window.location.href='/gerar_pdf_orcamento/{{ codigo_orcamento }}'">Gerar PDF</button>
-            <a href="/orcamentos_salvos" class="btn btn-primary">Voltar para Orçamentos Salvos</a>
-        </div>
-        {% endif %}
+<div class="header-container">
+    <img src="{{ logo_url }}" alt="Logo da Empresa" class="logo-empresa">
+</div>
+
+<div class="empresa-header">
+    <h1>Prime Marble Shop</h1>
+    <p><strong>Endereço:</strong> Estrada do Engenho, 1800 - Bangu</p>
+    <p><strong>CNPJ:</strong> 39.903.780/0001-15</p>
+</div>
+
+<div class="cliente-header">
+    <h2>
+        <strong>Cliente:</strong>
+        <span class="wrap-text">{{ cliente_nome }}</span>
+    </h2>
+    <p>
+        <strong>Endereço:</strong>
+        <span class="wrap-text info-normal">{{ orcamentos[0].cliente.endereco }}</span>
+    </p>
+    <p>
+        <strong>Telefone:</strong>
+        <span class="info-normal">{{ orcamentos[0].cliente.telefone }}</span>
+    </p>
+</div>
+
+
+<h2>Detalhes do Orçamento</h2>
+<p class="orcamento-info">
+    <strong>Orçamento:</strong> {{ codigo_orcamento }}<br>
+    <strong>Data:</strong> {{ data_salvo.strftime('%d/%m/%Y') }}
+</p>
+<div class="total-box">
+    Valor Total: <span id="valorTotal">{{ valor_total_final }}</span>
     </div>
+
+
+<br>
+
+{% set tipos_produtos = {} %}
+
+{% for orcamento in orcamentos %}
+    {% if orcamento.tipo_produto not in tipos_produtos %}
+        {% set tipos_produtos = tipos_produtos.update({orcamento.tipo_produto: []}) or tipos_produtos %}
+    {% endif %}
+    {% set _ = tipos_produtos[orcamento.tipo_produto].append(orcamento) %}
+{% endfor %}
+
+{% for tipo, produtos in tipos_produtos.items() %}
+    <div class="produto-header"> {{ tipo }}</div>
+    <table>
+        <thead>
+            <tr>
+                <th>Material</th>
+                <th>Qtd</th>
+                <th>Comp.</th>
+                <th>Larg.</th>
+                {% if tipo in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
+                <th>Saia</th>
+                {% endif %}
+                {% if tipo in ["Bancada", "Lavatorio"] %}
+                <th>Fronte</th>
+                {% endif %}
+                {% if tipo in ["Bancada", "Lavatorio"] %}
+                <th>Cuba</th>
+                {% endif %}
+                {% if tipo == "Bancada" %}
+                <th>Cooktop</th>
+                {% endif %}
+                {% if tipo in ["Nicho", "Nicho Sem Fundo"] %}
+                <th>Profundidade</th>
+                <th>Fundo</th>
+                <th>Alisar</th>
+                <th>Larg. do Alisar</th>
+                {% endif %}
+                <th>Outros Custos</th>
+                <th>Valor</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for produto in produtos %}
+            <tr>
+                <td>{{ produto.material.nome }}</td>
+                <td>{{ produto.quantidade }}</td>
+                <td>{{ produto.comprimento }} cm</td>
+                <td>{{ produto.largura }} cm</td>
+                {% if tipo in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
+                <td>{{ produto.comprimento_saia }} x {{ produto.largura_saia }} cm</td>
+                {% endif %}
+                {% if tipo in ["Bancada", "Lavatorio"] %}
+                <td>{{ produto.comprimento_fronte }} x {{ produto.largura_fronte }} cm</td>
+                {% endif %}
+                {% if tipo in ["Bancada", "Lavatorio"] %}
+                <td>
+                    {% if produto.tipo_cuba == "Esculpida" %}
+                        Esculpida ({{ produto.quantidade_cubas }}) - {{ produto.comprimento_cuba }} x {{ produto.largura_cuba }} x {{ produto.profundidade_cuba }} cm
+                    {% elif produto.tipo_cuba %}
+                        {{ produto.tipo_cuba }} ({{ produto.quantidade_cubas }})
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                {% endif %}
+                {% if tipo == "Bancada" %}
+                <td>{% if produto.tem_cooktop == "Sim" %}Sim{% else %}-{% endif %}</td>
+                {% endif %}
+                {% if tipo in ["Nicho", "Nicho Sem Fundo"] %}
+                <td>{{ produto.profundidade_nicho }} cm</td>
+                <td>{% if produto.tem_fundo == "Sim" %}Sim{% else %}Não{% endif %}</td>
+                <td>{% if produto.tem_alisar == "Sim" %}Sim{% else %}Não{% endif %}</td>
+                <td>{% if produto.tem_alisar == "Sim" %}{{ produto.largura_alisar }} cm{% else %}-{% endif %}</td>
+                {% endif %}
+                <td>R$ {{ "%.2f"|format(produto.outros_custos) }}</td>
+                <td class="valor-tabela">R$ {{ "%.2f"|format(produto.valor_total) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+{% endfor %}
+
+<br>
+
+<!-- Botão de impressão -->
+{% if not pdf %}
+    <!--<button class="print-button" onclick="window.print()">Imprimir</button> -->
+    </br>
+    <button onclick="window.location.href='/gerar_pdf_orcamento/{{ codigo_orcamento }}'">Gerar PDF</button>
+    </br>
+    </br>
+    <h2><a href="/orcamentos_salvos" class="btn-voltar">Voltar para Orçamentos Salvos</a></h2>
+{% endif %}
+</br>
+</br>
+</br>
+</br>
+</br>
+</br>
+</br>
+</br>    
+</br>
+</br>
+
+    
 </body>
 </html>
