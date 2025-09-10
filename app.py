@@ -100,10 +100,10 @@ class OrcamentoSalvo(db.Model):
     criado_por = db.Column(db.String)  # ← COLUNA FALTANDO
     status = db.Column(db.String, default='Em Espera')  # ← COLUNA FALTANDO
     tipo_cliente = db.Column(db.String, default='Cliente de Porta')  # ← COLUNA FALTANDO
-    prazo_entrega = db.Column(db.String)
-    desconto_avista = db.Column(db.Float)
-    desconto_parcelado = db.Column(db.Float)
-    observacoes = db.Column(db.Text)
+    prazo_entrega = db.Column(db.Integer, default=15, nullable=False)
+    desconto_avista = db.Column(db.Integer, default=5, nullable=False)
+    desconto_parcelado = db.Column(db.Integer, default=10, nullable=False)
+    observacoes = db.Column(db.Text, default="Medidas sujeitas a confirmação no local. Valores válidos por 7 dias.", nullable=False)
 
     @property
     def cliente_nome(self):
@@ -1203,11 +1203,11 @@ def detalhes_orcamento_salvo(codigo):
     usuario = Usuario.query.filter_by(cpf=session.get('user_cpf')).first()
     telefone_usuario = usuario.telefone if usuario else ""
 
-    # ✅ USAR OS VALORES SALVOS NO BANCO
-    prazo_entrega = orcamento_salvo.prazo_entrega
-    desconto_avista = orcamento_salvo.desconto_avista
-    desconto_parcelado = orcamento_salvo.desconto_parcelado
-    observacoes = orcamento_salvo.observacoes
+    # ✅ USAR OS VALORES SALVOS NO BANCO COM VALORES PADRÃO DE FALLBACK
+    prazo_entrega = orcamento_salvo.prazo_entrega if orcamento_salvo.prazo_entrega is not None else 15
+    desconto_avista = orcamento_salvo.desconto_avista if orcamento_salvo.desconto_avista is not None else 5
+    desconto_parcelado = orcamento_salvo.desconto_parcelado if orcamento_salvo.desconto_parcelado is not None else 10
+    observacoes = orcamento_salvo.observacoes if orcamento_salvo.observacoes is not None else "Medidas sujeitas a confirmação no local. Valores válidos por 7 dias."
 
     return render_template(
         "detalhes_orcamento_salvo.html",
@@ -1326,11 +1326,11 @@ def gerar_pdf_orcamento(codigo):
     usuario = Usuario.query.filter_by(cpf=session.get('user_cpf')).first()
     telefone_usuario = usuario.telefone if usuario else ""
 
-    # ✅ USAR OS VALORES SALVOS NO BANCO EM VEZ DOS VALORES PADRÃO
-    prazo_entrega = orcamento_salvo.prazo_entrega
-    desconto_avista = orcamento_salvo.desconto_avista
-    desconto_parcelado = orcamento_salvo.desconto_parcelado
-    observacoes = orcamento_salvo.observacoes
+    # ✅ USAR OS VALORES SALVOS NO BANCO COM VALORES PADRÃO DE FALLBACK
+    prazo_entrega = orcamento_salvo.prazo_entrega if orcamento_salvo.prazo_entrega is not None else 15
+    desconto_avista = orcamento_salvo.desconto_avista if orcamento_salvo.desconto_avista is not None else 5
+    desconto_parcelado = orcamento_salvo.desconto_parcelado if orcamento_salvo.desconto_parcelado is not None else 10
+    observacoes = orcamento_salvo.observacoes if orcamento_salvo.observacoes is not None else "Medidas sujeitas a confirmação no local. Valores válidos por 7 dias."
 
     # ✅ Renderizamos o HTML normalmente sem a logo
     rendered_html = render_template(
