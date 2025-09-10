@@ -1195,6 +1195,11 @@ def detalhes_orcamento_salvo(codigo):
     # Buscar os detalhes dos orçamentos vinculados
     orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
 
+    # 🔥 CORREÇÃO: Buscar informações do usuário que criou o orçamento
+    # Agora buscamos pelo NOME do usuário (que está em criado_por)
+    usuario = Usuario.query.filter_by(nome=orcamento_salvo.criado_por).first()
+    telefone_usuario = usuario.telefone if usuario else "Não informado"
+
     # Calcular o valor total
     valor_total_final = sum(o.valor_total for o in orcamentos)
 
@@ -1203,13 +1208,13 @@ def detalhes_orcamento_salvo(codigo):
 
     return render_template(
         "detalhes_orcamento_salvo.html",
-        logo_url=logo_url,  # 🔥 Agora a logo é enviada para o HTML
+        logo_url=logo_url,
         codigo_orcamento=orcamento_salvo.codigo,
         data_salvo=orcamento_salvo.data_salvo,
         cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
         orcamentos=orcamentos,
         valor_total_final="R$ {:,.2f}".format(valor_total_final).replace(",", "X").replace(".", ",").replace("X", "."),
-        telefone_usuario=telefone_usuario  # 🔥 Novo: telefone do usuário
+        telefone_usuario=telefone_usuario  # 🔥 Agora passando o telefone corretamente
     )
 
 
