@@ -90,16 +90,15 @@ class Material(db.Model):
     valor = db.Column(db.Float, nullable=False)  # Mantido apenas uma vez
 
 class OrcamentoSalvo(db.Model):
-    __tablename__ = "orcamento_salvo"
-    
     id = db.Column(db.Integer, primary_key=True)
     codigo = db.Column(db.String(20), unique=True, nullable=False)
-    data_salvo = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
-    valor_total = db.Column(db.Float, nullable=False)
-    criado_por = db.Column(db.String(100), nullable=False)
-    status = db.Column(db.String(50), nullable=False, default="Em Espera")  
-    tipo_cliente = db.Column(db.String(50), nullable=False, default="Selecionar")
-    orcamentos_ids = db.Column(db.String, nullable=False)  # Armazena os IDs separados por vírgula
+    orcamentos_ids = db.Column(db.Text, nullable=False)
+    data_salvo = db.Column(db.DateTime, default=datetime.utcnow)
+    # Novos campos para o rodapé
+    prazo_entrega = db.Column(db.Integer, default=15)
+    desconto_avista = db.Column(db.Integer, default=5)
+    desconto_parcelado = db.Column(db.Integer, default=10)
+    observacoes = db.Column(db.Text, default="Medidas sujeitas a confirmação no local. Valores válidos por 7 dias.")
 
     @property
     def cliente_nome(self):
@@ -1189,28 +1188,21 @@ def detalhes_orcamento_salvo(codigo):
         flash("Orçamento salvo não encontrado!", "danger")
         return redirect(url_for('listar_orcamentos_salvos'))
 
-    # Buscar os IDs dos orçamentos salvos
     ids = [int(id) for id in orcamento_salvo.orcamentos_ids.split(",")]
-
-    # Buscar os detalhes dos orçamentos vinculados
     orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
-
-    # Calcular o valor total
     valor_total_final = sum(o.valor_total for o in orcamentos)
-    valor_total_float = valor_total_final  # Guardando o valor numérico para cálculos
+    valor_total_float = valor_total_final
 
-    # ✅ Adicionando a URL da logo para o template
     logo_url = "https://orcamento-t9w2.onrender.com/static/logo.jpg"
     
-    # Buscar telefone do usuário
     usuario = Usuario.query.filter_by(cpf=session.get('user_cpf')).first()
     telefone_usuario = usuario.telefone if usuario else ""
 
-    # Valores padrão para o rodapé
-    prazo_entrega = 15
-    desconto_avista = 5
-    desconto_parcelado = 10
-    observacoes = "Medidas sujeitas a confirmação no local. Valores válidos por 7 dias."
+    # ✅ USAR OS VALORES SALVOS NO BANCO
+    prazo_entrega = orcamento_salvo.prazo_entrega
+    desconto_avista = orcamento_salvo.desconto_avista
+    desconto_parcelado = orcamento_salvo.desconto_parcelado
+    observacoes = orcamento_salvo.observacoes
 
     return render_template(
         "detalhes_orcamento_salvo.html",
@@ -1220,7 +1212,7 @@ def detalhes_orcamento_salvo(codigo):
         cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
         orcamentos=orcamentos,
         valor_total_final="R$ {:,.2f}".format(valor_total_final).replace(",", "X").replace(".", ",").replace("X", "."),
-        valor_total_float=valor_total_float,  # Passando o valor numérico também
+        valor_total_float=valor_total_float,
         telefone_usuario=telefone_usuario,
         prazo_entrega=prazo_entrega,
         desconto_avista=desconto_avista,
@@ -1322,20 +1314,18 @@ def gerar_pdf_orcamento(codigo):
     ids = [int(id) for id in orcamento_salvo.orcamentos_ids.split(",")]
     orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
     valor_total_final = sum(o.valor_total for o in orcamentos)
-    valor_total_float = valor_total_final  # Guardando o valor numérico para cálculos
+    valor_total_float = valor_total_final
 
-    # ✅ Adicionando a URL da logo para o template
     logo_url = "https://orcamento-t9w2.onrender.com/static/logo.jpg"
     
-    # Buscar telefone do usuário
     usuario = Usuario.query.filter_by(cpf=session.get('user_cpf')).first()
     telefone_usuario = usuario.telefone if usuario else ""
 
-    # Valores padrão para o rodapé
-    prazo_entrega = 15
-    desconto_avista = 5
-    desconto_parcelado = 10
-    observacoes = "Medidas sujeitas a confirmação no local. Valores válidos por 30 dias."
+    # ✅ USAR OS VALORES SALVOS NO BANCO EM VEZ DOS VALORES PADRÃO
+    prazo_entrega = orcamento_salvo.prazo_entrega
+    desconto_avista = orcamento_salvo.desconto_avista
+    desconto_parcelado = orcamento_salvo.desconto_parcelado
+    observacoes = orcamento_salvo.observacoes
 
     # ✅ Renderizamos o HTML normalmente sem a logo
     rendered_html = render_template(
@@ -1355,14 +1345,11 @@ def gerar_pdf_orcamento(codigo):
         pdf=True
     )
 
-    # ✅ Criamos um arquivo temporário para armazenar o PDF
+    # Resto do código permanece igual...
     temp_pdf_path = "/tmp/temp_orcamento.pdf"
     HTML(string=rendered_html, base_url="https://orcamento-t9w2.onrender.com").write_pdf(temp_pdf_path)
 
-    # ✅ Definição do caminho local para a logo
     logo_path = "static/logo.jpg"
-
-    # ✅ Inserir a logo no PDF diretamente do caminho local
     final_pdf_path = "/tmp/final_orcamento.pdf"
     doc = fitz.open(temp_pdf_path)
 
@@ -1376,13 +1363,10 @@ def gerar_pdf_orcamento(codigo):
 
         rect = fitz.Rect(page_width - logo_width - -20, 20, page_width - -20, 20 + logo_height)
         page.insert_image(rect, filename=logo_path)
-    else:
-        print("⚠️ Aviso: A logo não foi adicionada porque o arquivo local não foi encontrado.")
 
     doc.save(final_pdf_path)
     doc.close()
 
-    # ✅ Retornamos o PDF final com a logo inserida
     with open(final_pdf_path, "rb") as pdf_file:
         pdf_bytes = pdf_file.read()
 
@@ -1390,7 +1374,6 @@ def gerar_pdf_orcamento(codigo):
     response.headers["Content-Type"] = "application/pdf"
     response.headers["Content-Disposition"] = f"inline; filename=orcamento_{codigo}.pdf"
 
-    # ✅ Limpa os arquivos temporários
     os.remove(temp_pdf_path)
     os.remove(final_pdf_path)
 
@@ -1587,6 +1570,25 @@ def duplicar_selecionados():
         import traceback
         print(traceback.format_exc())
         return jsonify({'success': False, 'error': traceback.format_exc()}), 500
+
+@app.route('/salvar_rodape_orcamento/<codigo>', methods=['POST'])
+def salvar_rodape_orcamento(codigo):
+    orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
+    
+    if not orcamento_salvo:
+        flash("Orçamento salvo não encontrado!", "danger")
+        return redirect(url_for('listar_orcamentos_salvos'))
+    
+    # Atualizar os valores do rodapé
+    orcamento_salvo.prazo_entrega = int(request.form.get('prazo_entrega', 15))
+    orcamento_salvo.desconto_avista = int(request.form.get('desconto_avista', 5))
+    orcamento_salvo.desconto_parcelado = int(request.form.get('desconto_parcelado', 10))
+    orcamento_salvo.observacoes = request.form.get('observacoes', '')
+    
+    db.session.commit()
+    flash("Rodapé do orçamento salvo com sucesso!", "success")
+    
+    return redirect(url_for('detalhes_orcamento_salvo', codigo=codigo))
 
 
 
