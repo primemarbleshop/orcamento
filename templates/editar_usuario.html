@@ -93,22 +93,39 @@
 
         <div class="form-box">
             <form method="POST">
-    <label for="nome">Nome:</label>
-    <input type="text" id="nome" name="nome" value="{{ usuario.nome }}" required>
+                <label for="nome">Nome:</label>
+                <input type="text" id="nome" name="nome" value="{{ usuario.nome }}" required>
 
-    <label for="cpf">CPF:</label>
-    <input type="text" id="cpf" name="cpf" value="{{ usuario.cpf }}" required readonly>
+                <label for="cpf">CPF:</label>
+                <input type="text" id="cpf" name="cpf" value="{{ usuario.cpf }}" required readonly>
 
-    <label for="senha">Nova Senha:</label>
-    <input type="password" id="senha" name="senha">
-</br>
+                <label for="telefone">Telefone:</label>
+                <input type="text" id="telefone" name="telefone" value="{{ usuario.telefone }}" placeholder="(00) 00000-0000">
 
-    <button type="submit">Salvar Alterações</button>
-</form>
+                <label for="senha">Nova Senha:</label>
+                <input type="password" id="senha" name="senha" placeholder="Deixe em branco para manter a atual">
+
+                <button type="submit">Salvar Alterações</button>
+            </form>
 
             <br>
             <a href="{{ url_for('gerenciar_usuarios') }}" class="back-link">← Voltar</a>
         </div>
     </div>
+
+    <script>
+        // Máscara para o telefone
+        document.getElementById('telefone').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length <= 11) {
+                if (value.length <= 10) {
+                    value = value.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+                } else {
+                    value = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+                }
+                e.target.value = value;
+            }
+        });
+    </script>
 </body>
 </html>
