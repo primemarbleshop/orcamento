@@ -4,45 +4,185 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Editar Cliente</title>
-
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <style>
+        :root {
+            --primary: #4e73df;
+            --secondary: #6c757d;
+            --success: #1cc88a;
+            --danger: #e74a3b;
+            --warning: #f6c23e;
+            --light: #f8f9fc;
+            --dark: #5a5c69;
+        }
+        
+        body {
+            background-color: #f8f9fc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 20px;
+        }
+        
+        .card-custom {
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            border: none;
+        }
+        
+        .card-header-custom {
+            background: linear-gradient(135deg, var(--primary) 0%, #2a3d8f 100%);
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+            padding: 15px 20px;
+        }
+        
+        .btn-custom-primary {
+            background-color: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+        
+        .btn-custom-primary:hover {
+            background-color: #2e59d9;
+            border-color: #2e59d9;
+            color: white;
+        }
+        
+        .btn-custom-success {
+            background-color: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+        
+        .btn-custom-success:hover {
+            background-color: #17a673;
+            border-color: #17a673;
+            color: white;
+        }
+        
+        .btn-custom-secondary {
+            background-color: var(--secondary);
+            border-color: var(--secondary);
+            color: white;
+        }
+        
+        .btn-custom-secondary:hover {
+            background-color: #5a6268;
+            border-color: #5a6268;
+            color: white;
+        }
+        
+        .form-section {
+            margin-bottom: 15px;
+        }
+        
+        .page-header {
+            border-bottom: 1px solid #e3e6f0;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+    </style>
 </head>
 <body>
-    <h1>Editar Cliente</h1>
-    <form action="{{ url_for('editar_cliente', id=cliente.id) }}" method="POST">
-        <label for="nome">Nome:</label>
-        <input type="text" id="nome" name="nome" value="{{ cliente.nome }}" required><br>
+    <div class="container">
+        <!-- Cabeçalho -->
+        <div class="page-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h1 class="h3 text-gray-800"><i class="fas fa-user-edit me-2"></i>Editar Cliente</h1>
+                </div>
+                <div class="col-auto">
+                    <a href="/clientes" class="btn btn-custom-secondary">
+                        <i class="fas fa-arrow-left me-1"></i> Voltar para Lista de Clientes
+                    </a>
+                </div>
+            </div>
+        </div>
 
-        <label for="endereco">Endereço:</label>
-        <input type="text" id="endereco" name="endereco" value="{{ cliente.endereco }}"><br>
+        <!-- Card do formulário de edição -->
+        <div class="card card-custom">
+            <div class="card-header card-header-custom">
+                <h5 class="m-0 font-weight-bold"><i class="fas fa-edit me-2"></i>Editar Informações do Cliente</h5>
+            </div>
+            <div class="card-body">
+                <form action="{{ url_for('editar_cliente', id=cliente.id) }}" method="POST">
+                    <div class="row">
+                        <div class="col-md-6 form-section">
+                            <label for="nome" class="form-label">Nome:</label>
+                            <input type="text" id="nome" name="nome" class="form-control" value="{{ cliente.nome }}" required>
+                        </div>
 
-        <label for="telefone">Telefone:</label>
-        <input type="text" id="telefone" name="telefone" value="{{ cliente.telefone }}"><br>
+                        <div class="col-md-6 form-section">
+                            <label for="telefone" class="form-label">Telefone:</label>
+                            <input type="text" id="telefone" name="telefone" class="form-control" value="{{ cliente.telefone }}" placeholder="(00) 00000-0000" required>
+                        </div>
 
-        <label for="documento">CNPJ/CPF:</label>
-        <input type="text" id="documento" name="documento" value="{{ cliente.documento }}"><br>
+                        <div class="col-12 form-section">
+                            <label for="endereco" class="form-label">Endereço:</label>
+                            <input type="text" id="endereco" name="endereco" class="form-control" value="{{ cliente.endereco }}">
+                        </div>
+                    </div>
 
-        <button type="submit">Salvar Alterações</button>
-    </form>
-</br>
-<a href="/clientes" class="btn btn-secondary">Voltar para Cadastro de Clientes</a>
-<script>
-    document.addEventListener("DOMContentLoaded", function() {
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    Swal.fire({
-                        title: "{% if category == 'error' %}Erro{% else %}Sucesso{% endif %}",
-                        text: "{{ message }}",
-                        icon: "{% if category == 'error' %}error{% else %}success{% endif %}",
-                        confirmButtonText: "OK"
-                    });
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-    });
-</script>
+                    <div class="row mt-4">
+                        <div class="col-12 text-end">
+                            <button type="submit" class="btn btn-custom-success">
+                                <i class="fas fa-save me-1"></i> Salvar Alterações
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
 
+    <!-- JavaScript Libraries -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            // Formatar telefone
+            const telefoneInput = document.getElementById('telefone');
+            if (telefoneInput) {
+                telefoneInput.addEventListener('input', function(e) {
+                    let value = e.target.value.replace(/\D/g, '');
+                    if (value.length > 11) value = value.slice(0, 11);
+                    
+                    if (value.length > 10) {
+                        value = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+                    } else if (value.length > 6) {
+                        value = value.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
+                    } else if (value.length > 2) {
+                        value = value.replace(/(\d{2})(\d{0,5})/, '($1) $2');
+                    } else if (value.length > 0) {
+                        value = value.replace(/(\d{0,2})/, '($1');
+                    }
+                    
+                    e.target.value = value;
+                });
+            }
+            
+            // Exibir mensagens flash
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        Swal.fire({
+                            title: "{% if category == 'error' %}Erro{% else %}Sucesso{% endif %}",
+                            text: "{{ message }}",
+                            icon: "{% if category == 'error' %}error{% else %}success{% endif %}",
+                            confirmButtonText: "OK"
+                        });
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        });
+    </script>
 </body>
 </html>
