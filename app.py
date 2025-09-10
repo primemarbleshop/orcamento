@@ -63,6 +63,7 @@ class Usuario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
     cpf = db.Column(db.String(14), unique=True, nullable=False)
+    telefone = db.Column(db.String(20), nullable=True)
     senha = db.Column(db.String(200), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
 
@@ -953,8 +954,9 @@ def criar_usuario():
         return redirect(url_for('index'))
 
     if request.method == 'POST':
-        nome = request.form.get('nome')  # Pegando o nome do usuário
+        nome = request.form.get('nome')
         cpf = request.form.get('cpf')
+        telefone = request.form.get('telefone', '')  # Novo campo telefone
         senha = request.form.get('senha')
 
         if not nome or not cpf or not senha:
@@ -962,7 +964,7 @@ def criar_usuario():
             return redirect(url_for('criar_usuario'))
 
         try:
-            novo_usuario = Usuario(nome=nome, cpf=cpf, is_admin=False)
+            novo_usuario = Usuario(nome=nome, cpf=cpf, telefone=telefone, is_admin=False)
             novo_usuario.set_senha(senha)
 
             db.session.add(novo_usuario)
@@ -1043,7 +1045,8 @@ def editar_usuario(cpf):
     usuario = Usuario.query.filter_by(cpf=cpf).first()
 
     if request.method == 'POST':
-        usuario.nome = request.form['nome']  # Atualiza o nome do usuário
+        usuario.nome = request.form['nome']
+        usuario.telefone = request.form.get('telefone', '')  # Atualiza o telefone
         usuario.cpf = request.form['cpf']  # Garante que o CPF permaneça igual
 
         nova_senha = request.form['senha']
