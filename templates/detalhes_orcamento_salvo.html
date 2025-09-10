@@ -593,7 +593,7 @@
                        • Pagamento de 100% na aprovação do orçamento
                     </div>
                     <div class="installment-calc" id="parcelamentoSimplificado">
-                         {{ valor_total_final }} em até 10x sem juros
+                         R$ {{ "%.2f"|format(valor_total_float) }} em até {{ max_parcelas }}x sem juros
                     </div>
                 </div>
                 
@@ -768,38 +768,10 @@
         
         document.getElementById('valorAvista').textContent = (valorTotalFloat * (1 - desconto1/100)).toFixed(2);
         document.getElementById('valorParcelado').textContent = (valorTotalFloat * (1 - desconto2/100)).toFixed(2);
-        
-        // Atualizar parcelamento cartão
-        atualizarParcelamentoSimplificado(valorTotalFloat);
-    }
-    
-    // Função para determinar o número máximo de parcelas baseado no valor
-    function calcularMaxParcelas(valorTotal) {
-        if (valorTotal >= 1000) return 10;
-        if (valorTotal >= 900) return 9;
-        if (valorTotal >= 800) return 8;
-        if (valorTotal >= 700) return 7;
-        if (valorTotal >= 600) return 6;
-        if (valorTotal >= 500) return 5;
-        if (valorTotal >= 400) return 4;
-        if (valorTotal >= 300) return 3;
-        if (valorTotal >= 200) return 2;
-        return 1;
-    }
-    
-    // Função para atualizar a exibição simplificada do parcelamento
-    function atualizarParcelamentoSimplificado(valorTotal) {
-        const maxParcelas = calcularMaxParcelas(valorTotal);
-        const valorParcela = valorTotal / maxParcelas;
-        
-        const elemento = document.getElementById('parcelamentoSimplificado');
-        elemento.textContent = `R$ ${valorTotal.toFixed(2)} em até ${maxParcelas}x sem juros`;
     }
     
     // Inicializar cálculos quando a página carregar
     document.addEventListener('DOMContentLoaded', function() {
-        atualizarParcelamentoSimplificado(valorTotalFloat);
-        
         // Preencher os campos do formulário hidden com os valores iniciais
         document.getElementById('formPrazoEntrega').value = {{ prazo_entrega }};
         document.getElementById('formDescontoAvista').value = {{ desconto_avista }};
