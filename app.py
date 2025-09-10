@@ -1208,7 +1208,8 @@ def detalhes_orcamento_salvo(codigo):
         data_salvo=orcamento_salvo.data_salvo,
         cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
         orcamentos=orcamentos,
-        valor_total_final="R$ {:,.2f}".format(valor_total_final).replace(",", "X").replace(".", ",").replace("X", ".")
+        valor_total_final="R$ {:,.2f}".format(valor_total_final).replace(",", "X").replace(".", ",").replace("X", "."),
+        telefone_usuario=telefone_usuario  # 🔥 Novo: telefone do usuário
     )
 
 
