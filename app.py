@@ -94,13 +94,16 @@ class OrcamentoSalvo(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     codigo = db.Column(db.String, unique=True, nullable=False)
-    orcamentos_ids = db.Column(db.Text)
+    orcamentos_ids = db.Column(db.Text, nullable=False)  # ← ADD nullable=False
     data_salvo = db.Column(db.DateTime, default=datetime.utcnow)
+    valor_total = db.Column(db.Float, nullable=False)  # ← ADD nullable=False
+    criado_por = db.Column(db.String)  # ← COLUNA FALTANDO
+    status = db.Column(db.String, default='Em Espera')  # ← COLUNA FALTANDO
+    tipo_cliente = db.Column(db.String, default='Cliente de Porta')  # ← COLUNA FALTANDO
     prazo_entrega = db.Column(db.String)
     desconto_avista = db.Column(db.Float)
     desconto_parcelado = db.Column(db.Float)
     observacoes = db.Column(db.Text)
-    valor_total = db.Column(db.Float) 
 
     @property
     def cliente_nome(self):
