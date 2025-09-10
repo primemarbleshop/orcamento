@@ -156,7 +156,7 @@
             margin: 20px 0;
             display: flex;
             gap: 10px;
-            justify-content: flex-start;
+            justify-content: flex-end;
         }
         
         @media (max-width: 768px) {
@@ -204,13 +204,27 @@
                         <input type="text" id="filtro_codigo" class="form-control" placeholder="Digite o código..." onkeyup="filterOrcamentos()">
                     </div>
 
+                    {% if session.get('admin') %}
+                    <div class="col-md-3 mb-2">
+                        <label for="filtro_criado_por" class="form-label">Criado Por:</label>
+                        <select id="filtro_criado_por" class="form-select" onchange="filterOrcamentos()">
+                            <option value="Todos">Todos</option>
+                            {% for usuario in usuarios %}
+                                <option value="{{ usuario.nome }}">{{ usuario.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
+
                     <div class="col-md-3 mb-2">
                         <label for="filtro_cliente" class="form-label">Cliente:</label>
                         <select id="filtro_cliente" class="form-select" onchange="filterOrcamentos()">
                             <option value="Todos">Todos</option>
-                            <option value="Cliente A">Cliente A</option>
-                            <option value="Cliente B">Cliente B</option>
-                            <option value="Cliente C">Cliente C</option>
+                            {% for cliente in clientes|sort(attribute='nome') %}
+                                {% if session.get('admin') or cliente.dono == session.get('user_cpf') %}
+                                    <option value="{{ cliente.nome }}">{{ cliente.nome }}</option>
+                                {% endif %}
+                            {% endfor %}
                         </select>
                     </div>
 
@@ -259,8 +273,8 @@
 
                 <!-- Botões de ação entre filtros e tabela -->
                 <div class="middle-action-buttons">
-                    <button type="button" id="gerar-pdf" class="btn btn-custom-primary">
-                        <i class="fas fa-file-pdf me-1"></i> Gerar PDF
+                    <button type="button" id="gerar-pdf-selected" class="btn btn-custom-primary">
+                        <i class="fas fa-file-pdf me-1"></i> Gerar PDF Selecionados
                     </button>
                     <button type="button" id="salvar-todos" class="btn btn-custom-success">
                         <i class="fas fa-save me-1"></i> Salvar Todas as Alterações
@@ -273,9 +287,12 @@
                         <thead>
                             <tr>
                                 <th class="checkbox-cell">
-                                    <input type="checkbox" id="selecionar-todos">
+                                    <!-- Checkbox all removido conforme solicitado -->
                                 </th>
                                 <th>Código</th>
+                                {% if session.get('admin') %}
+                                    <th>Criado Por</th>
+                                {% endif %}
                                 <th>Cliente</th>
                                 <th>Data</th>
                                 <th>Valor Total</th>
@@ -285,123 +302,56 @@
                             </tr>
                         </thead>
                         <tbody id="orcamento_table">
-                            <tr data-codigo="orc-001" data-cliente="Cliente A" data-status="Em Espera" data-tipo-cliente="Cliente de Porta">
+                            {% for orcamento in orcamentos %}
+                            <tr 
+                                data-codigo="{{ orcamento.codigo | lower }}"
+                                data-cliente="{{ orcamento.cliente_nome }}"
+                                data-criado-por="{{ orcamento.criado_por }}"
+                                data-status="{{ orcamento.status }}"
+                                data-tipo-cliente="{{ orcamento.tipo_cliente }}"
+                            >
                                 <td class="checkbox-cell">
-                                    <input type="checkbox" class="selecionar-orcamento" data-id="1">
+                                    <input type="checkbox" class="selecionar-orcamento" data-id="{{ orcamento.id }}">
                                 </td>
-                                <td>ORC-001</td>
-                                <td>Cliente A</td>
-                                <td>10/08/2023</td>
-                                <td class="valor-total">R$ 1.250,00</td>
+                                <td>{{ orcamento.codigo }}</td>
+                                {% if session.get('admin') %}
+                                    <td>{{ orcamento.criado_por }}</td>
+                                {% endif %}
+                                <td>{{ orcamento.cliente_nome }}</td>
+                                <td>{{ orcamento.data_salvo.strftime('%d/%m/%Y') }}</td>
+                                <td class="valor-total">R$ {{ "%.2f"|format(orcamento.valor_total) }}</td>
                                 <td>
                                     <select class="form-select form-select-sm status-select">
-                                        <option value="Em Espera" selected>Em Espera</option>
-                                        <option value="Aprovado">Aprovado</option>
-                                        <option value="Declinado">Declinado</option>
+                                        <option value="Em Espera" {% if orcamento.status == "Em Espera" %}selected{% endif %}>Em Espera</option>
+                                        <option value="Aprovado" {% if orcamento.status == "Aprovado" %}selected{% endif %}>Aprovado</option>
+                                        <option value="Declinado" {% if orcamento.status == "Declinado" %}selected{% endif %}>Declinado</option>
                                     </select>
                                 </td>
                                 <td>
                                     <select class="form-select form-select-sm tipo-cliente-select">
-                                        <option value="Selecionar">Selecionar</option>
-                                        <option value="Cliente de Porta" selected>Cliente de Porta</option>
-                                        <option value="Carteira de Cliente">Carteira de Cliente</option>
-                                        <option value="Trafego Pago Google">Trafego Pago Google</option>
-                                        <option value="Trafego Pago Meta">Trafego Pago Meta</option>
-                                        <option value="Indicação Arquiteto">Indicação Arquiteto</option>
-                                        <option value="Indicação Construtor">Indicação Construtor</option>
-                                        <option value="Indicação Cliente">Indicação Cliente</option>
-                                        <option value="Indicação Marcenaria">Indicação Marcenaria</option>
+                                        <option value="Selecionar" {% if not orcamento.tipo_cliente or orcamento.tipo_cliente == "Selecionar" %}selected{% endif %}>Selecionar</option>
+                                        <option value="Cliente de Porta" {% if orcamento.tipo_cliente == "Cliente de Porta" %}selected{% endif %}>Cliente de Porta</option>
+                                        <option value="Carteira de Cliente" {% if orcamento.tipo_cliente == "Carteira de Cliente" %}selected{% endif %}>Carteira de Cliente</option>
+                                        <option value="Trafego Pago Google" {% if orcamento.tipo_cliente == "Trafego Pago Google" %}selected{% endif %}>Trafego Pago Google</option>
+                                        <option value="Trafego Pago Meta" {% if orcamento.tipo_cliente == "Trafego Pago Meta" %}selected{% endif %}>Trafego Pago Meta</option>
+                                        <option value="Indicação Arquiteto" {% if orcamento.tipo_cliente == "Indicação Arquiteto" %}selected{% endif %}>Indicação Arquiteto</option>
+                                        <option value="Indicação Construtor" {% if orcamento.tipo_cliente == "Indicação Construtor" %}selected{% endif %}>Indicação Construtor</option>
+                                        <option value="Indicação Cliente" {% if orcamento.tipo_cliente == "Indicação Cliente" %}selected{% endif %}>Indicação Cliente</option>
+                                        <option value="Indicação Marcenaria" {% if orcamento.tipo_cliente == "Indicação Marcenaria" %}selected{% endif %}>Indicação Marcenaria</option>
                                     </select>
                                 </td>
                                 <td>
                                     <div class="action-buttons">
-                                        <button class="btn btn-sm btn-custom-primary btn-visualizar" data-url="/detalhes/ORC-001" title="Visualizar">
+                                        <button class="btn btn-sm btn-custom-primary btn-visualizar" data-url="{{ url_for('detalhes_orcamento_salvo', codigo=orcamento.codigo) }}" title="Visualizar">
                                             <i class="fas fa-eye"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-custom-danger btn-deletar" data-id="1" title="Deletar">
+                                        <button class="btn btn-sm btn-custom-danger btn-deletar" data-id="{{ orcamento.id }}" title="Deletar">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </div>
                                 </td>
                             </tr>
-                            <tr data-codigo="orc-002" data-cliente="Cliente B" data-status="Aprovado" data-tipo-cliente="Carteira de Cliente">
-                                <td class="checkbox-cell">
-                                    <input type="checkbox" class="selecionar-orcamento" data-id="2">
-                                </td>
-                                <td>ORC-002</td>
-                                <td>Cliente B</td>
-                                <td>15/08/2023</td>
-                                <td class="valor-total">R$ 3.450,00</td>
-                                <td>
-                                    <select class="form-select form-select-sm status-select">
-                                        <option value="Em Espera">Em Espera</option>
-                                        <option value="Aprovado" selected>Aprovado</option>
-                                        <option value="Declinado">Declinado</option>
-                                    </select>
-                                </td>
-                                <td>
-                                    <select class="form-select form-select-sm tipo-cliente-select">
-                                        <option value="Selecionar">Selecionar</option>
-                                        <option value="Cliente de Porta">Cliente de Porta</option>
-                                        <option value="Carteira de Cliente" selected>Carteira de Cliente</option>
-                                        <option value="Trafego Pago Google">Trafego Pago Google</option>
-                                        <option value="Trafego Pago Meta">Trafego Pago Meta</option>
-                                        <option value="Indicação Arquiteto">Indicação Arquiteto</option>
-                                        <option value="Indicação Construtor">Indicação Construtor</option>
-                                        <option value="Indicação Cliente">Indicação Cliente</option>
-                                        <option value="Indicação Marcenaria">Indicação Marcenaria</option>
-                                    </select>
-                                </td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <button class="btn btn-sm btn-custom-primary btn-visualizar" data-url="/detalhes/ORC-002" title="Visualizar">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-custom-danger btn-deletar" data-id="2" title="Deletar">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
-                            <tr data-codigo="orc-003" data-cliente="Cliente C" data-status="Declinado" data-tipo-cliente="Indicação Arquiteto">
-                                <td class="checkbox-cell">
-                                    <input type="checkbox" class="selecionar-orcamento" data-id="3">
-                                </td>
-                                <td>ORC-003</td>
-                                <td>Cliente C</td>
-                                <td>20/08/2023</td>
-                                <td class="valor-total">R$ 2.100,00</td>
-                                <td>
-                                    <select class="form-select form-select-sm status-select">
-                                        <option value="Em Espera">Em Espera</option>
-                                        <option value="Aprovado">Aprovado</option>
-                                        <option value="Declinado" selected>Declinado</option>
-                                    </select>
-                                </td>
-                                <td>
-                                    <select class="form-select form-select-sm tipo-cliente-select">
-                                        <option value="Selecionar">Selecionar</option>
-                                        <option value="Cliente de Porta">Cliente de Porta</option>
-                                        <option value="Carteira de Cliente">Carteira de Cliente</option>
-                                        <option value="Trafego Pago Google">Trafego Pago Google</option>
-                                        <option value="Trafego Pago Meta">Trafego Pago Meta</option>
-                                        <option value="Indicação Arquiteto" selected>Indicação Arquiteto</option>
-                                        <option value="Indicação Construtor">Indicação Construtor</option>
-                                        <option value="Indicação Cliente">Indicação Cliente</option>
-                                        <option value="Indicação Marcenaria">Indicação Marcenaria</option>
-                                    </select>
-                                </td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <button class="btn btn-sm btn-custom-primary btn-visualizar" data-url="/detalhes/ORC-003" title="Visualizar">
-                                            <i class="fas fa-eye"></i>
-                                        </button>
-                                        <button class="btn btn-sm btn-custom-danger btn-deletar" data-id="3" title="Deletar">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
-                                    </div>
-                                </td>
-                            </tr>
+                            {% endfor %}
                         </tbody>
                     </table>
                 </div>
@@ -419,6 +369,7 @@
         // Função para filtrar orçamentos
         function filterOrcamentos() {
             const filtroCodigo = document.getElementById('filtro_codigo').value.trim().toLowerCase();
+            const filtroCriadoPor = document.getElementById('filtro_criado_por')?.value || 'Todos';
             const filtroCliente = document.getElementById('filtro_cliente').value;
             const filtroStatus = document.getElementById('filtro_status').value;
             const filtroTipoCliente = document.getElementById('filtro_tipo_cliente').value;
@@ -429,6 +380,7 @@
             
             rows.forEach(row => {
                 const codigo = row.getAttribute('data-codigo');
+                const criadoPor = row.getAttribute('data-criado-por');
                 const cliente = row.getAttribute('data-cliente');
                 const status = row.querySelector('.status-select').value;
                 const tipoCliente = row.querySelector('.tipo-cliente-select').value;
@@ -437,6 +389,11 @@
                 
                 // Filtrar por código
                 if (filtroCodigo && !codigo.includes(filtroCodigo)) {
+                    show = false;
+                }
+                
+                // Filtrar por criado por (apenas para admin)
+                if (filtroCriadoPor !== 'Todos' && criadoPor !== filtroCriadoPor) {
                     show = false;
                 }
                 
@@ -470,6 +427,9 @@
             
             // Salvar filtros no localStorage
             localStorage.setItem('filtroCodigo', filtroCodigo);
+            if (document.getElementById('filtro_criado_por')) {
+                localStorage.setItem('filtroCriadoPor', filtroCriadoPor);
+            }
             localStorage.setItem('filtroCliente', filtroCliente);
             localStorage.setItem('filtroStatus', filtroStatus);
             localStorage.setItem('filtroTipoCliente', filtroTipoCliente);
@@ -479,6 +439,9 @@
         // Função para resetar os filtros
         function resetFilters() {
             document.getElementById('filtro_codigo').value = '';
+            if (document.getElementById('filtro_criado_por')) {
+                document.getElementById('filtro_criado_por').value = 'Todos';
+            }
             document.getElementById('filtro_cliente').value = 'Todos';
             document.getElementById('filtro_status').value = 'Todos';
             document.getElementById('filtro_tipo_cliente').value = 'Todos';
@@ -486,6 +449,7 @@
             
             // Limpar localStorage
             localStorage.removeItem('filtroCodigo');
+            localStorage.removeItem('filtroCriadoPor');
             localStorage.removeItem('filtroCliente');
             localStorage.removeItem('filtroStatus');
             localStorage.removeItem('filtroTipoCliente');
@@ -493,14 +457,6 @@
             
             filterOrcamentos();
         }
-
-        // Selecionar/Deselecionar todos os orçamentos
-        document.getElementById('selecionar-todos').addEventListener('change', function() {
-            const checkboxes = document.querySelectorAll('.selecionar-orcamento');
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = this.checked;
-            });
-        });
 
         document.addEventListener("DOMContentLoaded", function() {
             // Inicializar Select2 nos selects de filtro
@@ -510,9 +466,21 @@
                 allowClear: true
             });
 
+            {% if session.get('admin') %}
+            $('#filtro_criado_por').select2({
+                width: '100%',
+                placeholder: "Selecione",
+                allowClear: true
+            });
+            {% endif %}
+
             // Restaurar filtros do localStorage
             if (localStorage.getItem('filtroCodigo')) {
                 document.getElementById('filtro_codigo').value = localStorage.getItem('filtroCodigo');
+            }
+            if (localStorage.getItem('filtroCriadoPor') && document.getElementById('filtro_criado_por')) {
+                document.getElementById('filtro_criado_por').value = localStorage.getItem('filtroCriadoPor');
+                $('#filtro_criado_por').trigger('change');
             }
             if (localStorage.getItem('filtroCliente')) {
                 document.getElementById('filtro_cliente').value = localStorage.getItem('filtroCliente');
@@ -567,27 +535,36 @@
                         cancelButtonText: "Cancelar"
                     }).then((result) => {
                         if (result.isConfirmed) {
-                            // Simulação de exclusão bem-sucedida
-                            Swal.fire({
-                                title: "Deletado!",
-                                text: "O orçamento foi excluído com sucesso.",
-                                icon: "success",
-                                timer: 2000,
-                                showConfirmButton: false
+                            fetch(`/deletar_orcamento_salvo/${orcamentoId}`, {
+                                method: "POST"
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.success) {
+                                    Swal.fire({
+                                        title: "Deletado!",
+                                        text: "O orçamento foi excluído com sucesso.",
+                                        icon: "success",
+                                        timer: 2000,
+                                        showConfirmButton: false
+                                    });
+                                    setTimeout(() => location.reload(), 2000);
+                                } else {
+                                    Swal.fire("Erro!", "Não foi possível excluir o orçamento.", "error");
+                                }
+                            })
+                            .catch(() => {
+                                Swal.fire("Erro!", "Erro na comunicação com o servidor.", "error");
                             });
-                            // Em um cenário real, aqui viria a chamada fetch para o servidor
                         }
                     });
                 });
             });
 
-            // 🔹 Botão para salvar todas as alterações (CORRIGIDO)
+            // 🔹 Botão para salvar todas as alterações (agora salva todos os orçamentos visíveis)
             document.getElementById("salvar-todos").addEventListener("click", function() {
-                // Coletar todas as alterações
                 const updates = [];
-                const rows = document.querySelectorAll("#orcamento_table tr");
-                
-                rows.forEach(row => {
+                document.querySelectorAll("#orcamento_table tr").forEach(row => {
                     if (row.style.display !== 'none') { // Apenas linhas visíveis
                         const id = row.querySelector(".selecionar-orcamento").getAttribute("data-id");
                         const status = row.querySelector(".status-select").value;
@@ -606,61 +583,26 @@
                     return;
                 }
 
-                // Mostrar loading
-                Swal.fire({
-                    title: 'Salvando alterações...',
-                    text: 'Por favor, aguarde.',
-                    allowOutsideClick: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-
-                // Simulação de uma requisição bem-sucedida
-                setTimeout(() => {
-                    Swal.close();
-                    Swal.fire("Sucesso!", "Todas as alterações foram salvas com sucesso!", "success");
-                }, 1500);
-                
-                // Em um cenário real, descomente o código abaixo e adapte a URL:
-                /*
                 fetch("/atualizar_status_tipo_cliente_lote", {
                     method: "POST",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
+                    headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ updates: updates })
                 })
-                .then(response => {
-                    // Verificar se a resposta é JSON válido
-                    const contentType = response.headers.get("content-type");
-                    if (contentType && contentType.includes("application/json")) {
-                        return response.json();
-                    } else {
-                        // Se não for JSON, tentar obter o texto da resposta
-                        return response.text().then(text => {
-                            throw new Error(`Resposta do servidor não é JSON: ${text}`);
-                        });
-                    }
-                })
+                .then(response => response.json())
                 .then(data => {
-                    Swal.close();
                     if (data.success) {
                         Swal.fire("Sucesso!", "Todas as alterações foram salvas com sucesso!", "success");
                     } else {
-                        Swal.fire("Erro!", data.error || "Ocorreu um erro ao salvar as alterações.", "error");
+                        Swal.fire("Erro!", data.error, "error");
                     }
                 })
-                .catch(error => {
-                    Swal.close();
-                    console.error("Erro detalhado:", error);
-                    Swal.fire("Erro!", "Erro na comunicação com o servidor. Verifique o console para mais detalhes.", "error");
+                .catch(() => {
+                    Swal.fire("Erro!", "Erro na comunicação com o servidor.", "error");
                 });
-                */
             });
 
-            // 🔹 Botão para gerar PDF (simplificado)
-            document.getElementById("gerar-pdf").addEventListener("click", function() {
+            // 🔹 Botão para gerar PDF dos selecionados
+            document.getElementById("gerar-pdf-selected").addEventListener("click", function() {
                 const selecionados = [];
                 document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
                     if (checkbox.closest('tr').style.display !== 'none') { // Apenas linhas visíveis
