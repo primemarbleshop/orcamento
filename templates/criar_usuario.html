@@ -99,17 +99,19 @@
         <div class="form-box">
             <form method="POST" action="{{ url_for('criar_usuario') }}">
                 <label for="nome">Nome:</label>
-    <input type="text" id="nome" name="nome" required>
-    
-    <label for="cpf">CPF:</label>
-    <input type="text" id="cpf" name="cpf" required>
-    
-    <label for="senha">Senha:</label>
-    <input type="password" id="senha" name="senha" required></br>
-
-    
-    <button type="submit">Criar Usuário</button>
-</form>
+                <input type="text" id="nome" name="nome" required>
+                
+                <label for="cpf">CPF:</label>
+                <input type="text" id="cpf" name="cpf" required>
+                
+                <label for="telefone">Telefone:</label>
+                <input type="text" id="telefone" name="telefone" placeholder="(00) 00000-0000">
+                
+                <label for="senha">Senha:</label>
+                <input type="password" id="senha" name="senha" required>
+                
+                <button type="submit">Criar Usuário</button>
+            </form>
 
             {% if error %}
                 <p class="error">{{ error }}</p>
@@ -119,5 +121,29 @@
             <a href="{{ url_for('index') }}" class="back-link">← Voltar para a Página Inicial</a>
         </div>
     </div>
+
+    <script>
+        // Máscara para o telefone
+        document.getElementById('telefone').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length <= 11) {
+                if (value.length <= 10) {
+                    value = value.replace(/(\d{2})(\d{4})(\d{4})/, '($1) $2-$3');
+                } else {
+                    value = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
+                }
+                e.target.value = value;
+            }
+        });
+
+        // Máscara para o CPF
+        document.getElementById('cpf').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length <= 11) {
+                value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+                e.target.value = value;
+            }
+        });
+    </script>
 </body>
 </html>
