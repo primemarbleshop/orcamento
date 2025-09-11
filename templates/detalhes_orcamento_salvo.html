@@ -364,6 +364,28 @@
         display: none !important;
     }
 
+    /* NOVO: Indicador visual para opções que serão ocultas no PDF */
+    .will-be-hidden {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .will-be-hidden::after {
+        content: "OCULTO NO PDF";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%) rotate(-45deg);
+        background-color: rgba(255, 0, 0, 0.2);
+        color: red;
+        font-weight: bold;
+        padding: 5px;
+        font-size: 14px;
+        border: 2px dashed red;
+        z-index: 5;
+        pointer-events: none;
+    }
+
     @media print {
         /* REMOVER: As margens do container principal na impressão */
         .main-container {
@@ -428,7 +450,7 @@
             font-size: 13px;
         }
 
-        .print-button, .btn-voltar, .btn-edit, .btn-save, .btn-cancel, .btn-container, .top-buttons-container, .btn-toggle-pdf {
+        .print-button, .btn-voltar, .btn-edit, .btn-save, .btn-cancel, .btn-container, .top-buttons-container, .btn-toggle-pdf, .will-be-hidden::after {
             display: none !important;
         }
         
@@ -513,6 +535,11 @@
         
         /* NOVO: Ajustar a exibição das opções de pagamento no PDF */
         .payment-option.pdf-hidden {
+            display: none !important;
+        }
+        
+        /* NOVO: Ocultar elementos que devem ser excluídos do PDF */
+        .exclude-from-pdf {
             display: none !important;
         }
     }
@@ -715,9 +742,11 @@
         <div class="footer-content">
             <div class="payment-options-container" id="paymentOptionsContainer">
                 <!-- Cartão de Crédito (agora primeiro) -->
-                <div class="payment-option" id="payment-option-1">
+                <div class="payment-option {% if '1' in exclude_payments %}will-be-hidden{% endif %}" id="payment-option-1" {% if pdf and '1' in exclude_payments %}style="display: none;"{% endif %}>
                     {% if not pdf %}
-                    <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-1')">Ocultar no PDF</button>
+                    <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-1')">
+                        {% if '1' in exclude_payments %}Mostrar{% else %}Ocultar{% endif %} no PDF
+                    </button>
                     {% endif %}
                     <h4>Cartão de Crédito</h4>
                     <div class="payment-detail">
@@ -744,9 +773,11 @@
                 </div>
                 
                 <!-- À vista (Dinheiro/PIX) -->
-                <div class="payment-option" id="payment-option-2">
+                <div class="payment-option {% if '2' in exclude_payments %}will-be-hidden{% endif %}" id="payment-option-2" {% if pdf and '2' in exclude_payments %}style="display: none;"{% endif %}>
                     {% if not pdf %}
-                    <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-2')">Ocultar no PDF</button>
+                    <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-2')">
+                        {% if '2' in exclude_payments %}Mostrar{% else %}Ocultar{% endif %} no PDF
+                    </button>
                     {% endif %}
                     <h4>À vista (Dinheiro/PIX)</h4>
                     <div class="payment-detail">
@@ -778,9 +809,11 @@
                 </div>
 
                 <!-- Parcelado (Dinheiro/PIX) -->
-                <div class="payment-option" id="payment-option-3">
+                <div class="payment-option {% if '3' in exclude_payments %}will-be-hidden{% endif %}" id="payment-option-3" {% if pdf and '3' in exclude_payments %}style="display: none;"{% endif %}>
                     {% if not pdf %}
-                    <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-3')">Ocultar no PDF</button>
+                    <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-3')">
+                        {% if '3' in exclude_payments %}Mostrar{% else %}Ocultar{% endif %} no PDF
+                    </button>
                     {% endif %}
                     <h4>Parcelado (Dinheiro/PIX)</h4>
                     <div class="payment-detail">
@@ -837,7 +870,7 @@
         <input type="hidden" name="desconto_avista" id="formDescontoAvista" value="{{ desconto_avista }}">
         <input type="hidden" name="desconto_parcelado" id="formDescontoParcelado" value="{{ desconto_parcelado }}">
         <input type="hidden" name="observacoes" id="formObservacoes" value="{{ observacoes }}">
-        <input type="hidden" name="payment_options_visibility" id="formPaymentOptionsVisibility" value="1,2,3">
+        <input type="hidden" name="payment_options_visibility" id="formPaymentOptionsVisibility" value="{{ exclude_payments|join(',') }}">
     </form>
     {% endif %}
 </div>
@@ -852,9 +885,9 @@
     </button>
     
     <!-- Botão Gerar PDF (CORRETO - fora das opções de pagamento) -->
-    <button class="btn btn-custom-success btn-pdf" id="btnGerarPDF" title="Gerar PDF">
+    <a href="/gerar_pdf_orcamento/{{ codigo_orcamento }}?exclude_payments={{ exclude_payments|join(',') }}" class="btn btn-custom-success btn-pdf" id="btnGerarPDF" title="Gerar PDF">
         <i class="fas fa-file-pdf"></i> Gerar PDF
-    </button>
+    </a>
 </div>
 {% endif %}
 
@@ -864,34 +897,31 @@
     const valorTotalFloat = {{ valor_total_float }};
     let hiddenPaymentOptions = [];
     
+    // Inicializar as opções ocultas
+    {% if exclude_payments %}
+        hiddenPaymentOptions = {{ exclude_payments|tojson }};
+    {% endif %}
+    
     // Função para alternar visibilidade no PDF
     function togglePdfVisibility(paymentOptionId) {
         const element = document.getElementById(paymentOptionId);
         const button = element.querySelector('.btn-toggle-pdf');
+        const optionNumber = paymentOptionId.split('-').pop();
         
-        if (element.classList.contains('hidden-in-pdf')) {
-            element.classList.remove('hidden-in-pdf');
-            button.textContent = 'Ocultar no PDF';
-            
+        if (hiddenPaymentOptions.includes(optionNumber)) {
             // Remover da lista de opções ocultas
-            const optionNumber = paymentOptionId.split('-').pop();
             hiddenPaymentOptions = hiddenPaymentOptions.filter(opt => opt !== optionNumber);
+            element.classList.remove('will-be-hidden');
+            button.textContent = 'Ocultar no PDF';
         } else {
-            element.classList.add('hidden-in-pdf');
-            button.textContent = 'Mostrar no PDF';
-            
             // Adicionar à lista de opções ocultas
-            const optionNumber = paymentOptionId.split('-').pop();
-            if (!hiddenPaymentOptions.includes(optionNumber)) {
-                hiddenPaymentOptions.push(optionNumber);
-            }
+            hiddenPaymentOptions.push(optionNumber);
+            element.classList.add('will-be-hidden');
+            button.textContent = 'Mostrar no PDF';
         }
         
         // Atualizar o formulário com as opções ocultas
         document.getElementById('formPaymentOptionsVisibility').value = hiddenPaymentOptions.join(',');
-        
-        // Reorganizar as opções de pagamento
-        reorganizarOpcoesPagamento();
         
         // Atualizar o link do botão PDF
         updatePdfButtonLink();
@@ -901,42 +931,7 @@
     function updatePdfButtonLink() {
         const pdfButton = document.getElementById('btnGerarPDF');
         if (pdfButton) {
-            pdfButton.onclick = function() {
-                window.location.href = '/gerar_pdf_orcamento/{{ codigo_orcamento }}?exclude_payments=' + getHiddenPaymentOptions();
-            };
-        }
-    }
-    
-    // Função para obter as opções de pagamento ocultas
-    function getHiddenPaymentOptions() {
-        return hiddenPaymentOptions.join(',');
-    }
-    
-    // Função para reorganizar as opções de pagamento visíveis
-    function reorganizarOpcoesPagamento() {
-        const container = document.getElementById('paymentOptionsContainer');
-        const opcoes = container.querySelectorAll('.payment-option');
-        
-        // Remover todas as classes de borda primeiro
-        opcoes.forEach(opcao => {
-            opcao.style.borderRight = 'none';
-        });
-        
-        // Adicionar borda apenas entre opções visíveis consecutivas
-        let ultimaVisivel = null;
-        
-        opcoes.forEach((opcao, index) => {
-            if (!opcao.classList.contains('hidden-in-pdf')) {
-                if (ultimaVisivel !== null) {
-                    ultimaVisivel.style.borderRight = '1px solid #ddd';
-                }
-                ultimaVisivel = opcao;
-            }
-        });
-        
-        // Remover borda da última opção visível
-        if (ultimaVisivel) {
-            ultimaVisivel.style.borderRight = 'none';
+            pdfButton.href = '/gerar_pdf_orcamento/{{ codigo_orcamento }}?exclude_payments=' + hiddenPaymentOptions.join(',');
         }
     }
     
@@ -1084,6 +1079,7 @@
         document.getElementById('formDescontoAvista').value = {{ desconto_avista }};
         document.getElementById('formDescontoParcelado').value = {{ desconto_parcelado }};
         document.getElementById('formObservacoes').value = "{{ observacoes }}";
+        document.getElementById('formPaymentOptionsVisibility').value = hiddenPaymentOptions.join(',');
         
         // Atualizar informações de parcelamento
         atualizarParcelamento();
@@ -1091,15 +1087,19 @@
         // Inicializar os valores arredondados (para quando estiver no navegador)
         atualizarCalculos();
         
-        // Inicializar a reorganização das opções de pagamento
-        reorganizarOpcoesPagamento();
-        
         // Garantir que o link do PDF está atualizado
         updatePdfButtonLink();
         
         // Adicionar evento de clique ao botão de salvar rodapé
         document.getElementById('btnSalvarRodape').addEventListener('click', function() {
             document.getElementById('rodapeForm').submit();
+        });
+        
+        // Inicializar o texto dos botões de ocultar/mostrar
+        document.querySelectorAll('.btn-toggle-pdf').forEach(button => {
+            const optionId = button.closest('.payment-option').id;
+            const optionNumber = optionId.split('-').pop();
+            button.textContent = hiddenPaymentOptions.includes(optionNumber) ? 'Mostrar no PDF' : 'Ocultar no PDF';
         });
     });
 </script>
