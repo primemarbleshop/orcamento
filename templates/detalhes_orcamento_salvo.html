@@ -156,10 +156,33 @@
         padding: 0 8px;
         position: relative;
         transition: all 0.3s ease;
+        border: 2px solid transparent;
     }
 
     .payment-option:not(:last-child) {
         border-right: 1px solid #ddd;
+    }
+
+    .payment-option.oculto-pdf {
+        border: 2px solid #ff6b6b;
+        background-color: #fff5f5;
+        padding: 8px;
+        border-radius: 5px;
+    }
+
+    .payment-option.oculto-pdf::before {
+        content: "⛔ OCULTO NO PDF";
+        position: absolute;
+        top: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #ff6b6b;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 10px;
+        font-weight: bold;
+        z-index: 10;
     }
 
     .installment-calc {
@@ -344,12 +367,6 @@
     .btn-toggle-pdf:hover {
         background-color: #5a6268;
     }
-    
-    /* REMOVER: Esta regra ocultava na web também
-    .hidden-in-pdf {
-        display: none !important;
-    }
-    */
 
     @media print {
         .main-container {
@@ -446,8 +463,17 @@
             border-right: 1px solid #ddd;
         }
         
-        /* ADICIONAR: Ocultar apenas no PDF */
         .hidden-in-pdf {
+            display: none !important;
+        }
+
+        .payment-option.oculto-pdf {
+            border: none;
+            background-color: transparent;
+            padding: 0 8px;
+        }
+        
+        .payment-option.oculto-pdf::before {
             display: none !important;
         }
 
@@ -693,7 +719,7 @@
         <div class="footer-content">
             <div class="payment-options-container" id="paymentOptionsContainer">
                 <!-- Cartão de Crédito -->
-                <div class="payment-option {% if '1' in exclude_payments %}hidden-in-pdf{% endif %}" id="payment-option-1">
+                <div class="payment-option {% if '1' in exclude_payments %}hidden-in-pdf oculto-pdf{% endif %}" id="payment-option-1">
                     {% if not pdf %}
                     <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-1')">
                         {% if '1' in exclude_payments %}Mostrar{% else %}Ocultar{% endif %} no PDF
@@ -724,7 +750,7 @@
                 </div>
                 
                 <!-- À vista (Dinheiro/PIX) -->
-                <div class="payment-option {% if '2' in exclude_payments %}hidden-in-pdf{% endif %}" id="payment-option-2">
+                <div class="payment-option {% if '2' in exclude_payments %}hidden-in-pdf oculto-pdf{% endif %}" id="payment-option-2">
                     {% if not pdf %}
                     <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-2')">
                         {% if '2' in exclude_payments %}Mostrar{% else %}Ocultar{% endif %} no PDF
@@ -758,21 +784,21 @@
                     {% endif %}
                 </div>
 
-                <!-- À vista (Dinheiro/PIX) -->
-                <div class="payment-option {% if '3' in exclude_payments %}hidden-in-pdf{% endif %}" id="payment-option-3">
+                <!-- Parcelado (Dinheiro/PIX) -->
+                <div class="payment-option {% if '3' in exclude_payments %}hidden-in-pdf oculto-pdf{% endif %}" id="payment-option-3">
                     {% if not pdf %}
                     <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-3')">
                         {% if '3' in exclude_payments %}Mostrar{% else %}Ocultar{% endif %} no PDF
                     </button>
                     {% endif %}
-                    <h4>À vista (Dinheiro/PIX)</h4>
+                    <h4>Parcelado (Dinheiro/PIX)</h4>
                     <div class="payment-detail">
                         <span class="discount-percentage" id="discount2Display">{{ desconto_parcelado }}</span>Com desconto
                         {% if not pdf %}
                         <button class="btn-edit" onclick="toggleEdit('discount2')">Editar</button>
                         {% endif %}
                     </div>
-                    <div class="payment-detail">• Sinal de 80% e 50% na entrega</div>
+                    <div class="payment-detail">• Sinal de 50% e 50% na entrega</div>
                     <div class="installment-calc">
                         Valor com desconto: R$ <span id="valorParcelado">
                             {% set valor_com_desconto_parcelado = valor_total_float * (1 - desconto_parcelado/100) %}
@@ -862,11 +888,13 @@ function togglePdfVisibility(paymentOptionId) {
         // Remover da lista de opções ocultas
         hiddenPaymentOptions = hiddenPaymentOptions.filter(opt => opt !== optionNumber);
         element.classList.remove('hidden-in-pdf');
+        element.classList.remove('oculto-pdf');
         button.textContent = 'Ocultar no PDF';
     } else {
         // Adicionar à lista de opções ocultas
         hiddenPaymentOptions.push(optionNumber);
         element.classList.add('hidden-in-pdf');
+        element.classList.add('oculto-pdf');
         button.textContent = 'Mostrar no PDF';
     }
     
@@ -1017,7 +1045,7 @@ function atualizarCalculos() {
         valorParcelado = valorParcelado - 5;
     }
     
-    // Formatar e exibir os valores
+    // Formatar и exibir os valores
     document.getElementById('valorAvista').textContent = formatarMoeda(valorAvista);
     document.getElementById('valorParcelado').textContent = formatarMoeda(valorParcelado);
 }
