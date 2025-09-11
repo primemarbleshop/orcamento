@@ -104,12 +104,12 @@
         
         .valor-total {
             font-weight: bold;
-            color: #000000; /* Alterado para preto */
+            color: #000000;
         }
         
         .valor-final {
             font-weight: bold;
-            color: #ffffff; /* Alterado para preto */
+            color: #ffffff;
             font-size: 1.2rem;
         }
         
@@ -272,13 +272,13 @@
 
                     <div class="col-md-2 mb-2">
                         <label for="filtro_quantidade" class="form-label">Mostrar:</label>
-                        <select id="filtro_quantidade" class="form-select" onchange="atualizarFiltroQuantidade(this.value)">
-    <option value="15" {% if current_limit == '15' %}selected{% endif %}>Últimos 15</option>
-    <option value="30" {% if current_limit == '30' %}selected{% endif %}>Últimos 30</option>
-    <option value="50" {% if current_limit == '50' %}selected{% endif %}>Últimos 50</option>
-    <option value="100" {% if current_limit == '100' %}selected{% endif %}>Últimos 100</option>
-    <option value="all" {% if current_limit == 'all' %}selected{% endif %}>Todos</option>
-</select>
+                        <select id="filtro_quantidade" class="form-select">
+                            <option value="15" {% if current_limit == '15' %}selected{% endif %}>Últimos 15</option>
+                            <option value="30" {% if current_limit == '30' %}selected{% endif %}>Últimos 30</option>
+                            <option value="50" {% if current_limit == '50' %}selected{% endif %}>Últimos 50</option>
+                            <option value="100" {% if current_limit == '100' %}selected{% endif %}>Últimos 100</option>
+                            <option value="all" {% if current_limit == 'all' %}selected{% endif %}>Todos</option>
+                        </select>
                     </div>
 
                     <div class="col-md-3 mb-2 d-flex align-items-end">
@@ -466,8 +466,6 @@
                     </div>
                 `;
                 
-                
-                
                 // Campos específicos para cuba esculpida
                 camposEspecificos += `
                     <div class="col-md-12" id="cuba_esculpida_fields" style="display: none;">
@@ -498,7 +496,7 @@
                         </div>
                     </div>
                 `;
-		// Campos de cooktop (apenas para Bancada)
+                // Campos de cooktop (apenas para Bancada)
                 if (tipoProduto === 'Bancada') {
                     camposEspecificos += `
                         <div class="row dynamic-field">
@@ -701,7 +699,12 @@
             // Inicializar o valor total
             atualizarValorFinal();
             
-                       
+            // Adicionar event listener para o filtro de quantidade
+            document.getElementById('filtro_quantidade').addEventListener('change', function() {
+                localStorage.setItem('filtroQuantidade', this.value);
+                filterOrcamentos();
+            });
+            
             // Carregar filtros salvos
             if (localStorage.getItem('filtroCliente')) {
                 document.getElementById('filtro_cliente').value = localStorage.getItem('filtroCliente');
@@ -935,8 +938,11 @@
                 }
                 
                 // Aplicar filtro de quantidade
-                if (show && filtroQuantidade !== 'all' && visibleCount >= parseInt(filtroQuantidade)) {
-                    show = false;
+                if (show && filtroQuantidade !== 'all') {
+                    // Se já mostramos a quantidade limite, esconder os demais
+                    if (visibleCount >= parseInt(filtroQuantidade)) {
+                        show = false;
+                    }
                 }
                 
                 if (show) {
@@ -955,25 +961,21 @@
         }
 
         function resetFilters() {
-    // Redireciona para a URL base sem parâmetros (que usará o limite padrão de 15)
-    window.location.href = window.location.pathname;
-}
-
-		function atualizarFiltroQuantidade(limit) {
-    const url = new URL(window.location.href);
-    
-    // Preserva todos os parâmetros existentes
-    const params = new URLSearchParams(url.search);
-    
-    // Atualiza apenas o parâmetro limit
-    params.set('limit', limit);
-    
-    // Constrói a nova URL
-    url.search = params.toString();
-    
-    // Recarrega a página com os novos parâmetros
-    window.location.href = url.toString();
-}
+            // Resetar valores dos campos
+            document.getElementById('filtro_cliente').value = 'Todos';
+            document.getElementById('filtro_data_inicio').value = '';
+            document.getElementById('filtro_data_fim').value = '';
+            document.getElementById('filtro_quantidade').value = '15';
+            
+            // Limpar localStorage
+            localStorage.removeItem('filtroCliente');
+            localStorage.removeItem('filtroDataInicio');
+            localStorage.removeItem('filtroDataFim');
+            localStorage.removeItem('filtroQuantidade');
+            
+            // Reaplicar filtros
+            filterOrcamentos();
+        }
     </script>
 </body>
 </html>
