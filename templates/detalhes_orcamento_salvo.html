@@ -297,6 +297,11 @@
         line-height: 1.2;
     }
 
+    /* NOVO: Estilo para ocultar porcentagens */
+    .discount-percentage {
+        display: none;
+    }
+
     @media print {
         /* REMOVER: As margens do container principal na impressão */
         .main-container {
@@ -434,6 +439,11 @@
         
         .prazo-entrega-container {
             display: block !important;
+        }
+        
+        /* NOVO: Garantir que porcentagens não apareçam na impressão */
+        .discount-percentage {
+            display: none !important;
         }
     }
 
@@ -612,12 +622,11 @@
         </table>
     {% endfor %}
 
-    <!-- Rodapé do orçamento -->
+    <!-- Rodapé do orçamento - MODIFICADO para ocultar porcentagens -->
     <div class="orcamento-footer">
         <div class="footer-section">
             <div class="footer-title">Prazo de Entrega:</div>
             <div class="footer-content">
-                <!-- MELHORIA: Ajuste para manter tudo na mesma linha -->
                 <div class="prazo-entrega-container">
                     <span class="prazo-entrega-text">
                         <span id="deliveryDaysDisplay">{{ prazo_entrega }}</span> dias úteis
@@ -626,7 +635,6 @@
                     <button class="btn-edit" onclick="toggleEdit('deliveryDays')">Editar</button>
                     {% endif %}
                 </div>
-                
                 
                 {% if not pdf %}
                 <div id="deliveryDaysEdit" class="edit-mode" style="display: none;">
@@ -667,14 +675,14 @@
 {% endif %}
                              </span>x sem juros
                         </div>
-                        <!-- Adicionando informações de parcelas calculadas -->
                     </div>
                     
                     <!-- À vista (Dinheiro/PIX) -->
                     <div class="payment-option">
                         <h4>2. À vista (Dinheiro/PIX)</h4>
                         <div class="payment-detail">
-                            <span id="discount1Display">{{ desconto_avista }}</span>% de desconto
+                            <!-- MODIFICADO: Ocultar a porcentagem de desconto -->
+                            <span class="discount-percentage" id="discount1Display">{{ desconto_avista }}</span>% Com desconto
                             {% if not pdf %}
                             <button class="btn-edit" onclick="toggleEdit('discount1')">Editar</button>
                             {% endif %}
@@ -697,7 +705,8 @@
                     <div class="payment-option">
                         <h4>3. À vista (Dinheiro/PIX)</h4>
                         <div class="payment-detail">
-                            <span id="discount2Display">{{ desconto_parcelado }}</span>% de desconto
+                            <!-- MODIFICADO: Ocultar a porcentagem de desconto -->
+                            <span class="discount-percentage" id="discount2Display">{{ desconto_parcelado }}</span>% Com desconto
                             {% if not pdf %}
                             <button class="btn-edit" onclick="toggleEdit('discount2')">Editar</button>
                             {% endif %}
@@ -749,7 +758,7 @@
 
     <br>
 
-    <!-- Botões de ação - MODIFICADOS conforme solicitado -->
+    <!-- Botões de ação -->
     {% if not pdf %}
     <div class="btn-container">
         <!-- Botão Gerar PDF com formatação igual à página de orçamentos salvos -->
@@ -812,8 +821,8 @@
         }
         
         // Alternar visibilidade
-        displayElement.style.display = 'none';
-        editElement.style.display = 'block';
+        if (displayElement) displayElement.style.display = 'none';
+        if (editElement) editElement.style.display = 'block';
     }
     
     // Função para salvar valores editados
@@ -824,9 +833,9 @@
         
         // Atualizar valor exibido
         if (campo === 'observacoes') {
-            displayElement.innerHTML = inputElement.value.replace(/\n/g, '<br>');
+            if (displayElement) displayElement.innerHTML = inputElement.value.replace(/\n/g, '<br>');
         } else {
-            displayElement.textContent = inputElement.value;
+            if (displayElement) displayElement.textContent = inputElement.value;
             
             // Atualizar cálculos se for desconto
             if (campo === 'discount1' || campo === 'discount2') {
@@ -846,8 +855,8 @@
         }
         
         // Voltar para modo de visualização
-        displayElement.style.display = 'block';
-        editElement.style.display = 'none';
+        if (displayElement) displayElement.style.display = 'block';
+        if (editElement) editElement.style.display = 'none';
     }
     
     // Função para cancelar edição
@@ -860,8 +869,8 @@
         inputElement.value = valoresOriginais[campo];
         
         // Voltar para modo de visualização
-        displayElement.style.display = 'block';
-        editElement.style.display = 'none';
+        if (displayElement) displayElement.style.display = 'block';
+        if (editElement) editElement.style.display = 'none';
     }
     
     // Função para atualizar cálculos de valores com desconto
