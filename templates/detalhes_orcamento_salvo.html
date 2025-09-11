@@ -685,48 +685,48 @@
         </table>
     {% endfor %}
 
-    <!-- Rodapé do orçamento - MODIFICADO para ocultar porcentagens -->
-    <div class="orcamento-footer">
-        <div class="footer-section">
-            <div class="footer-title">Prazo de Entrega:</div>
-            <div class="footer-content">
-                <div class="prazo-entrega-container">
-                    <span class="prazo-entrega-text">
-                        <span id="deliveryDaysDisplay">{{ prazo_entrega }}</span> dias úteis
-                    </span>
-                    {% if not pdf %}
-                    <button class="btn-edit" onclick="toggleEdit('deliveryDays')">Editar</button>
-                    {% endif %}
-                </div>
-                
+   <!-- Rodapé do orçamento - MODIFICADO para ocultar porcentagens -->
+<div class="orcamento-footer">
+    <div class="footer-section">
+        <div class="footer-title">Prazo de Entrega:</div>
+        <div class="footer-content">
+            <div class="prazo-entrega-container">
+                <span class="prazo-entrega-text">
+                    <span id="deliveryDaysDisplay">{{ prazo_entrega }}</span> dias úteis
+                </span>
                 {% if not pdf %}
-                <div id="deliveryDaysEdit" class="edit-mode" style="display: none;">
-                    <input type="number" id="deliveryDaysInput" class="edit-field" value="{{ prazo_entrega }}" min="1">
-                    dias úteis
-                    <button class="btn-save" onclick="saveValue('deliveryDays')">Salvar</button>
-                    <button class="btn-cancel" onclick="cancelEdit('deliveryDays')">Cancelar</button>
-                </div>
+                <button class="btn-edit" onclick="toggleEdit('deliveryDays')">Editar</button>
                 {% endif %}
             </div>
+            
+            {% if not pdf %}
+            <div id="deliveryDaysEdit" class="edit-mode" style="display: none;">
+                <input type="number" id="deliveryDaysInput" class="edit-field" value="{{ prazo_entrega }}" min="1">
+                dias úteis
+                <button class="btn-save" onclick="saveValue('deliveryDays')">Salvar</button>
+                <button class="btn-cancel" onclick="cancelEdit('deliveryDays')">Cancelar</button>
+            </div>
+            {% endif %}
         </div>
-        
-        <div class="footer-section">
-            <div class="footer-title">Condições de Pagamento:</div>
-            <div class="footer-content">
-                <div class="payment-options-container" id="paymentOptionsContainer">
-                    <!-- Cartão de Crédito (agora primeiro) -->
-                    <div class="payment-option" id="payment-option-1">
-                        {% if not pdf %}
-                        <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-1')">Ocultar no PDF</button>
-                        {% endif %}
-                        <h4>Cartão de Crédito</h4>
-                        <div class="payment-detail">
-                           • Pagamento de 100% na aprovação do orçamento
-                        </div>
-                        <div class="installment-calc" id="parcelamentoSimplificado">
-                             R$ {{ "{:,.2f}".format(valor_total_float).replace(",", "X").replace(".", ",").replace("X", ".") }} em até 
-                             <span id="maxParcelas">
-                             {% if max_parcelas is defined %}
+    </div>
+    
+    <div class="footer-section">
+        <div class="footer-title">Condições de Pagamento:</div>
+        <div class="footer-content">
+            <div class="payment-options-container" id="paymentOptionsContainer">
+                <!-- Cartão de Crédito (agora primeiro) -->
+                <div class="payment-option" id="payment-option-1">
+                    {% if not pdf %}
+                    <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-1')">Ocultar no PDF</button>
+                    {% endif %}
+                    <h4>Cartão de Crédito</h4>
+                    <div class="payment-detail">
+                       • Pagamento de 100% na aprovação do orçamento
+                    </div>
+                    <div class="installment-calc" id="parcelamentoSimplificado">
+                         R$ {{ "{:,.2f}".format(valor_total_float).replace(",", "X").replace(".", ",").replace("X", ".") }} em até 
+                         <span id="maxParcelas">
+                         {% if max_parcelas is defined %}
     {{ max_parcelas }}
 {% else %}
     {% set max_parcelas_calculado = (valor_total_float / 100)|int %}
@@ -739,125 +739,124 @@
         {{ max_parcelas_calculado }}
     {% endif %}
 {% endif %}
-                             </span>x sem juros
-                        </div>
+                         </span>x sem juros
+                    </div>
+                </div>
+                
+                <!-- À vista (Dinheiro/PIX) -->
+                <div class="payment-option" id="payment-option-2">
+                    {% if not pdf %}
+                    <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-2')">Ocultar no PDF</button>
+                    {% endif %}
+                    <h4>À vista (Dinheiro/PIX)</h4>
+                    <div class="payment-detail">
+                        <!-- MODIFICADO: Ocultar a porcentagem de desconto -->
+                        <span class="discount-percentage" id="discount1Display">{{ desconto_avista }}</span>Com desconto
+                        {% if not pdf %}
+                        <button class="btn-edit" onclick="toggleEdit('discount1')">Editar</button>
+                        {% endif %}
+                    </div>
+                    <div class="payment-detail">• Sinal de 50% e 50% na entrega</div>
+                    <div class="installment-calc">
+                        Valor com desconto: R$ <span id="valorAvista">
+                            {% set valor_com_desconto_avista = valor_total_float * (1 - desconto_avista/100) %}
+                            {% set valor_arredondado_avista = (valor_com_desconto_avista / 10)|round(0, 'common') * 10 %}
+                            {% if valor_arredondado_avista > valor_total_float %}
+                                {% set valor_arredondado_avista = valor_arredondado_avista - 5 %}
+                            {% endif %}
+                            {{ "{:,.2f}".format(valor_arredondado_avista).replace(",", "X").replace(".", ",").replace("X", ".") }}
+                        </span>
                     </div>
                     
-                    <!-- À vista (Dinheiro/PIX) -->
-<div class="payment-option" id="payment-option-2">
-    {% if not pdf %}
-    <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-2')">Ocultar no PDF</button>
-    {% endif %}
-    <h4>À vista (Dinheiro/PIX)</h4>
-    <div class="payment-detail">
-        <!-- MODIFICADO: Ocultar a porcentagem de desconto -->
-        <span class="discount-percentage" id="discount1Display">{{ desconto_avista }}</span>Com desconto
-        {% if not pdf %}
-        <button class="btn-edit" onclick="toggleEdit('discount1')">Editar</button>
-        {% endif %}
-    </div>
-    <div class="payment-detail">• Sinal de 50% e 50% na entrega</div>
-    <div class="installment-calc">
-        Valor com desconto: R$ <span id="valorAvista">
-            {% set valor_com_desconto_avista = valor_total_float * (1 - desconto_avista/100) %}
-            {% set valor_arredondado_avista = (valor_com_desconto_avista / 10)|round(0, 'common') * 10 %}
-            {% if valor_arredondado_avista > valor_total_float %}
-                {% set valor_arredondado_avista = valor_arredondado_avista - 5 %}
-            {% endif %}
-            {{ "{:,.2f}".format(valor_arredondado_avista).replace(",", "X").replace(".", ",").replace("X", ".") }}
-        </span>
-    </div>
-    
-    {% if not pdf %}
-    <div id="discount1Edit" class="edit-mode" style="display: none;">
-        <input type="number" id="discount1Input" class="edit-field" value="{{ desconto_avista }}" min="0" max="100">% de desconto
-        <button class="btn-save" onclick="saveValue('discount1')">Salvar</button>
-        <button class="btn-cancel" onclick="cancelEdit('discount1')">Cancelar</button>
-    </div>
-    {% endif %}
-</div>
+                    {% if not pdf %}
+                    <div id="discount1Edit" class="edit-mode" style="display: none;">
+                        <input type="number" id="discount1Input" class="edit-field" value="{{ desconto_avista }}" min="0" max="100">% de desconto
+                        <button class="btn-save" onclick="saveValue('discount1')">Salvar</button>
+                        <button class="btn-cancel" onclick="cancelEdit('discount1')">Cancelar</button>
+                    </div>
+                    {% endif %}
+                </div>
 
-<!-- Parcelado (Dinheiro/PIX) -->
-<div class="payment-option" id="payment-option-3">
-    {% if not pdf %}
-    <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-3')">Ocultar no PDF</button>
-    {% endif %}
-    <h4>À vista (Dinheiro/PIX)</h4>
-    <div class="payment-detail">
-        <!-- MODIFICADO: Ocultar a porcentagem de desconto -->
-        <span class="discount-percentage" id="discount2Display">{{ desconto_parcelado }}</span>Com desconto
-        {% if not pdf %}
-        <button class="btn-edit" onclick="toggleEdit('discount2')">Editar</button>
-        {% endif %}
-    </div>
-    <div class="payment-detail">• Sinal de 50% e 50% na entrega</div>
-    <div class="installment-calc">
-        Valor com desconto: R$ <span id="valorParcelado">
-            {% set valor_com_desconto_parcelado = valor_total_float * (1 - desconto_parcelado/100) %}
-            {% set valor_arredondado_parcelado = (valor_com_desconto_parcelado / 10)|round(0, 'common') * 10 %}
-            {% if valor_arredondado_parcelado > valor_total_float %}
-                {% set valor_arredondado_parcelado = valor_arredondado_parcelado - 5 %}
-            {% endif %}
-            {{ "{:,.2f}".format(valor_arredondado_parcelado).replace(",", "X").replace(".", ",").replace("X", ".") }}
-        </span>
-    </div>
-    
-    {% if not pdf %}
-    <div id="discount2Edit" class="edit-mode" style="display: none;">
-        <input type="number" id="discount2Input" class="edit-field" value="{{ desconto_parcelado }}" min="0" max="100">% de desconto
-        <button class="btn-save" onclick="saveValue('discount2')">Salvar</button>
-        <button class="btn-cancel" onclick="cancelEdit('discount2')">Cancelar</button>
-    </div>
-    {% endif %}
-</div>
+                <!-- Parcelado (Dinheiro/PIX) -->
+                <div class="payment-option" id="payment-option-3">
+                    {% if not pdf %}
+                    <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-3')">Ocultar no PDF</button>
+                    {% endif %}
+                    <h4>Parcelado (Dinheiro/PIX)</h4>
+                    <div class="payment-detail">
+                        <!-- MODIFICADO: Ocultar a porcentagem de desconto -->
+                        <span class="discount-percentage" id="discount2Display">{{ desconto_parcelado }}</span>Com desconto
+                        {% if not pdf %}
+                        <button class="btn-edit" onclick="toggleEdit('discount2')">Editar</button>
+                        {% endif %}
+                    </div>
+                    <div class="payment-detail">• Sinal de 50% e 50% na entrega</div>
+                    <div class="installment-calc">
+                        Valor com desconto: R$ <span id="valorParcelado">
+                            {% set valor_com_desconto_parcelado = valor_total_float * (1 - desconto_parcelado/100) %}
+                            {% set valor_arredondado_parcelado = (valor_com_desconto_parcelado / 10)|round(0, 'common') * 10 %}
+                            {% if valor_arredondado_parcelado > valor_total_float %}
+                                {% set valor_arredondado_parcelado = valor_arredondado_parcelado - 5 %}
+                            {% endif %}
+                            {{ "{:,.2f}".format(valor_arredondado_parcelado).replace(",", "X").replace(".", ",").replace("X", ".") }}
+                        </span>
+                    </div>
+                    
+                    {% if not pdf %}
+                    <div id="discount2Edit" class="edit-mode" style="display: none;">
+                        <input type="number" id="discount2Input" class="edit-field" value="{{ desconto_parcelado }}" min="0" max="100">% de desconto
+                        <button class="btn-save" onclick="saveValue('discount2')">Salvar</button>
+                        <button class="btn-cancel" onclick="cancelEdit('discount2')">Cancelar</button>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
-        
-        <div class="footer-section">
-            <div class="footer-title">Observações:</div>
-            <div class="footer-content">
-                <div id="observacoesDisplay">{{ observacoes }}</div>
-                {% if not pdf %}
-                <button class="btn-edit" onclick="toggleEdit('observacoes')">Editar</button>
-                
-                <div id="observacoesEdit" class="edit-mode" style="display: none;">
-                    <textarea id="observacoesInput" rows="2" style="width: 100%; font-size: 12px;">{{ observacoes }}</textarea>
-                    <button class="btn-save" onclick="saveValue('observacoes')">Salvar</button>
-                    <button class="btn-cancel" onclick="cancelEdit('observacoes')">Cancelar</button>
-                </div>
-                {% endif %}
+    </div>
+    
+    <div class="footer-section">
+        <div class="footer-title">Observações:</div>
+        <div class="footer-content">
+            <div id="observacoesDisplay">{{ observacoes }}</div>
+            {% if not pdf %}
+            <button class="btn-edit" onclick="toggleEdit('observacoes')">Editar</button>
+            
+            <div id="observacoesEdit" class="edit-mode" style="display: none;">
+                <textarea id="observacoesInput" rows="2" style="width: 100%; font-size: 12px;">{{ observacoes }}</textarea>
+                <button class="btn-save" onclick="saveValue('observacoes')">Salvar</button>
+                <button class="btn-cancel" onclick="cancelEdit('observacoes')">Cancelar</button>
             </div>
+            {% endif %}
         </div>
-        
-        <!-- Formulário para salvar as alterações do rodapé -->
-        {% if not pdf %}
-        <form action="{{ url_for('salvar_rodape_orcamento', codigo=codigo_orcamento) }}" method="POST" id="rodapeForm">
-            <input type="hidden" name="prazo_entrega" id="formPrazoEntrega" value="{{ prazo_entrega }}">
-            <input type="hidden" name="desconto_avista" id="formDescontoAvista" value="{{ desconto_avista }}">
-            <input type="hidden" name="desconto_parcelado" id="formDescontoParcelado" value="{{ desconto_parcelado }}">
-            <input type="hidden" name="observacoes" id="formObservacoes" value="{{ observacoes }}">
-            <input type="hidden" name="payment_options_visibility" id="formPaymentOptionsVisibility" value="1,2,3">
-        </form>
-        {% endif %}
     </div>
-
-    <br>
-
-    <!-- Botão Salvar Alterações do Rodapé - MODIFICADO: Agora posicionado acima dos outros botões -->
+    
+    <!-- Formulário para salvar as alterações do rodapé -->
     {% if not pdf %}
-    <div class="btn-container">
-        <button type="submit" form="rodapeForm" class="btn-save-rodape">
-            <i class="fas fa-save me-1"></i> Salvar Alterações do Rodapé
-        </button>  </div>
-        <br>
-        <!-- Botão Gerar PDF (movido para cá) -->
-        <div <button class="btn btn-custom-success btn-pdf" onclick="window.location.href='/gerar_pdf_orcamento/{{ codigo_orcamento }}?exclude_payments=' + getHiddenPaymentOptions()" title="Gerar PDF">
-            <i class="fas fa-file-pdf"></i> Gerar PDF
-        </button>
-    </div>
+    <form action="{{ url_for('salvar_rodape_orcamento', codigo=codigo_orcamento) }}" method="POST" id="rodapeForm">
+        <input type="hidden" name="prazo_entrega" id="formPrazoEntrega" value="{{ prazo_entrega }}">
+        <input type="hidden" name="desconto_avista" id="formDescontoAvista" value="{{ desconto_avista }}">
+        <input type="hidden" name="desconto_parcelado" id="formDescontoParcelado" value="{{ desconto_parcelado }}">
+        <input type="hidden" name="observacoes" id="formObservacoes" value="{{ observacoes }}">
+        <input type="hidden" name="payment_options_visibility" id="formPaymentOptionsVisibility" value="1,2,3">
+    </form>
     {% endif %}
-</div> <!-- Fim do main-container -->
+</div>
+
+<br>
+
+<!-- Botão Salvar Alterações do Rodapé - MODIFICADO: Agora posicionado acima dos outros botões -->
+{% if not pdf %}
+<div class="btn-container">
+    <button type="submit" form="rodapeForm" class="btn-save-rodape">
+        <i class="fas fa-save me-1"></i> Salvar Alterações do Rodapé
+    </button>
+    
+    <!-- Botão Gerar PDF (CORRETO - fora das opções de pagamento) -->
+    <button class="btn btn-custom-success btn-pdf" onclick="window.location.href='/gerar_pdf_orcamento/{{ codigo_orcamento }}?exclude_payments=' + getHiddenPaymentOptions()" title="Gerar PDF">
+        <i class="fas fa-file-pdf"></i> Gerar PDF
+    </button>
+</div>
+{% endif %}
 
     <script>
     // Variáveis globais para armazenar os valores
@@ -865,28 +864,50 @@
     const valorTotalFloat = {{ valor_total_float }};
     let hiddenPaymentOptions = [];
     
-    // Função para alternar visibilidade no PDF
-    function togglePdfVisibility(paymentOptionId) {
-        const element = document.getElementById(paymentOptionId);
-        const button = element.querySelector('.btn-toggle-pdf');
+    // Função para alternar visibilidade no PDF - CORRIGIDA
+function togglePdfVisibility(paymentOptionId) {
+    const element = document.getElementById(paymentOptionId);
+    const button = element.querySelector('.btn-toggle-pdf');
+    
+    if (element.classList.contains('hidden-in-pdf')) {
+        element.classList.remove('hidden-in-pdf');
+        button.textContent = 'Ocultar no PDF';
         
-        if (element.classList.contains('hidden-in-pdf')) {
-            element.classList.remove('hidden-in-pdf');
-            button.textContent = 'Ocultar no PDF';
-            
-            // Remover da lista de opções ocultas
-            const optionNumber = paymentOptionId.split('-').pop();
-            hiddenPaymentOptions = hiddenPaymentOptions.filter(opt => opt !== optionNumber);
-        } else {
-            element.classList.add('hidden-in-pdf');
-            button.textContent = 'Mostrar no PDF';
-            
-            // Adicionar à lista de opções ocultas
-            const optionNumber = paymentOptionId.split('-').pop();
-            if (!hiddenPaymentOptions.includes(optionNumber)) {
-                hiddenPaymentOptions.push(optionNumber);
-            }
+        // Remover da lista de opções ocultas
+        const optionNumber = paymentOptionId.split('-').pop();
+        hiddenPaymentOptions = hiddenPaymentOptions.filter(opt => opt !== optionNumber);
+    } else {
+        element.classList.add('hidden-in-pdf');
+        button.textContent = 'Mostrar no PDF';
+        
+        // Adicionar à lista de opções ocultas
+        const optionNumber = paymentOptionId.split('-').pop();
+        if (!hiddenPaymentOptions.includes(optionNumber)) {
+            hiddenPaymentOptions.push(optionNumber);
         }
+    }
+    
+    // Atualizar o campo hidden do formulário
+    document.getElementById('formPaymentOptionsVisibility').value = hiddenPaymentOptions.join(',');
+    
+    // Reorganizar as opções visíveis
+    reorganizarOpcoesPagamento();
+    
+    // Atualizar também o link do botão Gerar PDF
+    updatePdfButtonLink();
+}
+
+// NOVA FUNÇÃO: Atualizar o link do botão Gerar PDF
+function updatePdfButtonLink() {
+    const pdfButton = document.querySelector('.btn-pdf');
+    if (pdfButton) {
+        pdfButton.onclick = function() {
+            window.location.href = '/gerar_pdf_orcamento/{{ codigo_orcamento }}?exclude_payments=' + getHiddenPaymentOptions();
+        };
+    }
+}
+
+
         
         // Atualizar o campo hidden do formulário
         document.getElementById('formPaymentOptionsVisibility').value = hiddenPaymentOptions.join(',');
@@ -1059,6 +1080,16 @@
         // Inicializar a reorganização das opções de pagamento
         reorganizarOpcoesPagamento();
     });
+        
+        document.addEventListener('DOMContentLoaded', function() {
+    // ... código existente ...
+    
+    // Inicializar a reorganização das opções de pagamento
+    reorganizarOpcoesPagamento();
+    
+    // NOVO: Garantir que o link do PDF está atualizado
+    updatePdfButtonLink();
+});
 </script>
 
 </body>
