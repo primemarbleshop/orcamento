@@ -272,13 +272,13 @@
 
                     <div class="col-md-2 mb-2">
                         <label for="filtro_quantidade" class="form-label">Mostrar:</label>
-                        <select id="filtro_quantidade" class="form-select" onchange="filterOrcamentos()">
-                            <option value="15">Últimos 15</option>
-                            <option value="30">Últimos 30</option>
-                            <option value="50">Últimos 50</option>
-                            <option value="100">Últimos 100</option>
-                            <option value="all">Todos</option>
-                        </select>
+                        <select id="filtro_quantidade" class="form-select" onchange="atualizarFiltroQuantidade(this.value)">
+    <option value="15" {% if current_limit == '15' %}selected{% endif %}>Últimos 15</option>
+    <option value="30" {% if current_limit == '30' %}selected{% endif %}>Últimos 30</option>
+    <option value="50" {% if current_limit == '50' %}selected{% endif %}>Últimos 50</option>
+    <option value="100" {% if current_limit == '100' %}selected{% endif %}>Últimos 100</option>
+    <option value="all" {% if current_limit == 'all' %}selected{% endif %}>Todos</option>
+</select>
                     </div>
 
                     <div class="col-md-3 mb-2 d-flex align-items-end">
@@ -969,6 +969,13 @@
             
             filterOrcamentos();
         }
+
+		function atualizarFiltroQuantidade(limit) {
+    // Atualiza a URL com o parâmetro limit e recarrega a página
+    const url = new URL(window.location.href);
+    url.searchParams.set('limit', limit);
+    window.location.href = url.toString();
+}
     </script>
 </body>
 </html>
