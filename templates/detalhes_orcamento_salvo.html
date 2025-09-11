@@ -77,7 +77,7 @@
         right: 0;
         top: 70px;
         height: 120px;
-        width: 280;
+        width: 280px;
         max-width: 280px; /* Limitar largura máxima da logo */
         object-fit: contain;
     }
@@ -552,7 +552,7 @@
         margin-top: 3px;
     }
     </style>
-    </head>
+</head>
 <body>
 <!-- NOVO: Container principal com margens -->
 <div class="main-container">
@@ -847,12 +847,12 @@
 <!-- Botão Salvar Alterações do Rodapé - MODIFICADO: Agora posicionado acima dos outros botões -->
 {% if not pdf %}
 <div class="btn-container">
-    <button type="submit" form="rodapeForm" class="btn-save-rodape">
+    <button type="button" id="btnSalvarRodape" class="btn-save-rodape">
         <i class="fas fa-save me-1"></i> Salvar Alterações do Rodapé
     </button>
     
     <!-- Botão Gerar PDF (CORRETO - fora das opções de pagamento) -->
-    <button class="btn btn-custom-success btn-pdf" onclick="window.location.href='/gerar_pdf_orcamento/{{ codigo_orcamento }}?exclude_payments=' + getHiddenPaymentOptions()" title="Gerar PDF">
+    <button class="btn btn-custom-success btn-pdf" id="btnGerarPDF" title="Gerar PDF">
         <i class="fas fa-file-pdf"></i> Gerar PDF
     </button>
 </div>
@@ -864,44 +864,53 @@
     const valorTotalFloat = {{ valor_total_float }};
     let hiddenPaymentOptions = [];
     
-    // Função para alternar visibilidade no PDF - CORRIGIDA
-function togglePdfVisibility(paymentOptionId) {
-    const element = document.getElementById(paymentOptionId);
-    const button = element.querySelector('.btn-toggle-pdf');
+    // Função para alternar visibilidade no PDF
+    function togglePdfVisibility(paymentOptionId) {
+        const element = document.getElementById(paymentOptionId);
+        const button = element.querySelector('.btn-toggle-pdf');
+        
+        if (element.classList.contains('hidden-in-pdf')) {
+            element.classList.remove('hidden-in-pdf');
+            button.textContent = 'Ocultar no PDF';
+            
+            // Remover da lista de opções ocultas
+            const optionNumber = paymentOptionId.split('-').pop();
+            hiddenPaymentOptions = hiddenPaymentOptions.filter(opt => opt !== optionNumber);
+        } else {
+            element.classList.add('hidden-in-pdf');
+            button.textContent = 'Mostrar no PDF';
+            
+            // Adicionar à lista de opções ocultas
+            const optionNumber = paymentOptionId.split('-').pop();
+            if (!hiddenPaymentOptions.includes(optionNumber)) {
+                hiddenPaymentOptions.push(optionNumber);
+            }
+        }
+        
+        // Atualizar o formulário com as opções ocultas
+        document.getElementById('formPaymentOptionsVisibility').value = hiddenPaymentOptions.join(',');
+        
+        // Reorganizar as opções de pagamento
+        reorganizarOpcoesPagamento();
+        
+        // Atualizar o link do botão PDF
+        updatePdfButtonLink();
+    }
     
-    if (element.classList.contains('hidden-in-pdf')) {
-        element.classList.remove('hidden-in-pdf');
-        button.textContent = 'Ocultar no PDF';
-        
-        // Remover da lista de opções ocultas
-        const optionNumber = paymentOptionId.split('-').pop();
-        hiddenPaymentOptions = hiddenPaymentOptions.filter(opt => opt !== optionNumber);
-    } else {
-        element.classList.add('hidden-in-pdf');
-        button.textContent = 'Mostrar no PDF';
-        
-        // Adicionar à lista de opções ocultas
-        const optionNumber = paymentOptionId.split('-').pop();
-        if (!hiddenPaymentOptions.includes(optionNumber)) {
-            hiddenPaymentOptions.push(optionNumber);
+    // NOVA FUNÇÃO: Atualizar o link do botão Gerar PDF
+    function updatePdfButtonLink() {
+        const pdfButton = document.getElementById('btnGerarPDF');
+        if (pdfButton) {
+            pdfButton.onclick = function() {
+                window.location.href = '/gerar_pdf_orcamento/{{ codigo_orcamento }}?exclude_payments=' + getHiddenPaymentOptions();
+            };
         }
     }
     
-  
-
-// NOVA FUNÇÃO: Atualizar o link do botão Gerar PDF
-function updatePdfButtonLink() {
-    const pdfButton = document.querySelector('.btn-pdf');
-    if (pdfButton) {
-        pdfButton.onclick = function() {
-            window.location.href = '/gerar_pdf_orcamento/{{ codigo_orcamento }}?exclude_payments=' + getHiddenPaymentOptions();
-        };
+    // Função para obter as opções de pagamento ocultas
+    function getHiddenPaymentOptions() {
+        return hiddenPaymentOptions.join(',');
     }
-}
-
-
-        
-       
     
     // Função para reorganizar as opções de pagamento visíveis
     function reorganizarOpcoesPagamento() {
@@ -931,11 +940,6 @@ function updatePdfButtonLink() {
         }
     }
     
-    // Função para obter as opções de pagamento ocultas
-    function getHiddenPaymentOptions() {
-        return hiddenPaymentOptions.join(',');
-    }
-    
     // Função para arredondar valores para múltiplos de 10
     function arredondarParaDez(valor) {
         return Math.round(valor / 10) * 10;
@@ -963,8 +967,15 @@ function updatePdfButtonLink() {
     
     // Função para alternar entre modo de visualização e edição
     function toggleEdit(campo) {
-        const displayElement = document.getElementById(campo + 'Display');
-        const editElement = document.getElementById(campo + 'Edit');
+        let displayElement, editElement;
+        
+        if (campo === 'deliveryDays') {
+            displayElement = document.getElementById('deliveryDaysEdit').previousElementSibling;
+            editElement = document.getElementById(campo + 'Edit');
+        } else {
+            displayElement = document.getElementById(campo + 'Display');
+            editElement = document.getElementById(campo + 'Edit');
+        }
         
         // Salvar valor original para possível cancelamento
         if (campo === 'observacoes') {
@@ -980,14 +991,23 @@ function updatePdfButtonLink() {
     
     // Função para salvar valores editados
     function saveValue(campo) {
-        const displayElement = document.getElementById(campo + 'Display');
-        const editElement = document.getElementById(campo + 'Edit');
+        let displayElement, editElement;
         const inputElement = document.getElementById(campo + 'Input');
         
-        // Atualizar valor exibido
-        if (campo === 'observacoes') {
+        if (campo === 'deliveryDays') {
+            displayElement = document.getElementById('deliveryDaysEdit').previousElementSibling;
+            editElement = document.getElementById(campo + 'Edit');
+            if (displayElement) {
+                const span = displayElement.querySelector('#deliveryDaysDisplay');
+                if (span) span.textContent = inputElement.value;
+            }
+        } else if (campo === 'observacoes') {
+            displayElement = document.getElementById(campo + 'Display');
+            editElement = document.getElementById(campo + 'Edit');
             if (displayElement) displayElement.innerHTML = inputElement.value.replace(/\n/g, '<br>');
         } else {
+            displayElement = document.getElementById(campo + 'Display');
+            editElement = document.getElementById(campo + 'Edit');
             if (displayElement) displayElement.textContent = inputElement.value;
             
             // Atualizar cálculos se for desconto
@@ -1014,12 +1034,19 @@ function updatePdfButtonLink() {
     
     // Função para cancelar edição
     function cancelEdit(campo) {
-        const displayElement = document.getElementById(campo + 'Display');
-        const editElement = document.getElementById(campo + 'Edit');
+        let displayElement, editElement;
         const inputElement = document.getElementById(campo + 'Input');
         
         // Restaurar valor original
         inputElement.value = valoresOriginais[campo];
+        
+        if (campo === 'deliveryDays') {
+            displayElement = document.getElementById('deliveryDaysEdit').previousElementSibling;
+            editElement = document.getElementById(campo + 'Edit');
+        } else {
+            displayElement = document.getElementById(campo + 'Display');
+            editElement = document.getElementById(campo + 'Edit');
+        }
         
         // Voltar para modo de visualização
         if (displayElement) displayElement.style.display = 'block';
@@ -1050,7 +1077,7 @@ function updatePdfButtonLink() {
         document.getElementById('valorParcelado').textContent = formatarMoeda(valorParcelado);
     }
     
- // Inicializar cálculos quando a página carregar
+    // Inicializar cálculos quando a página carregar
     document.addEventListener('DOMContentLoaded', function() {
         // Preencher os campos do formulário hidden com os valores iniciais
         document.getElementById('formPrazoEntrega').value = {{ prazo_entrega }};
@@ -1069,9 +1096,13 @@ function updatePdfButtonLink() {
         
         // Garantir que o link do PDF está atualizado
         updatePdfButtonLink();
+        
+        // Adicionar evento de clique ao botão de salvar rodapé
+        document.getElementById('btnSalvarRodape').addEventListener('click', function() {
+            document.getElementById('rodapeForm').submit();
+        });
     });
 </script>
 
 </body>
 </html>
-
