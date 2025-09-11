@@ -678,51 +678,66 @@
                     </div>
                     
                     <!-- À vista (Dinheiro/PIX) -->
-                    <div class="payment-option">
-                        <h4>2. À vista (Dinheiro/PIX)</h4>
-                        <div class="payment-detail">
-                            <!-- MODIFICADO: Ocultar a porcentagem de desconto -->
-                            <span class="discount-percentage" id="discount1Display">{{ desconto_avista }}</span>Com desconto
-                            {% if not pdf %}
-                            <button class="btn-edit" onclick="toggleEdit('discount1')">Editar</button>
-                            {% endif %}
-                        </div>
-                        <div class="payment-detail">• Sinal de 50% e 50% na entrega</div>
-                        <div class="installment-calc">
-                            Valor com desconto: R$ <span id="valorAvista">
-                                {% set valor_com_desconto_avista = valor_total_float * (1 - desconto_avista/100) %}
-                                {% set valor_arredondado_avista = (valor_com_desconto_avista / 10)|round(0, 'common') * 10 %}
-                                {{ "{:,.2f}".format(valor_arredondado_avista).replace(",", "X").replace(".", ",").replace("X", ".") }}
-                            </span>
-                        </div>
-                        
-                        {% if not pdf %}
-                        <div id="discount1Edit" class="edit-mode" style="display: none;">
-                            <input type="number" id="discount1Input" class="edit-field" value="{{ desconto_avista }}" min="0" max="100">% de desconto
-                            <button class="btn-save" onclick="saveValue('discount1')">Salvar</button>
-                            <button class="btn-cancel" onclick="cancelEdit('discount1')">Cancelar</button>
-                        </div>
-                        {% endif %}
-                    </div>
-                    
-                    <!-- Parcelado (Dinheiro/PIX) -->
-                    <div class="payment-option">
-                        <h4>3. À vista (Dinheiro/PIX)</h4>
-                        <div class="payment-detail">
-                            <!-- MODIFICADO: Ocultar a porcentagem de desconto -->
-                            <span class="discount-percentage" id="discount2Display">{{ desconto_parcelado }}</span>Com desconto
-                            {% if not pdf %}
-                            <button class="btn-edit" onclick="toggleEdit('discount2')">Editar</button>
-                            {% endif %}
-                        </div>
-                        <div class="payment-detail">• Sinal de 80% e 20% na entrega</div>
-                        <div class="installment-calc">
-                            Valor com desconto: R$ <span id="valorParcelado">
-                                {% set valor_com_desconto_parcelado = valor_total_float * (1 - desconto_parcelado/100) %}
-                                {% set valor_arredondado_parcelado = (valor_com_desconto_parcelado / 10)|round(0, 'common') * 10 %}
-                                {{ "{:,.2f}".format(valor_arredondado_parcelado).replace(",", "X").replace(".", ",").replace("X", ".") }}
-                            </span>
-                        </div>
+<div class="payment-option">
+    <h4>2. À vista (Dinheiro/PIX)</h4>
+    <div class="payment-detail">
+        <!-- MODIFICADO: Ocultar a porcentagem de desconto -->
+        <span class="discount-percentage" id="discount1Display">{{ desconto_avista }}</span>Com desconto
+        {% if not pdf %}
+        <button class="btn-edit" onclick="toggleEdit('discount1')">Editar</button>
+        {% endif %}
+    </div>
+    <div class="payment-detail">• Sinal de 50% e 50% na entrega</div>
+    <div class="installment-calc">
+        Valor com desconto: R$ <span id="valorAvista">
+            {% set valor_com_desconto_avista = valor_total_float * (1 - desconto_avista/100) %}
+            {% set valor_arredondado_avista = (valor_com_desconto_avista / 10)|round(0, 'common') * 10 %}
+            {% if valor_arredondado_avista > valor_total_float %}
+                {% set valor_arredondado_avista = valor_arredondado_avista - 5 %}
+            {% endif %}
+            {{ "{:,.2f}".format(valor_arredondado_avista).replace(",", "X").replace(".", ",").replace("X", ".") }}
+        </span>
+    </div>
+    
+    {% if not pdf %}
+    <div id="discount1Edit" class="edit-mode" style="display: none;">
+        <input type="number" id="discount1Input" class="edit-field" value="{{ desconto_avista }}" min="0" max="100">% de desconto
+        <button class="btn-save" onclick="saveValue('discount1')">Salvar</button>
+        <button class="btn-cancel" onclick="cancelEdit('discount1')">Cancelar</button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Parcelado (Dinheiro/PIX) -->
+<div class="payment-option">
+    <h4>3. À vista (Dinheiro/PIX)</h4>
+    <div class="payment-detail">
+        <!-- MODIFICADO: Ocultar a porcentagem de desconto -->
+        <span class="discount-percentage" id="discount2Display">{{ desconto_parcelado }}</span>Com desconto
+        {% if not pdf %}
+        <button class="btn-edit" onclick="toggleEdit('discount2')">Editar</button>
+        {% endif %}
+    </div>
+    <div class="payment-detail">• Sinal de 80% e 20% na entrega</div>
+    <div class="installment-calc">
+        Valor com desconto: R$ <span id="valorParcelado">
+            {% set valor_com_desconto_parcelado = valor_total_float * (1 - desconto_parcelado/100) %}
+            {% set valor_arredondado_parcelado = (valor_com_desconto_parcelado / 10)|round(0, 'common') * 10 %}
+            {% if valor_arredondado_parcelado > valor_total_float %}
+                {% set valor_arredondado_parcelado = valor_arredondado_parcelado - 5 %}
+            {% endif %}
+            {{ "{:,.2f}".format(valor_arredondado_parcelado).replace(",", "X").replace(".", ",").replace("X", ".") }}
+        </span>
+    </div>
+    
+    {% if not pdf %}
+    <div id="discount2Edit" class="edit-mode" style="display: none;">
+        <input type="number" id="discount2Input" class="edit-field" value="{{ desconto_parcelado }}" min="0" max="100">% de desconto
+        <button class="btn-save" onclick="saveValue('discount2')">Salvar</button>
+        <button class="btn-cancel" onclick="cancelEdit('discount2')">Cancelar</button>
+    </div>
+    {% endif %}
+</div>
                         
                         {% if not pdf %}
                         <div id="discount2Edit" class="edit-mode" style="display: none;">
