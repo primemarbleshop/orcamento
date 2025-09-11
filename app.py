@@ -1321,12 +1321,32 @@ def gerar_pdf_orcamento(codigo):
         flash("Orçamento salvo não encontrado!", "danger")
         return redirect(url_for('listar_orcamentos_salvos'))
 
-    # Obter as opções excluídas da sessão ou do banco
-    exclude_payments = session.get(f'exclude_payments_{codigo}', '').split(',')
+    # Obter os orçamentos vinculados
+    ids = [int(id) for id in orcamento_salvo.orcamentos_ids.split(",")]
+    orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
     
-    # ... resto do código ...
+    # Calcular valor total
+    valor_total_final = sum(o.valor_total for o in orcamentos)
+    valor_total_float = valor_total_final
+
+    # Definir logo_url (esta linha estava faltando)
+    logo_url = "https://orcamento-t9w2.onrender.com/static/logo.jpg"
     
-    return render_template(
+    # Obter informações do usuário
+    usuario = Usuario.query.filter_by(cpf=session.get('user_cpf')).first()
+    telefone_usuario = usuario.telefone if usuario else ""
+
+    # ✅ USAR OS VALORES SALVOS NO BANCO COM VALORES PADRÃO DE FALLBACK
+    prazo_entrega = orcamento_salvo.prazo_entrega if orcamento_salvo.prazo_entrega is not None else 15
+    desconto_avista = orcamento_salvo.desconto_avista if orcamento_salvo.desconto_avista is not None else 5
+    desconto_parcelado = orcamento_salvo.desconto_parcelado if orcamento_salvo.desconto_parcelado is not None else 10
+    observacoes = orcamento_salvo.observacoes if orcamento_salvo.observacoes is not None else "Medidas sujeitas a confirmação no local. Valores válidos por 7 dias."
+    
+    # ✅ NOVO: Obter as opções excluídas salvas no banco
+    exclude_payments = orcamento_salvo.exclude_payments.split(',') if orcamento_salvo.exclude_payments else []
+
+    # Renderizar o HTML para o PDF
+    rendered_html = render_template(
         "detalhes_orcamento_salvo.html",
         logo_url=logo_url,
         codigo_orcamento=orcamento_salvo.codigo,
@@ -1341,7 +1361,7 @@ def gerar_pdf_orcamento(codigo):
         desconto_parcelado=desconto_parcelado,
         observacoes=observacoes,
         pdf=True,
-        exclude_payments=exclude_payments  # Passar para o template
+        exclude_payments=exclude_payments
     )
 
     # Resto do código permanece igual...
