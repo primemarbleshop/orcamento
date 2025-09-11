@@ -719,108 +719,111 @@
         <div class="footer-content">
             <div class="payment-options-container" id="paymentOptionsContainer">
                 <!-- Cartão de Crédito -->
-                <div class="payment-option {% if '1' in exclude_payments %}hidden-in-pdf oculto-pdf{% endif %}" id="payment-option-1">
-                    {% if not pdf %}
-                    <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-1')">
-                        {% if '1' in exclude_payments %}Mostrar{% else %}Ocultar{% endif %} no PDF
-                    </button>
-                    {% endif %}
-                    <h4>Cartão de Crédito</h4>
-                    <div class="payment-detail">
-                       • Pagamento de 100% na aprovação do orçamento
-                    </div>
-                    <div class="installment-calc" id="parcelamentoSimplificado">
-                         R$ {{ "{:,.2f}".format(valor_total_float).replace(",", "X").replace(".", ",").replace("X", ".") }} em até 
-                         <span id="maxParcelas">
-                         {% if max_parcelas is defined %}
-                            {{ max_parcelas }}
-                         {% else %}
-                            {% set max_parcelas_calculado = (valor_total_float / 100)|int %}
-                            {% if max_parcelas_calculado < 1 %}
-                                {% set max_parcelas_calculado = 1 %}
-                            {% endif %}
-                            {% if max_parcelas_calculado > 10 %}
-                                {{ 10 }}
-                            {% else %}
-                                {{ max_parcelas_calculado }}
-                            {% endif %}
-                         {% endif %}
-                         </span>x sem juros
-                    </div>
-                </div>
-                
-                <!-- À vista (Dinheiro/PIX) -->
-                <div class="payment-option {% if '2' in exclude_payments %}hidden-in-pdf oculto-pdf{% endif %}" id="payment-option-2">
-                    {% if not pdf %}
-                    <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-2')">
-                        {% if '2' in exclude_payments %}Mostrar{% else %}Ocultar{% endif %} no PDF
-                    </button>
-                    {% endif %}
-                    <h4>À vista (Dinheiro/PIX)</h4>
-                    <div class="payment-detail">
-                        <span class="discount-percentage" id="discount1Display">{{ desconto_avista }}</span>Com desconto
-                        {% if not pdf %}
-                        <button class="btn-edit" onclick="toggleEdit('discount1')">Editar</button>
-                        {% endif %}
-                    </div>
-                    <div class="payment-detail">• Sinal de 50% e 50% na entrega</div>
-                    <div class="installment-calc">
-                        Valor com desconto: R$ <span id="valorAvista">
-                            {% set valor_com_desconto_avista = valor_total_float * (1 - desconto_avista/100) %}
-                            {% set valor_arredondado_avista = (valor_com_desconto_avista / 10)|round(0, 'common') * 10 %}
-                            {% if valor_arredondado_avista > valor_total_float %}
-                                {% set valor_arredondado_avista = valor_arredondado_avista - 5 %}
-                            {% endif %}
-                            {{ "{:,.2f}".format(valor_arredondado_avista).replace(",", "X").replace(".", ",").replace("X", ".") }}
-                        </span>
-                    </div>
-                    
-                    {% if not pdf %}
-                    <div id="discount1Edit" class="edit-mode" style="display: none;">
-                        <input type="number" id="discount1Input" class="edit-field" value="{{ desconto_avista }}" min="0" max="100">% de desconto
-                        <button class="btn-save" onclick="saveValue('discount1')">Salvar</button>
-                        <button class="btn-cancel" onclick="cancelEdit('discount1')">Cancelar</button>
-                    </div>
-                    {% endif %}
-                </div>
-
-                <!-- À vista (Dinheiro/PIX) -->
-                <div class="payment-option {% if '3' in exclude_payments %}hidden-in-pdf oculto-pdf{% endif %}" id="payment-option-3">
-                    {% if not pdf %}
-                    <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-3')">
-                        {% if '3' in exclude_payments %}Mostrar{% else %}Ocultar{% endif %} no PDF
-                    </button>
-                    {% endif %}
-                    <h4>À vista (Dinheiro/PIX)</h4>
-                    <div class="payment-detail">
-                        <span class="discount-percentage" id="discount2Display">{{ desconto_parcelado }}</span>Com desconto
-                        {% if not pdf %}
-                        <button class="btn-edit" onclick="toggleEdit('discount2')">Editar</button>
-                        {% endif %}
-                    </div>
-                    <div class="payment-detail">• Sinal de 80% e 20% na entrega</div>
-                    <div class="installment-calc">
-                        Valor com desconto: R$ <span id="valorParcelado">
-                            {% set valor_com_desconto_parcelado = valor_total_float * (1 - desconto_parcelado/100) %}
-                            {% set valor_arredondado_parcelado = (valor_com_desconto_parcelado / 10)|round(0, 'common') * 10 %}
-                            {% if valor_arredondado_parcelado > valor_total_float %}
-                                {% set valor_arredondado_parcelado = valor_arredondado_parcelado - 5 %}
-                            {% endif %}
-                            {{ "{:,.2f}".format(valor_arredondado_parcelado).replace(",", "X").replace(".", ",").replace("X", ".") }}
-                        </span>
-                    </div>
-                    
-                    {% if not pdf %}
-                    <div id="discount2Edit" class="edit-mode" style="display: none;">
-                        <input type="number" id="discount2Input" class="edit-field" value="{{ desconto_parcelado }}" min="0" max="100">% de desconto
-                        <button class="btn-save" onclick="saveValue('discount2')">Salvar</button>
-                        <button class="btn-cancel" onclick="cancelEdit('discount2')">Cancelar</button>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
+<div class="payment-option {% if '1' in exclude_payments %}hidden-in-pdf oculto-pdf{% endif %}" id="payment-option-1">
+    <h4>Cartão de Crédito</h4>
+    <div class="payment-detail">
+       • Pagamento de 100% na aprovação do orçamento
     </div>
+    <div class="installment-calc" id="parcelamentoSimplificado">
+         R$ {{ "{:,.2f}".format(valor_total_float).replace(",", "X").replace(".", ",").replace("X", ".") }} em até 
+         <span id="maxParcelas">
+         {% if max_parcelas is defined %}
+            {{ max_parcelas }}
+         {% else %}
+            {% set max_parcelas_calculado = (valor_total_float / 100)|int %}
+            {% if max_parcelas_calculado < 1 %}
+                {% set max_parcelas_calculado = 1 %}
+            {% endif %}
+            {% if max_parcelas_calculado > 10 %}
+                {{ 10 }}
+            {% else %}
+                {{ max_parcelas_calculado }}
+            {% endif %}
+         {% endif %}
+         </span>x sem juros
+    </div>
+    {% if not pdf %}
+    <div class="toggle-button-container">
+        <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-1')">
+            {% if '1' in exclude_payments %}Mostrar{% else %}Ocultar{% endif %} no PDF
+        </button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- À vista (Dinheiro/PIX) -->
+<div class="payment-option {% if '2' in exclude_payments %}hidden-in-pdf oculto-pdf{% endif %}" id="payment-option-2">
+    <h4>À vista (Dinheiro/PIX)</h4>
+    <div class="payment-detail">
+        <span class="discount-percentage" id="discount1Display">{{ desconto_avista }}</span>Com desconto
+        {% if not pdf %}
+        <button class="btn-edit" onclick="toggleEdit('discount1')">Editar</button>
+        {% endif %}
+    </div>
+    <div class="payment-detail">• Sinal de 50% e 50% na entrega</div>
+    <div class="installment-calc">
+        Valor com desconto: R$ <span id="valorAvista">
+            {% set valor_com_desconto_avista = valor_total_float * (1 - desconto_avista/100) %}
+            {% set valor_arredondado_avista = (valor_com_desconto_avista / 10)|round(0, 'common') * 10 %}
+            {% if valor_arredondado_avista > valor_total_float %}
+                {% set valor_arredondado_avista = valor_arredondado_avista - 5 %}
+            {% endif %}
+            {{ "{:,.2f}".format(valor_arredondado_avista).replace(",", "X").replace(".", ",").replace("X", ".") }}
+        </span>
+    </div>
+    {% if not pdf %}
+    <div class="toggle-button-container">
+        <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-2')">
+            {% if '2' in exclude_payments %}Mostrar{% else %}Ocultar{% endif %} no PDF
+        </button>
+    </div>
+    {% endif %}
+    
+    {% if not pdf %}
+    <div id="discount1Edit" class="edit-mode" style="display: none;">
+        <input type="number" id="discount1Input" class="edit-field" value="{{ desconto_avista }}" min="0" max="100">% de desconto
+        <button class="btn-save" onclick="saveValue('discount1')">Salvar</button>
+        <button class="btn-cancel" onclick="cancelEdit('discount1')">Cancelar</button>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Outra forma de pagamento -->
+<div class="payment-option {% if '3' in exclude_payments %}hidden-in-pdf oculto-pdf{% endif %}" id="payment-option-3">
+    <h4>À vista (Dinheiro/PIX)</h4>
+    <div class="payment-detail">
+        <span class="discount-percentage" id="discount2Display">{{ desconto_parcelado }}</span>Com desconto
+        {% if not pdf %}
+        <button class="btn-edit" onclick="toggleEdit('discount2')">Editar</button>
+        {% endif %}
+    </div>
+    <div class="payment-detail">• Sinal de 80% e 20% na entrega</div>
+    <div class="installment-calc">
+        Valor com desconto: R$ <span id="valorParcelado">
+            {% set valor_com_desconto_parcelado = valor_total_float * (1 - desconto_parcelado/100) %}
+            {% set valor_arredondado_parcelado = (valor_com_desconto_parcelado / 10)|round(0, 'common') * 10 %}
+            {% if valor_arredondado_parcelado > valor_total_float %}
+                {% set valor_arredondado_parcelado = valor_arredondado_parcelado - 5 %}
+            {% endif %}
+            {{ "{:,.2f}".format(valor_arredondado_parcelado).replace(",", "X").replace(".", ",").replace("X", ".") }}
+        </span>
+    </div>
+    {% if not pdf %}
+    <div class="toggle-button-container">
+        <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-3')">
+            {% if '3' in exclude_payments %}Mostrar{% else %}Ocultar{% endif %} no PDF
+        </button>
+    </div>
+    {% endif %}
+    
+    {% if not pdf %}
+    <div id="discount2Edit" class="edit-mode" style="display: none;">
+        <input type="number" id="discount2Input" class="edit-field" value="{{ desconto_parcelado }}" min="0" max="100">% de desconto
+        <button class="btn-save" onclick="saveValue('discount2')">Salvar</button>
+        <button class="btn-cancel" onclick="cancelEdit('discount2')">Cancelar</button>
+    </div>
+    {% endif %}
+</div>
     
     <div class="footer-section">
         <div class="footer-title">Observações:</div>
