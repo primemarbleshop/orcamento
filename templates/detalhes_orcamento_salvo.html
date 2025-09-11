@@ -500,7 +500,7 @@
         margin-top: 3px;
     }
     </style>
-</head>
+    </head>
 <body>
 <!-- NOVO: Container principal com margens -->
 <div class="main-container">
@@ -536,7 +536,7 @@
         <strong>Data:</strong> {{ data_salvo.strftime('%d/%m/%Y') }}
     </p>
     <div class="total-box">
-        Valor Total: <span id="valorTotal">{{ valor_total_final }}</span>
+        Valor Total: <span id="valorTotal">{{ "{:,.2f}".format(valor_total_float).replace(",", "X").replace(".", ",").replace("X", ".") }}</span>
     </div>
 
     <br>
@@ -614,8 +614,8 @@
                     <td>{% if produto.tem_alisar == "Sim" %}Sim{% else %}Não{% endif %}</td>
                     <td>{% if produto.tem_alisar == "Sim" %}{{ produto.largura_alisar }} cm{% else %}-{% endif %}</td>
                     {% endif %}
-                    <td>R$ {{ "%.2f"|format(produto.outros_custos) }}</td>
-                    <td>R$ {{ "%.2f"|format(produto.valor_total) }}</td>
+                    <td>R$ {{ "{:,.2f}".format(produto.outros_custos).replace(",", "X").replace(".", ",").replace("X", ".") }}</td>
+                    <td>R$ {{ "{:,.2f}".format(produto.valor_total).replace(",", "X").replace(".", ",").replace("X", ".") }}</td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -658,7 +658,7 @@
                            • Pagamento de 100% na aprovação do orçamento
                         </div>
                         <div class="installment-calc" id="parcelamentoSimplificado">
-                             R$ {{ "%.2f"|format(valor_total_float) }} em até 
+                             R$ {{ "{:,.2f}".format(valor_total_float).replace(",", "X").replace(".", ",").replace("X", ".") }} em até 
                              <span id="maxParcelas">
                              {% if max_parcelas is defined %}
     {{ max_parcelas }}
@@ -689,7 +689,11 @@
                         </div>
                         <div class="payment-detail">• Sinal de 50% e 50% na entrega</div>
                         <div class="installment-calc">
-                            Valor com desconto: R$ <span id="valorAvista">{{ "%.2f"|format(valor_total_float * (1 - desconto_avista/100)) }}</span>
+                            Valor com desconto: R$ <span id="valorAvista">
+                                {% set valor_com_desconto_avista = valor_total_float * (1 - desconto_avista/100) %}
+                                {% set valor_arredondado_avista = (valor_com_desconto_avista / 10)|round(0, 'common') * 10 %}
+                                {{ "{:,.2f}".format(valor_arredondado_avista).replace(",", "X").replace(".", ",").replace("X", ".") }}
+                            </span>
                         </div>
                         
                         {% if not pdf %}
@@ -713,7 +717,11 @@
                         </div>
                         <div class="payment-detail">• Sinal de 80% e 20% na entrega</div>
                         <div class="installment-calc">
-                            Valor com desconto: R$ <span id="valorParcelado">{{ "%.2f"|format(valor_total_float * (1 - desconto_parcelado/100)) }}</span>
+                            Valor com desconto: R$ <span id="valorParcelado">
+                                {% set valor_com_desconto_parcelado = valor_total_float * (1 - desconto_parcelado/100) %}
+                                {% set valor_arredondado_parcelado = (valor_com_desconto_parcelado / 10)|round(0, 'common') * 10 %}
+                                {{ "{:,.2f}".format(valor_arredondado_parcelado).replace(",", "X").replace(".", ",").replace("X", ".") }}
+                            </span>
                         </div>
                         
                         {% if not pdf %}
@@ -779,6 +787,16 @@
     let valoresOriginais = {};
     const valorTotalFloat = {{ valor_total_float }};
     
+    // Função para arredondar valores para múltiplos de 10
+    function arredondarParaDez(valor) {
+        return Math.round(valor / 10) * 10;
+    }
+    
+    // Função para formatar valores monetários (1.000,00)
+    function formatarMoeda(valor) {
+        return valor.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+    }
+    
     // Calcular o número máximo de parcelas (máximo de 12x, mínimo de 1x)
     function calcularMaxParcelas(valorTotal) {
         // Calcula com base no valor (mínimo R$ 100 por parcela)
@@ -792,20 +810,6 @@
     function atualizarParcelamento() {
         const maxParcelas = calcularMaxParcelas(valorTotalFloat);
         document.getElementById('maxParcelas').textContent = maxParcelas;
-        
-        // Atualizar detalhes das parcelas
-        const parcelasDetalhes = document.getElementById('parcelasDetalhes');
-        if (parcelasDetalhes) {
-            let html = '';
-            for (let i = 1; i <= maxParcelas; i++) {
-                // Mostrar todas as parcelas até 6, depois apenas as pares e a última
-                if (i <= 6 || i % 2 === 0 || i === maxParcelas) {
-                    const valorParcela = valorTotalFloat / i;
-                    html += `${i}x de R$ ${valorParcela.toFixed(2)}<br>`;
-                }
-            }
-            parcelasDetalhes.innerHTML = html;
-        }
     }
     
     // Função para alternar entre modo de visualização e edição
@@ -878,8 +882,13 @@
         const desconto1 = parseFloat(document.getElementById('discount1Input').value);
         const desconto2 = parseFloat(document.getElementById('discount2Input').value);
         
-        document.getElementById('valorAvista').textContent = (valorTotalFloat * (1 - desconto1/100)).toFixed(2);
-        document.getElementById('valorParcelado').textContent = (valorTotalFloat * (1 - desconto2/100)).toFixed(2);
+        // Calcular valores com desconto e arredondar para múltiplos de 10
+        const valorAvista = arredondarParaDez(valorTotalFloat * (1 - desconto1/100));
+        const valorParcelado = arredondarParaDez(valorTotalFloat * (1 - desconto2/100));
+        
+        // Formatar e exibir os valores
+        document.getElementById('valorAvista').textContent = formatarMoeda(valorAvista);
+        document.getElementById('valorParcelado').textContent = formatarMoeda(valorParcelado);
     }
     
     // Inicializar cálculos quando a página carregar
@@ -892,6 +901,9 @@
         
         // Atualizar informações de parcelamento
         atualizarParcelamento();
+        
+        // Inicializar os valores arredondados (para quando estiver no navegador)
+        atualizarCalculos();
     });
 </script>
     
