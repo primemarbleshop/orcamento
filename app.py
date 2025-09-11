@@ -195,18 +195,6 @@ def index():
 
 @app.route('/orcamentos', methods=['GET', 'POST'])
 def listar_orcamentos():
-    # Obter o parâmetro de limite da query string (padrão: 15)
-    limit_param = request.args.get('limit', '15')
-    
-    # Converter para inteiro, se for 'all' então será 0 (sem limite)
-    if limit_param == 'all':
-        limit = 0
-    else:
-        try:
-            limit = int(limit_param)
-        except ValueError:
-            limit = 15  # Valor padrão se houver erro
-
     ultimo_cliente_id = None  # Variável para armazenar o ID do cliente mais recente
     selected_cliente_id = None  # Variável para armazenar o cliente selecionado
     selected_material_id = None  # Variável para armazenar o material selecionado
@@ -223,6 +211,8 @@ def listar_orcamentos():
         rt_percentual = float(request.form.get('rt_percentual', 0) or 0)  # Agora numérico, ex.: 10 para 10%
         data_atual = datetime.now(br_tz)
         dono = session['user_cpf']  # Captura o CPF do usuário logado
+
+        
 
         # Campos dinâmicos
         comprimento_saia = float(request.form.get('comprimento_saia', 0) or 0)
@@ -241,6 +231,7 @@ def listar_orcamentos():
         largura_alisar = float(request.form.get('largura_alisar', 0) or 0)
         data=data_atual
 
+        
         # Inicializando variáveis do alisar
         tem_alisar = request.form.get('alisar', 'Não')
         largura_alisar = float(request.form.get('largura_alisar', 0) or 0)
@@ -270,6 +261,7 @@ def listar_orcamentos():
         valor_total = 0
         valor_total_criar = 0
 
+        
         comprimento_cal = max(comprimento, 10)  # Garante mínimo de 10 cm
         largura_cal = max(largura, 10)  # Garante mínimo de 10 cm
         # Cálculo do valor base do material
@@ -290,6 +282,8 @@ def listar_orcamentos():
 
         valor_total_criar += valor_base  # Inicializando o valor total
 
+        
+
         # **Cálculo do Nicho**
         if tipo_produto == 'Nicho':
             comprimento_cal = 10 if 0 < comprimento < 10 else comprimento
@@ -304,6 +298,7 @@ def listar_orcamentos():
                 area_nicho = ((comprimento_cal) + (largura_cal)) * profundidade_nicho_cal * 2
                 print(f"Nicho sem fundo: Comprimento={comprimento}, Largura={largura}, Profundidade={profundidade_nicho}, Área={area_nicho}")
 
+            
             # Verifica se há alisar e ajusta a área do nicho
             if tem_alisar == 'Sim' and largura_alisar > 0:
                 largura_alisar_cal = 10 if 0 < largura_alisar < 10 else largura_alisar
@@ -316,12 +311,16 @@ def listar_orcamentos():
             valor_total_criar = valor_nicho
             print(f"Valor do Nicho: Área Final={area_nicho}, Valor do Material={material.valor}, Valor do Nicho={valor_nicho}, Valor Total Criado={valor_total_criar}")                       
 
+        
+        
         # **Cálculo do Acabamento Saia**
         if tipo_produto in ['Ilharga', 'Ilharga Bipolida', 'Bancada', 'Lavatorio']:
             comprimento_saia_cal = 10 if 0 < comprimento_saia < 10 else comprimento_saia
             largura_saia_cal = 10 if 0 < largura_saia < 10 else largura_saia
             valor_saia = comprimento_saia_cal * largura_saia_cal * material.valor / 10000
             valor_total_criar += valor_saia
+
+       
 
         # **Cálculo do Acabamento Fronte**
         if tipo_produto in ['Bancada', 'Lavatorio']:
@@ -353,6 +352,7 @@ def listar_orcamentos():
                     m2_cuba = ((comprimento_cuba * largura_cuba * 2) +
                                (comprimento_cuba * 2 + largura_cuba * 2) * profundidade_cuba) / 10000
 
+
                 valor_cuba_esculpida = m2_cuba * material.valor * quantidade_cubas + 175
                 valor_total_criar += valor_cuba_esculpida
 
@@ -371,6 +371,7 @@ def listar_orcamentos():
 
         valor_total = round(valor_total_criar + valor_rt, 2)
 
+        
         modelo_cuba = request.form.get("modelo_cuba", "").strip()
         if not modelo_cuba:  
             modelo_cuba = "Normal"  # Define "Normal" como padrão se estiver vazio
@@ -404,6 +405,8 @@ def listar_orcamentos():
                 valor_total=valor_total,
                 modelo_cuba=modelo_cuba,
                 dono=session['user_cpf']
+               
+                    
             )
             # Salvar no banco de dados
             db.session.add(novo_orcamento)
@@ -413,7 +416,7 @@ def listar_orcamentos():
             selected_cliente_id = int(cliente_id)
             selected_material_id = int(material_id)
 
-        return redirect(url_for('listar_orcamentos', limit=limit_param))
+        return redirect(url_for('listar_orcamentos'))
 
     # Recupera os dados do banco de dados
     # Verifica se o usuário está logado
@@ -426,38 +429,20 @@ def listar_orcamentos():
     # Busca os orçamentos corretamente
     if session.get('admin'):  
         # Admin vê todos os orçamentos e os nomes dos usuários que criaram
-        query = db.session.query(
+        orcamentos = db.session.query(
             Orcamento,
             Usuario.nome.label('nome_usuario')
-        ).join(Usuario, Orcamento.dono == Usuario.cpf)
-        
-        # Ordenar por data decrescente
-        query = query.order_by(Orcamento.data.desc())
-        
-        # Aplicar limite se não for "todos" (limit = 0)
-        if limit > 0:
-            orcamentos = query.limit(limit).all()
-        else:
-            orcamentos = query.all()
-
+        ).join(Usuario, Orcamento.dono == Usuario.cpf).order_by(Orcamento.data.desc()).all()
+    
         clientes = Cliente.query.order_by(Cliente.nome).all()
     
     else:
         # Usuário comum vê apenas os seus próprios orçamentos
-        query = db.session.query(
+        orcamentos = db.session.query(
             Orcamento,
             Usuario.nome.label('nome_usuario')
-        ).join(Usuario, Orcamento.dono == Usuario.cpf).filter(Orcamento.dono == user_cpf)
-        
-        # Ordenar por data decrescente
-        query = query.order_by(Orcamento.data.desc())
-        
-        # Aplicar limite se não for "todos" (limit = 0)
-        if limit > 0:
-            orcamentos = query.limit(limit).all()
-        else:
-            orcamentos = query.all()
-
+        ).join(Usuario, Orcamento.dono == Usuario.cpf).filter(Orcamento.dono == user_cpf).order_by(Orcamento.data.desc()).all()
+    
         clientes = Cliente.query.filter_by(dono=user_cpf).order_by(Cliente.nome).all()
 
     # Materiais são compartilhados entre todos os usuários
@@ -466,14 +451,15 @@ def listar_orcamentos():
     # Verifica se o usuário logado é administrador
     is_admin = session.get('admin', False)
 
+    
     return render_template(
         'orcamentos.html',
         orcamentos=orcamentos,
         clientes=clientes,
         materiais=materiais,
-        is_admin=is_admin,
-        current_limit=limit_param  # Passa o limite atual para o template
+        is_admin=is_admin  # Passando a variável para o template
     )
+
     
 import re  # Para usar expressões regulares
 
