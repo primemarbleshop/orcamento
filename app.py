@@ -432,17 +432,17 @@ def listar_orcamentos():
         orcamentos = db.session.query(
             Orcamento,
             Usuario.nome.label('nome_usuario')
-        ).join(Usuario, Orcamento.dono == Usuario.cpf).all()
-
+        ).join(Usuario, Orcamento.dono == Usuario.cpf).order_by(Orcamento.data.desc()).all()
+    
         clientes = Cliente.query.order_by(Cliente.nome).all()
-
+    
     else:
         # Usuário comum vê apenas os seus próprios orçamentos
         orcamentos = db.session.query(
             Orcamento,
             Usuario.nome.label('nome_usuario')
-        ).join(Usuario, Orcamento.dono == Usuario.cpf).filter(Orcamento.dono == user_cpf).all()
-
+        ).join(Usuario, Orcamento.dono == Usuario.cpf).filter(Orcamento.dono == user_cpf).order_by(Orcamento.data.desc()).all()
+    
         clientes = Cliente.query.filter_by(dono=user_cpf).order_by(Cliente.nome).all()
 
     # Materiais são compartilhados entre todos os usuários
