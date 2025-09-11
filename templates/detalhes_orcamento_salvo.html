@@ -156,12 +156,12 @@
         flex: 1;
         min-width: 0;
         padding: 0 8px;
-        border-right: 1px solid #ddd;
         position: relative;
+        transition: all 0.3s ease;
     }
 
-    .payment-option:last-child {
-        border-right: none;
+    .payment-option:not(:last-child) {
+        border-right: 1px solid #ddd;
     }
 
     .installment-calc {
@@ -454,11 +454,10 @@
             flex: 1;
             min-width: 0;
             padding: 0 8px;
-            border-right: 1px solid #ddd;
         }
         
-        .payment-option:last-child {
-            border-right: none;
+        .payment-option:not(:last-child) {
+            border-right: 1px solid #ddd;
         }
         
         .pdf-hidden {
@@ -509,6 +508,11 @@
         
         /* NOVO: Garantir que porcentagens não apareçam na impressão */
         .discount-percentage {
+            display: none !important;
+        }
+        
+        /* NOVO: Ajustar a exibição das opções de pagamento no PDF */
+        .payment-option.pdf-hidden {
             display: none !important;
         }
     }
@@ -617,6 +621,7 @@
                     <th>Qtd</th>
                     <th>Comp.</th>
                     <th>Larg.</th>
+                  
                     {% if tipo in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
                     <th>Saia</th>
                     {% endif %}
@@ -708,7 +713,7 @@
         <div class="footer-section">
             <div class="footer-title">Condições de Pagamento:</div>
             <div class="footer-content">
-                <div class="payment-options-container">
+                <div class="payment-options-container" id="paymentOptionsContainer">
                     <!-- Cartão de Crédito (agora primeiro) -->
                     <div class="payment-option" id="payment-option-1">
                         {% if not pdf %}
@@ -777,7 +782,7 @@
     {% if not pdf %}
     <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-3')">Ocultar no PDF</button>
     {% endif %}
-    <h4>À vista (Dinheiro/PIX)</h4>
+    <h4>Parcelado (Dinheiro/PIX)</h4>
     <div class="payment-detail">
         <!-- MODIFICADO: Ocultar a porcentagem de desconto -->
         <span class="discount-percentage" id="discount2Display">{{ desconto_parcelado }}</span>Com desconto
@@ -785,7 +790,7 @@
         <button class="btn-edit" onclick="toggleEdit('discount2')">Editar</button>
         {% endif %}
     </div>
-    <div class="payment-detail">• Sinal de 80% e 20% na entrega</div>
+    <div class="payment-detail">• Sinal de 50% e 50% na entrega</div>
     <div class="installment-calc">
         Valor com desconto: R$ <span id="valorParcelado">
             {% set valor_com_desconto_parcelado = valor_total_float * (1 - desconto_parcelado/100) %}
@@ -805,15 +810,6 @@
     </div>
     {% endif %}
 </div>
-                        
-                        {% if not pdf %}
-                        <div id="discount2Edit" class="edit-mode" style="display: none;">
-                            <input type="number" id="discount2Input" class="edit-field" value="{{ desconto_parcelado }}" min="0" max="100">% de desconto
-                            <button class="btn-save" onclick="saveValue('discount2')">Salvar</button>
-                            <button class="btn-cancel" onclick="cancelEdit('discount2')">Cancelar</button>
-                        </div>
-                        {% endif %}
-                    </div>
                 </div>
             </div>
         </div>
@@ -853,17 +849,17 @@
     <div class="btn-container">
         <button type="submit" form="rodapeForm" class="btn-save-rodape">
             <i class="fas fa-save me-1"></i> Salvar Alterações do Rodapé
-        </button>
-        
+        </button>  </div>
+        <br>
         <!-- Botão Gerar PDF (movido para cá) -->
-        <button class="btn btn-custom-success btn-pdf" onclick="window.location.href='/gerar_pdf_orcamento/{{ codigo_orcamento }}?exclude_payments=' + getHiddenPaymentOptions()" title="Gerar PDF">
+        <div <button class="btn btn-custom-success btn-pdf" onclick="window.location.href='/gerar_pdf_orcamento/{{ codigo_orcamento }}?exclude_payments=' + getHiddenPaymentOptions()" title="Gerar PDF">
             <i class="fas fa-file-pdf"></i> Gerar PDF
         </button>
     </div>
     {% endif %}
 </div> <!-- Fim do main-container -->
 
-<script>
+    <script>
     // Variáveis globais para armazenar os valores
     let valoresOriginais = {};
     const valorTotalFloat = {{ valor_total_float }};
@@ -894,6 +890,37 @@
         
         // Atualizar o campo hidden do formulário
         document.getElementById('formPaymentOptionsVisibility').value = hiddenPaymentOptions.join(',');
+        
+        // Reorganizar as opções visíveis
+        reorganizarOpcoesPagamento();
+    }
+    
+    // Função para reorganizar as opções de pagamento visíveis
+    function reorganizarOpcoesPagamento() {
+        const container = document.getElementById('paymentOptionsContainer');
+        const opcoes = container.querySelectorAll('.payment-option');
+        
+        // Remover todas as classes de borda primeiro
+        opcoes.forEach(opcao => {
+            opcao.style.borderRight = 'none';
+        });
+        
+        // Adicionar borda apenas entre opções visíveis consecutivas
+        let ultimaVisivel = null;
+        
+        opcoes.forEach((opcao, index) => {
+            if (!opcao.classList.contains('hidden-in-pdf')) {
+                if (ultimaVisivel !== null) {
+                    ultimaVisivel.style.borderRight = '1px solid #ddd';
+                }
+                ultimaVisivel = opcao;
+            }
+        });
+        
+        // Remover borda da última opção visível
+        if (ultimaVisivel) {
+            ultimaVisivel.style.borderRight = 'none';
+        }
     }
     
     // Função para obter as opções de pagamento ocultas
@@ -955,7 +982,7 @@
         } else {
             if (displayElement) displayElement.textContent = inputElement.value;
             
-            // Atualizar cálculos si for desconto
+            // Atualizar cálculos se for desconto
             if (campo === 'discount1' || campo === 'discount2') {
                 atualizarCalculos();
             }
@@ -992,28 +1019,28 @@
     }
     
     // Função para atualizar cálculos de valores com desconto
-function atualizarCalculos() {
-    const desconto1 = parseFloat(document.getElementById('discount1Input').value);
-    const desconto2 = parseFloat(document.getElementById('discount2Input').value);
-    
-    // Calcular valores com desconto e arredondar para múltiplos de 10
-    let valorAvista = arredondarParaDez(valorTotalFloat * (1 - desconto1/100));
-    let valorParcelado = arredondarParaDez(valorTotalFloat * (1 - desconto2/100));
-    
-    // Garantir que o valor arredondado nunca seja maior que o original
-    // Se for maior, diminui 5 do valor arredondado
-    if (valorAvista > valorTotalFloat) {
-        valorAvista = valorAvista - 5;
+    function atualizarCalculos() {
+        const desconto1 = parseFloat(document.getElementById('discount1Input').value);
+        const desconto2 = parseFloat(document.getElementById('discount2Input').value);
+        
+        // Calcular valores com desconto e arredondar para múltiplos de 10
+        let valorAvista = arredondarParaDez(valorTotalFloat * (1 - desconto1/100));
+        let valorParcelado = arredondarParaDez(valorTotalFloat * (1 - desconto2/100));
+        
+        // Garantir que o valor arredondado nunca seja maior que o original
+        // Se for maior, diminui 5 do valor arredondado
+        if (valorAvista > valorTotalFloat) {
+            valorAvista = valorAvista - 5;
+        }
+        
+        if (valorParcelado > valorTotalFloat) {
+            valorParcelado = valorParcelado - 5;
+        }
+        
+        // Formatar e exibir os valores
+        document.getElementById('valorAvista').textContent = formatarMoeda(valorAvista);
+        document.getElementById('valorParcelado').textContent = formatarMoeda(valorParcelado);
     }
-    
-    if (valorParcelado > valorTotalFloat) {
-        valorParcelado = valorParcelado - 5;
-    }
-    
-    // Formatar e exibir os valores
-    document.getElementById('valorAvista').textContent = formatarMoeda(valorAvista);
-    document.getElementById('valorParcelado').textContent = formatarMoeda(valorParcelado);
-}
     
     // Inicializar cálculos quando a página carregar
     document.addEventListener('DOMContentLoaded', function() {
@@ -1028,8 +1055,12 @@ function atualizarCalculos() {
         
         // Inicializar os valores arredondados (para quando estiver no navegador)
         atualizarCalculos();
+        
+        // Inicializar a reorganização das opções de pagamento
+        reorganizarOpcoesPagamento();
     });
 </script>
-    
+
 </body>
 </html>
+
