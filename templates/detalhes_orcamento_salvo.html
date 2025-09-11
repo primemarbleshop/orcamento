@@ -653,15 +653,18 @@
                              R$ {{ "%.2f"|format(valor_total_float) }} em até 
                              <span id="maxParcelas">
                              {% if max_parcelas is defined %}
-                                 {{ max_parcelas }}
-                             {% else %}
-                                 {% set max_parcelas_calculado = (valor_total_float / 100)|round|int %}
-                                 {% if max_parcelas_calculado > 10 %}
-                                     {{ 10 }}
-                                 {% else %}
-                                     {{ max_parcelas_calculado }}
-                                 {% endif %}
-                             {% endif %}
+    {{ max_parcelas }}
+{% else %}
+    {% set max_parcelas_calculado = (valor_total_float / 100)|int %}
+    {% if max_parcelas_calculado < 1 %}
+        {% set max_parcelas_calculado = 1 %}
+    {% endif %}
+    {% if max_parcelas_calculado > 10 %}
+        {{ 10 }}
+    {% else %}
+        {{ max_parcelas_calculado }}
+    {% endif %}
+{% endif %}
                              </span>x sem juros
                         </div>
                         <!-- Adicionando informações de parcelas calculadas -->
@@ -692,7 +695,7 @@
                     
                     <!-- Parcelado (Dinheiro/PIX) -->
                     <div class="payment-option">
-                        <h4>3. Parcelado (Dinheiro/PIX)</h4>
+                        <h4>3. À vista (Dinheiro/PIX)</h4>
                         <div class="payment-detail">
                             <span id="discount2Display">{{ desconto_parcelado }}</span>% de desconto
                             {% if not pdf %}
