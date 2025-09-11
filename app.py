@@ -104,6 +104,7 @@ class OrcamentoSalvo(db.Model):
     desconto_avista = db.Column(db.Integer, default=5, nullable=False)
     desconto_parcelado = db.Column(db.Integer, default=10, nullable=False)
     observacoes = db.Column(db.Text, default="Medidas sujeitas a confirmação no local. Valores válidos por 7 dias.", nullable=False)
+    exclude_payments = db.Column(db.String(50), default='')
 
     @property
     def cliente_nome(self):
@@ -1316,24 +1317,12 @@ def gerar_pdf_orcamento(codigo):
         flash("Orçamento salvo não encontrado!", "danger")
         return redirect(url_for('listar_orcamentos_salvos'))
 
-    ids = [int(id) for id in orcamento_salvo.orcamentos_ids.split(",")]
-    orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
-    valor_total_final = sum(o.valor_total for o in orcamentos)
-    valor_total_float = valor_total_final
-
-    logo_url = "https://orcamento-t9w2.onrender.com/static/logo.jpg"
+    # Obter as opções excluídas da sessão ou do banco
+    exclude_payments = session.get(f'exclude_payments_{codigo}', '').split(',')
     
-    usuario = Usuario.query.filter_by(cpf=session.get('user_cpf')).first()
-    telefone_usuario = usuario.telefone if usuario else ""
-
-    # ✅ USAR OS VALORES SALVOS NO BANCO COM VALORES PADRÃO DE FALLBACK
-    prazo_entrega = orcamento_salvo.prazo_entrega if orcamento_salvo.prazo_entrega is not None else 15
-    desconto_avista = orcamento_salvo.desconto_avista if orcamento_salvo.desconto_avista is not None else 5
-    desconto_parcelado = orcamento_salvo.desconto_parcelado if orcamento_salvo.desconto_parcelado is not None else 10
-    observacoes = orcamento_salvo.observacoes if orcamento_salvo.observacoes is not None else "Medidas sujeitas a confirmação no local. Valores válidos por 7 dias."
-
-    # ✅ Renderizamos o HTML normalmente sem a logo
-    rendered_html = render_template(
+    # ... resto do código ...
+    
+    return render_template(
         "detalhes_orcamento_salvo.html",
         logo_url=logo_url,
         codigo_orcamento=orcamento_salvo.codigo,
@@ -1347,7 +1336,8 @@ def gerar_pdf_orcamento(codigo):
         desconto_avista=desconto_avista,
         desconto_parcelado=desconto_parcelado,
         observacoes=observacoes,
-        pdf=True
+        pdf=True,
+        exclude_payments=exclude_payments  # Passar para o template
     )
 
     # Resto do código permanece igual...
@@ -1589,6 +1579,12 @@ def salvar_rodape_orcamento(codigo):
     orcamento_salvo.desconto_avista = int(request.form.get('desconto_avista', 5))
     orcamento_salvo.desconto_parcelado = int(request.form.get('desconto_parcelado', 10))
     orcamento_salvo.observacoes = request.form.get('observacoes', '')
+    
+    # Salvar as opções de pagamento excluídas (nova funcionalidade)
+    exclude_payments = request.form.get('exclude_payments', '')
+    # Você pode armazenar isso em um campo adicional no banco se quiser persistir
+    # Por enquanto, vamos apenas usar na sessão ou passar para o PDF
+    session[f'exclude_payments_{codigo}'] = exclude_payments
     
     db.session.commit()
     flash("Rodapé do orçamento salvo com sucesso!", "success")
