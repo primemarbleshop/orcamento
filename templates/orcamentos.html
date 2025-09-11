@@ -956,7 +956,8 @@
 
         // Função para resetar os filtros
         function resetFilters() {
-            document.getElementById('filtro_cliente').value = 'Todos';
+            window.location.href = window.location.pathname;
+			document.getElementById('filtro_cliente').value = 'Todos';
             document.getElementById('filtro_data_inicio').value = '';
             document.getElementById('filtro_data_fim').value = '';
             document.getElementById('filtro_quantidade').value = '15';
@@ -971,9 +972,18 @@
         }
 
 		function atualizarFiltroQuantidade(limit) {
-    // Atualiza a URL com o parâmetro limit e recarrega a página
     const url = new URL(window.location.href);
-    url.searchParams.set('limit', limit);
+    
+    // Preserva todos os parâmetros existentes
+    const params = new URLSearchParams(url.search);
+    
+    // Atualiza apenas o parâmetro limit
+    params.set('limit', limit);
+    
+    // Constrói a nova URL
+    url.search = params.toString();
+    
+    // Recarrega a página com os novos parâmetros
     window.location.href = url.toString();
 }
     </script>
