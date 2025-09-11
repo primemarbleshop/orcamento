@@ -660,7 +660,7 @@
         </table>
     {% endfor %}
 
-   <!-- Rodapé do orçamento - MODIFICADO para funcionar corretamente com o PDF -->
+ <!-- Rodapé do orçamento - MODIFICADO para funcionar corretamente com o PDF -->
 <div class="orcamento-footer">
     <div class="footer-section">
         <div class="footer-title">Prazo de Entrega:</div>
@@ -755,21 +755,21 @@
                     {% endif %}
                 </div>
 
-                <!-- a vista (Dinheiro/PIX) -->
+                <!-- Parcelado (Dinheiro/PIX) -->
                 <div class="payment-option {% if '3' in exclude_payments %}hidden-in-pdf{% endif %}" id="payment-option-3">
                     {% if not pdf %}
                     <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-3')">
                         {% if '3' in exclude_payments %}Mostrar{% else %}Ocultar{% endif %} no PDF
                     </button>
                     {% endif %}
-                    <h4>À vista (Dinheiro/PIX)</h4>
+                    <h4>Parcelado (Dinheiro/PIX)</h4>
                     <div class="payment-detail">
                         <span class="discount-percentage" id="discount2Display">{{ desconto_parcelado }}</span>Com desconto
                         {% if not pdf %}
                         <button class="btn-edit" onclick="toggleEdit('discount2')">Editar</button>
                         {% endif %}
                     </div>
-                    <div class="payment-detail">• Sinal de 80% e 20% na entrega</div>
+                    <div class="payment-detail">• Sinal de 50% e 50% na entrega</div>
                     <div class="installment-calc">
                         Valor com desconto: R$ <span id="valorParcelado">
                             {% set valor_com_desconto_parcelado = valor_total_float * (1 - desconto_parcelado/100) %}
@@ -816,7 +816,7 @@
         <input type="hidden" name="desconto_avista" id="formDescontoAvista" value="{{ desconto_avista }}">
         <input type="hidden" name="desconto_parcelado" id="formDescontoParcelado" value="{{ desconto_parcelado }}">
         <input type="hidden" name="observacoes" id="formObservacoes" value="{{ observacoes }}">
-        <input type="hidden" name="payment_options_visibility" id="formPaymentOptionsVisibility" value="{{ exclude_payments|join(',') }}">
+        <input type="hidden" name="exclude_payments" id="formExcludePayments" value="{{ exclude_payments|join(',') }}">
     </form>
     {% endif %}
 </div>
@@ -838,217 +838,217 @@
 </div>
 {% endif %}
 
-    <script>
-    // Variáveis globais para armazenar os valores
-    let valoresOriginais = {};
-    const valorTotalFloat = {{ valor_total_float }};
-    let hiddenPaymentOptions = [];
-    
-    // Inicializar as opções ocultas
-    {% if exclude_payments %}
-        hiddenPaymentOptions = {{ exclude_payments|tojson }};
-    {% endif %}
-    
-    // Função para alternar visibilidade no PDF
-    function togglePdfVisibility(paymentOptionId) {
-        const element = document.getElementById(paymentOptionId);
-        const button = element.querySelector('.btn-toggle-pdf');
-        const optionNumber = paymentOptionId.split('-').pop();
-        
-        if (hiddenPaymentOptions.includes(optionNumber)) {
-            // Remover da lista de opções ocultas
-            hiddenPaymentOptions = hiddenPaymentOptions.filter(opt => opt !== optionNumber);
-            element.classList.remove('hidden-in-pdf');
-            button.textContent = 'Ocultar no PDF';
-        } else {
-            // Adicionar à lista de opções ocultas
-            hiddenPaymentOptions.push(optionNumber);
-            element.classList.add('hidden-in-pdf');
-            button.textContent = 'Mostrar no PDF';
-        }
-        
-        // Atualizar o formulário com as opções ocultas
-        document.getElementById('formPaymentOptionsVisibility').value = hiddenPaymentOptions.join(',');
-        
-        // Atualizar o link do botão PDF
-        updatePdfButtonLink();
-    }
-    
-    // NOVA FUNÇÃO: Atualizar o link do botão Gerar PDF
-    function updatePdfButtonLink() {
-        const pdfButton = document.getElementById('btnGerarPDF');
-        if (pdfButton) {
-            pdfButton.href = '/gerar_pdf_orcamento/{{ codigo_orcamento }}?exclude_payments=' + hiddenPaymentOptions.join(',');
-        }
-    }
-    
-    // Função para arredondar valores para múltiplos de 10
-    function arredondarParaDez(valor) {
-        return Math.round(valor / 10) * 10;
-    }
-    
-    // Função para formatar valores monetários (1.000,00)
-    function formatarMoeda(valor) {
-        return valor.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ".");
-    }
-    
-    // Calcular o número máximo de parcelas (máximo de 12x, mínimo de 1x)
-    function calcularMaxParcelas(valorTotal) {
-        // Calcula com base no valor (mínimo R$ 100 por parcela)
-        let parcelas = Math.floor(valorTotal / 100);
-        if (parcelas > 10) parcelas = 10;
-        if (parcelas < 1) parcelas = 1;
-        return parcelas;
-    }
+<script>
+// Variáveis globais para armazenar os valores
+let valoresOriginais = {};
+const valorTotalFloat = {{ valor_total_float }};
+let hiddenPaymentOptions = [];
 
+// Inicializar as opções ocultas
+{% if exclude_payments %}
+    hiddenPaymentOptions = {{ exclude_payments|tojson }};
+{% endif %}
+
+// Função para alternar visibilidade no PDF
+function togglePdfVisibility(paymentOptionId) {
+    const element = document.getElementById(paymentOptionId);
+    const button = element.querySelector('.btn-toggle-pdf');
+    const optionNumber = paymentOptionId.split('-').pop();
+    
+    if (hiddenPaymentOptions.includes(optionNumber)) {
+        // Remover da lista de opções ocultas
+        hiddenPaymentOptions = hiddenPaymentOptions.filter(opt => opt !== optionNumber);
+        element.classList.remove('hidden-in-pdf');
+        button.textContent = 'Ocultar no PDF';
+    } else {
+        // Adicionar à lista de opções ocultas
+        hiddenPaymentOptions.push(optionNumber);
+        element.classList.add('hidden-in-pdf');
+        button.textContent = 'Mostrar no PDF';
+    }
+    
+    // Atualizar o formulário com as opções ocultas
+    document.getElementById('formExcludePayments').value = hiddenPaymentOptions.join(',');
+    
+    // Atualizar o link do botão PDF
+    updatePdfButtonLink();
+}
+
+// NOVA FUNÇÃO: Atualizar o link do botão Gerar PDF
+function updatePdfButtonLink() {
+    const pdfButton = document.getElementById('btnGerarPDF');
+    if (pdfButton) {
+        pdfButton.href = '/gerar_pdf_orcamento/{{ codigo_orcamento }}?exclude_payments=' + hiddenPaymentOptions.join(',');
+    }
+}
+
+// Função para arredondar valores para múltiplos de 10
+function arredondarParaDez(valor) {
+    return Math.round(valor / 10) * 10;
+}
+
+// Função para formatar valores monetários (1.000,00)
+function formatarMoeda(valor) {
+    return valor.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+// Calcular o número máximo de parcelas (máximo de 12x, mínimo de 1x)
+function calcularMaxParcelas(valorTotal) {
+    // Calcula com base no valor (mínimo R$ 100 por parcela)
+    let parcelas = Math.floor(valorTotal / 100);
+    if (parcelas > 10) parcelas = 10;
+    if (parcelas < 1) parcelas = 1;
+    return parcelas;
+}
+
+// Atualizar informações de parcelamento
+function atualizarParcelamento() {
+    const maxParcelas = calcularMaxParcelas(valorTotalFloat);
+    document.getElementById('maxParcelas').textContent = maxParcelas;
+}
+
+// Função para alternar entre modo de visualização e edição
+function toggleEdit(campo) {
+    let displayElement, editElement;
+    
+    if (campo === 'deliveryDays') {
+        displayElement = document.getElementById('deliveryDaysEdit').previousElementSibling;
+        editElement = document.getElementById(campo + 'Edit');
+    } else {
+        displayElement = document.getElementById(campo + 'Display');
+        editElement = document.getElementById(campo + 'Edit');
+    }
+    
+    // Salvar valor original para possível cancelamento
+    if (campo === 'observacoes') {
+        valoresOriginais[campo] = document.getElementById(campo + 'Input').value;
+    } else {
+        valoresOriginais[campo] = document.getElementById(campo + 'Input').value;
+    }
+    
+    // Alternar visibilidade
+    if (displayElement) displayElement.style.display = 'none';
+    if (editElement) editElement.style.display = 'block';
+}
+
+// Função para salvar valores editados
+function saveValue(campo) {
+    let displayElement, editElement;
+    const inputElement = document.getElementById(campo + 'Input');
+    
+    if (campo === 'deliveryDays') {
+        displayElement = document.getElementById('deliveryDaysEdit').previousElementSibling;
+        editElement = document.getElementById(campo + 'Edit');
+        if (displayElement) {
+            const span = displayElement.querySelector('#deliveryDaysDisplay');
+            if (span) span.textContent = inputElement.value;
+        }
+    } else if (campo === 'observacoes') {
+        displayElement = document.getElementById(campo + 'Display');
+        editElement = document.getElementById(campo + 'Edit');
+        if (displayElement) displayElement.innerHTML = inputElement.value.replace(/\n/g, '<br>');
+    } else {
+        displayElement = document.getElementById(campo + 'Display');
+        editElement = document.getElementById(campo + 'Edit');
+        if (displayElement) displayElement.textContent = inputElement.value;
+        
+        // Atualizar cálculos se for desconto
+        if (campo === 'discount1' || campo === 'discount2') {
+            atualizarCalculos();
+        }
+    }
+    
+    // Atualizar também os campos do formulário hidden
+    if (campo === 'deliveryDays') {
+        document.getElementById('formPrazoEntrega').value = inputElement.value;
+    } else if (campo === 'discount1') {
+        document.getElementById('formDescontoAvista').value = inputElement.value;
+    } else if (campo === 'discount2') {
+        document.getElementById('formDescontoParcelado').value = inputElement.value;
+    } else if (campo === 'observacoes') {
+        document.getElementById('formObservacoes').value = inputElement.value;
+    }
+    
+    // Voltar para modo de visualização
+    if (displayElement) displayElement.style.display = 'block';
+    if (editElement) editElement.style.display = 'none';
+}
+
+// Função para cancelar edição
+function cancelEdit(campo) {
+    let displayElement, editElement;
+    const inputElement = document.getElementById(campo + 'Input');
+    
+    // Restaurar valor original
+    inputElement.value = valoresOriginais[campo];
+    
+    if (campo === 'deliveryDays') {
+        displayElement = document.getElementById('deliveryDaysEdit').previousElementSibling;
+        editElement = document.getElementById(campo + 'Edit');
+    } else {
+        displayElement = document.getElementById(campo + 'Display');
+        editElement = document.getElementById(campo + 'Edit');
+    }
+    
+    // Voltar para modo de visualização
+    if (displayElement) displayElement.style.display = 'block';
+    if (editElement) editElement.style.display = 'none';
+}
+
+// Função para atualizar cálculos de valores com desconto
+function atualizarCalculos() {
+    const desconto1 = parseFloat(document.getElementById('discount1Input').value);
+    const desconto2 = parseFloat(document.getElementById('discount2Input').value);
+    
+    // Calcular valores com desconto e arredondar para múltiplos de 10
+    let valorAvista = arredondarParaDez(valorTotalFloat * (1 - desconto1/100));
+    let valorParcelado = arredondarParaDez(valorTotalFloat * (1 - desconto2/100));
+    
+    // Garantir que o valor arredondado nunca seja maior que o original
+    // Se for maior, diminui 5 do valor arredondado
+    if (valorAvista > valorTotalFloat) {
+        valorAvista = valorAvista - 5;
+    }
+    
+    if (valorParcelado > valorTotalFloat) {
+        valorParcelado = valorParcelado - 5;
+    }
+    
+    // Formatar e exibir os valores
+    document.getElementById('valorAvista').textContent = formatarMoeda(valorAvista);
+    document.getElementById('valorParcelado').textContent = formatarMoeda(valorParcelado);
+}
+
+// Inicializar cálculos quando a página carregar
+document.addEventListener('DOMContentLoaded', function() {
+    // Preencher os campos do formulário hidden com os valores iniciais
+    document.getElementById('formPrazoEntrega').value = {{ prazo_entrega }};
+    document.getElementById('formDescontoAvista').value = {{ desconto_avista }};
+    document.getElementById('formDescontoParcelado').value = {{ desconto_parcelado }};
+    document.getElementById('formObservacoes').value = "{{ observacoes }}";
+    document.getElementById('formExcludePayments').value = hiddenPaymentOptions.join(',');
+    
     // Atualizar informações de parcelamento
-    function atualizarParcelamento() {
-        const maxParcelas = calcularMaxParcelas(valorTotalFloat);
-        document.getElementById('maxParcelas').textContent = maxParcelas;
-    }
+    atualizarParcelamento();
     
-    // Função para alternar entre modo de visualização e edição
-    function toggleEdit(campo) {
-        let displayElement, editElement;
-        
-        if (campo === 'deliveryDays') {
-            displayElement = document.getElementById('deliveryDaysEdit').previousElementSibling;
-            editElement = document.getElementById(campo + 'Edit');
-        } else {
-            displayElement = document.getElementById(campo + 'Display');
-            editElement = document.getElementById(campo + 'Edit');
-        }
-        
-        // Salvar valor original para possível cancelamento
-        if (campo === 'observacoes') {
-            valoresOriginais[campo] = document.getElementById(campo + 'Input').value;
-        } else {
-            valoresOriginais[campo] = document.getElementById(campo + 'Input').value;
-        }
-        
-        // Alternar visibilidade
-        if (displayElement) displayElement.style.display = 'none';
-        if (editElement) editElement.style.display = 'block';
-    }
+    // Inicializar os valores arredondados (para quando estiver no navegador)
+    atualizarCalculos();
     
-    // Função para salvar valores editados
-    function saveValue(campo) {
-        let displayElement, editElement;
-        const inputElement = document.getElementById(campo + 'Input');
-        
-        if (campo === 'deliveryDays') {
-            displayElement = document.getElementById('deliveryDaysEdit').previousElementSibling;
-            editElement = document.getElementById(campo + 'Edit');
-            if (displayElement) {
-                const span = displayElement.querySelector('#deliveryDaysDisplay');
-                if (span) span.textContent = inputElement.value;
-            }
-        } else if (campo === 'observacoes') {
-            displayElement = document.getElementById(campo + 'Display');
-            editElement = document.getElementById(campo + 'Edit');
-            if (displayElement) displayElement.innerHTML = inputElement.value.replace(/\n/g, '<br>');
-        } else {
-            displayElement = document.getElementById(campo + 'Display');
-            editElement = document.getElementById(campo + 'Edit');
-            if (displayElement) displayElement.textContent = inputElement.value;
-            
-            // Atualizar cálculos se for desconto
-            if (campo === 'discount1' || campo === 'discount2') {
-                atualizarCalculos();
-            }
-        }
-        
-        // Atualizar também os campos do formulário hidden
-        if (campo === 'deliveryDays') {
-            document.getElementById('formPrazoEntrega').value = inputElement.value;
-        } else if (campo === 'discount1') {
-            document.getElementById('formDescontoAvista').value = inputElement.value;
-        } else if (campo === 'discount2') {
-            document.getElementById('formDescontoParcelado').value = inputElement.value;
-        } else if (campo === 'observacoes') {
-            document.getElementById('formObservacoes').value = inputElement.value;
-        }
-        
-        // Voltar para modo de visualização
-        if (displayElement) displayElement.style.display = 'block';
-        if (editElement) editElement.style.display = 'none';
-    }
+    // Garantir que o link do PDF está atualizado
+    updatePdfButtonLink();
     
-    // Função para cancelar edição
-    function cancelEdit(campo) {
-        let displayElement, editElement;
-        const inputElement = document.getElementById(campo + 'Input');
-        
-        // Restaurar valor original
-        inputElement.value = valoresOriginais[campo];
-        
-        if (campo === 'deliveryDays') {
-            displayElement = document.getElementById('deliveryDaysEdit').previousElementSibling;
-            editElement = document.getElementById(campo + 'Edit');
-        } else {
-            displayElement = document.getElementById(campo + 'Display');
-            editElement = document.getElementById(campo + 'Edit');
-        }
-        
-        // Voltar para modo de visualização
-        if (displayElement) displayElement.style.display = 'block';
-        if (editElement) editElement.style.display = 'none';
-    }
-    
-    // Função para atualizar cálculos de valores com desconto
-    function atualizarCalculos() {
-        const desconto1 = parseFloat(document.getElementById('discount1Input').value);
-        const desconto2 = parseFloat(document.getElementById('discount2Input').value);
-        
-        // Calcular valores com desconto e arredondar para múltiplos de 10
-        let valorAvista = arredondarParaDez(valorTotalFloat * (1 - desconto1/100));
-        let valorParcelado = arredondarParaDez(valorTotalFloat * (1 - desconto2/100));
-        
-        // Garantir que o valor arredondado nunca seja maior que o original
-        // Se for maior, diminui 5 do valor arredondado
-        if (valorAvista > valorTotalFloat) {
-            valorAvista = valorAvista - 5;
-        }
-        
-        if (valorParcelado > valorTotalFloat) {
-            valorParcelado = valorParcelado - 5;
-        }
-        
-        // Formatar e exibir os valores
-        document.getElementById('valorAvista').textContent = formatarMoeda(valorAvista);
-        document.getElementById('valorParcelado').textContent = formatarMoeda(valorParcelado);
-    }
-    
-    // Inicializar cálculos quando a página carregar
-    document.addEventListener('DOMContentLoaded', function() {
-        // Preencher os campos do formulário hidden com os valores iniciais
-        document.getElementById('formPrazoEntrega').value = {{ prazo_entrega }};
-        document.getElementById('formDescontoAvista').value = {{ desconto_avista }};
-        document.getElementById('formDescontoParcelado').value = {{ desconto_parcelado }};
-        document.getElementById('formObservacoes').value = "{{ observacoes }}";
-        document.getElementById('formPaymentOptionsVisibility').value = hiddenPaymentOptions.join(',');
-        
-        // Atualizar informações de parcelamento
-        atualizarParcelamento();
-        
-        // Inicializar os valores arredondados (para quando estiver no navegador)
-        atualizarCalculos();
-        
-        // Garantir que o link do PDF está atualizado
-        updatePdfButtonLink();
-        
-        // Adicionar evento de clique ao botão de salvar rodapé
-        document.getElementById('btnSalvarRodape').addEventListener('click', function() {
-            document.getElementById('rodapeForm').submit();
-        });
-        
-        // Inicializar o texto dos botões de ocultar/mostrar
-        document.querySelectorAll('.btn-toggle-pdf').forEach(button => {
-            const optionId = button.closest('.payment-option').id;
-            const optionNumber = optionId.split('-').pop();
-            button.textContent = hiddenPaymentOptions.includes(optionNumber) ? 'Mostrar no PDF' : 'Ocultar no PDF';
-        });
+    // Adicionar evento de clique ao botão de salvar rodapé
+    document.getElementById('btnSalvarRodape').addEventListener('click', function() {
+        document.getElementById('rodapeForm').submit();
     });
+    
+    // Inicializar o texto dos botões de ocultar/mostrar
+    document.querySelectorAll('.btn-toggle-pdf').forEach(button => {
+        const optionId = button.closest('.payment-option').id;
+        const optionNumber = optionId.split('-').pop();
+        button.textContent = hiddenPaymentOptions.includes(optionNumber) ? 'Mostrar no PDF' : 'Ocultar no PDF';
+    });
+});
 </script>
 
 </body>
