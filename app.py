@@ -94,16 +94,17 @@ class OrcamentoSalvo(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     codigo = db.Column(db.String, unique=True, nullable=False)
-    orcamentos_ids = db.Column(db.Text, nullable=False)  # ← ADD nullable=False
+    orcamentos_ids = db.Column(db.Text, nullable=False)
     data_salvo = db.Column(db.DateTime, default=datetime.utcnow)
-    valor_total = db.Column(db.Float, nullable=False)  # ← ADD nullable=False
-    criado_por = db.Column(db.String)  # ← COLUNA FALTANDO
-    status = db.Column(db.String, default='Em Espera')  # ← COLUNA FALTANDO
-    tipo_cliente = db.Column(db.String, default='Cliente de Porta')  # ← COLUNA FALTANDO
+    valor_total = db.Column(db.Float, nullable=False)
+    criado_por = db.Column(db.String)
+    status = db.Column(db.String, default='Em Espera')
+    tipo_cliente = db.Column(db.String, default='Cliente de Porta')
     prazo_entrega = db.Column(db.Integer, default=15, nullable=False)
     desconto_avista = db.Column(db.Integer, default=5, nullable=False)
     desconto_parcelado = db.Column(db.Integer, default=10, nullable=False)
     observacoes = db.Column(db.Text, default="Medidas sujeitas a confirmação no local. Valores válidos por 7 dias.", nullable=False)
+    # ✅ NOVO CAMPO: para armazenar as opções de pagamento excluídas
     exclude_payments = db.Column(db.String(50), default='')
 
     @property
@@ -1209,6 +1210,9 @@ def detalhes_orcamento_salvo(codigo):
     desconto_avista = orcamento_salvo.desconto_avista if orcamento_salvo.desconto_avista is not None else 5
     desconto_parcelado = orcamento_salvo.desconto_parcelado if orcamento_salvo.desconto_parcelado is not None else 10
     observacoes = orcamento_salvo.observacoes if orcamento_salvo.observacoes is not None else "Medidas sujeitas a confirmação no local. Valores válidos por 7 dias."
+    
+    # ✅ NOVO: Obter as opções excluídas salvas no banco
+    exclude_payments = orcamento_salvo.exclude_payments.split(',') if orcamento_salvo.exclude_payments else []
 
     return render_template(
         "detalhes_orcamento_salvo.html",
@@ -1223,9 +1227,9 @@ def detalhes_orcamento_salvo(codigo):
         prazo_entrega=prazo_entrega,
         desconto_avista=desconto_avista,
         desconto_parcelado=desconto_parcelado,
-        observacoes=observacoes
+        observacoes=observacoes,
+        exclude_payments=exclude_payments  # ✅ Passar para o template
     )
-
 
 
 @app.route('/orcamentos_salvos')
@@ -1580,11 +1584,10 @@ def salvar_rodape_orcamento(codigo):
     orcamento_salvo.desconto_parcelado = int(request.form.get('desconto_parcelado', 10))
     orcamento_salvo.observacoes = request.form.get('observacoes', '')
     
-    # Salvar as opções de pagamento excluídas (nova funcionalidade)
+    # ✅ NOVO: Salvar as opções de pagamento excluídas
     exclude_payments = request.form.get('exclude_payments', '')
-    # Você pode armazenar isso em um campo adicional no banco se quiser persistir
-    # Por enquanto, vamos apenas usar na sessão ou passar para o PDF
-    session[f'exclude_payments_{codigo}'] = exclude_payments
+    # Armazenar no banco de dados (você precisa adicionar este campo no modelo)
+    orcamento_salvo.exclude_payments = exclude_payments
     
     db.session.commit()
     flash("Rodapé do orçamento salvo com sucesso!", "success")
