@@ -104,12 +104,12 @@
         
         .valor-total {
             font-weight: bold;
-            color: #000000;
+            color: #000000; /* Alterado para preto */
         }
         
         .valor-final {
             font-weight: bold;
-            color: #ffffff;
+            color: #ffffff; /* Alterado para preto */
             font-size: 1.2rem;
         }
         
@@ -272,12 +272,12 @@
 
                     <div class="col-md-2 mb-2">
                         <label for="filtro_quantidade" class="form-label">Mostrar:</label>
-                        <select id="filtro_quantidade" class="form-select">
-                            <option value="15" {% if current_limit == '15' %}selected{% endif %}>Últimos 15</option>
-                            <option value="30" {% if current_limit == '30' %}selected{% endif %}>Últimos 30</option>
-                            <option value="50" {% if current_limit == '50' %}selected{% endif %}>Últimos 50</option>
-                            <option value="100" {% if current_limit == '100' %}selected{% endif %}>Últimos 100</option>
-                            <option value="all" {% if current_limit == 'all' %}selected{% endif %}>Todos</option>
+                        <select id="filtro_quantidade" class="form-select" onchange="filterOrcamentos()">
+                            <option value="15">Últimos 15</option>
+                            <option value="30">Últimos 30</option>
+                            <option value="50">Últimos 50</option>
+                            <option value="100">Últimos 100</option>
+                            <option value="all">Todos</option>
                         </select>
                     </div>
 
@@ -466,6 +466,8 @@
                     </div>
                 `;
                 
+                
+                
                 // Campos específicos para cuba esculpida
                 camposEspecificos += `
                     <div class="col-md-12" id="cuba_esculpida_fields" style="display: none;">
@@ -496,7 +498,7 @@
                         </div>
                     </div>
                 `;
-                // Campos de cooktop (apenas para Bancada)
+		// Campos de cooktop (apenas para Bancada)
                 if (tipoProduto === 'Bancada') {
                     camposEspecificos += `
                         <div class="row dynamic-field">
@@ -699,12 +701,7 @@
             // Inicializar o valor total
             atualizarValorFinal();
             
-            // Adicionar event listener para o filtro de quantidade
-            document.getElementById('filtro_quantidade').addEventListener('change', function() {
-                localStorage.setItem('filtroQuantidade', this.value);
-                filterOrcamentos();
-            });
-            
+                       
             // Carregar filtros salvos
             if (localStorage.getItem('filtroCliente')) {
                 document.getElementById('filtro_cliente').value = localStorage.getItem('filtroCliente');
@@ -938,11 +935,8 @@
                 }
                 
                 // Aplicar filtro de quantidade
-                if (show && filtroQuantidade !== 'all') {
-                    // Se já mostramos a quantidade limite, esconder os demais
-                    if (visibleCount >= parseInt(filtroQuantidade)) {
-                        show = false;
-                    }
+                if (show && filtroQuantidade !== 'all' && visibleCount >= parseInt(filtroQuantidade)) {
+                    show = false;
                 }
                 
                 if (show) {
@@ -960,8 +954,8 @@
             localStorage.setItem('filtroQuantidade', filtroQuantidade);
         }
 
+        // Função para resetar os filtros
         function resetFilters() {
-            // Resetar valores dos campos
             document.getElementById('filtro_cliente').value = 'Todos';
             document.getElementById('filtro_data_inicio').value = '';
             document.getElementById('filtro_data_fim').value = '';
@@ -973,7 +967,6 @@
             localStorage.removeItem('filtroDataFim');
             localStorage.removeItem('filtroQuantidade');
             
-            // Reaplicar filtros
             filterOrcamentos();
         }
     </script>
