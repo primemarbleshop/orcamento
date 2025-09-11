@@ -893,18 +893,28 @@
     }
     
     // Função para atualizar cálculos de valores com desconto
-    function atualizarCalculos() {
-        const desconto1 = parseFloat(document.getElementById('discount1Input').value);
-        const desconto2 = parseFloat(document.getElementById('discount2Input').value);
-        
-        // Calcular valores com desconto e arredondar para múltiplos de 10
-        const valorAvista = arredondarParaDez(valorTotalFloat * (1 - desconto1/100));
-        const valorParcelado = arredondarParaDez(valorTotalFloat * (1 - desconto2/100));
-        
-        // Formatar e exibir os valores
-        document.getElementById('valorAvista').textContent = formatarMoeda(valorAvista);
-        document.getElementById('valorParcelado').textContent = formatarMoeda(valorParcelado);
+function atualizarCalculos() {
+    const desconto1 = parseFloat(document.getElementById('discount1Input').value);
+    const desconto2 = parseFloat(document.getElementById('discount2Input').value);
+    
+    // Calcular valores com desconto e arredondar para múltiplos de 10
+    let valorAvista = arredondarParaDez(valorTotalFloat * (1 - desconto1/100));
+    let valorParcelado = arredondarParaDez(valorTotalFloat * (1 - desconto2/100));
+    
+    // Garantir que o valor arredondado nunca seja maior que o original
+    // Se for maior, diminui 5 do valor arredondado
+    if (valorAvista > valorTotalFloat) {
+        valorAvista = valorAvista - 5;
     }
+    
+    if (valorParcelado > valorTotalFloat) {
+        valorParcelado = valorParcelado - 5;
+    }
+    
+    // Formatar e exibir os valores
+    document.getElementById('valorAvista').textContent = formatarMoeda(valorAvista);
+    document.getElementById('valorParcelado').textContent = formatarMoeda(valorParcelado);
+}
     
     // Inicializar cálculos quando a página carregar
     document.addEventListener('DOMContentLoaded', function() {
