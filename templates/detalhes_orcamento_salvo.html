@@ -4,11 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Detalhes dos Orçamentos</title>
-    <!-- Adicionando Bootstrap e Font Awesome para manter consistência -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-    /* NOVO: Container principal com margens para visualização web */
+    /* Estilos mantidos conforme o código original */
     .main-container {
         width: 100%;
         max-width: 1200px;
@@ -17,12 +16,11 @@
         box-sizing: border-box;
     }
     
-    /* Estilos anteriores mantidos */
     body {
         font-size: 15px;
         font-family: Arial, sans-serif;
         line-height: 1.3;
-        background-color: #f8f9fa; /* Fundo claro para contrastar com o container */
+        background-color: #f8f9fa;
         padding: 20px 0;
     }
 
@@ -78,7 +76,7 @@
         top: 70px;
         height: 120px;
         width: 280px;
-        max-width: 280px; /* Limitar largura máxima da logo */
+        max-width: 280px;
         object-fit: contain;
     }
     
@@ -244,7 +242,6 @@
         font-size: 13px;
     }
 
-    /* NOVOS ESTILOS PARA OS BOTÕES */
     .btn-custom-primary {
         background-color: #4e73df;
         border-color: #4e73df;
@@ -269,7 +266,6 @@
         color: white;
     }
     
-    /* ESTILOS REORGANIZADOS PARA OS BOTÕES */
     .btn-container {
         margin: 10px 0;
         text-align: left;
@@ -280,7 +276,6 @@
         padding-left: 0;
     }
     
-    /* NOVO: Container para os botões superiores (PDF e Voltar) */
     .top-buttons-container {
         position: absolute;
         top: 10px;
@@ -290,7 +285,6 @@
         z-index: 10;
     }
     
-    /* NOVO: Estilo para o botão de salvar rodapé */
     .btn-save-rodape {
         background-color: #36b9cc;
         border-color: #36b9cc;
@@ -308,7 +302,6 @@
         color: white;
     }
 
-    /* MELHORIA: Ajuste para prazo de entrega na mesma linha */
     .prazo-entrega-container {
         display: flex;
         align-items: center;
@@ -325,19 +318,16 @@
         white-space: nowrap;
     }
 
-    /* Estilos para detalhes de parcelas */
     .parcelas-detalhes {
         font-size: 12px;
         margin-top: 5px;
         line-height: 1.2;
     }
 
-    /* NOVO: Estilo para ocultar porcentagens */
     .discount-percentage {
         display: none;
     }
     
-    /* NOVO: Botão para ocultar/mostrar opção de pagamento no PDF */
     .btn-toggle-pdf {
         position: absolute;
         top: 0;
@@ -364,7 +354,6 @@
         display: none !important;
     }
 
-    /* NOVO: Indicador visual para opções que serão ocultas no PDF */
     .will-be-hidden {
         position: relative;
         overflow: hidden;
@@ -387,7 +376,6 @@
     }
 
     @media print {
-        /* REMOVER: As margens do container principal na impressão */
         .main-container {
             padding: 0;
             margin: 0;
@@ -528,17 +516,14 @@
             display: block !important;
         }
         
-        /* NOVO: Garantir que porcentagens não apareçam na impressão */
         .discount-percentage {
             display: none !important;
         }
         
-        /* NOVO: Ajustar a exibição das opções de pagamento no PDF */
         .payment-option.pdf-hidden {
             display: none !important;
         }
         
-        /* NOVO: Ocultar elementos que devem ser excluídos do PDF */
         .exclude-from-pdf {
             display: none !important;
         }
@@ -581,12 +566,9 @@
     </style>
 </head>
 <body>
-<!-- NOVO: Container principal com margens -->
 <div class="main-container">
-    <!-- NOVO: Botões no canto superior direito -->
     {% if not pdf %}
     <div class="top-buttons-container">
-        <!-- Botão Voltar -->
         <a href="/orcamentos_salvos" class="btn btn-custom-primary">
             <i class="fas fa-arrow-left me-1"></i> Voltar
         </a>
@@ -634,7 +616,7 @@
 
     {% for orcamento in orcamentos %}
         {% if orcamento.tipo_produto not in tipos_produtos %}
-            {% set tipos_produtos = tipos_produtos.update({orcamento.tipo_produto: []}) or tipos_produtos %}
+            {% set _ = tipos_produtos.update({orcamento.tipo_produto: []}) %}
         {% endif %}
         {% set _ = tipos_produtos[orcamento.tipo_produto].append(orcamento) %}
     {% endfor %}
@@ -712,7 +694,7 @@
         </table>
     {% endfor %}
 
-   <!-- Rodapé do orçamento - MODIFICADO para ocultar porcentagens -->
+   <!-- Rodapé do orçamento - MODIFICADO para funcionar corretamente com o PDF -->
 <div class="orcamento-footer">
     <div class="footer-section">
         <div class="footer-title">Prazo de Entrega:</div>
@@ -741,8 +723,9 @@
         <div class="footer-title">Condições de Pagamento:</div>
         <div class="footer-content">
             <div class="payment-options-container" id="paymentOptionsContainer">
-                <!-- Cartão de Crédito (agora primeiro) -->
-                <div class="payment-option {% if '1' in exclude_payments %}will-be-hidden{% endif %}" id="payment-option-1" {% if pdf and '1' in exclude_payments %}style="display: none;"{% endif %}>
+                <!-- Cartão de Crédito -->
+                {% if not (pdf and '1' in exclude_payments) %}
+                <div class="payment-option {% if '1' in exclude_payments %}will-be-hidden{% endif %}" id="payment-option-1">
                     {% if not pdf %}
                     <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-1')">
                         {% if '1' in exclude_payments %}Mostrar{% else %}Ocultar{% endif %} no PDF
@@ -756,24 +739,26 @@
                          R$ {{ "{:,.2f}".format(valor_total_float).replace(",", "X").replace(".", ",").replace("X", ".") }} em até 
                          <span id="maxParcelas">
                          {% if max_parcelas is defined %}
-    {{ max_parcelas }}
-{% else %}
-    {% set max_parcelas_calculado = (valor_total_float / 100)|int %}
-    {% if max_parcelas_calculado < 1 %}
-        {% set max_parcelas_calculado = 1 %}
-    {% endif %}
-    {% if max_parcelas_calculado > 10 %}
-        {{ 10 }}
-    {% else %}
-        {{ max_parcelas_calculado }}
-    {% endif %}
-{% endif %}
+                            {{ max_parcelas }}
+                         {% else %}
+                            {% set max_parcelas_calculado = (valor_total_float / 100)|int %}
+                            {% if max_parcelas_calculado < 1 %}
+                                {% set max_parcelas_calculado = 1 %}
+                            {% endif %}
+                            {% if max_parcelas_calculado > 10 %}
+                                {{ 10 }}
+                            {% else %}
+                                {{ max_parcelas_calculado }}
+                            {% endif %}
+                         {% endif %}
                          </span>x sem juros
                     </div>
                 </div>
+                {% endif %}
                 
                 <!-- À vista (Dinheiro/PIX) -->
-                <div class="payment-option {% if '2' in exclude_payments %}will-be-hidden{% endif %}" id="payment-option-2" {% if pdf and '2' in exclude_payments %}style="display: none;"{% endif %}>
+                {% if not (pdf and '2' in exclude_payments) %}
+                <div class="payment-option {% if '2' in exclude_payments %}will-be-hidden{% endif %}" id="payment-option-2">
                     {% if not pdf %}
                     <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-2')">
                         {% if '2' in exclude_payments %}Mostrar{% else %}Ocultar{% endif %} no PDF
@@ -781,7 +766,6 @@
                     {% endif %}
                     <h4>À vista (Dinheiro/PIX)</h4>
                     <div class="payment-detail">
-                        <!-- MODIFICADO: Ocultar a porcentagem de desconto -->
                         <span class="discount-percentage" id="discount1Display">{{ desconto_avista }}</span>Com desconto
                         {% if not pdf %}
                         <button class="btn-edit" onclick="toggleEdit('discount1')">Editar</button>
@@ -807,9 +791,11 @@
                     </div>
                     {% endif %}
                 </div>
+                {% endif %}
 
                 <!-- Parcelado (Dinheiro/PIX) -->
-                <div class="payment-option {% if '3' in exclude_payments %}will-be-hidden{% endif %}" id="payment-option-3" {% if pdf and '3' in exclude_payments %}style="display: none;"{% endif %}>
+                {% if not (pdf and '3' in exclude_payments) %}
+                <div class="payment-option {% if '3' in exclude_payments %}will-be-hidden{% endif %}" id="payment-option-3">
                     {% if not pdf %}
                     <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-3')">
                         {% if '3' in exclude_payments %}Mostrar{% else %}Ocultar{% endif %} no PDF
@@ -817,7 +803,6 @@
                     {% endif %}
                     <h4>Parcelado (Dinheiro/PIX)</h4>
                     <div class="payment-detail">
-                        <!-- MODIFICADO: Ocultar a porcentagem de desconto -->
                         <span class="discount-percentage" id="discount2Display">{{ desconto_parcelado }}</span>Com desconto
                         {% if not pdf %}
                         <button class="btn-edit" onclick="toggleEdit('discount2')">Editar</button>
@@ -843,6 +828,7 @@
                     </div>
                     {% endif %}
                 </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -877,14 +863,14 @@
 
 <br>
 
-<!-- Botão Salvar Alterações do Rodapé - MODIFICADO: Agora posicionado acima dos outros botões -->
+<!-- Botão Salvar Alterações do Rodapé -->
 {% if not pdf %}
 <div class="btn-container">
     <button type="button" id="btnSalvarRodape" class="btn-save-rodape">
         <i class="fas fa-save me-1"></i> Salvar Alterações do Rodapé
     </button>
     
-    <!-- Botão Gerar PDF (CORRETO - fora das opções de pagamento) -->
+    <!-- Botão Gerar PDF com parâmetros de exclusão -->
     <a href="/gerar_pdf_orcamento/{{ codigo_orcamento }}?exclude_payments={{ exclude_payments|join(',') }}" class="btn btn-custom-success btn-pdf" id="btnGerarPDF" title="Gerar PDF">
         <i class="fas fa-file-pdf"></i> Gerar PDF
     </a>
