@@ -658,7 +658,7 @@
                            • Pagamento de 100% na aprovação do orçamento
                         </div>
                         <div class="installment-calc" id="parcelamentoSimplificado">
-                             R$ <span id="valorTotalFormatado">{{ valor_total_final }}</span> em até 
+                             R$ {{ "%.2f"|format(valor_total_float) }} em até 
                              <span id="maxParcelas">
                              {% if max_parcelas is defined %}
     {{ max_parcelas }}
@@ -703,7 +703,7 @@
                     
                     <!-- Parcelado (Dinheiro/PIX) -->
                     <div class="payment-option">
-                        <h4>3. Parcelado (Dinheiro/PIX)</h4>
+                        <h4>3. À vista (Dinheiro/PIX)</h4>
                         <div class="payment-detail">
                             <!-- MODIFICADO: Ocultar a porcentagem de desconto -->
                             <span class="discount-percentage" id="discount2Display">{{ desconto_parcelado }}</span>Com desconto
@@ -711,7 +711,7 @@
                             <button class="btn-edit" onclick="toggleEdit('discount2')">Editar</button>
                             {% endif %}
                         </div>
-                        <div class="payment-detail">• Sinal de 50% e 50% na entrega</div>
+                        <div class="payment-detail">• Sinal de 80% e 20% na entrega</div>
                         <div class="installment-calc">
                             Valor com desconto: R$ <span id="valorParcelado">{{ "%.2f"|format(valor_total_float * (1 - desconto_parcelado/100)) }}</span>
                         </div>
@@ -779,22 +779,6 @@
     let valoresOriginais = {};
     const valorTotalFloat = {{ valor_total_float }};
     
-    // FUNÇÃO PARA ARREDONDAR PARA MÚLTIPLOS DE 10
-    function arredondarParaDez(valor) {
-        return Math.round(valor / 10) * 10;
-    }
-    
-    // FUNÇÃO PARA FORMATAR VALOR COM PONTO E VÍRGULA
-    function formatarValor(valor) {
-        // Arredonda para múltiplos de 10
-        const valorArredondado = arredondarParaDez(valor);
-        
-        // Formata com separadores de milhar e decimal
-        return valorArredondado.toFixed(2)
-            .replace('.', ',')
-            .replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    }
-    
     // Calcular o número máximo de parcelas (máximo de 12x, mínimo de 1x)
     function calcularMaxParcelas(valorTotal) {
         // Calcula com base no valor (mínimo R$ 100 por parcela)
@@ -817,7 +801,7 @@
                 // Mostrar todas as parcelas até 6, depois apenas as pares e a última
                 if (i <= 6 || i % 2 === 0 || i === maxParcelas) {
                     const valorParcela = valorTotalFloat / i;
-                    html += `${i}x de R$ ${formatarValor(valorParcela)}<br>`;
+                    html += `${i}x de R$ ${valorParcela.toFixed(2)}<br>`;
                 }
             }
             parcelasDetalhes.innerHTML = html;
@@ -894,12 +878,8 @@
         const desconto1 = parseFloat(document.getElementById('discount1Input').value);
         const desconto2 = parseFloat(document.getElementById('discount2Input').value);
         
-        // Aplicar arredondamento e formatação
-        const valorAvista = valorTotalFloat * (1 - desconto1/100);
-        const valorParcelado = valorTotalFloat * (1 - desconto2/100);
-        
-        document.getElementById('valorAvista').textContent = formatarValor(valorAvista);
-        document.getElementById('valorParcelado').textContent = formatarValor(valorParcelado);
+        document.getElementById('valorAvista').textContent = (valorTotalFloat * (1 - desconto1/100)).toFixed(2);
+        document.getElementById('valorParcelado').textContent = (valorTotalFloat * (1 - desconto2/100)).toFixed(2);
     }
     
     // Inicializar cálculos quando a página carregar
@@ -910,23 +890,8 @@
         document.getElementById('formDescontoParcelado').value = {{ desconto_parcelado }};
         document.getElementById('formObservacoes').value = "{{ observacoes }}";
         
-        // Formatar o valor total inicial
-        const valorTotalElement = document.getElementById('valorTotal');
-        const valorTotalFormatadoElement = document.getElementById('valorTotalFormatado');
-        
-        if (valorTotalElement) {
-            valorTotalElement.textContent = formatarValor(valorTotalFloat);
-        }
-        
-        if (valorTotalFormatadoElement) {
-            valorTotalFormatadoElement.textContent = formatarValor(valorTotalFloat);
-        }
-        
         // Atualizar informações de parcelamento
         atualizarParcelamento();
-        
-        // Atualizar cálculos iniciais dos descontos
-        atualizarCalculos();
     });
 </script>
     
