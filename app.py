@@ -191,31 +191,26 @@ def index():
     
     return render_template('index.html')
 
-@app.route('/ambientes', methods=['GET', 'POST'])
+@app.route('/ambientes', methods=['POST'])
 def ambientes():
     if 'user_cpf' not in session:
         return redirect(url_for('login'))
     
-    if request.method == 'POST':
-        nome = request.form['nome']
-        dono = session['user_cpf']
-        
-        # Verificar se o ambiente já existe para este usuário
-        ambiente_existente = Ambiente.query.filter_by(nome=nome, dono=dono).first()
-        if ambiente_existente:
-            flash("Este ambiente já está cadastrado!", "error")
-            return redirect(url_for('ambientes'))
-        
-        novo_ambiente = Ambiente(nome=nome, dono=dono)
-        db.session.add(novo_ambiente)
-        db.session.commit()
-        
-        flash("Ambiente cadastrado com sucesso!", "success")
-        return redirect(url_for('ambientes'))
+    nome = request.form['nome']
+    dono = session['user_cpf']
     
-    # Buscar ambientes do usuário logado
-    ambientes = Ambiente.query.filter_by(dono=session['user_cpf']).order_by(Ambiente.nome).all()
-    return render_template('ambientes.html', ambientes=ambientes)
+    # Verificar se o ambiente já existe para este usuário
+    ambiente_existente = Ambiente.query.filter_by(nome=nome, dono=dono).first()
+    if ambiente_existente:
+        flash("Este ambiente já está cadastrado!", "error")
+        return redirect(url_for('listar_orcamentos'))
+    
+    novo_ambiente = Ambiente(nome=nome, dono=dono)
+    db.session.add(novo_ambiente)
+    db.session.commit()
+    
+    flash("Ambiente cadastrado com sucesso!", "success")
+    return redirect(url_for('listar_orcamentos'))
 
 @app.route('/ambientes/delete/<int:id>', methods=['POST'])
 def deletar_ambiente(id):
