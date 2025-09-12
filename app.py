@@ -473,12 +473,15 @@ def listar_orcamentos():
     # Verifica se o usuário logado é administrador
     is_admin = session.get('admin', False)
 
+    selected_ambiente_id = request.args.get('ambiente_id') or localStorage.get('ambiente_id')
+    
     return render_template(
         'orcamentos.html',
         orcamentos=orcamentos,
         clientes=clientes,
         materiais=materiais,
         ambientes=ambientes,
+        selected_ambiente_id=selected_ambiente_id,  # Passar para o template
         is_admin=is_admin
     )
 
