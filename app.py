@@ -1624,8 +1624,11 @@ def criar_ambiente():
     db.session.add(novo_ambiente)
     db.session.commit()
     
-    return jsonify({"success": "Ambiente criado com sucesso", "id": novo_ambiente.id, "nome": novo_ambiente.nome})
-
+    return jsonify({
+        "success": "Ambiente criado com sucesso", 
+        "id": novo_ambiente.id, 
+        "nome": novo_ambiente.nome
+    })
 
 
 @app.route('/ambientes/<int:id>', methods=['DELETE'])
