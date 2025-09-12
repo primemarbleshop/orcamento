@@ -245,13 +245,15 @@ def listar_orcamentos():
 
         # Valores fixos das cubas
         cuba_valores = {
-            'Embutir': 225,
+            'Embutida': 225,
             'Esculpida': 0,
-            'Cuba Tradicional Inox': 225,
+            'Tradicional Inox': 225,
+            'Tanque Inox': 500
             'Apoio Cliente': 125,
             'Embutida Cliente': 125,
             'Gourmet Cliente': 225,
-            'Tanque Inox': 500
+            'Sobrepor Cliente': 125
+            'Tanque Inox Cliente': 225
         }
 
         cooktop_valor = 50  # Valor fixo para o cooktop
@@ -727,15 +729,17 @@ def editar_orcamento(id):
 
         # **Adicionando o valor das cubas**
         cuba_valores = {
-            'Embutir': 225,
+            'Embutida': 225,
             'Esculpida': 0,
-            'Cuba Tradicional Inox': 225,
+            'Tradicional Inox': 225,
+            'Tanque Inox': 500
             'Apoio Cliente': 125,
             'Embutida Cliente': 125,
             'Gourmet Cliente': 225,
-            'Tanque Inox': 500
+            'Sobrepor Cliente': 125
+            'Tanque Inox Cliente': 225
         }
-
+        
         # **Adicionando o valor das cubas**
         if orcamento.tipo_cuba:
             valor_cuba = cuba_valores.get(orcamento.tipo_cuba, 0)
@@ -1413,13 +1417,15 @@ def editar_material_selecionados():
         return jsonify({'erro': 'Material não encontrado.'}), 404
 
     cuba_valores = {
-        'Embutir': 225,
-        'Esculpida': 0,
-        'Cuba Tradicional Inox': 225,
-        'Apoio Cliente': 125,
-        'Embutida Cliente': 125,
-        'Gourmet Cliente': 225,
-        'Tanque Inox': 500
+            'Embutida': 225,
+            'Esculpida': 0,
+            'Tradicional Inox': 225,
+            'Tanque Inox': 500
+            'Apoio Cliente': 125,
+            'Embutida Cliente': 125,
+            'Gourmet Cliente': 225,
+            'Sobrepor Cliente': 125
+            'Tanque Inox Cliente': 225
     }
 
     cooktop_valor = 50  # Valor fixo para cooktop
