@@ -152,6 +152,7 @@ class Orcamento(db.Model):
     rt_percentual = db.Column(db.Float, default=0.0)
     valor_total = db.Column(db.Float, nullable=False, default=0.0)
     dono = db.Column(db.String(14), nullable=False)  # CPF do usuário que cadastrou
+    ambiente = db.Column(db.String(100), default="")
 
     # Ajuste de fuso horário na data
     data = db.Column(db.DateTime, default=lambda: datetime.now(br_tz))
