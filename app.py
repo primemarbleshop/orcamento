@@ -252,7 +252,7 @@ def listar_orcamentos():
             'Apoio Cliente': 125,
             'Embutida Cliente': 125,
             'Gourmet Cliente': 225,
-            'Sobrepor Cliente': 125
+            'Sobrepor Cliente': 125,
             'Tanque Inox Cliente': 225
         }
 
@@ -736,7 +736,7 @@ def editar_orcamento(id):
             'Apoio Cliente': 125,
             'Embutida Cliente': 125,
             'Gourmet Cliente': 225,
-            'Sobrepor Cliente': 125
+            'Sobrepor Cliente': 125,
             'Tanque Inox Cliente': 225
         }
         
@@ -1424,7 +1424,7 @@ def editar_material_selecionados():
             'Apoio Cliente': 125,
             'Embutida Cliente': 125,
             'Gourmet Cliente': 225,
-            'Sobrepor Cliente': 125
+            'Sobrepor Cliente': 125,
             'Tanque Inox Cliente': 225
     }
 
