@@ -731,36 +731,50 @@
         }
 
         // Função para salvar ambiente
-        function salvarAmbiente() {
-            const nome = document.getElementById('nome_ambiente').value;
-            
-            if (!nome) {
-                Swal.fire("Atenção", "Digite um nome para o ambiente!", "warning");
-                return;
-            }
-            
-            fetch('/ambientes', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `nome=${encodeURIComponent(nome)}`
-            })
-            .then(response => response.text())
-            .then(data => {
-                if (data.includes('sucesso')) {
-                    $('#modalAmbiente').modal('hide');
-                    Swal.fire("Sucesso", "Ambiente cadastrado com sucesso!", "success").then(() => {
-                        location.reload();
-                    });
-                } else {
-                    Swal.fire("Erro", "Erro ao cadastrar ambiente!", "error");
-                }
-            })
-            .catch(error => {
-                Swal.fire("Erro", "Erro ao cadastrar ambiente!", "error");
+function salvarAmbiente() {
+    const nome = document.getElementById('nome_ambiente').value;
+    
+    if (!nome) {
+        Swal.fire("Atenção", "Digite um nome para o ambiente!", "warning");
+        return;
+    }
+    
+    // Usar FormData para enviar como formulário normal
+    const formData = new FormData();
+    formData.append('nome', nome);
+    
+    fetch('/ambientes', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.redirected) {
+            // Se houve redirecionamento, recarregar a página
+            window.location.href = response.url;
+        } else {
+            return response.text();
+        }
+    })
+    .then(data => {
+        if (data && data.includes('sucesso')) {
+            $('#modalAmbiente').modal('hide');
+            Swal.fire("Sucesso", "Ambiente cadastrado com sucesso!", "success").then(() => {
+                location.reload();
+            });
+        } else if (data && data.includes('error')) {
+            $('#modalAmbiente').modal('hide');
+            Swal.fire("Erro", "Erro ao cadastrar ambiente!", "error").then(() => {
+                location.reload();
             });
         }
+    })
+    .catch(error => {
+        $('#modalAmbiente').modal('hide');
+        Swal.fire("Erro", "Erro ao cadastrar ambiente!", "error").then(() => {
+            location.reload();
+        });
+    });
+}
 
         // Função para deletar ambiente
         function deletarAmbiente() {
