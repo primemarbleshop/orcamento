@@ -248,7 +248,7 @@ def listar_orcamentos():
             'Embutida': 225,
             'Esculpida': 0,
             'Tradicional Inox': 225,
-            'Tanque Inox': 500
+            'Tanque Inox': 500,
             'Apoio Cliente': 125,
             'Embutida Cliente': 125,
             'Gourmet Cliente': 225,
@@ -732,7 +732,7 @@ def editar_orcamento(id):
             'Embutida': 225,
             'Esculpida': 0,
             'Tradicional Inox': 225,
-            'Tanque Inox': 500
+            'Tanque Inox': 500,
             'Apoio Cliente': 125,
             'Embutida Cliente': 125,
             'Gourmet Cliente': 225,
@@ -1420,7 +1420,7 @@ def editar_material_selecionados():
             'Embutida': 225,
             'Esculpida': 0,
             'Tradicional Inox': 225,
-            'Tanque Inox': 500
+            'Tanque Inox': 500,
             'Apoio Cliente': 125,
             'Embutida Cliente': 125,
             'Gourmet Cliente': 225,
