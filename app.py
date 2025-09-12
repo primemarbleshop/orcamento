@@ -221,7 +221,7 @@ def deletar_ambiente(id):
         flash("Ambiente deletado com sucesso!", "success")
     else:
         flash("Erro ao deletar ambiente!", "error")
-    return redirect(url_for('ambientes'))
+    return redirect(url_for('listar_orcamentos'))  # Redireciona para orçamentos
 
 @app.route('/orcamentos', methods=['GET', 'POST'])
 def listar_orcamentos():
