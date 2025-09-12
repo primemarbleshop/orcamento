@@ -473,7 +473,8 @@ def listar_orcamentos():
     # Verifica se o usuário logado é administrador
     is_admin = session.get('admin', False)
 
-    selected_ambiente_id = request.args.get('ambiente_id') or localStorage.get('ambiente_id')
+      # Apenas usar None, o JavaScript vai cuidar do resto
+    selected_ambiente_id = None
     
     return render_template(
         'orcamentos.html',
@@ -481,7 +482,7 @@ def listar_orcamentos():
         clientes=clientes,
         materiais=materiais,
         ambientes=ambientes,
-        selected_ambiente_id=selected_ambiente_id,  # Passar para o template
+        selected_ambiente_id=selected_ambiente_id,
         is_admin=is_admin
     )
 
