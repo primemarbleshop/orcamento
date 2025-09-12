@@ -1604,31 +1604,48 @@ def salvar_rodape_orcamento(codigo):
     
     return redirect(url_for('detalhes_orcamento_salvo', codigo=codigo))
 
-@app.route('/ambientes', methods=['POST'])
-def criar_ambiente():
-    if 'user_cpf' not in session:
-        return jsonify({"error": "Não autorizado"}), 401
-        
-    nome = request.json.get('nome')
-    dono = session['user_cpf']
+function criarAmbiente() {
+    const nome = document.getElementById('novo_ambiente').value;
     
-    if not nome:
-        return jsonify({"error": "Nome do ambiente é obrigatório"}), 400
-        
-    # Verificar se o ambiente já existe para este usuário
-    ambiente_existente = Ambiente.query.filter_by(nome=nome, dono=dono).first()
-    if ambiente_existente:
-        return jsonify({"error": "Este ambiente já existe!"}), 400
-        
-    novo_ambiente = Ambiente(nome=nome, dono=dono)
-    db.session.add(novo_ambiente)
-    db.session.commit()
+    if (!nome) {
+        Swal.fire("Atenção", "Por favor, informe o nome do ambiente", "warning");
+        return;
+    }
     
-    return jsonify({
-        "success": "Ambiente criado com sucesso", 
-        "id": novo_ambiente.id, 
-        "nome": novo_ambiente.nome
+    fetch('/ambientes', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ nome: nome })
     })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(errorData => {
+                throw new Error(errorData.error || 'Erro ao criar ambiente');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Adiciona a nova opção ao select e atualiza o Select2
+        const select = $('#ambiente_id');
+        const newOption = new Option(data.nome, data.id, false, true);
+        select.append(newOption).trigger('change');
+        
+        // Fecha o modal
+        $('#modalAmbiente').modal('hide');
+        
+        // Limpa o campo
+        document.getElementById('novo_ambiente').value = '';
+        
+        Swal.fire("Sucesso", "Ambiente criado com sucesso", "success");
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        Swal.fire("Erro", error.message, "error");
+    });
+}
 
 
 @app.route('/ambientes/<int:id>', methods=['DELETE'])
