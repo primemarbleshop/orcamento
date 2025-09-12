@@ -104,12 +104,12 @@
         
         .valor-total {
             font-weight: bold;
-            color: #000000; /* Alterado para preto */
+            color: #000000;
         }
         
         .valor-final {
             font-weight: bold;
-            color: #ffffff; /* Alterado para preto */
+            color: #ffffff;
             font-size: 1.2rem;
         }
         
@@ -134,6 +134,10 @@
         }
         
         .actions-cell {
+            width: 120px;
+        }
+        
+        .ambiente-cell {
             width: 120px;
         }
         
@@ -182,6 +186,27 @@
                                     </option>
                                 {% endfor %}
                             </select>
+                        </div>
+
+                        <!-- Campo Ambiente -->
+                        <div class="col-md-6 col-lg-3 form-section">
+                            <label for="ambiente_id" class="form-label">Ambiente:</label>
+                            <div class="input-group">
+                                <select name="ambiente_id" id="ambiente_id" class="form-select">
+                                    <option value="">Selecione um ambiente</option>
+                                    {% for ambiente in ambientes %}
+                                        <option value="{{ ambiente.id }}" {% if ambiente.id == selected_ambiente_id %}selected{% endif %}>
+                                            {{ ambiente.nome }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <button type="button" class="btn btn-custom-primary" data-bs-toggle="modal" data-bs-target="#modalAmbiente">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                                <button type="button" class="btn btn-custom-danger" onclick="deletarAmbiente()">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="col-md-6 col-lg-3 form-section">
@@ -298,6 +323,7 @@
                                     <th>Criado por</th>
                                 {% endif %}
                                 <th>Cliente</th>
+                                <th class="ambiente-cell">Ambiente</th>
                                 <th>Produto</th>
                                 <th>Material</th>
                                 <th>Qtd</th>
@@ -319,6 +345,7 @@
                                     <td>{{ nome_usuario }}</td>
                                 {% endif %}
                                 <td>{{ orcamento.cliente.nome }}</td>
+                                <td class="ambiente-cell">{{ orcamento.ambiente.nome if orcamento.ambiente else '' }}</td>
                                 <td>{{ orcamento.tipo_produto }}</td>
                                 <td>{{ orcamento.material.nome }}</td>
                                 <td>{{ orcamento.quantidade }}</td>
@@ -366,6 +393,28 @@
                             </button>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal para cadastro de ambiente -->
+    <div class="modal fade" id="modalAmbiente" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Cadastrar Novo Ambiente</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="novo_ambiente" class="form-label">Nome do Ambiente:</label>
+                        <input type="text" class="form-control" id="novo_ambiente">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-custom-primary" onclick="criarAmbiente()">Salvar</button>
                 </div>
             </div>
         </div>
@@ -623,6 +672,92 @@
             }
         }
 
+        // Função para criar ambiente
+        function criarAmbiente() {
+            const nome = document.getElementById('novo_ambiente').value;
+            
+            if (!nome) {
+                Swal.fire("Atenção", "Por favor, informe o nome do ambiente", "warning");
+                return;
+            }
+            
+            fetch('/ambientes', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ nome: nome })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    Swal.fire("Erro", data.error, "error");
+                } else {
+                    // Adiciona a nova opção ao select
+                    const select = document.getElementById('ambiente_id');
+                    const option = document.createElement('option');
+                    option.value = data.id;
+                    option.text = data.nome;
+                    select.add(option);
+                    select.value = data.id;
+                    
+                    // Fecha o modal
+                    bootstrap.Modal.getInstance(document.getElementById('modalAmbiente')).hide();
+                    
+                    // Salva no localStorage
+                    localStorage.setItem('ambiente_id', data.id);
+                    
+                    Swal.fire("Sucesso", "Ambiente criado com sucesso", "success");
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                Swal.fire("Erro", "Erro ao criar ambiente", "error");
+            });
+        }
+
+        // Função para deletar ambiente
+        function deletarAmbiente() {
+            const select = document.getElementById('ambiente_id');
+            const selectedOption = select.options[select.selectedIndex];
+            
+            if (!selectedOption || !selectedOption.value) {
+                Swal.fire("Atenção", "Selecione um ambiente para deletar", "warning");
+                return;
+            }
+            
+            Swal.fire({
+                title: "Tem certeza?",
+                text: "Você está prestes a deletar este ambiente!",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#3085d6",
+                confirmButtonText: "Sim, deletar!",
+                cancelButtonText: "Cancelar"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/ambientes/${selectedOption.value}`, {
+                        method: 'DELETE'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.error) {
+                            Swal.fire("Erro", data.error, "error");
+                        } else {
+                            select.remove(select.selectedIndex);
+                            localStorage.removeItem('ambiente_id');
+                            Swal.fire("Deletado!", "Ambiente deletado com sucesso", "success");
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro:', error);
+                        Swal.fire("Erro", "Erro ao deletar ambiente", "error");
+                    });
+                }
+            });
+        }
+
         // Função para confirmar exclusão
         function confirmarExclusao(event, form) {
             event.preventDefault();
@@ -665,7 +800,7 @@
         // Adicionar event listener para os checkboxes
         document.addEventListener('DOMContentLoaded', function() {
             // Inicializar Select2
-            $('#cliente_id, #material_id, #tipo_produto').select2({
+            $('#cliente_id, #material_id, #tipo_produto, #ambiente_id').select2({
                 width: '100%',
                 placeholder: "Selecione",
                 allowClear: true
@@ -682,9 +817,12 @@
             if (localStorage.getItem('material_id')) {
                 $('#material_id').val(localStorage.getItem('material_id')).trigger('change');
             }
+            if (localStorage.getItem('ambiente_id')) {
+                $('#ambiente_id').val(localStorage.getItem('ambiente_id')).trigger('change');
+            }
             
             // Salvar seleções no localStorage
-            $('#cliente_id, #tipo_produto, #material_id').on('change', function() {
+            $('#cliente_id, #tipo_produto, #material_id, #ambiente_id').on('change', function() {
                 localStorage.setItem(this.id, $(this).val());
             });
             
@@ -802,7 +940,7 @@
                 icon: "question",
                 showCancelButton: true,
                 confirmButtonColor: "#1cc88a",
-                cancelButtonColor: "#6c757d",
+                cancelButtonColor: #6c757d",
                 confirmButtonText: "Sim, duplicar!",
                 cancelButtonText: "Cancelar"
             }).then((result) => {
