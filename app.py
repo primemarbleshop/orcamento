@@ -11,6 +11,7 @@ import fitz  # PyMuPDF
 import requests
 import base64
 import os
+import re
 
 from models import db, Orcamento, OrcamentoSalvo, Usuario  # Modelos do SQLAlchemy
 
@@ -24,8 +25,6 @@ app.config.from_object(Config)  # Aplica configurações do config.py
 # 📌 Inicializa o Banco de Dados
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
-
-
 
 def atualizar_valor_orcamento_salvo(orcamento_salvo_id):
     """Recalcula o valor total de um orçamento salvo."""
@@ -45,7 +44,6 @@ def atualizar_valor_orcamento_salvo(orcamento_salvo_id):
             # Atualiza o valor total no banco de dados
             orcamento_salvo.valor_total = valor_total
             db.session.commit()
-
 
 @app.route("/upload_db", methods=["POST"])
 def upload_db():
@@ -72,6 +70,11 @@ class Usuario(db.Model):
 
     def check_senha(self, senha):
         return check_password_hash(self.senha, senha)
+
+class Ambiente(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False)
+    dono = db.Column(db.String(14), nullable=False)  # CPF do usuário que cadastrou
     
 class Cliente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -130,13 +133,12 @@ class OrcamentoSalvo(db.Model):
 
         self.codigo = f"O{novo_id:06d}"  # Formato: O000100, O000101, O000102, etc.
 
-
-    
-
 class Orcamento(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey('cliente.id'))
     cliente = db.relationship('Cliente', backref=db.backref('orcamentos', lazy=True))
+    ambiente_id = db.Column(db.Integer, db.ForeignKey('ambiente.id'), nullable=True)
+    ambiente = db.relationship('Ambiente', backref=db.backref('orcamentos', lazy=True))
     tipo_produto = db.Column(db.String(100), nullable=False)
     material_id = db.Column(db.Integer, db.ForeignKey('material.id'))
     material = db.relationship('Material', backref=db.backref('orcamentos', lazy=True))
@@ -152,8 +154,6 @@ class Orcamento(db.Model):
     # Ajuste de fuso horário na data
     data = db.Column(db.DateTime, default=lambda: datetime.now(br_tz))
     
-    
-
     # **Novos Campos para Dados Dinâmicos**
     comprimento_saia = db.Column(db.Float, default=0.0)
     largura_saia = db.Column(db.Float, default=0.0)
@@ -179,7 +179,6 @@ class Orcamento(db.Model):
     tem_alisar = db.Column(db.String(50), default="Não")
     largura_alisar = db.Column(db.Float, default=0.0)
 
-
 # Função para inicializar o banco de dados
 def criar_banco():
     with app.app_context():
@@ -190,17 +189,55 @@ def index():
     if 'user_cpf' not in session:  # Se não estiver logado, redireciona para o login
         return redirect(url_for('login'))
     
-    
     return render_template('index.html')
+
+@app.route('/ambientes', methods=['GET', 'POST'])
+def ambientes():
+    if 'user_cpf' not in session:
+        return redirect(url_for('login'))
+    
+    if request.method == 'POST':
+        nome = request.form['nome']
+        dono = session['user_cpf']
+        
+        # Verificar se o ambiente já existe para este usuário
+        ambiente_existente = Ambiente.query.filter_by(nome=nome, dono=dono).first()
+        if ambiente_existente:
+            flash("Este ambiente já está cadastrado!", "error")
+            return redirect(url_for('ambientes'))
+        
+        novo_ambiente = Ambiente(nome=nome, dono=dono)
+        db.session.add(novo_ambiente)
+        db.session.commit()
+        
+        flash("Ambiente cadastrado com sucesso!", "success")
+        return redirect(url_for('ambientes'))
+    
+    # Buscar ambientes do usuário logado
+    ambientes = Ambiente.query.filter_by(dono=session['user_cpf']).order_by(Ambiente.nome).all()
+    return render_template('ambientes.html', ambientes=ambientes)
+
+@app.route('/ambientes/delete/<int:id>', methods=['POST'])
+def deletar_ambiente(id):
+    ambiente = Ambiente.query.get(id)
+    if ambiente and ambiente.dono == session['user_cpf']:
+        db.session.delete(ambiente)
+        db.session.commit()
+        flash("Ambiente deletado com sucesso!", "success")
+    else:
+        flash("Erro ao deletar ambiente!", "error")
+    return redirect(url_for('ambientes'))
 
 @app.route('/orcamentos', methods=['GET', 'POST'])
 def listar_orcamentos():
     ultimo_cliente_id = None  # Variável para armazenar o ID do cliente mais recente
     selected_cliente_id = None  # Variável para armazenar o cliente selecionado
     selected_material_id = None  # Variável para armazenar o material selecionado
+    selected_ambiente_id = None  # Variável para armazenar o ambiente selecionado
 
     if request.method == 'POST':
         cliente_id = request.form.get('cliente_id')
+        ambiente_id = request.form.get('ambiente_id')
         tipo_produto = request.form['tipo_produto']
         material_id = request.form['material_id']
         quantidade = int(request.form['quantidade'])
@@ -211,8 +248,6 @@ def listar_orcamentos():
         rt_percentual = float(request.form.get('rt_percentual', 0) or 0)  # Agora numérico, ex.: 10 para 10%
         data_atual = datetime.now(br_tz)
         dono = session['user_cpf']  # Captura o CPF do usuário logado
-
-        
 
         # Campos dinâmicos
         comprimento_saia = float(request.form.get('comprimento_saia', 0) or 0)
@@ -231,7 +266,6 @@ def listar_orcamentos():
         largura_alisar = float(request.form.get('largura_alisar', 0) or 0)
         data=data_atual
 
-        
         # Inicializando variáveis do alisar
         tem_alisar = request.form.get('alisar', 'Não')
         largura_alisar = float(request.form.get('largura_alisar', 0) or 0)
@@ -261,7 +295,6 @@ def listar_orcamentos():
         valor_total = 0
         valor_total_criar = 0
 
-        
         comprimento_cal = max(comprimento, 10)  # Garante mínimo de 10 cm
         largura_cal = max(largura, 10)  # Garante mínimo de 10 cm
         # Cálculo do valor base do material
@@ -282,8 +315,6 @@ def listar_orcamentos():
 
         valor_total_criar += valor_base  # Inicializando o valor total
 
-        
-
         # **Cálculo do Nicho**
         if tipo_produto == 'Nicho':
             comprimento_cal = 10 if 0 < comprimento < 10 else comprimento
@@ -298,7 +329,6 @@ def listar_orcamentos():
                 area_nicho = ((comprimento_cal) + (largura_cal)) * profundidade_nicho_cal * 2
                 print(f"Nicho sem fundo: Comprimento={comprimento}, Largura={largura}, Profundidade={profundidade_nicho}, Área={area_nicho}")
 
-            
             # Verifica se há alisar e ajusta a área do nicho
             if tem_alisar == 'Sim' and largura_alisar > 0:
                 largura_alisar_cal = 10 if 0 < largura_alisar < 10 else largura_alisar
@@ -311,16 +341,12 @@ def listar_orcamentos():
             valor_total_criar = valor_nicho
             print(f"Valor do Nicho: Área Final={area_nicho}, Valor do Material={material.valor}, Valor do Nicho={valor_nicho}, Valor Total Criado={valor_total_criar}")                       
 
-        
-        
         # **Cálculo do Acabamento Saia**
         if tipo_produto in ['Ilharga', 'Ilharga Bipolida', 'Bancada', 'Lavatorio']:
             comprimento_saia_cal = 10 if 0 < comprimento_saia < 10 else comprimento_saia
             largura_saia_cal = 10 if 0 < largura_saia < 10 else largura_saia
             valor_saia = comprimento_saia_cal * largura_saia_cal * material.valor / 10000
             valor_total_criar += valor_saia
-
-       
 
         # **Cálculo do Acabamento Fronte**
         if tipo_produto in ['Bancada', 'Lavatorio']:
@@ -352,7 +378,6 @@ def listar_orcamentos():
                     m2_cuba = ((comprimento_cuba * largura_cuba * 2) +
                                (comprimento_cuba * 2 + largura_cuba * 2) * profundidade_cuba) / 10000
 
-
                 valor_cuba_esculpida = m2_cuba * material.valor * quantidade_cubas + 175
                 valor_total_criar += valor_cuba_esculpida
 
@@ -371,7 +396,6 @@ def listar_orcamentos():
 
         valor_total = round(valor_total_criar + valor_rt, 2)
 
-        
         modelo_cuba = request.form.get("modelo_cuba", "").strip()
         if not modelo_cuba:  
             modelo_cuba = "Normal"  # Define "Normal" como padrão se estiver vazio
@@ -380,6 +404,7 @@ def listar_orcamentos():
         if cliente_id and material_id:
             novo_orcamento = Orcamento(
                 cliente_id=cliente_id,
+                ambiente_id=ambiente_id if ambiente_id else None,
                 tipo_produto=tipo_produto,
                 material_id=material_id,
                 quantidade=quantidade,
@@ -405,8 +430,6 @@ def listar_orcamentos():
                 valor_total=valor_total,
                 modelo_cuba=modelo_cuba,
                 dono=session['user_cpf']
-               
-                    
             )
             # Salvar no banco de dados
             db.session.add(novo_orcamento)
@@ -415,6 +438,7 @@ def listar_orcamentos():
             # Atualiza os IDs selecionados
             selected_cliente_id = int(cliente_id)
             selected_material_id = int(material_id)
+            selected_ambiente_id = int(ambiente_id) if ambiente_id else None
 
         return redirect(url_for('listar_orcamentos'))
 
@@ -447,21 +471,21 @@ def listar_orcamentos():
 
     # Materiais são compartilhados entre todos os usuários
     materiais = Material.query.order_by(Material.nome).all()
+    
+    # Ambientes do usuário logado
+    ambientes = Ambiente.query.filter_by(dono=user_cpf).order_by(Ambiente.nome).all()
 
     # Verifica se o usuário logado é administrador
     is_admin = session.get('admin', False)
 
-    
     return render_template(
         'orcamentos.html',
         orcamentos=orcamentos,
         clientes=clientes,
         materiais=materiais,
-        is_admin=is_admin  # Passando a variável para o template
+        ambientes=ambientes,
+        is_admin=is_admin
     )
-
-    
-import re  # Para usar expressões regulares
 
 def formatar_telefone(telefone):
     """ Formata o telefone para o padrão (XX) XXXXX-XXXX """
