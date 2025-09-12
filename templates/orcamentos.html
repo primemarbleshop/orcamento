@@ -696,7 +696,6 @@ function criarAmbiente() {
         return response.json();
     })
     .then(data => {
-        // Verifica se a resposta tem a estrutura esperada
         if (data.success) {
             // Adiciona a nova opção ao select
             const select = document.getElementById('ambiente_id');
@@ -706,9 +705,10 @@ function criarAmbiente() {
             select.appendChild(option);
             select.value = data.id;
             
-            // Fecha o modal
-            const modal = bootstrap.Modal.getInstance(document.getElementById('modalAmbiente'));
-            modal.hide();
+            // Fechar o modal usando a referência global - CORREÇÃO AQUI
+            if (window.ambienteModal) {
+                window.ambienteModal.hide();
+            }
             
             // Limpa o campo
             document.getElementById('novo_ambiente').value = '';
@@ -723,7 +723,6 @@ function criarAmbiente() {
         Swal.fire("Erro", error.message, "error");
     });
 }
-
 
         // Função para deletar ambiente
         function deletarAmbiente() {
@@ -807,69 +806,67 @@ function criarAmbiente() {
         }
 
         // Adicionar event listener para os checkboxes
-        document.addEventListener('DOMContentLoaded', function() {
-            // Inicializar Select2
-			
-            $('#cliente_id, #material_id, #tipo_produto, #ambiente_id').select2({
-                width: '100%',
-                placeholder: "Selecione",
-                allowClear: true
-            });
-            
-            // Restaurar seleções do localStorage
-            if (localStorage.getItem('cliente_id')) {
-                $('#cliente_id').val(localStorage.getItem('cliente_id')).trigger('change');
-            }
-            if (localStorage.getItem('tipo_produto')) {
-                $('#tipo_produto').val(localStorage.getItem('tipo_produto')).trigger('change');
-                toggleFields(); // Atualizar campos dinâmicos
-            }
-            if (localStorage.getItem('material_id')) {
-                $('#material_id').val(localStorage.getItem('material_id')).trigger('change');
-            }
-            if (localStorage.getItem('ambiente_id')) {
-                $('#ambiente_id').val(localStorage.getItem('ambiente_id')).trigger('change');
-            }
-            
-            // Salvar seleções no localStorage
-            $('#cliente_id, #tipo_produto, #material_id, #ambiente_id').on('change', function() {
-                localStorage.setItem(this.id, $(this).val());
-            });
-			
-            var ambienteModal = new bootstrap.Modal(document.getElementById('modalAmbiente'));
-			
-            // Inicializar datas com valores padrão
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('filtro_data_inicio').value = today;
-            document.getElementById('filtro_data_fim').value = today;
-            
-            // Adicionar event listeners aos checkboxes
-            document.querySelectorAll('.selecionar-orcamento').forEach(checkbox => {
-                checkbox.addEventListener('change', atualizarValorFinal);
-            });
-            
-            // Inicializar o valor total
-            atualizarValorFinal();
-            
-                       
-            // Carregar filtros salvos
-            if (localStorage.getItem('filtroCliente')) {
-                document.getElementById('filtro_cliente').value = localStorage.getItem('filtroCliente');
-            }
-            if (localStorage.getItem('filtroDataInicio')) {
-                document.getElementById('filtro_data_inicio').value = localStorage.getItem('filtroDataInicio');
-            }
-            if (localStorage.getItem('filtroDataFim')) {
-                document.getElementById('filtro_data_fim').value = localStorage.getItem('filtroDataFim');
-            }
-            if (localStorage.getItem('filtroQuantidade')) {
-                document.getElementById('filtro_quantidade').value = localStorage.getItem('filtroQuantidade');
-            }
-            
-            // Aplicar filtros ao carregar a página
-            filterOrcamentos();
-			
-        });
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar Select2
+    $('#cliente_id, #material_id, #tipo_produto, #ambiente_id').select2({
+        width: '100%',
+        placeholder: "Selecione",
+        allowClear: true
+    });
+    
+    // Restaurar seleções do localStorage
+    if (localStorage.getItem('cliente_id')) {
+        $('#cliente_id').val(localStorage.getItem('cliente_id')).trigger('change');
+    }
+    if (localStorage.getItem('tipo_produto')) {
+        $('#tipo_produto').val(localStorage.getItem('tipo_produto')).trigger('change');
+        toggleFields(); // Atualizar campos dinâmicos
+    }
+    if (localStorage.getItem('material_id')) {
+        $('#material_id').val(localStorage.getItem('material_id')).trigger('change');
+    }
+    if (localStorage.getItem('ambiente_id')) {
+        $('#ambiente_id').val(localStorage.getItem('ambiente_id')).trigger('change');
+    }
+    
+    // Salvar seleções no localStorage
+    $('#cliente_id, #tipo_produto, #material_id, #ambiente_id').on('change', function() {
+        localStorage.setItem(this.id, $(this).val());
+    });
+    
+    // Inicializar o modal do ambiente - CORREÇÃO AQUI
+    window.ambienteModal = new bootstrap.Modal(document.getElementById('modalAmbiente'));
+    
+    // Inicializar datas com valores padrão
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('filtro_data_inicio').value = today;
+    document.getElementById('filtro_data_fim').value = today;
+    
+    // Adicionar event listeners aos checkboxes
+    document.querySelectorAll('.selecionar-orcamento').forEach(checkbox => {
+        checkbox.addEventListener('change', atualizarValorFinal);
+    });
+    
+    // Inicializar o valor total
+    atualizarValorFinal();
+    
+    // Carregar filtros salvos
+    if (localStorage.getItem('filtroCliente')) {
+        document.getElementById('filtro_cliente').value = localStorage.getItem('filtroCliente');
+    }
+    if (localStorage.getItem('filtroDataInicio')) {
+        document.getElementById('filtro_data_inicio').value = localStorage.getItem('filtroDataInicio');
+    }
+    if (localStorage.getItem('filtroDataFim')) {
+        document.getElementById('filtro_data_fim').value = localStorage.getItem('filtroDataFim');
+    }
+    if (localStorage.getItem('filtroQuantidade')) {
+        document.getElementById('filtro_quantidade').value = localStorage.getItem('filtroQuantidade');
+    }
+    
+    // Aplicar filtros ao carregar a página
+    filterOrcamentos();
+});
 
         // Função para enviar orçamentos selecionados
         function enviarOrcamentos() {
