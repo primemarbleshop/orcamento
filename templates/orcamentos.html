@@ -672,7 +672,7 @@
             }
         }
 
-        function criarAmbiente() {
+       function criarAmbiente() {
     const nome = document.getElementById('novo_ambiente').value;
     
     if (!nome) {
@@ -696,17 +696,13 @@
         return response.json();
     })
     .then(data => {
-        // Adiciona a nova opção ao select
-        const select = document.getElementById('ambiente_id');
-        const option = document.createElement('option');
-        option.value = data.id;
-        option.text = data.nome;
-        select.add(option);
-        select.value = data.id;
+        // Adiciona a nova opção ao select e atualiza o Select2
+        const select = $('#ambiente_id');
+        const newOption = new Option(data.nome, data.id, false, true);
+        select.append(newOption).trigger('change');
         
         // Fecha o modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('modalAmbiente'));
-        modal.hide();
+        $('#modalAmbiente').modal('hide');
         
         // Limpa o campo
         document.getElementById('novo_ambiente').value = '';
