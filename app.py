@@ -131,6 +131,10 @@ class OrcamentoSalvo(db.Model):
         self.codigo = f"O{novo_id:06d}"  # Formato: O000100, O000101, O000102, etc.
 
 
+class Ambiente(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False)
+    dono = db.Column(db.String(14), nullable=False)  # CPF do usuário que cadastrou
     
 
 class Orcamento(db.Model):
@@ -195,12 +199,14 @@ def index():
 
 @app.route('/orcamentos', methods=['GET', 'POST'])
 def listar_orcamentos():
-    ultimo_cliente_id = None  # Variável para armazenar o ID do cliente mais recente
-    selected_cliente_id = None  # Variável para armazenar o cliente selecionado
-    selected_material_id = None  # Variável para armazenar o material selecionado
+    ultimo_cliente_id = None
+    selected_cliente_id = None
+    selected_material_id = None
+    selected_ambiente_id = None
 
     if request.method == 'POST':
         cliente_id = request.form.get('cliente_id')
+        ambiente_id = request.form.get('ambiente_id')  # Novo campo ambiente
         tipo_produto = request.form['tipo_produto']
         material_id = request.form['material_id']
         quantidade = int(request.form['quantidade'])
@@ -208,11 +214,9 @@ def listar_orcamentos():
         largura = float(request.form.get('largura', 0) or 0)
         outros_custos = float(request.form.get('outros_custos', 0) or 0)
         rt = request.form.get('rt', 'Não')
-        rt_percentual = float(request.form.get('rt_percentual', 0) or 0)  # Agora numérico, ex.: 10 para 10%
+        rt_percentual = float(request.form.get('rt_percentual', 0) or 0)
         data_atual = datetime.now(br_tz)
-        dono = session['user_cpf']  # Captura o CPF do usuário logado
-
-        
+        dono = session['user_cpf']
 
         # Campos dinâmicos
         comprimento_saia = float(request.form.get('comprimento_saia', 0) or 0)
@@ -229,9 +233,8 @@ def listar_orcamentos():
         tem_fundo = request.form.get('tem_fundo', 'Não')
         tem_alisar = request.form.get('tem_alisar', 'Não')
         largura_alisar = float(request.form.get('largura_alisar', 0) or 0)
-        data=data_atual
+        data = data_atual
 
-        
         # Inicializando variáveis do alisar
         tem_alisar = request.form.get('alisar', 'Não')
         largura_alisar = float(request.form.get('largura_alisar', 0) or 0)
@@ -261,9 +264,8 @@ def listar_orcamentos():
         valor_total = 0
         valor_total_criar = 0
 
-        
-        comprimento_cal = max(comprimento, 10)  # Garante mínimo de 10 cm
-        largura_cal = max(largura, 10)  # Garante mínimo de 10 cm
+        comprimento_cal = max(comprimento, 10)
+        largura_cal = max(largura, 10)
         # Cálculo do valor base do material
         valor_base = material.valor * (comprimento_cal * largura_cal / 10000)
 
@@ -280,9 +282,7 @@ def listar_orcamentos():
         if tipo_produto == 'Ilharga Bipolida' and valor_base < 1000000:
             valor_base *= 1.15
 
-        valor_total_criar += valor_base  # Inicializando o valor total
-
-        
+        valor_total_criar += valor_base
 
         # **Cálculo do Nicho**
         if tipo_produto == 'Nicho':
@@ -290,37 +290,27 @@ def listar_orcamentos():
             largura_cal = 10 if 0 < largura < 10 else largura
             profundidade_nicho_cal = 10 if 0 < profundidade_nicho < 10 else profundidade_nicho
             
-            if tem_fundo == 'Sim':  # Verifica se o nicho tem fundo
+            if tem_fundo == 'Sim':
                 area_nicho = ((comprimento_cal) * (largura_cal)) + (((comprimento_cal) * profundidade_nicho_cal) * 2) + ((largura_cal * profundidade_nicho_cal) * 2)
-                print(f"Nicho com fundo: Comprimento={comprimento}, Largura={largura}, Profundidade={profundidade_nicho}, Área={area_nicho}")
-
-            else:  # Caso o nicho não tenha fundo
+            else:
                 area_nicho = ((comprimento_cal) + (largura_cal)) * profundidade_nicho_cal * 2
-                print(f"Nicho sem fundo: Comprimento={comprimento}, Largura={largura}, Profundidade={profundidade_nicho}, Área={area_nicho}")
 
-            
             # Verifica se há alisar e ajusta a área do nicho
             if tem_alisar == 'Sim' and largura_alisar > 0:
                 largura_alisar_cal = 10 if 0 < largura_alisar < 10 else largura_alisar
                 area_nicho += ((comprimento_cal + (largura_alisar_cal * 2)) * largura_alisar_cal * 2) + \
                               ((largura_cal + (largura_alisar_cal * 2)) * largura_alisar_cal * 2)
-                print(f"Alisar aplicado: Comprimento={comprimento}, Largura={largura}, Largura do Alisar={largura_alisar}, Area nicho={area_nicho}, Área Total={area_nicho}")
 
             # Calcula o valor do nicho e adiciona ao total
             valor_nicho = ((area_nicho / 10000) * material.valor) + 150
             valor_total_criar = valor_nicho
-            print(f"Valor do Nicho: Área Final={area_nicho}, Valor do Material={material.valor}, Valor do Nicho={valor_nicho}, Valor Total Criado={valor_total_criar}")                       
 
-        
-        
         # **Cálculo do Acabamento Saia**
         if tipo_produto in ['Ilharga', 'Ilharga Bipolida', 'Bancada', 'Lavatorio']:
             comprimento_saia_cal = 10 if 0 < comprimento_saia < 10 else comprimento_saia
             largura_saia_cal = 10 if 0 < largura_saia < 10 else largura_saia
             valor_saia = comprimento_saia_cal * largura_saia_cal * material.valor / 10000
             valor_total_criar += valor_saia
-
-       
 
         # **Cálculo do Acabamento Fronte**
         if tipo_produto in ['Bancada', 'Lavatorio']:
@@ -352,7 +342,6 @@ def listar_orcamentos():
                     m2_cuba = ((comprimento_cuba * largura_cuba * 2) +
                                (comprimento_cuba * 2 + largura_cuba * 2) * profundidade_cuba) / 10000
 
-
                 valor_cuba_esculpida = m2_cuba * material.valor * quantidade_cubas + 175
                 valor_total_criar += valor_cuba_esculpida
 
@@ -371,15 +360,15 @@ def listar_orcamentos():
 
         valor_total = round(valor_total_criar + valor_rt, 2)
 
-        
         modelo_cuba = request.form.get("modelo_cuba", "").strip()
         if not modelo_cuba:  
-            modelo_cuba = "Normal"  # Define "Normal" como padrão se estiver vazio
+            modelo_cuba = "Normal"
 
-         # Criando e salvando o orçamento
+        # Criando e salvando o orçamento
         if cliente_id and material_id:
             novo_orcamento = Orcamento(
                 cliente_id=cliente_id,
+                ambiente_id=ambiente_id,  # Novo campo ambiente
                 tipo_produto=tipo_produto,
                 material_id=material_id,
                 quantidade=quantidade,
@@ -405,8 +394,6 @@ def listar_orcamentos():
                 valor_total=valor_total,
                 modelo_cuba=modelo_cuba,
                 dono=session['user_cpf']
-               
-                    
             )
             # Salvar no banco de dados
             db.session.add(novo_orcamento)
@@ -415,11 +402,11 @@ def listar_orcamentos():
             # Atualiza os IDs selecionados
             selected_cliente_id = int(cliente_id)
             selected_material_id = int(material_id)
+            selected_ambiente_id = int(ambiente_id) if ambiente_id else None
 
         return redirect(url_for('listar_orcamentos'))
 
     # Recupera os dados do banco de dados
-    # Verifica se o usuário está logado
     user_cpf = session.get('user_cpf')
 
     if not user_cpf:
@@ -435,6 +422,7 @@ def listar_orcamentos():
         ).join(Usuario, Orcamento.dono == Usuario.cpf).order_by(Orcamento.data.desc()).all()
     
         clientes = Cliente.query.order_by(Cliente.nome).all()
+        ambientes = Ambiente.query.order_by(Ambiente.nome).all()  # Carrega todos os ambientes
     
     else:
         # Usuário comum vê apenas os seus próprios orçamentos
@@ -444,6 +432,7 @@ def listar_orcamentos():
         ).join(Usuario, Orcamento.dono == Usuario.cpf).filter(Orcamento.dono == user_cpf).order_by(Orcamento.data.desc()).all()
     
         clientes = Cliente.query.filter_by(dono=user_cpf).order_by(Cliente.nome).all()
+        ambientes = Ambiente.query.filter_by(dono=user_cpf).order_by(Ambiente.nome).all()  # Carrega ambientes do usuário
 
     # Materiais são compartilhados entre todos os usuários
     materiais = Material.query.order_by(Material.nome).all()
@@ -451,13 +440,14 @@ def listar_orcamentos():
     # Verifica se o usuário logado é administrador
     is_admin = session.get('admin', False)
 
-    
     return render_template(
         'orcamentos.html',
         orcamentos=orcamentos,
         clientes=clientes,
         materiais=materiais,
-        is_admin=is_admin  # Passando a variável para o template
+        ambientes=ambientes,  # Passa os ambientes para o template
+        is_admin=is_admin,
+        selected_ambiente_id=selected_ambiente_id  # Passa o ambiente selecionado (se houver)
     )
 
     
