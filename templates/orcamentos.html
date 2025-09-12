@@ -672,55 +672,7 @@
             }
         }
 
-function criarAmbiente() {
-    const nome = document.getElementById('novo_ambiente').value;
-    
-    if (!nome) {
-        Swal.fire("Atenção", "Por favor, informe o nome do ambiente", "warning");
-        return;
-    }
-    
-    fetch('/ambientes', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ nome: nome })
-    })
-    .then(response => {
-        if (!response.ok) {
-            return response.json().then(errorData => {
-                throw new Error(errorData.error || 'Erro ao criar ambiente');
-            });
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            // Adiciona a nova opção ao select
-            const select = document.getElementById('ambiente_id');
-            const option = document.createElement('option');
-            option.value = data.id;
-            option.textContent = data.nome;
-            select.appendChild(option);
-            select.value = data.id;
-            
-            // Fechar o modal usando jQuery - CORREÇÃO
-            $('#modalAmbiente').modal('hide');
-            
-            // Limpa o campo
-            document.getElementById('novo_ambiente').value = '';
-            
-            Swal.fire("Sucesso", "Ambiente criado com sucesso", "success");
-        } else {
-            throw new Error(data.error || 'Erro ao processar resposta');
-        }
-    })
-    .catch(error => {
-        console.error('Erro:', error);
-        Swal.fire("Erro", error.message, "error");
-    });
-}
+
 
         // Função para deletar ambiente
         function deletarAmbiente() {
@@ -1120,6 +1072,59 @@ document.addEventListener('DOMContentLoaded', function() {
             
             filterOrcamentos();
         }
+
+
+		
+		function criarAmbiente() {
+    const nome = document.getElementById('novo_ambiente').value;
+    
+    if (!nome) {
+        Swal.fire("Atenção", "Por favor, informe o nome do ambiente", "warning");
+        return;
+    }
+    
+    fetch('/ambientes', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ nome: nome })
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(errorData => {
+                throw new Error(errorData.error || 'Erro ao criar ambiente');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Adiciona a nova opção ao select
+            const select = document.getElementById('ambiente_id');
+            const option = document.createElement('option');
+            option.value = data.id;
+            option.textContent = data.nome;
+            select.appendChild(option);
+            select.value = data.id;
+            
+            // Fechar o modal usando Bootstrap
+            const modal = bootstrap.Modal.getInstance(document.getElementById('modalAmbiente'));
+            modal.hide();
+            
+            // Limpa o campo
+            document.getElementById('novo_ambiente').value = '';
+            
+            Swal.fire("Sucesso", "Ambiente criado com sucesso", "success");
+        } else {
+            throw new Error(data.error || 'Erro ao processar resposta');
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        Swal.fire("Erro", error.message, "error");
+    });
+}
     </script>
 </body>
 </html>
