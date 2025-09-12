@@ -1604,7 +1604,49 @@ def salvar_rodape_orcamento(codigo):
     
     return redirect(url_for('detalhes_orcamento_salvo', codigo=codigo))
 
+@app.route('/ambientes', methods=['POST'])
+def criar_ambiente():
+    if 'user_cpf' not in session:
+        return jsonify({"error": "Não autorizado"}), 401
+        
+    nome = request.json.get('nome')
+    dono = session['user_cpf']
+    
+    if not nome:
+        return jsonify({"error": "Nome do ambiente é obrigatório"}), 400
+        
+    # Verificar se o ambiente já existe para este usuário
+    ambiente_existente = Ambiente.query.filter_by(nome=nome, dono=dono).first()
+    if ambiente_existente:
+        return jsonify({"error": "Este ambiente já existe!"}), 400
+        
+    novo_ambiente = Ambiente(nome=nome, dono=dono)
+    db.session.add(novo_ambiente)
+    db.session.commit()
+    
+    return jsonify({"success": "Ambiente criado com sucesso", "id": novo_ambiente.id, "nome": novo_ambiente.nome})
 
+
+
+@app.route('/ambientes/<int:id>', methods=['DELETE'])
+def deletar_ambiente(id):
+    if 'user_cpf' not in session:
+        return jsonify({"error": "Não autorizado"}), 401
+        
+    ambiente = Ambiente.query.get(id)
+    
+    if not ambiente or ambiente.dono != session['user_cpf']:
+        return jsonify({"error": "Ambiente não encontrado"}), 404
+        
+    # Verificar se o ambiente está sendo usado em algum orçamento
+    orcamentos_com_ambiente = Orcamento.query.filter_by(ambiente_id=id).count()
+    if orcamentos_com_ambiente > 0:
+        return jsonify({"error": "Este ambiente está sendo usado em orçamentos e não pode ser deletado!"}), 400
+        
+    db.session.delete(ambiente)
+    db.session.commit()
+    
+    return jsonify({"success": "Ambiente deletado com sucesso"})
 
 
 
