@@ -137,6 +137,19 @@
             width: 120px;
         }
         
+        .select-with-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .select-with-buttons select {
+            flex: 1;
+        }
+        
+        .select-with-buttons .btn {
+            width: 38px;
+        }
+        
         @media (max-width: 768px) {
             .action-buttons {
                 flex-direction: column;
@@ -145,6 +158,14 @@
             .btn-action {
                 width: 100%;
                 margin-bottom: 5px;
+            }
+            
+            .select-with-buttons {
+                flex-direction: column;
+            }
+            
+            .select-with-buttons .btn {
+                width: 100%;
             }
         }
     </style>
@@ -182,6 +203,23 @@
                                     </option>
                                 {% endfor %}
                             </select>
+                        </div>
+
+                        <div class="col-md-6 col-lg-3 form-section">
+                            <label for="ambiente_id" class="form-label">Ambiente:</label>
+                            <div class="select-with-buttons">
+                                <select name="ambiente_id" id="ambiente_id" class="form-select">
+                                    {% for ambiente in ambientes %}
+                                        <option value="{{ ambiente.id }}">{{ ambiente.nome }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="button" class="btn btn-custom-success" data-bs-toggle="modal" data-bs-target="#addAmbienteModal">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                                <button type="button" class="btn btn-custom-danger" id="deleteAmbienteBtn">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="col-md-6 col-lg-3 form-section">
@@ -238,6 +276,30 @@
                         </div>
                     </div>
                 </form>
+            </div>
+        </div>
+
+        <!-- Modal para adicionar ambiente -->
+        <div class="modal fade" id="addAmbienteModal" tabindex="-1" aria-labelledby="addAmbienteModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addAmbienteModalLabel">Adicionar Novo Ambiente</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addAmbienteForm">
+                            <div class="mb-3">
+                                <label for="novo_ambiente_nome" class="form-label">Nome do Ambiente:</label>
+                                <input type="text" class="form-control" id="novo_ambiente_nome" required>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-custom-primary" id="saveAmbienteBtn">Salvar</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -298,6 +360,7 @@
                                     <th>Criado por</th>
                                 {% endif %}
                                 <th>Cliente</th>
+                                <th>Ambiente</th>
                                 <th>Produto</th>
                                 <th>Material</th>
                                 <th>Qtd</th>
@@ -319,6 +382,7 @@
                                     <td>{{ nome_usuario }}</td>
                                 {% endif %}
                                 <td>{{ orcamento.cliente.nome }}</td>
+                                <td>{{ orcamento.ambiente.nome if orcamento.ambiente else 'Não definido' }}</td>
                                 <td>{{ orcamento.tipo_produto }}</td>
                                 <td>{{ orcamento.material.nome }}</td>
                                 <td>{{ orcamento.quantidade }}</td>
@@ -667,7 +731,7 @@
         // Adicionar event listener para os checkboxes
         document.addEventListener('DOMContentLoaded', function() {
             // Inicializar Select2
-            $('#cliente_id, #material_id, #tipo_produto').select2({
+            $('#cliente_id, #material_id, #tipo_produto, #ambiente_id').select2({
                 width: '100%',
                 placeholder: "Selecione",
                 allowClear: true
@@ -685,224 +749,149 @@
                 $('#material_id').val(localStorage.getItem('material_id')).trigger('change');
             }
             
-            // Salvar seleções no localStorage
+            // Salvar seleções no localStorage quando mudar
             $('#cliente_id, #tipo_produto, #material_id').on('change', function() {
-                localStorage.setItem(this.id, $(this).val());
+                localStorage.setItem($(this).attr('id'), $(this).val());
+                if ($(this).attr('id') === 'tipo_produto') {
+                    toggleFields(); // Atualizar campos dinâmicos
+                }
             });
             
-            // Inicializar datas com valores padrão
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('filtro_data_inicio').value = today;
-            document.getElementById('filtro_data_fim').value = today;
-            
-            // Adicionar event listeners aos checkboxes
+            // Event listeners para checkboxes
             document.querySelectorAll('.selecionar-orcamento').forEach(checkbox => {
                 checkbox.addEventListener('change', atualizarValorFinal);
             });
             
-            // Inicializar o valor total
+            // Inicializar valor final
             atualizarValorFinal();
             
-                       
-            // Carregar filtros salvos
-            if (localStorage.getItem('filtroCliente')) {
-                document.getElementById('filtro_cliente').value = localStorage.getItem('filtroCliente');
-            }
-            if (localStorage.getItem('filtroDataInicio')) {
-                document.getElementById('filtro_data_inicio').value = localStorage.getItem('filtroDataInicio');
-            }
-            if (localStorage.getItem('filtroDataFim')) {
-                document.getElementById('filtro_data_fim').value = localStorage.getItem('filtroDataFim');
-            }
-            if (localStorage.getItem('filtroQuantidade')) {
-                document.getElementById('filtro_quantidade').value = localStorage.getItem('filtroQuantidade');
-            }
-            
-            // Aplicar filtros ao carregar a página
-            filterOrcamentos();
-        });
-
-        // Função para enviar orçamentos selecionados
-        function enviarOrcamentos() {
-            const selecionados = [];
-            document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
-                selecionados.push(checkbox.closest('tr').getAttribute('data-id'));
-            });
-            
-            if (selecionados.length === 0) {
-                Swal.fire("Atenção", "Selecione pelo menos um orçamento!", "warning");
-                return;
-            }
-            
-            // Redirecionar para a página de detalhes
-            window.location.href = `/detalhes_orcamento?ids=${selecionados.join(",")}`;
-        }
-
-        // Função para deletar orçamentos selecionados
-        document.getElementById('delete-selected').addEventListener('click', function() {
-            const selecionados = [];
-            document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
-                selecionados.push(checkbox.closest('tr').getAttribute('data-id'));
-            });
-            
-            if (selecionados.length === 0) {
-                Swal.fire("Atenção", "Selecione pelo menos um orçamento para deletar!", "warning");
-                return;
-            }
-            
-            Swal.fire({
-                title: "Tem certeza?",
-                text: `Você está prestes a deletar ${selecionados.length} orçamento(s)!`,
-                icon: "warning",
-                showCancelButton: true,
-                confirmButtonColor: "#d33",
-                cancelButtonColor: "#3085d6",
-                confirmButtonText: "Sim, deletar!",
-                cancelButtonText: "Cancelar"
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Enviar requisição para deletar
-                    fetch("/orcamentos/delete_selecionados", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({ ids: selecionados })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            Swal.fire("Deletado!", data.success, "success").then(() => {
-                                location.reload();
-                            });
-                        } else {
-                            Swal.fire("Erro!", data.error, "error");
-                        }
-                    })
-                    .catch(error => {
-                        Swal.fire("Erro!", "Erro ao deletar orçamentos!", "error");
+            // Botão para adicionar novo ambiente
+            document.getElementById('saveAmbienteBtn').addEventListener('click', function() {
+                const nomeAmbiente = document.getElementById('novo_ambiente_nome').value;
+                
+                if (!nomeAmbiente) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Erro',
+                        text: 'Por favor, informe o nome do ambiente.'
                     });
+                    return;
                 }
-            });
-        });
-
-        // Função para duplicar orçamentos selecionados
-        document.getElementById('duplicate-selected').addEventListener('click', function() {
-            const selecionados = [];
-            document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
-                selecionados.push(checkbox.closest('tr').getAttribute('data-id'));
-            });
-            
-            if (selecionados.length === 0) {
-                Swal.fire("Atenção", "Selecione pelo menos um orçamento para duplicar!", "warning");
-                return;
-            }
-            
-            Swal.fire({
-                title: "Confirmar Duplicação",
-                text: `Deseja duplicar ${selecionados.length} orçamento(s)?`,
-                icon: "question",
-                showCancelButton: true,
-                confirmButtonColor: "#1cc88a",
-                cancelButtonColor: "#6c757d",
-                confirmButtonText: "Sim, duplicar!",
-                cancelButtonText: "Cancelar"
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Enviar requisição para duplicar
-                    fetch("/orcamentos/duplicar_selecionados", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({ orcamento_ids: selecionados })
+                
+                // Enviar requisição para adicionar ambiente
+                fetch('/adicionar_ambiente', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        nome: nomeAmbiente
                     })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            Swal.fire("Sucesso!", "Orçamentos duplicados com sucesso!", "success").then(() => {
-                                location.reload();
-                            });
-                        } else {
-                            Swal.fire("Erro!", data.error, "error");
-                        }
-                    })
-                    .catch(error => {
-                        Swal.fire("Erro!", "Erro ao duplicar orçamentos!", "error");
-                    });
-                }
-            });
-        });
-
-        // Função para editar material dos orçamentos selecionados
-        document.getElementById('edit-selected').addEventListener('click', function() {
-            const selecionados = [];
-            document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
-                selecionados.push(checkbox.closest('tr').getAttribute('data-id'));
-            });
-            
-            if (selecionados.length === 0) {
-                Swal.fire("Atenção", "Selecione pelo menos um orçamento!", "warning");
-                return;
-            }
-            
-            // Criar modal para seleção do material
-            Swal.fire({
-                title: 'Selecione o Novo Material',
-                html: `
-                    <select id="select-material" class="swal2-select" style="width: 100%">
-                        <option value="" selected disabled>Selecionar</option>
-                        {% for material in materiais %}
-                            <option value="{{ material.id }}">{{ material.nome }}</option>
-                        {% endfor %}
-                    </select>
-                `,
-                didOpen: () => {
-                    // Aplicar Select2 ao select dentro do SweetAlert
-                    $('#select-material').select2({
-                        dropdownParent: $('.swal2-popup'),
-                        placeholder: "Escolha o material",
-                        allowClear: true,
-                        width: '100%'
-                    });
-                },
-                preConfirm: () => {
-                    const materialId = $('#select-material').val();
-                    if (!materialId) {
-                        Swal.showValidationMessage('Por favor, selecione um material.');
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Adicionar nova opção ao select
+                        const select = document.getElementById('ambiente_id');
+                        const option = document.createElement('option');
+                        option.value = data.ambiente_id;
+                        option.textContent = nomeAmbiente;
+                        select.appendChild(option);
+                        
+                        // Selecionar o novo ambiente
+                        select.value = data.ambiente_id;
+                        
+                        // Fechar modal e limpar formulário
+                        $('#addAmbienteModal').modal('hide');
+                        document.getElementById('novo_ambiente_nome').value = '';
+                        
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Sucesso',
+                            text: 'Ambiente adicionado com sucesso!'
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Erro',
+                            text: data.message || 'Erro ao adicionar ambiente.'
+                        });
                     }
-                    return materialId;
-                },
-                showCancelButton: true,
-                confirmButtonText: 'Salvar',
-                cancelButtonText: 'Cancelar'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Enviar requisição para editar material
-                    fetch("/orcamentos/editar_material_selecionados", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                            orcamento_ids: selecionados,
-                            material_id: result.value
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            Swal.fire("Sucesso!", "Materiais atualizados com sucesso!", "success").then(() => {
-                                location.reload();
-                            });
-                        } else {
-                            Swal.fire("Erro!", data.error || "Erro ao atualizar materiais", "error");
-                        }
-                    })
-                    .catch(error => {
-                        Swal.fire("Erro!", "Erro ao atualizar materiais!", "error");
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Erro',
+                        text: 'Erro ao adicionar ambiente.'
                     });
+                });
+            });
+            
+            // Botão para deletar ambiente
+            document.getElementById('deleteAmbienteBtn').addEventListener('click', function() {
+                const select = document.getElementById('ambiente_id');
+                const selectedOption = select.options[select.selectedIndex];
+                
+                if (!selectedOption || selectedOption.value === '') {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Aviso',
+                        text: 'Por favor, selecione um ambiente para excluir.'
+                    });
+                    return;
                 }
+                
+                Swal.fire({
+                    title: "Tem certeza?",
+                    text: `Deseja excluir o ambiente "${selectedOption.textContent}"?`,
+                    icon: "warning",
+                    showCancelButton: true,
+                    confirmButtonColor: "#d33",
+                    cancelButtonColor: "#3085d6",
+                    confirmButtonText: "Sim, excluir!",
+                    cancelButtonText: "Cancelar"
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Enviar requisição para deletar ambiente
+                        fetch('/deletar_ambiente', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                ambiente_id: selectedOption.value
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // Remover opção do select
+                                select.remove(select.selectedIndex);
+                                
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Sucesso',
+                                    text: 'Ambiente excluído com sucesso!'
+                                });
+                            } else {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Erro',
+                                    text: data.message || 'Erro ao excluir ambiente.'
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Erro:', error);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Erro',
+                                text: 'Erro ao excluir ambiente.'
+                            });
+                        });
+                    }
+                });
             });
         });
 
@@ -913,64 +902,283 @@
             const filtroDataFim = document.getElementById('filtro_data_fim').value;
             const filtroQuantidade = document.getElementById('filtro_quantidade').value;
             
-            const rows = document.querySelectorAll('#orcamento_table tr');
-            let visibleCount = 0;
+            const linhas = document.querySelectorAll('#orcamento_table tr');
             
-            rows.forEach(row => {
-                const cliente = row.getAttribute('data-cliente');
-                const dataStr = row.getAttribute('data-data');
-                const data = dataStr.split(' ')[0]; // Pegar apenas a data (YYYY-MM-DD)
-                
-                let show = true;
+            linhas.forEach(linha => {
+                let mostrar = true;
+                const cliente = linha.getAttribute('data-cliente');
+                const data = linha.getAttribute('data-data').split(' ')[0]; // Pegar apenas a data
                 
                 // Filtrar por cliente
                 if (filtroCliente !== 'Todos' && cliente !== filtroCliente) {
-                    show = false;
+                    mostrar = false;
                 }
                 
                 // Filtrar por data
                 if (filtroDataInicio && data < filtroDataInicio) {
-                    show = false;
+                    mostrar = false;
                 }
                 if (filtroDataFim && data > filtroDataFim) {
-                    show = false;
+                    mostrar = false;
                 }
                 
-                // Aplicar filtro de quantidade
-                if (show && filtroQuantidade !== 'all' && visibleCount >= parseInt(filtroQuantidade)) {
-                    show = false;
-                }
-                
-                if (show) {
-                    row.style.display = '';
-                    visibleCount++;
-                } else {
-                    row.style.display = 'none';
-                }
+                // Mostrar/ocultar linha
+                linha.style.display = mostrar ? '' : 'none';
             });
             
-            // Salvar filtros no localStorage
-            localStorage.setItem('filtroCliente', filtroCliente);
-            localStorage.setItem('filtroDataInicio', filtroDataInicio);
-            localStorage.setItem('filtroDataFim', filtroDataFim);
-            localStorage.setItem('filtroQuantidade', filtroQuantidade);
+            // Limitar quantidade (se necessário)
+            if (filtroQuantidade !== 'all') {
+                let contador = 0;
+                const linhasVisiveis = Array.from(linhas).filter(linha => linha.style.display !== 'none');
+                
+                linhasVisiveis.forEach((linha, index) => {
+                    if (index >= linhasVisiveis.length - parseInt(filtroQuantidade)) {
+                        linha.style.display = '';
+                    } else {
+                        linha.style.display = 'none';
+                    }
+                });
+            }
         }
 
-        // Função para resetar os filtros
+        // Função para resetar filtros
         function resetFilters() {
             document.getElementById('filtro_cliente').value = 'Todos';
             document.getElementById('filtro_data_inicio').value = '';
             document.getElementById('filtro_data_fim').value = '';
             document.getElementById('filtro_quantidade').value = '15';
             
-            // Limpar localStorage
-            localStorage.removeItem('filtroCliente');
-            localStorage.removeItem('filtroDataInicio');
-            localStorage.removeItem('filtroDataFim');
-            localStorage.removeItem('filtroQuantidade');
-            
-            filterOrcamentos();
+            const linhas = document.querySelectorAll('#orcamento_table tr');
+            linhas.forEach(linha => {
+                linha.style.display = '';
+            });
         }
+
+        // Função para enviar orçamentos selecionados para a página de detalhes
+        function enviarOrcamentos() {
+            const orcamentosSelecionados = [];
+            
+            document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
+                const linha = checkbox.closest('tr');
+                orcamentosSelecionados.push(linha.getAttribute('data-id'));
+            });
+            
+            if (orcamentosSelecionados.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Aviso',
+                    text: 'Por favor, selecione pelo menos um orçamento.'
+                });
+                return;
+            }
+            
+            // Redirecionar para a página de detalhes com os IDs dos orçamentos
+            window.location.href = `/detalhes_orcamentos?ids=${orcamentosSelecionados.join(',')}`;
+        }
+
+        // Botão para duplicar orçamentos selecionados
+        document.getElementById('duplicate-selected').addEventListener('click', function() {
+            const orcamentosSelecionados = [];
+            
+            document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
+                const linha = checkbox.closest('tr');
+                orcamentosSelecionados.push(linha.getAttribute('data-id'));
+            });
+            
+            if (orcamentosSelecionados.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Aviso',
+                    text: 'Por favor, selecione pelo menos um orçamento.'
+                });
+                return;
+            }
+            
+            // Enviar requisição para duplicar orçamentos
+            fetch('/duplicar_orcamentos', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    orcamentos_ids: orcamentosSelecionados
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Sucesso',
+                        text: 'Orçamentos duplicados com sucesso!'
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Erro',
+                        text: data.message || 'Erro ao duplicar orçamentos.'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Erro',
+                    text: 'Erro ao duplicar orçamentos.'
+                });
+            });
+        });
+
+        // Botão para deletar orçamentos selecionados
+        document.getElementById('delete-selected').addEventListener('click', function() {
+            const orcamentosSelecionados = [];
+            
+            document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
+                const linha = checkbox.closest('tr');
+                orcamentosSelecionados.push(linha.getAttribute('data-id'));
+            });
+            
+            if (orcamentosSelecionados.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Aviso',
+                    text: 'Por favor, selecione pelo menos um orçamento.'
+                });
+                return;
+            }
+            
+            Swal.fire({
+                title: "Tem certeza?",
+                text: `Deseja excluir ${orcamentosSelecionados.length} orçamento(s) selecionado(s)?`,
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#3085d6",
+                confirmButtonText: "Sim, excluir!",
+                cancelButtonText: "Cancelar"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Enviar requisição para deletar orçamentos
+                    fetch('/deletar_orcamentos', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            orcamentos_ids: orcamentosSelecionados
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Sucesso',
+                                text: 'Orçamentos excluídos com sucesso!'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Erro',
+                                text: data.message || 'Erro ao excluir orçamentos.'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Erro',
+                            text: 'Erro ao excluir orçamentos.'
+                        });
+                    });
+                }
+            });
+        });
+
+        // Botão para editar material dos orçamentos selecionados
+        document.getElementById('edit-selected').addEventListener('click', function() {
+            const orcamentosSelecionados = [];
+            
+            document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
+                const linha = checkbox.closest('tr');
+                orcamentosSelecionados.push(linha.getAttribute('data-id'));
+            });
+            
+            if (orcamentosSelecionados.length === 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Aviso',
+                    text: 'Por favor, selecione pelo menos um orçamento.'
+                });
+                return;
+            }
+            
+            // Mostrar modal para selecionar novo material
+            Swal.fire({
+                title: 'Alterar Material',
+                input: 'select',
+                inputOptions: {
+                    {% for material in materiais %}
+                        '{{ material.id }}': '{{ material.nome }}',
+                    {% endfor %}
+                },
+                inputPlaceholder: 'Selecione um material',
+                showCancelButton: true,
+                confirmButtonText: 'Alterar',
+                cancelButtonText: 'Cancelar',
+                inputValidator: (value) => {
+                    if (!value) {
+                        return 'Você precisa selecionar um material!';
+                    }
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Enviar requisição para alterar material
+                    fetch('/alterar_material_orcamentos', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            orcamentos_ids: orcamentosSelecionados,
+                            material_id: result.value
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Sucesso',
+                                text: 'Material alterado com sucesso!'
+                            }).then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Erro',
+                                text: data.message || 'Erro ao alterar material.'
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Erro:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Erro',
+                            text: 'Erro ao alterar material.'
+                        });
+                    });
+                }
+            });
+        });
     </script>
 </body>
 </html>
