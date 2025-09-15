@@ -1411,15 +1411,15 @@ def editar_material_selecionados():
         return jsonify({'erro': 'Material não encontrado.'}), 404
 
     cuba_valores = {
-            'Embutida': 225,
-            'Esculpida': 0,
-            'Tradicional Inox': 225,
-            'Tanque Inox': 500,
-            'Apoio Cliente': 125,
-            'Embutida Cliente': 125,
-            'Gourmet Cliente': 225,
-            'Sobrepor Cliente': 125,
-            'Tanque Inox Cliente': 225
+        'Embutida': 225,
+        'Esculpida': 0,
+        'Tradicional Inox': 225,
+        'Tanque Inox': 500,
+        'Apoio Cliente': 125,
+        'Embutida Cliente': 125,
+        'Gourmet Cliente': 225,
+        'Sobrepor Cliente': 125,
+        'Tanque Inox Cliente': 225
     }
 
     cooktop_valor = 50  # Valor fixo para cooktop
@@ -1430,6 +1430,9 @@ def editar_material_selecionados():
     orcamentos = Orcamento.query.filter(Orcamento.id.in_(orcamento_ids)).all()
 
     for orcamento in orcamentos:
+        # ✅ Mantém o ambiente_id original
+        ambiente_id_original = orcamento.ambiente_id
+        
         orcamento.material_id = material_id
 
         valor_total_criar = 0
@@ -1523,6 +1526,9 @@ def editar_material_selecionados():
             valor_total_final = valor_total_criar
 
         orcamento.valor_total = round(valor_total_final, 2)
+        
+        # ✅ Mantém o ambiente_id original
+        orcamento.ambiente_id = ambiente_id_original
 
     db.session.commit()
 
@@ -1535,7 +1541,6 @@ def editar_material_selecionados():
         atualizar_valor_orcamento_salvo(orcamento_salvo.id)
 
     return jsonify({'success': 'Materiais atualizados, valores recalculados e orçamentos salvos atualizados.'})
-
 
 
 @app.route('/orcamentos/duplicar_selecionados', methods=['POST'])
@@ -1551,33 +1556,34 @@ def duplicar_selecionados():
             original = Orcamento.query.get(id)
             if original:
                 novo_orcamento = Orcamento(
-                    cliente_id = original.cliente_id,
-                    tipo_produto = original.tipo_produto,
-                    material_id = original.material_id,
-                    quantidade = original.quantidade,
-                    comprimento = original.comprimento,
-                    largura = original.largura,
-                    outros_custos = original.outros_custos,
-                    rt = original.rt,
-                    rt_percentual = original.rt_percentual,
-                    comprimento_saia = original.comprimento_saia,
-                    largura_saia = original.largura_saia,
-                    comprimento_fronte = original.comprimento_fronte,
-                    largura_fronte = original.largura_fronte,
-                    tipo_cuba = original.tipo_cuba,
-                    quantidade_cubas = original.quantidade_cubas,
-                    modelo_cuba = original.modelo_cuba,
-                    comprimento_cuba = original.comprimento_cuba,
-                    largura_cuba = original.largura_cuba,
-                    profundidade_cuba = original.profundidade_cuba,
-                    tem_cooktop = original.tem_cooktop,
-                    profundidade_nicho = original.profundidade_nicho,
-                    tem_fundo = original.tem_fundo,
-                    tem_alisar = original.tem_alisar,
-                    largura_alisar = original.largura_alisar,
-                    valor_total = original.valor_total,
-                    dono = original.dono,  # <<<< NOVO, ESSENCIAL
-                    data = datetime.now(br_tz)
+                    cliente_id=original.cliente_id,
+                    ambiente_id=original.ambiente_id,  # ✅ Adicionado campo ambiente
+                    tipo_produto=original.tipo_produto,
+                    material_id=original.material_id,
+                    quantidade=original.quantidade,
+                    comprimento=original.comprimento,
+                    largura=original.largura,
+                    outros_custos=original.outros_custos,
+                    rt=original.rt,
+                    rt_percentual=original.rt_percentual,
+                    comprimento_saia=original.comprimento_saia,
+                    largura_saia=original.largura_saia,
+                    comprimento_fronte=original.comprimento_fronte,
+                    largura_fronte=original.largura_fronte,
+                    tipo_cuba=original.tipo_cuba,
+                    quantidade_cubas=original.quantidade_cubas,
+                    modelo_cuba=original.modelo_cuba,
+                    comprimento_cuba=original.comprimento_cuba,
+                    largura_cuba=original.largura_cuba,
+                    profundidade_cuba=original.profundidade_cuba,
+                    tem_cooktop=original.tem_cooktop,
+                    profundidade_nicho=original.profundidade_nicho,
+                    tem_fundo=original.tem_fundo,
+                    tem_alisar=original.tem_alisar,
+                    largura_alisar=original.largura_alisar,
+                    valor_total=original.valor_total,
+                    dono=original.dono,
+                    data=datetime.now(br_tz)
                 )
 
                 db.session.add(novo_orcamento)
