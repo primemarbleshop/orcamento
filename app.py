@@ -385,7 +385,7 @@ def listar_orcamentos():
         ).join(Usuario, Orcamento.dono == Usuario.cpf).order_by(Orcamento.data.desc()).all()
     
         clientes = Cliente.query.order_by(Cliente.nome).all()
-        ambientes = Ambiente.query.order_by(Ambiente.nome).all()
+        ambientes = Ambiente.query.filter_by(ativo=True).order_by(Ambiente.nome).all()
     
     else:
         orcamentos = db.session.query(
@@ -394,7 +394,7 @@ def listar_orcamentos():
         ).join(Usuario, Orcamento.dono == Usuario.cpf).filter(Orcamento.dono == user_cpf).order_by(Orcamento.data.desc()).all()
     
         clientes = Cliente.query.filter_by(dono=user_cpf).order_by(Cliente.nome).all()
-        ambientes = Ambiente.query.filter_by(dono=user_cpf).order_by(Ambiente.nome).all()
+        ambientes = Ambiente.query.filter_by(dono=user_cpf, ativo=True).order_by(Ambiente.nome).all()
 
     materiais = Material.query.order_by(Material.nome).all()
     is_admin = session.get('admin', False)
@@ -557,7 +557,7 @@ def editar_orcamento(id):
 
     # Filtrar apenas os clientes cujo dono é o usuário logado
     clientes = Cliente.query.filter_by(dono=usuario_cpf).all()
-    ambientes = Ambiente.query.filter_by(dono=usuario_cpf).order_by(Ambiente.nome).all()
+    ambientes = Ambiente.query.filter_by(dono=usuario_cpf, ativo=True).order_by(Ambiente.nome).all()
 
     materiais = Material.query.all()
 
