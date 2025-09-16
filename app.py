@@ -229,7 +229,7 @@ def listar_orcamentos():
 
         cuba_valores = {
             'Embutida': 225,
-            'Esculpida': 0,
+            'Esculpida': 175,
             'Tradicional Inox': 225,
             'Tanque Inox': 500,
             'Apoio Cliente': 125,
@@ -312,7 +312,7 @@ def listar_orcamentos():
                     m2_cuba = ((comprimento_cuba * largura_cuba * 2) +
                                (comprimento_cuba * 2 + largura_cuba * 2) * profundidade_cuba) / 10000
 
-                valor_cuba_esculpida = m2_cuba * material.valor * quantidade_cubas + 175
+                valor_cuba_esculpida = m2_cuba * material.valor * quantidade_cubas
                 valor_total_criar += valor_cuba_esculpida
 
         if tem_cooktop == 'Sim':
@@ -677,7 +677,7 @@ def editar_orcamento(id):
         # **Adicionando o valor das cubas**
         cuba_valores = {
             'Embutida': 225,
-            'Esculpida': 0,
+            'Esculpida': 175,
             'Tradicional Inox': 225,
             'Tanque Inox': 500,
             'Apoio Cliente': 125,
@@ -704,7 +704,7 @@ def editar_orcamento(id):
                     m2_cuba = ((orcamento.comprimento_cuba * orcamento.largura_cuba * 2) +
                                (orcamento.comprimento_cuba * 2 + orcamento.largura_cuba * 2) * orcamento.profundidade_cuba) / 10000
             
-                valor_cuba_esculpida = m2_cuba * material.valor * orcamento.quantidade_cubas + 175
+                valor_cuba_esculpida = m2_cuba * material.valor * orcamento.quantidade_cubas
                 valor_total_criar += valor_cuba_esculpida
 
                 # **Definindo o valor fixo do cooktop**
@@ -1398,7 +1398,7 @@ def editar_material_rt_selecionados():
 
     cuba_valores = {
         'Embutida': 225,
-        'Esculpida': 0,
+        'Esculpida': 175,
         'Tradicional Inox': 225,
         'Tanque Inox': 500,
         'Apoio Cliente': 125,
@@ -1506,7 +1506,7 @@ def editar_material_rt_selecionados():
                     m2_cuba = ((comprimento_cuba * largura_cuba * 2) +
                                (2 * (comprimento_cuba + largura_cuba) * profundidade_cuba)) / 10000
 
-                valor_cuba_esculpida = m2_cuba * material_para_calculo.valor * (orcamento.quantidade_cubas or 1) + 175
+                valor_cuba_esculpida = m2_cuba * material_para_calculo.valor * (orcamento.quantidade_cubas or 1) 
                 valor_total_criar += valor_cuba_esculpida
 
         # Cooktop
