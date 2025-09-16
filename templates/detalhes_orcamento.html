@@ -237,15 +237,26 @@ p strong {
 
     <br>
 
-          
-        {% set _ = ambientes_dict[ambiente_nome][orcamento.tipo_produto].append(orcamento) %}
+    {% set ambientes_agrupados = {} %}
+    {% for orcamento in orcamentos %}
+        {% set ambiente_nome = orcamento.ambiente.nome if orcamento.ambiente else 'Sem Ambiente' %}
+        {% if ambiente_nome not in ambientes_agrupados %}
+            {% set _ = ambientes_agrupados.update({ambiente_nome: {}}) %}
+        {% endif %}
+        
+        {% set tipo_produto = orcamento.tipo_produto %}
+        {% if tipo_produto not in ambientes_agrupados[ambiente_nome] %}
+            {% set _ = ambientes_agrupados[ambiente_nome].update({tipo_produto: []}) %}
+        {% endif %}
+        
+        {% set _ = ambientes_agrupados[ambiente_nome][tipo_produto].append(orcamento) %}
     {% endfor %}
 
-    {% for ambiente, tipos_produtos in ambientes_dict.items() %}
-        <h2 class="ambiente-header">Ambiente: {{ ambiente }}</h2>
+    {% for ambiente_nome, tipos_produtos in ambientes_agrupados.items() %}
+        <h2 class="ambiente-header">Ambiente: {{ ambiente_nome }}</h2>
         
-        {% for tipo, produtos in tipos_produtos.items() %}
-            <div class="produto-header">{{ tipo }}</div>
+        {% for tipo_produto, produtos in tipos_produtos.items() %}
+            <div class="produto-header">{{ tipo_produto }}</div>
             <table>
                 <thead>
                     <tr>
@@ -253,19 +264,19 @@ p strong {
                         <th>Qtd</th>
                         <th>Comp.</th>
                         <th>Larg.</th>
-                        {% if tipo in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
+                        {% if tipo_produto in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
                         <th>Saia</th>
                         {% endif %}
-                        {% if tipo in ["Bancada", "Lavatorio"] %}
+                        {% if tipo_produto in ["Bancada", "Lavatorio"] %}
                         <th>Fronte</th>
                         {% endif %}
-                        {% if tipo in ["Bancada", "Lavatorio"] %}
+                        {% if tipo_produto in ["Bancada", "Lavatorio"] %}
                         <th>Cuba</th>
                         {% endif %}
-                        {% if tipo == "Bancada" %}
+                        {% if tipo_produto == "Bancada" %}
                         <th>Cooktop</th>
                         {% endif %}
-                        {% if tipo in ["Nicho", "Nicho Sem Fundo"] %}
+                        {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] %}
                         <th>Profundidade</th>
                         <th>Fundo</th>
                         <th>Alisar</th>
@@ -282,13 +293,13 @@ p strong {
                         <td>{{ produto.quantidade }}</td>
                         <td>{{ produto.comprimento }} cm</td>
                         <td>{{ produto.largura }} cm</td>
-                        {% if tipo in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
+                        {% if tipo_produto in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
                         <td>{% if produto.comprimento_saia > 0 %}{{ produto.comprimento_saia }} x {{ produto.largura_saia }} cm{% else %}-{% endif %}</td>
                         {% endif %}
-                        {% if tipo in ["Bancada", "Lavatorio"] %}
+                        {% if tipo_produto in ["Bancada", "Lavatorio"] %}
                         <td>{% if produto.comprimento_fronte > 0 %}{{ produto.comprimento_fronte }} x {{ produto.largura_fronte }} cm{% else %}-{% endif %}</td>
                         {% endif %}
-                        {% if tipo in ["Bancada", "Lavatorio"] %}
+                        {% if tipo_produto in ["Bancada", "Lavatorio"] %}
                         <td>
                             {% if produto.tipo_cuba == "Esculpida" %}
                                 Esculpida ({{ produto.quantidade_cubas }}) - {{ produto.comprimento_cuba }} x {{ produto.largura_cuba }} x {{ produto.profundidade_cuba }} cm
@@ -299,10 +310,10 @@ p strong {
                             {% endif %}
                         </td>
                         {% endif %}
-                        {% if tipo == "Bancada" %}
+                        {% if tipo_produto == "Bancada" %}
                         <td>{% if produto.tem_cooktop == "Sim" %}Sim{% else %}-{% endif %}</td>
                         {% endif %}
-                        {% if tipo in ["Nicho", "Nicho Sem Fundo"] %}
+                        {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] %}
                         <td>{{ produto.profundidade_nicho }} cm</td>
                         <td>{% if produto.tem_fundo == "Sim" %}Sim{% else %}Não{% endif %}</td>
                         <td>{% if produto.tem_alisar == "Sim" %}Sim{% else %}Não{% endif %}</td>
@@ -316,94 +327,6 @@ p strong {
             </table>
         {% endfor %}
     {% endfor %}
-                <!-- Limpar tipos_produtos para o próximo cliente -->
-                {% set tipos_produtos = {} %}
-            {% endif %}
-
-            <!-- Cabeçalho do Cliente -->
-            {% set current_cliente = orcamento.cliente.nome %}
-        {% endif %}
-
-        <!-- Adicionar produtos ao dicionário por tipo -->
-        {% if orcamento.tipo_produto not in tipos_produtos %}
-            {% set tipos_produtos = tipos_produtos.update({orcamento.tipo_produto: []}) or tipos_produtos %}
-        {% endif %}
-        {% set _ = tipos_produtos[orcamento.tipo_produto].append(orcamento) %}
-    {% endfor %}
-
-    <!-- Renderizar tabelas dos tipos de produto do último cliente -->
-    {% for tipo, produtos in tipos_produtos.items() %}
-        <div class="produto-header"> {{ tipo }}</div>
-        <table>
-            <thead>
-                <tr>
-                    <th>Material</th>
-                    <th>Qtd</th>
-                    <th>Comp.</th>
-                    <th>Larg.</th>
-                    {% if tipo in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
-                    <th>Saia</th>
-                    {% endif %}
-                    {% if tipo in ["Bancada", "Lavatorio"] %}
-                    <th>Fronte</th>
-                    {% endif %}
-                    {% if tipo in ["Bancada", "Lavatorio"] %}
-                    <th>Cuba</th>
-                    {% endif %}
-                    {% if tipo == "Bancada" %}
-                    <th>Cooktop</th>
-                    {% endif %}
-                    {% if tipo in ["Nicho", "Nicho Sem Fundo"] %}
-                    <th>Profundidade</th>
-                    <th>Fundo</th>
-                    <th>Alisar</th>
-                    <th>Largura do Alisar</th>
-                    {% endif %}
-                    <th>Outros Custos</th>
-                    <th>Valor</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for produto in produtos %}
-                <tr>
-                    <td>{{ produto.material.nome }}</td>
-                    <td>{{ produto.quantidade }}</td>
-                    <td>{{ produto.comprimento }} cm</td>
-                    <td>{{ produto.largura }} cm</td>
-                    {% if tipo in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
-                    <td>{% if produto.comprimento_saia > 0 %}{{ produto.comprimento_saia }} x {{ produto.largura_saia }} cm{% else %}-{% endif %}</td>
-                    {% endif %}
-                    {% if tipo in ["Bancada", "Lavatorio"] %}
-                    <td>{% if produto.comprimento_fronte > 0 %}{{ produto.comprimento_fronte }} x {{ produto.largura_fronte }} cm{% else %}-{% endif %}</td>
-                    {% endif %}
-                    {% if tipo in ["Bancada", "Lavatorio"] %}
-                    <td>
-                        {% if produto.tipo_cuba == "Esculpida" %}
-                            Esculpida ({{ produto.quantidade_cubas }}) - {{ produto.comprimento_cuba }} x {{ produto.largura_cuba }} x {{ produto.profundidade_cuba }} cm
-                        {% elif produto.tipo_cuba %}
-                            {{ produto.tipo_cuba }} ({{ produto.quantidade_cubas }})
-                        {% else %}
-                            -
-                        {% endif %}
-                    </td>
-                    {% endif %}
-                    {% if tipo == "Bancada" %}
-                    <td>{% if produto.tem_cooktop == "Sim" %}Sim{% else %}-{% endif %}</td>
-                    {% endif %}
-                    {% if tipo in ["Nicho", "Nicho Sem Fundo"] %}
-                    <td>{{ produto.profundidade_nicho }} cm</td>
-                    <td>{% if produto.tem_fundo == "Sim" %}Sim{% else %}Não{% endif %}</td>
-                    <td>{% if produto.tem_alisar == "Sim" %}Sim{% else %}Não{% endif %}</td>
-                    <td>{% if produto.tem_alisar == "Sim" %}{{ produto.largura_alisar }} cm{% else %}-{% endif %}</td>
-                    {% endif %}
-                    <td>R$ {{ "%.2f"|format(produto.outros_custos) }}</td>
-                    <td class="valor-tabela">R$ {{ "%.2f"|format(produto.valor_total) }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    {% endfor %}
-</br>
 
 <div class="botao-container">
     <!-- Botão para salvar orçamento -->
@@ -498,15 +421,6 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
 });
-
-
-   
-
 </script>
-
-
 </body>
 </html>
-             
-
-
