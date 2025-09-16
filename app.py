@@ -1694,5 +1694,6 @@ else:
 
 
 if __name__ == '__main__':
-    criar_banco()
+    with app.app_context():
+        criar_banco()
     app.run(debug=True)
