@@ -575,6 +575,7 @@ def editar_orcamento(id):
         # Atualizando os dados do orçamento com as informações do formulário
         orcamento.cliente_id = request.form.get('cliente_id')
         orcamento.tipo_produto = request.form['tipo_produto']
+        orcamento.ambiente_id = request.form.get('ambiente_id')
         orcamento.material_id = request.form['material_id']
         orcamento.quantidade = int(request.form.get('quantidade', orcamento.quantidade))
         orcamento.comprimento = float(request.form.get('comprimento', orcamento.comprimento or 0)or 0)
