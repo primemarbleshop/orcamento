@@ -1501,6 +1501,7 @@ def duplicar_selecionados():
             if original:
                 novo_orcamento = Orcamento(
                     cliente_id = original.cliente_id,
+                    ambiente_id = original.ambiente_id,
                     tipo_produto = original.tipo_produto,
                     material_id = original.material_id,
                     quantidade = original.quantidade,
