@@ -93,7 +93,6 @@ class Ambiente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
     dono = db.Column(db.String(14), nullable=False)
-    ativo = db.Column(db.Boolean, default=True)  # Novo campo
     
     __table_args__ = (db.UniqueConstraint('nome', 'dono', name='_ambiente_nome_dono_uc'),)
 
@@ -385,7 +384,7 @@ def listar_orcamentos():
         ).join(Usuario, Orcamento.dono == Usuario.cpf).order_by(Orcamento.data.desc()).all()
     
         clientes = Cliente.query.order_by(Cliente.nome).all()
-        ambientes = Ambiente.query.filter_by(ativo=True).order_by(Ambiente.nome).all()
+        ambientes = Ambiente.query.order_by(Ambiente.nome).all()
     
     else:
         orcamentos = db.session.query(
@@ -394,7 +393,7 @@ def listar_orcamentos():
         ).join(Usuario, Orcamento.dono == Usuario.cpf).filter(Orcamento.dono == user_cpf).order_by(Orcamento.data.desc()).all()
     
         clientes = Cliente.query.filter_by(dono=user_cpf).order_by(Cliente.nome).all()
-        ambientes = Ambiente.query.filter_by(dono=user_cpf, ativo=True).order_by(Ambiente.nome).all()
+        ambientes = Ambiente.query.filter_by(dono=user_cpf).order_by(Ambiente.nome).all()
 
     materiais = Material.query.order_by(Material.nome).all()
     is_admin = session.get('admin', False)
@@ -557,7 +556,7 @@ def editar_orcamento(id):
 
     # Filtrar apenas os clientes cujo dono é o usuário logado
     clientes = Cliente.query.filter_by(dono=usuario_cpf).all()
-    ambientes = Ambiente.query.filter_by(dono=usuario_cpf, ativo=True).order_by(Ambiente.nome).all()
+    ambientes = Ambiente.query.filter_by(dono=usuario_cpf).order_by(Ambiente.nome).all()
 
     materiais = Material.query.all()
 
@@ -1634,29 +1633,22 @@ def adicionar_ambiente():
         
         user_cpf = session.get('user_cpf')
         
-        # Verifica se já existe um ambiente com o mesmo nome para este usuário (ativo ou inativo)
+        # Verifica se já existe um ambiente com o mesmo nome PARA ESTE USUÁRIO
         ambiente_existente = Ambiente.query.filter_by(nome=nome, dono=user_cpf).first()
         
         if ambiente_existente:
-            if not ambiente_existente.ativo:
-                # Reativa o ambiente em standby
-                ambiente_existente.ativo = True
-                db.session.commit()
-                return jsonify({'success': True, 'ambiente_id': ambiente_existente.id, 'message': 'Ambiente reativado com sucesso!'})
-            else:
-                return jsonify({'success': False, 'message': 'Já existe um ambiente ativo com este nome para o seu usuário.'}), 400
-        else:
-            # Cria um novo ambiente ativo
-            novo_ambiente = Ambiente(nome=nome, dono=user_cpf, ativo=True)
-            db.session.add(novo_ambiente)
-            db.session.commit()
-            return jsonify({'success': True, 'ambiente_id': novo_ambiente.id, 'message': 'Ambiente criado com sucesso!'})
+            return jsonify({'success': False, 'message': 'Já existe um ambiente com este nome para o seu usuário.'}), 400
+        
+        novo_ambiente = Ambiente(nome=nome, dono=user_cpf)
+        db.session.add(novo_ambiente)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'ambiente_id': novo_ambiente.id})
     
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
-# 📌 Modifique a rota /deletar_ambiente:
 @app.route('/deletar_ambiente', methods=['POST'])
 def deletar_ambiente():
     try:
@@ -1672,28 +1664,21 @@ def deletar_ambiente():
         if not ambiente:
             return jsonify({'success': False, 'message': 'Ambiente não encontrado ou você não tem permissão para excluí-lo.'}), 404
         
-        # Marca o ambiente como inativo (standby) em vez de excluir
-        ambiente.ativo = False
+        orcamentos_com_ambiente = Orcamento.query.filter_by(ambiente_id=ambiente_id).count()
+        if orcamentos_com_ambiente > 0:
+            return jsonify({'success': False, 'message': 'Este ambiente está em uso e não pode ser excluído.'}), 400
+        
+        db.session.delete(ambiente)
         db.session.commit()
         
-        return jsonify({'success': True, 'message': 'Ambiente colocado em standby com sucesso!'})
+        return jsonify({'success': True})
     
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
 
-# 📌 Modifique a rota /listar_orcamentos para filtrar apenas ambientes ativos:
-# Na parte onde busca os ambientes, adicione o filtro ativo=True
-if session.get('admin'):
-    # Admin vê todos os ambientes ativos
-    ambientes = Ambiente.query.filter_by(ativo=True).order_by(Ambiente.nome).all()
-else:
-    # Usuário comum vê apenas seus ambientes ativos
-    ambientes = Ambiente.query.filter_by(dono=user_cpf, ativo=True).order_by(Ambiente.nome).all()
-
 
 
 if __name__ == '__main__':
-    with app.app_context():
-        criar_banco()
+    criar_banco()
     app.run(debug=True)
