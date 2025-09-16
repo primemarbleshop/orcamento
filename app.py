@@ -1147,6 +1147,20 @@ def detalhes_orcamento_salvo(codigo):
 
     ids = [int(id) for id in orcamento_salvo.orcamentos_ids.split(",")]
     orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
+    
+    # Agrupar orçamentos por ambiente
+    ambientes_agrupados = {}
+    for orcamento in orcamentos:
+        ambiente_nome = orcamento.ambiente.nome if orcamento.ambiente else 'Sem Ambiente'
+        if ambiente_nome not in ambientes_agrupados:
+            ambientes_agrupados[ambiente_nome] = {}
+        
+        tipo_produto = orcamento.tipo_produto
+        if tipo_produto not in ambientes_agrupados[ambiente_nome]:
+            ambientes_agrupados[ambiente_nome][tipo_produto] = []
+        
+        ambientes_agrupados[ambiente_nome][tipo_produto].append(orcamento)
+
     valor_total_final = sum(o.valor_total for o in orcamentos)
     valor_total_float = valor_total_final
 
@@ -1155,13 +1169,11 @@ def detalhes_orcamento_salvo(codigo):
     usuario = Usuario.query.filter_by(cpf=session.get('user_cpf')).first()
     telefone_usuario = usuario.telefone if usuario else ""
 
-    # ✅ USAR OS VALORES SALVOS NO BANCO COM VALORES PADRÃO DE FALLBACK
     prazo_entrega = orcamento_salvo.prazo_entrega if orcamento_salvo.prazo_entrega is not None else 15
     desconto_avista = orcamento_salvo.desconto_avista if orcamento_salvo.desconto_avista is not None else 5
     desconto_parcelado = orcamento_salvo.desconto_parcelado if orcamento_salvo.desconto_parcelado is not None else 10
     observacoes = orcamento_salvo.observacoes if orcamento_salvo.observacoes is not None else "Medidas sujeitas a confirmação no local. Valores válidos por 7 dias."
     
-    # ✅ NOVO: Obter as opções excluídas salvas no banco
     exclude_payments = orcamento_salvo.exclude_payments.split(',') if orcamento_salvo.exclude_payments else []
 
     return render_template(
@@ -1170,7 +1182,7 @@ def detalhes_orcamento_salvo(codigo):
         codigo_orcamento=orcamento_salvo.codigo,
         data_salvo=orcamento_salvo.data_salvo,
         cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
-        orcamentos=orcamentos,
+        ambientes_agrupados=ambientes_agrupados,  # Nova variável para agrupamento
         valor_total_final="R$ {:,.2f}".format(valor_total_final).replace(",", "X").replace(".", ",").replace("X", "."),
         valor_total_float=valor_total_float,
         telefone_usuario=telefone_usuario,
@@ -1178,7 +1190,7 @@ def detalhes_orcamento_salvo(codigo):
         desconto_avista=desconto_avista,
         desconto_parcelado=desconto_parcelado,
         observacoes=observacoes,
-        exclude_payments=exclude_payments  # ✅ Passar para o template
+        exclude_payments=exclude_payments
     )
 
 
@@ -1271,9 +1283,21 @@ def gerar_pdf_orcamento(codigo):
         flash("Orçamento salvo não encontrado!", "danger")
         return redirect(url_for('listar_orcamentos_salvos'))
 
-    # Obter os orçamentos vinculados
     ids = [int(id) for id in orcamento_salvo.orcamentos_ids.split(",")]
     orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
+    
+    # Agrupar orçamentos por ambiente (igual ao detalhes_orcamento_salvo)
+    ambientes_agrupados = {}
+    for orcamento in orcamentos:
+        ambiente_nome = orcamento.ambiente.nome if orcamento.ambiente else 'Sem Ambiente'
+        if ambiente_nome not in ambientes_agrupados:
+            ambientes_agrupados[ambiente_nome] = {}
+        
+        tipo_produto = orcamento.tipo_produto
+        if tipo_produto not in ambientes_agrupados[ambiente_nome]:
+            ambientes_agrupados[ambiente_nome][tipo_produto] = []
+        
+        ambientes_agrupados[ambiente_nome][tipo_produto].append(orcamento)
     
     # Calcular valor total
     valor_total_final = sum(o.valor_total for o in orcamentos)
