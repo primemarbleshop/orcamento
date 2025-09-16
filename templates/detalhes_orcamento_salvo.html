@@ -558,6 +558,16 @@
     .detalhes-orcamento {
         margin-top: 3px;
     }
+
+    .ambiente-header {
+    font-size: 16px;
+    font-weight: bold;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    color: #333;
+    border-bottom: 2px solid #FFD700; /* Linha amarela */
+    padding-bottom: 5px;
+}
     </style>
 </head>
 <body>
@@ -607,17 +617,11 @@
 
     <br>
 
-    {% set tipos_produtos = {} %}
-
-    {% for orcamento in orcamentos %}
-        {% if orcamento.tipo_produto not in tipos_produtos %}
-            {% set _ = tipos_produtos.update({orcamento.tipo_produto: []}) %}
-        {% endif %}
-        {% set _ = tipos_produtos[orcamento.tipo_produto].append(orcamento) %}
-    {% endfor %}
-
-    {% for tipo, produtos in tipos_produtos.items() %}
-        <div class="produto-header"> {{ tipo }}</div>
+    {% for ambiente_nome, tipos_produtos in ambientes_agrupados.items() %}
+    <h2 class="ambiente-header">Ambiente: {{ ambiente_nome }}</h2>
+    
+    {% for tipo_produto, produtos in tipos_produtos.items() %}
+        <div class="produto-header">{{ tipo_produto }}</div>
         <table>
             <thead>
                 <tr>
@@ -626,19 +630,19 @@
                     <th>Comp.</th>
                     <th>Larg.</th>
                   
-                    {% if tipo in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
+                    {% if tipo_produto in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
                     <th>Saia</th>
                     {% endif %}
-                    {% if tipo in ["Bancada", "Lavatorio"] %}
+                    {% if tipo_produto in ["Bancada", "Lavatorio"] %}
                     <th>Fronte</th>
                     {% endif %}
-                    {% if tipo in ["Bancada", "Lavatorio"] %}
+                    {% if tipo_produto in ["Bancada", "Lavatorio"] %}
                     <th>Cuba</th>
                     {% endif %}
-                    {% if tipo == "Bancada" %}
+                    {% if tipo_produto == "Bancada" %}
                     <th>Cooktop</th>
                     {% endif %}
-                    {% if tipo in ["Nicho", "Nicho Sem Fundo"] %}
+                    {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] %}
                     <th>Profundidade</th>
                     <th>Fundo</th>
                     <th>Alisar</th>
@@ -655,13 +659,13 @@
                     <td>{{ produto.quantidade }}</td>
                     <td>{{ produto.comprimento }} cm</td>
                     <td>{{ produto.largura }} cm</td>
-                    {% if tipo in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
+                    {% if tipo_produto in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
                     <td>{{ produto.comprimento_saia }} x {{ produto.largura_saia }} cm</td>
                     {% endif %}
-                    {% if tipo in ["Bancada", "Lavatorio"] %}
+                    {% if tipo_produto in ["Bancada", "Lavatorio"] %}
                     <td>{{ produto.comprimento_fronte }} x {{ produto.largura_fronte }} cm</td>
                     {% endif %}
-                    {% if tipo in ["Bancada", "Lavatorio"] %}
+                    {% if tipo_produto in ["Bancada", "Lavatorio"] %}
                     <td>
                         {% if produto.tipo_cuba == "Esculpida" %}
                             Esculpida ({{ produto.quantidade_cubas }}) - {{ produto.comprimento_cuba }} x {{ produto.largura_cuba }} x {{ produto.profundidade_cuba }} cm
@@ -672,10 +676,10 @@
                         {% endif %}
                     </td>
                     {% endif %}
-                    {% if tipo == "Bancada" %}
+                    {% if tipo_produto == "Bancada" %}
                     <td>{% if produto.tem_cooktop == "Sim" %}Sim{% else %}-{% endif %}</td>
                     {% endif %}
-                    {% if tipo in ["Nicho", "Nicho Sem Fundo"] %}
+                    {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] %}
                     <td>{{ produto.profundidade_nicho }} cm</td>
                     <td>{% if produto.tem_fundo == "Sim" %}Sim{% else %}Não{% endif %}</td>
                     <td>{% if produto.tem_alisar == "Sim" %}Sim{% else %}Não{% endif %}</td>
@@ -688,6 +692,7 @@
             </tbody>
         </table>
     {% endfor %}
+{% endfor %}
 
  <!-- Rodapé do orçamento - MODIFICADO para funcionar corretamente com o PDF -->
 <div class="orcamento-footer">
