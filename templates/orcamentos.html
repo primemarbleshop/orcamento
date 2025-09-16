@@ -921,9 +921,9 @@ document.getElementById('edit-selected').addEventListener('click', function() {
         title: 'Editar Material e RT',
         html: `
             <div class="mb-3">
-                <label for="select-material" class="form-label">Novo Material:</label>
+                <label for="select-material" class="form-label">Novo Material (opcional):</label>
                 <select id="select-material" class="swal2-select" style="width: 100%">
-                    <option value="" selected disabled>Selecionar material</option>
+                    <option value="" selected>Manter material atual</option>
                     {% for material in materiais %}
                         <option value="{{ material.id }}">{{ material.nome }}</option>
                     {% endfor %}
@@ -945,7 +945,7 @@ document.getElementById('edit-selected').addEventListener('click', function() {
             // Aplicar Select2 ao select dentro do SweetAlert
             $('#select-material').select2({
                 dropdownParent: $('.swal2-popup'),
-                placeholder: "Escolha o material",
+                placeholder: "Manter material atual",
                 allowClear: true,
                 width: '100%'
             });
@@ -969,18 +969,14 @@ document.getElementById('edit-selected').addEventListener('click', function() {
             const rtOption = $('#rt-option').val();
             const rtPercent = rtOption === 'Sim' ? $('#rt-percent').val() : 0;
             
-            if (!materialId) {
-                Swal.showValidationMessage('Por favor, selecione um material.');
-                return false;
-            }
-            
+            // Remover a validação obrigatória do material
             if (rtOption === 'Sim' && (!rtPercent || parseFloat(rtPercent) <= 0)) {
                 Swal.showValidationMessage('Por favor, informe uma porcentagem RT válida.');
                 return false;
             }
             
             return {
-                material_id: materialId,
+                material_id: materialId || null, // null significa manter o material atual
                 rt: rtOption,
                 rt_percentual: parseFloat(rtPercent) || 0
             };
