@@ -200,6 +200,16 @@ p strong {
 .detalhes-orcamento {
     margin-top: 5px; /* Reduz espaço antes do título "Detalhes do Orçamento" */
 }
+
+.ambiente-header {
+    font-size: 16px;
+    font-weight: bold;
+    margin-top: 20px;
+    margin-bottom: 10px;
+    color: #333;
+    border-bottom: 2px solid #4e73df;
+    padding-bottom: 5px;
+}
 </style>
 </head>
 <body>
@@ -220,92 +230,102 @@ p strong {
 </div>
 
 
-<h1>Detalhes do Orçamento</h1>
-<div class="total-box">
-    Valor Total: <span id="valorTotal">{{ valor_total_final }}</span>
+ <h1>Detalhes do Orçamento</h1>
+    <div class="total-box">
+        Valor Total: <span id="valorTotal">{{ valor_total_final }}</span>
     </div>
 
-             </br>
+    <br>
 
-
-    {% set current_cliente = None %}
-    {% set tipos_produtos = {} %}
-
+    {% set ambientes_dict = {} %}
     {% for orcamento in orcamentos %}
-        {% if orcamento.cliente.nome != current_cliente %}
-            <!-- Renderizar tabelas dos tipos de produto do cliente anterior -->
-            {% if current_cliente is not none %}
-                {% for tipo, produtos in tipos_produtos.items() %}
-                    <div class="produto-header"> {{ tipo }}</div>
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Material</th>
-                                <th>Qtd</th>
-                                <th>Comp. </th>
-                                <th>Larg. </th>
-                                {% if tipo in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
-                                <th>Saia</th>
-                                {% endif %}
-                                {% if tipo in ["Bancada", "Lavatorio"] %}
-                                <th>Fronte</th>
-                                {% endif %}
-                                {% if tipo in ["Bancada", "Lavatorio"] %}
-                                <th>Cuba</th>
-                                {% endif %}
-                                {% if tipo == "Bancada" %}
-                                <th>Cooktop</th>
-                                {% endif %}
-                                {% if tipo in ["Nicho", "Nicho Sem Fundo"] %}
-                                <th>Profundidade</th>
-                                <th>Fundo</th>
-                                <th>Alisar</th>
-                                <th>Larg. Alisar</th>
-                                {% endif %}
-                                <th>Outros Custos</th>
-                                <th>Valor</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for produto in produtos %}
-                            <tr>
-                                <td>{{ produto.material.nome }}</td>
-                                <td>{{ produto.quantidade }}</td>
-                                <td>{{ produto.comprimento }} cm</td>
-                                <td>{{ produto.largura }} cm</td>
-                                {% if tipo in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
-                                <td>{% if produto.comprimento_saia > 0 %}{{ produto.comprimento_saia }} x {{ produto.largura_saia }} cm{% else %}-{% endif %}</td>
-                                {% endif %}
-                                {% if tipo in ["Bancada", "Lavatorio"] %}
-                                <td>{% if produto.comprimento_fronte > 0 %}{{ produto.comprimento_fronte }} x {{ produto.largura_fronte }} cm{% else %}-{% endif %}</td>
-                                {% endif %}
-                                {% if tipo in ["Bancada", "Lavatorio"] %}
-                                <td>
-                                    {% if produto.tipo_cuba == "Esculpida" %}
-                                        Esculpida ({{ produto.quantidade_cubas }}) - {{ produto.comprimento_cuba }} x {{ produto.largura_cuba }} x {{ produto.profundidade_cuba }} cm
-                                    {% elif produto.tipo_cuba %}
-                                        {{ produto.tipo_cuba }} ({{ produto.quantidade_cubas }})
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                                {% endif %}
-                                {% if tipo == "Bancada" %}
-                                <td>{% if produto.tem_cooktop == "Sim" %}Sim{% else %}-{% endif %}</td>
-                                {% endif %}
-                                {% if tipo in ["Nicho", "Nicho Sem Fundo"] %}
-                                <td>{{ produto.profundidade_nicho }} cm</td>
-                                <td>{% if produto.tem_fundo == "Sim" %}Sim{% else %}Não{% endif %}</td>
-                                <td>{% if produto.tem_alisar == "Sim" %}Sim{% else %}Não{% endif %}</td>
-                                <td>{% if produto.tem_alisar == "Sim" %}{{ produto.largura_alisar }} cm{% else %}-{% endif %}</td>
-                                {% endif %}
-                                <td>R$ {{ "%.2f"|format(produto.outros_custos) }}</td>
-                                <td class="valor-tabela">R$ {{ "%.2f"|format(produto.valor_total) }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                {% endfor %}
+        {% set ambiente_nome = orcamento.ambiente.nome if orcamento.ambiente else 'Não definido' %}
+        {% if ambiente_nome not in ambientes_dict %}
+            {% set _ = ambientes_dict.update({ambiente_nome: {}}) %}
+        {% endif %}
+        
+        {% if orcamento.tipo_produto not in ambientes_dict[ambiente_nome] %}
+            {% set _ = ambientes_dict[ambiente_nome].update({orcamento.tipo_produto: []}) %}
+        {% endif %}
+        
+        {% set _ = ambientes_dict[ambiente_nome][orcamento.tipo_produto].append(orcamento) %}
+    {% endfor %}
+
+    {% for ambiente, tipos_produtos in ambientes_dict.items() %}
+        <h2 class="ambiente-header">Ambiente: {{ ambiente }}</h2>
+        
+        {% for tipo, produtos in tipos_produtos.items() %}
+            <div class="produto-header">{{ tipo }}</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Material</th>
+                        <th>Qtd</th>
+                        <th>Comp.</th>
+                        <th>Larg.</th>
+                        {% if tipo in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
+                        <th>Saia</th>
+                        {% endif %}
+                        {% if tipo in ["Bancada", "Lavatorio"] %}
+                        <th>Fronte</th>
+                        {% endif %}
+                        {% if tipo in ["Bancada", "Lavatorio"] %}
+                        <th>Cuba</th>
+                        {% endif %}
+                        {% if tipo == "Bancada" %}
+                        <th>Cooktop</th>
+                        {% endif %}
+                        {% if tipo in ["Nicho", "Nicho Sem Fundo"] %}
+                        <th>Profundidade</th>
+                        <th>Fundo</th>
+                        <th>Alisar</th>
+                        <th>Largura do Alisar</th>
+                        {% endif %}
+                        <th>Outros Custos</th>
+                        <th>Valor</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for produto in produtos %}
+                    <tr>
+                        <td>{{ produto.material.nome }}</td>
+                        <td>{{ produto.quantidade }}</td>
+                        <td>{{ produto.comprimento }} cm</td>
+                        <td>{{ produto.largura }} cm</td>
+                        {% if tipo in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
+                        <td>{% if produto.comprimento_saia > 0 %}{{ produto.comprimento_saia }} x {{ produto.largura_saia }} cm{% else %}-{% endif %}</td>
+                        {% endif %}
+                        {% if tipo in ["Bancada", "Lavatorio"] %}
+                        <td>{% if produto.comprimento_fronte > 0 %}{{ produto.comprimento_fronte }} x {{ produto.largura_fronte }} cm{% else %}-{% endif %}</td>
+                        {% endif %}
+                        {% if tipo in ["Bancada", "Lavatorio"] %}
+                        <td>
+                            {% if produto.tipo_cuba == "Esculpida" %}
+                                Esculpida ({{ produto.quantidade_cubas }}) - {{ produto.comprimento_cuba }} x {{ produto.largura_cuba }} x {{ produto.profundidade_cuba }} cm
+                            {% elif produto.tipo_cuba %}
+                                {{ produto.tipo_cuba }} ({{ produto.quantidade_cubas }})
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        {% endif %}
+                        {% if tipo == "Bancada" %}
+                        <td>{% if produto.tem_cooktop == "Sim" %}Sim{% else %}-{% endif %}</td>
+                        {% endif %}
+                        {% if tipo in ["Nicho", "Nicho Sem Fundo"] %}
+                        <td>{{ produto.profundidade_nicho }} cm</td>
+                        <td>{% if produto.tem_fundo == "Sim" %}Sim{% else %}Não{% endif %}</td>
+                        <td>{% if produto.tem_alisar == "Sim" %}Sim{% else %}Não{% endif %}</td>
+                        <td>{% if produto.tem_alisar == "Sim" %}{{ produto.largura_alisar }} cm{% else %}-{% endif %}</td>
+                        {% endif %}
+                        <td>R$ {{ "%.2f"|format(produto.outros_custos) }}</td>
+                        <td class="valor-tabela">R$ {{ "%.2f"|format(produto.valor_total) }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endfor %}
+    {% endfor %}
                 <!-- Limpar tipos_produtos para o próximo cliente -->
                 {% set tipos_produtos = {} %}
             {% endif %}
