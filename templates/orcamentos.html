@@ -904,77 +904,122 @@
             });
         });
 
-        // Função para editar material dos orçamentos selecionados
-        document.getElementById('edit-selected').addEventListener('click', function() {
-            const selecionados = [];
-            document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
-                selecionados.push(checkbox.closest('tr').getAttribute('data-id'));
+        // Função para editar material e RT dos orçamentos selecionados
+document.getElementById('edit-selected').addEventListener('click', function() {
+    const selecionados = [];
+    document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
+        selecionados.push(checkbox.closest('tr').getAttribute('data-id'));
+    });
+    
+    if (selecionados.length === 0) {
+        Swal.fire("Atenção", "Selecione pelo menos um orçamento!", "warning");
+        return;
+    }
+    
+    // Criar modal para seleção do material e RT
+    Swal.fire({
+        title: 'Editar Material e RT',
+        html: `
+            <div class="mb-3">
+                <label for="select-material" class="form-label">Novo Material:</label>
+                <select id="select-material" class="swal2-select" style="width: 100%">
+                    <option value="" selected disabled>Selecionar material</option>
+                    {% for material in materiais %}
+                        <option value="{{ material.id }}">{{ material.nome }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="mb-3">
+                <label for="rt-option" class="form-label">RT:</label>
+                <select id="rt-option" class="swal2-select" style="width: 100%">
+                    <option value="Não">Não</option>
+                    <option value="Sim">Sim</option>
+                </select>
+            </div>
+            <div class="mb-3" id="rt-percent-field" style="display: none;">
+                <label for="rt-percent" class="form-label">Porcentagem RT (%):</label>
+                <input type="number" id="rt-percent" class="form-control" step="0.01" min="0" value="0">
+            </div>
+        `,
+        didOpen: () => {
+            // Aplicar Select2 ao select dentro do SweetAlert
+            $('#select-material').select2({
+                dropdownParent: $('.swal2-popup'),
+                placeholder: "Escolha o material",
+                allowClear: true,
+                width: '100%'
             });
             
-            if (selecionados.length === 0) {
-                Swal.fire("Atenção", "Selecione pelo menos um orçamento!", "warning");
-                return;
-            }
+            $('#rt-option').select2({
+                dropdownParent: $('.swal2-popup'),
+                width: '100%'
+            });
             
-            // Criar modal para seleção do material
-            Swal.fire({
-                title: 'Selecione o Novo Material',
-                html: `
-                    <select id="select-material" class="swal2-select" style="width: 100%">
-                        <option value="" selected disabled>Selecionar</option>
-                        {% for material in materiais %}
-                            <option value="{{ material.id }}">{{ material.nome }}</option>
-                        {% endfor %}
-                    </select>
-                `,
-                didOpen: () => {
-                    // Aplicar Select2 ao select dentro do SweetAlert
-                    $('#select-material').select2({
-                        dropdownParent: $('.swal2-popup'),
-                        placeholder: "Escolha o material",
-                        allowClear: true,
-                        width: '100%'
-                    });
-                },
-                preConfirm: () => {
-                    const materialId = $('#select-material').val();
-                    if (!materialId) {
-                        Swal.showValidationMessage('Por favor, selecione um material.');
-                    }
-                    return materialId;
-                },
-                showCancelButton: true,
-                confirmButtonText: 'Salvar',
-                cancelButtonText: 'Cancelar'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Enviar requisição para editar material
-                    fetch("/orcamentos/editar_material_selecionados", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                            orcamento_ids: selecionados,
-                            material_id: result.value
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            Swal.fire("Sucesso!", "Materiais atualizados com sucesso!", "success").then(() => {
-                                location.reload();
-                            });
-                        } else {
-                            Swal.fire("Erro!", data.error || "Erro ao atualizar materiais", "error");
-                        }
-                    })
-                    .catch(error => {
-                        Swal.fire("Erro!", "Erro ao atualizar materiais!", "error");
-                    });
+            // Mostrar/ocultar campo de porcentagem RT
+            $('#rt-option').on('change', function() {
+                if ($(this).val() === 'Sim') {
+                    $('#rt-percent-field').show();
+                } else {
+                    $('#rt-percent-field').hide();
                 }
             });
-        });
+        },
+        preConfirm: () => {
+            const materialId = $('#select-material').val();
+            const rtOption = $('#rt-option').val();
+            const rtPercent = rtOption === 'Sim' ? $('#rt-percent').val() : 0;
+            
+            if (!materialId) {
+                Swal.showValidationMessage('Por favor, selecione um material.');
+                return false;
+            }
+            
+            if (rtOption === 'Sim' && (!rtPercent || parseFloat(rtPercent) <= 0)) {
+                Swal.showValidationMessage('Por favor, informe uma porcentagem RT válida.');
+                return false;
+            }
+            
+            return {
+                material_id: materialId,
+                rt: rtOption,
+                rt_percentual: parseFloat(rtPercent) || 0
+            };
+        },
+        showCancelButton: true,
+        confirmButtonText: 'Salvar',
+        cancelButtonText: 'Cancelar',
+        width: '600px'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Enviar requisição para editar material e RT
+            fetch("/orcamentos/editar_material_rt_selecionados", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    orcamento_ids: selecionados,
+                    material_id: result.value.material_id,
+                    rt: result.value.rt,
+                    rt_percentual: result.value.rt_percentual
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire("Sucesso!", "Materiais e RT atualizados com sucesso!", "success").then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire("Erro!", data.error || "Erro ao atualizar materiais e RT", "error");
+                }
+            })
+            .catch(error => {
+                Swal.fire("Erro!", "Erro ao atualizar materiais e RT!", "error");
+            });
+        }
+    });
+});
 
         // Função para filtrar orçamentos
         function filterOrcamentos() {
