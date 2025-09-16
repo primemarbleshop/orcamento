@@ -93,6 +93,8 @@ class Ambiente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
     dono = db.Column(db.String(14), nullable=False)
+    
+    __table_args__ = (db.UniqueConstraint('nome', 'dono', name='_ambiente_nome_dono_uc'),)
 
 class OrcamentoSalvo(db.Model):
     __tablename__ = 'orcamento_salvo'
@@ -1605,7 +1607,7 @@ def adicionar_ambiente():
         
         user_cpf = session.get('user_cpf')
         
-        # Modificação: Verificar se já existe um ambiente com o mesmo nome PARA ESTE USUÁRIO
+        # Verifica se já existe um ambiente com o mesmo nome PARA ESTE USUÁRIO
         ambiente_existente = Ambiente.query.filter_by(nome=nome, dono=user_cpf).first()
         
         if ambiente_existente:
