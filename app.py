@@ -25,16 +25,7 @@ app.config.from_object(Config)  # Aplica configurações do config.py
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
-# 📌 Definição do Modelo Ambiente
-class Ambiente(db.Model):
-    __tablename__ = 'ambiente'
-    
-    id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(100), nullable=False)
-    dono = db.Column(db.String(14), nullable=False)  # CPF do usuário que cadastrou
-    
-    def __repr__(self):
-        return f'<Ambiente {self.nome}>'
+
 
 def atualizar_valor_orcamento_salvo(orcamento_salvo_id):
     """Recalcula o valor total de um orçamento salvo."""
@@ -54,6 +45,7 @@ def atualizar_valor_orcamento_salvo(orcamento_salvo_id):
             # Atualiza o valor total no banco de dados
             orcamento_salvo.valor_total = valor_total
             db.session.commit()
+
 
 @app.route("/upload_db", methods=["POST"])
 def upload_db():
@@ -138,12 +130,13 @@ class OrcamentoSalvo(db.Model):
 
         self.codigo = f"O{novo_id:06d}"  # Formato: O000100, O000101, O000102, etc.
 
+
+    
+
 class Orcamento(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     cliente_id = db.Column(db.Integer, db.ForeignKey('cliente.id'))
     cliente = db.relationship('Cliente', backref=db.backref('orcamentos', lazy=True))
-    ambiente_id = db.Column(db.Integer, db.ForeignKey('ambiente.id'))  # NOVO CAMPO
-    ambiente = db.relationship('Ambiente', backref=db.backref('orcamentos', lazy=True))  # NOVO CAMPO
     tipo_produto = db.Column(db.String(100), nullable=False)
     material_id = db.Column(db.Integer, db.ForeignKey('material.id'))
     material = db.relationship('Material', backref=db.backref('orcamentos', lazy=True))
@@ -159,6 +152,8 @@ class Orcamento(db.Model):
     # Ajuste de fuso horário na data
     data = db.Column(db.DateTime, default=lambda: datetime.now(br_tz))
     
+    
+
     # **Novos Campos para Dados Dinâmicos**
     comprimento_saia = db.Column(db.Float, default=0.0)
     largura_saia = db.Column(db.Float, default=0.0)
@@ -184,6 +179,7 @@ class Orcamento(db.Model):
     tem_alisar = db.Column(db.String(50), default="Não")
     largura_alisar = db.Column(db.Float, default=0.0)
 
+
 # Função para inicializar o banco de dados
 def criar_banco():
     with app.app_context():
@@ -194,6 +190,7 @@ def index():
     if 'user_cpf' not in session:  # Se não estiver logado, redireciona para o login
         return redirect(url_for('login'))
     
+    
     return render_template('index.html')
 
 @app.route('/orcamentos', methods=['GET', 'POST'])
@@ -201,11 +198,9 @@ def listar_orcamentos():
     ultimo_cliente_id = None  # Variável para armazenar o ID do cliente mais recente
     selected_cliente_id = None  # Variável para armazenar o cliente selecionado
     selected_material_id = None  # Variável para armazenar o material selecionado
-    selected_ambiente_id = None  # Variável para armazenar o ambiente selecionado
 
     if request.method == 'POST':
         cliente_id = request.form.get('cliente_id')
-        ambiente_id = request.form.get('ambiente_id')  # NOVO CAMPO
         tipo_produto = request.form['tipo_produto']
         material_id = request.form['material_id']
         quantidade = int(request.form['quantidade'])
@@ -216,6 +211,8 @@ def listar_orcamentos():
         rt_percentual = float(request.form.get('rt_percentual', 0) or 0)  # Agora numérico, ex.: 10 para 10%
         data_atual = datetime.now(br_tz)
         dono = session['user_cpf']  # Captura o CPF do usuário logado
+
+        
 
         # Campos dinâmicos
         comprimento_saia = float(request.form.get('comprimento_saia', 0) or 0)
@@ -234,6 +231,7 @@ def listar_orcamentos():
         largura_alisar = float(request.form.get('largura_alisar', 0) or 0)
         data=data_atual
 
+        
         # Inicializando variáveis do alisar
         tem_alisar = request.form.get('alisar', 'Não')
         largura_alisar = float(request.form.get('largura_alisar', 0) or 0)
@@ -265,6 +263,7 @@ def listar_orcamentos():
         valor_total = 0
         valor_total_criar = 0
 
+        
         comprimento_cal = max(comprimento, 10)  # Garante mínimo de 10 cm
         largura_cal = max(largura, 10)  # Garante mínimo de 10 cm
         # Cálculo do valor base do material
@@ -285,6 +284,8 @@ def listar_orcamentos():
 
         valor_total_criar += valor_base  # Inicializando o valor total
 
+        
+
         # **Cálculo do Nicho**
         if tipo_produto == 'Nicho':
             comprimento_cal = 10 if 0 < comprimento < 10 else comprimento
@@ -299,6 +300,7 @@ def listar_orcamentos():
                 area_nicho = ((comprimento_cal) + (largura_cal)) * profundidade_nicho_cal * 2
                 print(f"Nicho sem fundo: Comprimento={comprimento}, Largura={largura}, Profundidade={profundidade_nicho}, Área={area_nicho}")
 
+            
             # Verifica se há alisar e ajusta a área do nicho
             if tem_alisar == 'Sim' and largura_alisar > 0:
                 largura_alisar_cal = 10 if 0 < largura_alisar < 10 else largura_alisar
@@ -311,12 +313,16 @@ def listar_orcamentos():
             valor_total_criar = valor_nicho
             print(f"Valor do Nicho: Área Final={area_nicho}, Valor do Material={material.valor}, Valor do Nicho={valor_nicho}, Valor Total Criado={valor_total_criar}")                       
 
+        
+        
         # **Cálculo do Acabamento Saia**
         if tipo_produto in ['Ilharga', 'Ilharga Bipolida', 'Bancada', 'Lavatorio']:
             comprimento_saia_cal = 10 if 0 < comprimento_saia < 10 else comprimento_saia
             largura_saia_cal = 10 if 0 < largura_saia < 10 else largura_saia
             valor_saia = comprimento_saia_cal * largura_saia_cal * material.valor / 10000
             valor_total_criar += valor_saia
+
+       
 
         # **Cálculo do Acabamento Fronte**
         if tipo_produto in ['Bancada', 'Lavatorio']:
@@ -348,6 +354,7 @@ def listar_orcamentos():
                     m2_cuba = ((comprimento_cuba * largura_cuba * 2) +
                                (comprimento_cuba * 2 + largura_cuba * 2) * profundidade_cuba) / 10000
 
+
                 valor_cuba_esculpida = m2_cuba * material.valor * quantidade_cubas + 175
                 valor_total_criar += valor_cuba_esculpida
 
@@ -366,15 +373,15 @@ def listar_orcamentos():
 
         valor_total = round(valor_total_criar + valor_rt, 2)
 
+        
         modelo_cuba = request.form.get("modelo_cuba", "").strip()
         if not modelo_cuba:  
             modelo_cuba = "Normal"  # Define "Normal" como padrão se estiver vazio
 
-        # Criando e salvando o orçamento
-        if cliente_id and material_id and ambiente_id:
+         # Criando e salvando o orçamento
+        if cliente_id and material_id:
             novo_orcamento = Orcamento(
                 cliente_id=cliente_id,
-                ambiente_id=ambiente_id,  # NOVO CAMPO
                 tipo_produto=tipo_produto,
                 material_id=material_id,
                 quantidade=quantidade,
@@ -400,6 +407,8 @@ def listar_orcamentos():
                 valor_total=valor_total,
                 modelo_cuba=modelo_cuba,
                 dono=session['user_cpf']
+               
+                    
             )
             # Salvar no banco de dados
             db.session.add(novo_orcamento)
@@ -408,7 +417,6 @@ def listar_orcamentos():
             # Atualiza os IDs selecionados
             selected_cliente_id = int(cliente_id)
             selected_material_id = int(material_id)
-            selected_ambiente_id = int(ambiente_id)
 
         return redirect(url_for('listar_orcamentos'))
 
@@ -429,7 +437,6 @@ def listar_orcamentos():
         ).join(Usuario, Orcamento.dono == Usuario.cpf).order_by(Orcamento.data.desc()).all()
     
         clientes = Cliente.query.order_by(Cliente.nome).all()
-        ambientes = Ambiente.query.order_by(Ambiente.nome).all()  # NOVO: Buscar ambientes
     
     else:
         # Usuário comum vê apenas os seus próprios orçamentos
@@ -439,7 +446,6 @@ def listar_orcamentos():
         ).join(Usuario, Orcamento.dono == Usuario.cpf).filter(Orcamento.dono == user_cpf).order_by(Orcamento.data.desc()).all()
     
         clientes = Cliente.query.filter_by(dono=user_cpf).order_by(Cliente.nome).all()
-        ambientes = Ambiente.query.filter_by(dono=user_cpf).order_by(Ambiente.nome).all()  # NOVO: Buscar ambientes do usuário
 
     # Materiais são compartilhados entre todos os usuários
     materiais = Material.query.order_by(Material.nome).all()
@@ -447,13 +453,13 @@ def listar_orcamentos():
     # Verifica se o usuário logado é administrador
     is_admin = session.get('admin', False)
 
+    
     return render_template(
         'orcamentos.html',
         orcamentos=orcamentos,
         clientes=clientes,
-        ambientes=ambientes,  # NOVO: Passar ambientes para o template
         materiais=materiais,
-        is_admin=is_admin
+        is_admin=is_admin  # Passando a variável para o template
     )
 
     
@@ -1411,15 +1417,15 @@ def editar_material_selecionados():
         return jsonify({'erro': 'Material não encontrado.'}), 404
 
     cuba_valores = {
-        'Embutida': 225,
-        'Esculpida': 0,
-        'Tradicional Inox': 225,
-        'Tanque Inox': 500,
-        'Apoio Cliente': 125,
-        'Embutida Cliente': 125,
-        'Gourmet Cliente': 225,
-        'Sobrepor Cliente': 125,
-        'Tanque Inox Cliente': 225
+            'Embutida': 225,
+            'Esculpida': 0,
+            'Tradicional Inox': 225,
+            'Tanque Inox': 500,
+            'Apoio Cliente': 125,
+            'Embutida Cliente': 125,
+            'Gourmet Cliente': 225,
+            'Sobrepor Cliente': 125,
+            'Tanque Inox Cliente': 225
     }
 
     cooktop_valor = 50  # Valor fixo para cooktop
@@ -1430,9 +1436,6 @@ def editar_material_selecionados():
     orcamentos = Orcamento.query.filter(Orcamento.id.in_(orcamento_ids)).all()
 
     for orcamento in orcamentos:
-        # ✅ Mantém o ambiente_id original
-        ambiente_id_original = orcamento.ambiente_id
-        
         orcamento.material_id = material_id
 
         valor_total_criar = 0
@@ -1526,9 +1529,6 @@ def editar_material_selecionados():
             valor_total_final = valor_total_criar
 
         orcamento.valor_total = round(valor_total_final, 2)
-        
-        # ✅ Mantém o ambiente_id original
-        orcamento.ambiente_id = ambiente_id_original
 
     db.session.commit()
 
@@ -1541,6 +1541,7 @@ def editar_material_selecionados():
         atualizar_valor_orcamento_salvo(orcamento_salvo.id)
 
     return jsonify({'success': 'Materiais atualizados, valores recalculados e orçamentos salvos atualizados.'})
+
 
 
 @app.route('/orcamentos/duplicar_selecionados', methods=['POST'])
@@ -1556,34 +1557,33 @@ def duplicar_selecionados():
             original = Orcamento.query.get(id)
             if original:
                 novo_orcamento = Orcamento(
-                    cliente_id=original.cliente_id,
-                    ambiente_id=original.ambiente_id,  # ✅ Adicionado campo ambiente
-                    tipo_produto=original.tipo_produto,
-                    material_id=original.material_id,
-                    quantidade=original.quantidade,
-                    comprimento=original.comprimento,
-                    largura=original.largura,
-                    outros_custos=original.outros_custos,
-                    rt=original.rt,
-                    rt_percentual=original.rt_percentual,
-                    comprimento_saia=original.comprimento_saia,
-                    largura_saia=original.largura_saia,
-                    comprimento_fronte=original.comprimento_fronte,
-                    largura_fronte=original.largura_fronte,
-                    tipo_cuba=original.tipo_cuba,
-                    quantidade_cubas=original.quantidade_cubas,
-                    modelo_cuba=original.modelo_cuba,
-                    comprimento_cuba=original.comprimento_cuba,
-                    largura_cuba=original.largura_cuba,
-                    profundidade_cuba=original.profundidade_cuba,
-                    tem_cooktop=original.tem_cooktop,
-                    profundidade_nicho=original.profundidade_nicho,
-                    tem_fundo=original.tem_fundo,
-                    tem_alisar=original.tem_alisar,
-                    largura_alisar=original.largura_alisar,
-                    valor_total=original.valor_total,
-                    dono=original.dono,
-                    data=datetime.now(br_tz)
+                    cliente_id = original.cliente_id,
+                    tipo_produto = original.tipo_produto,
+                    material_id = original.material_id,
+                    quantidade = original.quantidade,
+                    comprimento = original.comprimento,
+                    largura = original.largura,
+                    outros_custos = original.outros_custos,
+                    rt = original.rt,
+                    rt_percentual = original.rt_percentual,
+                    comprimento_saia = original.comprimento_saia,
+                    largura_saia = original.largura_saia,
+                    comprimento_fronte = original.comprimento_fronte,
+                    largura_fronte = original.largura_fronte,
+                    tipo_cuba = original.tipo_cuba,
+                    quantidade_cubas = original.quantidade_cubas,
+                    modelo_cuba = original.modelo_cuba,
+                    comprimento_cuba = original.comprimento_cuba,
+                    largura_cuba = original.largura_cuba,
+                    profundidade_cuba = original.profundidade_cuba,
+                    tem_cooktop = original.tem_cooktop,
+                    profundidade_nicho = original.profundidade_nicho,
+                    tem_fundo = original.tem_fundo,
+                    tem_alisar = original.tem_alisar,
+                    largura_alisar = original.largura_alisar,
+                    valor_total = original.valor_total,
+                    dono = original.dono,  # <<<< NOVO, ESSENCIAL
+                    data = datetime.now(br_tz)
                 )
 
                 db.session.add(novo_orcamento)
@@ -1621,61 +1621,7 @@ def salvar_rodape_orcamento(codigo):
     return redirect(url_for('detalhes_orcamento_salvo', codigo=codigo))
 
 
-# NOVAS ROTAS PARA AMBIENTES
-@app.route('/adicionar_ambiente', methods=['POST'])
-def adicionar_ambiente():
-    try:
-        data = request.get_json()
-        nome = data.get('nome')
-        
-        if not nome:
-            return jsonify({'success': False, 'message': 'Nome do ambiente é obrigatório.'}), 400
-        
-        # Verificar se o ambiente já existe para este usuário
-        user_cpf = session.get('user_cpf')
-        ambiente_existente = Ambiente.query.filter_by(nome=nome, dono=user_cpf).first()
-        
-        if ambiente_existente:
-            return jsonify({'success': False, 'message': 'Já existe um ambiente com este nome.'}), 400
-        
-        novo_ambiente = Ambiente(nome=nome, dono=user_cpf)
-        db.session.add(novo_ambiente)
-        db.session.commit()
-        
-        return jsonify({'success': True, 'ambiente_id': novo_ambiente.id})
-    
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 500
 
-@app.route('/deletar_ambiente', methods=['POST'])
-def deletar_ambiente():
-    try:
-        data = request.get_json()
-        ambiente_id = data.get('ambiente_id')
-        
-        if not ambiente_id:
-            return jsonify({'success': False, 'message': 'ID do ambiente é obrigatório.'}), 400
-        
-        user_cpf = session.get('user_cpf')
-        ambiente = Ambiente.query.filter_by(id=ambiente_id, dono=user_cpf).first()
-        
-        if not ambiente:
-            return jsonify({'success': False, 'message': 'Ambiente não encontrado ou você não tem permissão para excluí-lo.'}), 404
-        
-        # Verificar se o ambiente está sendo usado em algum orçamento
-        orcamentos_com_ambiente = Orcamento.query.filter_by(ambiente_id=ambiente_id).count()
-        if orcamentos_com_ambiente > 0:
-            return jsonify({'success': False, 'message': 'Este ambiente está em uso e não pode ser excluído.'}), 400
-        
-        db.session.delete(ambiente)
-        db.session.commit()
-        
-        return jsonify({'success': True})
-    
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 
