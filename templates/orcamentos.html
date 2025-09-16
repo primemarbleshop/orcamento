@@ -930,8 +930,9 @@ document.getElementById('edit-selected').addEventListener('click', function() {
                 </select>
             </div>
             <div class="mb-3">
-                <label for="rt-option" class="form-label">RT:</label>
+                <label for="rt-option" class="form-label">RT (opcional):</label>
                 <select id="rt-option" class="swal2-select" style="width: 100%">
+                    <option value="" selected>Manter RT atual</option>
                     <option value="Não">Não</option>
                     <option value="Sim">Sim</option>
                 </select>
@@ -952,6 +953,8 @@ document.getElementById('edit-selected').addEventListener('click', function() {
             
             $('#rt-option').select2({
                 dropdownParent: $('.swal2-popup'),
+                placeholder: "Manter RT atual",
+                allowClear: true,
                 width: '100%'
             });
             
@@ -969,7 +972,7 @@ document.getElementById('edit-selected').addEventListener('click', function() {
             const rtOption = $('#rt-option').val();
             const rtPercent = rtOption === 'Sim' ? $('#rt-percent').val() : 0;
             
-            // Remover a validação obrigatória do material
+            // Validação apenas se RT for "Sim"
             if (rtOption === 'Sim' && (!rtPercent || parseFloat(rtPercent) <= 0)) {
                 Swal.showValidationMessage('Por favor, informe uma porcentagem RT válida.');
                 return false;
@@ -977,7 +980,7 @@ document.getElementById('edit-selected').addEventListener('click', function() {
             
             return {
                 material_id: materialId || null, // null significa manter o material atual
-                rt: rtOption,
+                rt: rtOption || null, // null significa manter a RT atual
                 rt_percentual: parseFloat(rtPercent) || 0
             };
         },
