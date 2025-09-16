@@ -1126,16 +1126,10 @@ document.getElementById('saveAmbienteBtn').addEventListener('click', function() 
             // Fechar o modal
             $('#addAmbienteModal').modal('hide');
             
-            // Adicionar a nova opção ao select de ambientes
-            const novoOption = document.createElement('option');
-            novoOption.value = data.ambiente_id;
-            novoOption.textContent = nome;
-            document.getElementById('ambiente_id').appendChild(novoOption);
-            
-            // Selecionar o novo ambiente
-            document.getElementById('ambiente_id').value = data.ambiente_id;
-            
-            Swal.fire('Sucesso', 'Ambiente adicionado com sucesso!', 'success');
+            // Recarregar a página para atualizar a lista de ambientes
+            Swal.fire('Sucesso', data.message, 'success').then(() => {
+                location.reload();
+            });
         } else {
             Swal.fire('Erro', data.message, 'error');
         }
@@ -1145,25 +1139,25 @@ document.getElementById('saveAmbienteBtn').addEventListener('click', function() 
     });
 });
 
-// Deletar ambiente
+// 📌 Deletar ambiente (agora coloca em standby)
 document.getElementById('deleteAmbienteBtn').addEventListener('click', function() {
     const ambienteSelect = document.getElementById('ambiente_id');
     const ambienteId = ambienteSelect.value;
     const ambienteNome = ambienteSelect.options[ambienteSelect.selectedIndex].text;
     
     if (!ambienteId) {
-        Swal.fire('Erro', 'Selecione um ambiente para excluir.', 'error');
+        Swal.fire('Erro', 'Selecione um ambiente para colocar em standby.', 'error');
         return;
     }
     
     Swal.fire({
         title: 'Tem certeza?',
-        text: `Deseja excluir o ambiente "${ambienteNome}"?`,
+        text: `Deseja colocar o ambiente "${ambienteNome}" em standby?`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
         cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Sim, excluir!',
+        confirmButtonText: 'Sim, colocar em standby!',
         cancelButtonText: 'Cancelar'
     }).then((result) => {
         if (result.isConfirmed) {
@@ -1177,19 +1171,20 @@ document.getElementById('deleteAmbienteBtn').addEventListener('click', function(
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Remover a opção do select
-                    ambienteSelect.remove(ambienteSelect.selectedIndex);
-                    Swal.fire('Sucesso', 'Ambiente excluído com sucesso!', 'success');
+                    // Recarregar a página para atualizar a lista de ambientes
+                    Swal.fire('Sucesso', data.message, 'success').then(() => {
+                        location.reload();
+                    });
                 } else {
                     Swal.fire('Erro', data.message, 'error');
                 }
             })
             .catch(error => {
-                Swal.fire('Erro', 'Erro ao excluir ambiente.', 'error');
+                Swal.fire('Erro', 'Erro ao colocar ambiente em standby.', 'error');
             });
         }
     });
-});	
+});
     </script>
 </body>
 </html>
