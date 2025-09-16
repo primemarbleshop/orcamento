@@ -1381,16 +1381,20 @@ def gerar_pdf_orcamento(codigo):
 def editar_material_rt_selecionados():
     data = request.get_json()
     orcamento_ids = data.get('orcamento_ids', [])
-    material_id = data.get('material_id')
+    material_id = data.get('material_id')  # Pode ser None
     rt = data.get('rt', 'Não')
     rt_percentual = data.get('rt_percentual', 0.0)
 
-    if not orcamento_ids or not material_id:
-        return jsonify({'erro': 'Dados inválidos.'}), 400
+    if not orcamento_ids:
+        return jsonify({'erro': 'Nenhum orçamento selecionado.'}), 400
 
-    material = Material.query.get(material_id)
-    if not material:
-        return jsonify({'erro': 'Material não encontrado.'}), 404
+    # Se material_id foi fornecido, validar se existe
+    if material_id:
+        material = Material.query.get(material_id)
+        if not material:
+            return jsonify({'erro': 'Material não encontrado.'}), 404
+    else:
+        material = None
 
     cuba_valores = {
         'Embutida': 225,
@@ -1412,26 +1416,33 @@ def editar_material_rt_selecionados():
     orcamentos = Orcamento.query.filter(Orcamento.id.in_(orcamento_ids)).all()
 
     for orcamento in orcamentos:
-        orcamento.material_id = material_id
+        # Atualizar material apenas se foi fornecido
+        if material_id:
+            orcamento.material_id = material_id
+        
+        # Sempre atualizar RT
         orcamento.rt = rt
         orcamento.rt_percentual = rt_percentual
+
+        # Usar o material atual (pode ser o novo ou o existente)
+        material_para_calculo = material if material else orcamento.material
 
         valor_total_criar = 0
 
         comprimento_cal = max(orcamento.comprimento, 10)
         largura_cal = max(orcamento.largura, 10)
 
-        valor_base = material.valor * (comprimento_cal * largura_cal / 10000)
+        valor_base = material_para_calculo.valor * (comprimento_cal * largura_cal / 10000)
 
         if orcamento.tipo_produto in ['Bancada', 'Lavatorio']:
-            if material.valor < 1000:
+            if material_para_calculo.valor < 1000:
                 valor_base *= 1.3
-            elif material.valor < 2000:
+            elif material_para_calculo.valor < 2000:
                 valor_base *= 1.15
-            elif material.valor < 1000000:
+            elif material_para_calculo.valor < 1000000:
                 valor_base *= 1.1
 
-        if orcamento.tipo_produto == 'Ilharga Bipolida' and material.valor < 1000000:
+        if orcamento.tipo_produto == 'Ilharga Bipolida' and material_para_calculo.valor < 1000000:
             valor_base *= 1.15
 
         valor_total_criar += valor_base
@@ -1449,21 +1460,21 @@ def editar_material_rt_selecionados():
                 area_nicho += ((comprimento_cal + (largura_alisar_cal * 2)) * largura_alisar_cal * 2) + \
                               ((largura_cal + (largura_alisar_cal * 2)) * largura_alisar_cal * 2)
 
-            valor_nicho = (area_nicho / 10000) * material.valor + 150
+            valor_nicho = (area_nicho / 10000) * material_para_calculo.valor + 150
             valor_total_criar = valor_nicho
 
         # Saia
         if orcamento.tipo_produto in ['Ilharga', 'Ilharga Bipolida', 'Bancada', 'Lavatorio']:
             comprimento_saia_cal = 10 if 0 < orcamento.comprimento_saia < 10 else orcamento.comprimento_saia
             largura_saia_cal = 10 if 0 < orcamento.largura_saia < 10 else orcamento.largura_saia
-            valor_saia = comprimento_saia_cal * largura_saia_cal * material.valor / 10000
+            valor_saia = comprimento_saia_cal * largura_saia_cal * material_para_calculo.valor / 10000
             valor_total_criar += valor_saia
 
         # Fronte
         if orcamento.tipo_produto in ['Bancada', 'Lavatorio']:
             comprimento_fronte_cal = 10 if 0 < orcamento.comprimento_fronte < 10 else orcamento.comprimento_fronte
             largura_fronte_cal = 10 if 0 < orcamento.largura_fronte < 10 else orcamento.largura_fronte
-            valor_fronte = comprimento_fronte_cal * largura_fronte_cal * material.valor / 10000
+            valor_fronte = comprimento_fronte_cal * largura_fronte_cal * material_para_calculo.valor / 10000
             valor_total_criar += valor_fronte
 
         # Pedra de Box
@@ -1486,7 +1497,7 @@ def editar_material_rt_selecionados():
                     m2_cuba = ((comprimento_cuba * largura_cuba * 2) +
                                (2 * (comprimento_cuba + largura_cuba) * profundidade_cuba)) / 10000
 
-                valor_cuba_esculpida = m2_cuba * material.valor * (orcamento.quantidade_cubas or 1) + 175
+                valor_cuba_esculpida = m2_cuba * material_para_calculo.valor * (orcamento.quantidade_cubas or 1) + 175
                 valor_total_criar += valor_cuba_esculpida
 
         # Cooktop
