@@ -58,20 +58,7 @@ def upload_db():
 
 br_tz = timezone('America/Sao_Paulo')
 
-# Definição das tabelas diretamente no app.py
-class Usuario(db.Model):
-    id = db.Column(db.Integer, primary_key=True)
-    nome = db.Column(db.String(100), nullable=False)
-    cpf = db.Column(db.String(14), unique=True, nullable=False)
-    telefone = db.Column(db.String(20), nullable=True)
-    senha = db.Column(db.String(200), nullable=False)
-    is_admin = db.Column(db.Boolean, default=False)
 
-    def set_senha(self, senha):
-        self.senha = generate_password_hash(senha)
-
-    def check_senha(self, senha):
-        return check_password_hash(self.senha, senha)
     
 class Usuario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
