@@ -554,6 +554,7 @@ def editar_orcamento(id):
 
     # Filtrar apenas os clientes cujo dono é o usuário logado
     clientes = Cliente.query.filter_by(dono=usuario_cpf).all()
+    ambientes = Ambiente.query.filter_by(dono=usuario_cpf).all()
 
     materiais = Material.query.all()
 
@@ -763,6 +764,7 @@ def editar_orcamento(id):
     return render_template(
         'editar_orcamento.html',
         orcamento=orcamento,
+        ambientes=ambientes,
         clientes=clientes,
         materiais=materiais,
         orcamentos_salvos=orcamentos_salvos
