@@ -1382,7 +1382,7 @@ def editar_material_rt_selecionados():
     data = request.get_json()
     orcamento_ids = data.get('orcamento_ids', [])
     material_id = data.get('material_id')  # Pode ser None
-    rt = data.get('rt', 'Não')
+    rt = data.get('rt')  # Pode ser None (manter atual)
     rt_percentual = data.get('rt_percentual', 0.0)
 
     if not orcamento_ids:
@@ -1410,22 +1410,29 @@ def editar_material_rt_selecionados():
 
     cooktop_valor = 50  # Valor fixo para cooktop
 
-    # 🔥 Coletar IDs de orçamentos salvos que serão afetados
-    orcamentos_salvos_para_atualizar = set()
-
     orcamentos = Orcamento.query.filter(Orcamento.id.in_(orcamento_ids)).all()
 
     for orcamento in orcamentos:
         # Atualizar material apenas se foi fornecido
         if material_id:
             orcamento.material_id = material_id
+            material_para_calculo = material
+        else:
+            material_para_calculo = orcamento.material
         
-        # Sempre atualizar RT
-        orcamento.rt = rt
-        orcamento.rt_percentual = rt_percentual
-
-        # Usar o material atual (pode ser o novo ou o existente)
-        material_para_calculo = material if material else orcamento.material
+        # Atualizar RT apenas se foi fornecida
+        if rt is not None:
+            orcamento.rt = rt
+        
+        # Atualizar percentual RT apenas se RT for "Sim"
+        if rt == 'Sim':
+            orcamento.rt_percentual = rt_percentual
+        elif rt is None:
+            # Manter o percentual atual se RT não foi alterada
+            pass
+        else:
+            # Se RT foi definida como "Não", zerar o percentual
+            orcamento.rt_percentual = 0.0
 
         valor_total_criar = 0
 
@@ -1446,6 +1453,8 @@ def editar_material_rt_selecionados():
             valor_base *= 1.15
 
         valor_total_criar += valor_base
+
+        # ... (resto do cálculo permanece igual) ...
 
         # Nicho
         if orcamento.tipo_produto == 'Nicho':
@@ -1510,9 +1519,12 @@ def editar_material_rt_selecionados():
         # Quantidade
         valor_total_criar *= orcamento.quantidade
 
-        # RT - usar os novos valores
-        if rt == 'Sim' and rt_percentual > 0:
-            valor_rt = valor_total_criar / (1 - rt_percentual / 100) - valor_total_criar
+        # RT - usar os valores atuais ou novos
+        rt_para_calculo = rt if rt is not None else orcamento.rt
+        rt_percentual_para_calculo = rt_percentual if rt == 'Sim' else orcamento.rt_percentual
+
+        if rt_para_calculo == 'Sim' and rt_percentual_para_calculo > 0:
+            valor_rt = valor_total_criar / (1 - rt_percentual_para_calculo / 100) - valor_total_criar
             valor_total_final = valor_total_criar + valor_rt
         else:
             valor_total_final = valor_total_criar
