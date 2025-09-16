@@ -1604,10 +1604,12 @@ def adicionar_ambiente():
             return jsonify({'success': False, 'message': 'Nome do ambiente é obrigatório.'}), 400
         
         user_cpf = session.get('user_cpf')
+        
+        # Modificação: Verificar se já existe um ambiente com o mesmo nome PARA ESTE USUÁRIO
         ambiente_existente = Ambiente.query.filter_by(nome=nome, dono=user_cpf).first()
         
         if ambiente_existente:
-            return jsonify({'success': False, 'message': 'Já existe um ambiente com este nome.'}), 400
+            return jsonify({'success': False, 'message': 'Já existe um ambiente com este nome para o seu usuário.'}), 400
         
         novo_ambiente = Ambiente(nome=nome, dono=user_cpf)
         db.session.add(novo_ambiente)
