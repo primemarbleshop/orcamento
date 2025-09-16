@@ -554,7 +554,7 @@ def editar_orcamento(id):
 
     # Filtrar apenas os clientes cujo dono é o usuário logado
     clientes = Cliente.query.filter_by(dono=usuario_cpf).all()
-    ambientes = Ambiente.query.filter_by(dono=usuario_cpf).all()
+    ambientes = Ambiente.query.filter_by(dono=usuario_cpf).order_by(Ambiente.nome).all()
 
     materiais = Material.query.all()
 
