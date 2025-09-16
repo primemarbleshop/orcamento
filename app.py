@@ -1182,6 +1182,7 @@ def detalhes_orcamento_salvo(codigo):
         codigo_orcamento=orcamento_salvo.codigo,
         data_salvo=orcamento_salvo.data_salvo,
         cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
+        orcamentos=orcamentos,
         ambientes_agrupados=ambientes_agrupados,  # Nova variável para agrupamento
         valor_total_final="R$ {:,.2f}".format(valor_total_final).replace(",", "X").replace(".", ",").replace("X", "."),
         valor_total_float=valor_total_float,
@@ -1327,6 +1328,7 @@ def gerar_pdf_orcamento(codigo):
         data_salvo=orcamento_salvo.data_salvo,
         cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
         orcamentos=orcamentos,
+        ambientes_agrupados=ambientes_agrupados,
         valor_total_final="R$ {:,.2f}".format(valor_total_final).replace(",", "X").replace(".", ",").replace("X", "."),
         valor_total_float=valor_total_float,
         telefone_usuario=telefone_usuario,
