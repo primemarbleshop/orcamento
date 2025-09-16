@@ -1377,11 +1377,13 @@ def gerar_pdf_orcamento(codigo):
     return response
 
 
-@app.route('/orcamentos/editar_material_selecionados', methods=['POST'])
-def editar_material_selecionados():
+@app.route('/orcamentos/editar_material_rt_selecionados', methods=['POST'])
+def editar_material_rt_selecionados():
     data = request.get_json()
     orcamento_ids = data.get('orcamento_ids', [])
     material_id = data.get('material_id')
+    rt = data.get('rt', 'Não')
+    rt_percentual = data.get('rt_percentual', 0.0)
 
     if not orcamento_ids or not material_id:
         return jsonify({'erro': 'Dados inválidos.'}), 400
@@ -1391,15 +1393,15 @@ def editar_material_selecionados():
         return jsonify({'erro': 'Material não encontrado.'}), 404
 
     cuba_valores = {
-            'Embutida': 225,
-            'Esculpida': 0,
-            'Tradicional Inox': 225,
-            'Tanque Inox': 500,
-            'Apoio Cliente': 125,
-            'Embutida Cliente': 125,
-            'Gourmet Cliente': 225,
-            'Sobrepor Cliente': 125,
-            'Tanque Inox Cliente': 225
+        'Embutida': 225,
+        'Esculpida': 0,
+        'Tradicional Inox': 225,
+        'Tanque Inox': 500,
+        'Apoio Cliente': 125,
+        'Embutida Cliente': 125,
+        'Gourmet Cliente': 225,
+        'Sobrepor Cliente': 125,
+        'Tanque Inox Cliente': 225
     }
 
     cooktop_valor = 50  # Valor fixo para cooktop
@@ -1411,6 +1413,8 @@ def editar_material_selecionados():
 
     for orcamento in orcamentos:
         orcamento.material_id = material_id
+        orcamento.rt = rt
+        orcamento.rt_percentual = rt_percentual
 
         valor_total_criar = 0
 
@@ -1495,9 +1499,9 @@ def editar_material_selecionados():
         # Quantidade
         valor_total_criar *= orcamento.quantidade
 
-        # RT
-        if orcamento.rt == 'Sim' and (orcamento.rt_percentual or 0) > 0:
-            valor_rt = valor_total_criar / (1 - orcamento.rt_percentual / 100) - valor_total_criar
+        # RT - usar os novos valores
+        if rt == 'Sim' and rt_percentual > 0:
+            valor_rt = valor_total_criar / (1 - rt_percentual / 100) - valor_total_criar
             valor_total_final = valor_total_criar + valor_rt
         else:
             valor_total_final = valor_total_criar
@@ -1514,8 +1518,7 @@ def editar_material_selecionados():
     for orcamento_salvo in orcamentos_salvos:
         atualizar_valor_orcamento_salvo(orcamento_salvo.id)
 
-    return jsonify({'success': 'Materiais atualizados, valores recalculados e orçamentos salvos atualizados.'})
-
+    return jsonify({'success': 'Materiais e RT atualizados, valores recalculados e orçamentos salvos atualizados.'})
 
 
 @app.route('/orcamentos/duplicar_selecionados', methods=['POST'])
