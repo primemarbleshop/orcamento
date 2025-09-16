@@ -104,12 +104,12 @@
         
         .valor-total {
             font-weight: bold;
-            color: #000000; /* Alterado para preto */
+            color: #000000;
         }
         
         .valor-final {
             font-weight: bold;
-            color: #ffffff; /* Alterado para preto */
+            color: #ffffff;
             font-size: 1.2rem;
         }
         
@@ -137,6 +137,19 @@
             width: 120px;
         }
         
+        .select-with-buttons {
+            display: flex;
+            gap: 5px;
+        }
+        
+        .select-with-buttons select {
+            flex: 1;
+        }
+        
+        .select-with-buttons .btn {
+            width: 38px;
+        }
+        
         @media (max-width: 768px) {
             .action-buttons {
                 flex-direction: column;
@@ -145,6 +158,14 @@
             .btn-action {
                 width: 100%;
                 margin-bottom: 5px;
+            }
+            
+            .select-with-buttons {
+                flex-direction: column;
+            }
+            
+            .select-with-buttons .btn {
+                width: 100%;
             }
         }
     </style>
@@ -182,6 +203,23 @@
                                     </option>
                                 {% endfor %}
                             </select>
+                        </div>
+
+                        <div class="col-md-6 col-lg-3 form-section">
+                            <label for="ambiente_id" class="form-label">Ambiente:</label>
+                            <div class="select-with-buttons">
+                                <select name="ambiente_id" id="ambiente_id" class="form-select">
+                                    {% for ambiente in ambientes %}
+                                        <option value="{{ ambiente.id }}">{{ ambiente.nome }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="button" class="btn btn-custom-success" data-bs-toggle="modal" data-bs-target="#addAmbienteModal">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                                <button type="button" class="btn btn-custom-danger" id="deleteAmbienteBtn">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </div>
 
                         <div class="col-md-6 col-lg-3 form-section">
@@ -238,6 +276,30 @@
                         </div>
                     </div>
                 </form>
+            </div>
+        </div>
+
+        <!-- Modal para adicionar ambiente -->
+        <div class="modal fade" id="addAmbienteModal" tabindex="-1" aria-labelledby="addAmbienteModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addAmbienteModalLabel">Adicionar Novo Ambiente</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addAmbienteForm">
+                            <div class="mb-3">
+                                <label for="novo_ambiente_nome" class="form-label">Nome do Ambiente:</label>
+                                <input type="text" class="form-control" id="novo_ambiente_nome" required>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-custom-primary" id="saveAmbienteBtn">Salvar</button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -298,6 +360,7 @@
                                     <th>Criado por</th>
                                 {% endif %}
                                 <th>Cliente</th>
+                                <th>Ambiente</th>
                                 <th>Produto</th>
                                 <th>Material</th>
                                 <th>Qtd</th>
@@ -319,6 +382,7 @@
                                     <td>{{ nome_usuario }}</td>
                                 {% endif %}
                                 <td>{{ orcamento.cliente.nome }}</td>
+                                <td>{{ orcamento.ambiente.nome if orcamento.ambiente else 'Não definido' }}</td>
                                 <td>{{ orcamento.tipo_produto }}</td>
                                 <td>{{ orcamento.material.nome }}</td>
                                 <td>{{ orcamento.quantidade }}</td>
@@ -667,7 +731,7 @@
         // Adicionar event listener para os checkboxes
         document.addEventListener('DOMContentLoaded', function() {
             // Inicializar Select2
-            $('#cliente_id, #material_id, #tipo_produto').select2({
+            $('#cliente_id, #material_id, #tipo_produto, #ambiente_id').select2({
                 width: '100%',
                 placeholder: "Selecione",
                 allowClear: true
@@ -684,10 +748,16 @@
             if (localStorage.getItem('material_id')) {
                 $('#material_id').val(localStorage.getItem('material_id')).trigger('change');
             }
+            if (localStorage.getItem('ambiente_id')) {
+                $('#ambiente_id').val(localStorage.getItem('ambiente_id')).trigger('change');
+            }
             
             // Salvar seleções no localStorage
-            $('#cliente_id, #tipo_produto, #material_id').on('change', function() {
+            $('#cliente_id, #tipo_produto, #material_id, #ambiente_id').on('change', function() {
                 localStorage.setItem(this.id, $(this).val());
+                if (this.id === 'tipo_produto') {
+                    toggleFields(); // Atualizar campos dinâmicos
+                }
             });
             
             // Inicializar datas com valores padrão
@@ -916,6 +986,12 @@
             const rows = document.querySelectorAll('#orcamento_table tr');
             let visibleCount = 0;
             
+            // Primeiro, mostrar todas as linhas
+            rows.forEach(row => {
+                row.style.display = '';
+            });
+            
+            // Aplicar filtros
             rows.forEach(row => {
                 const cliente = row.getAttribute('data-cliente');
                 const dataStr = row.getAttribute('data-data');
@@ -936,14 +1012,18 @@
                     show = false;
                 }
                 
-                // Aplicar filtro de quantidade
-                if (show && filtroQuantidade !== 'all' && visibleCount >= parseInt(filtroQuantidade)) {
-                    show = false;
+                // Aplicar filtro de quantidade (mostrar os mais recentes primeiro)
+                if (show && filtroQuantidade !== 'all') {
+                    // Se já atingiu o limite, ocultar
+                    if (visibleCount >= parseInt(filtroQuantidade)) {
+                        show = false;
+                    } else {
+                        visibleCount++;
+                    }
                 }
                 
                 if (show) {
                     row.style.display = '';
-                    visibleCount++;
                 } else {
                     row.style.display = 'none';
                 }
