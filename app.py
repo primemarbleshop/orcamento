@@ -1607,8 +1607,8 @@ def salvar_rodape_orcamento(codigo):
     
     # Atualizar os valores do rodapé
     orcamento_salvo.prazo_entrega = int(request.form.get('prazo_entrega', 15))
-    orcamento_salvo.desconto_avista = int(request.form.get('desconto_avista', 5))
-    orcamento_salvo.desconto_parcelado = int(request.form.get('desconto_parcelado', 10))
+    orcamento_salvo.desconto_avista = float(request.form.get('desconto_avista', 5))
+    orcamento_salvo.desconto_parcelado = float(request.form.get('desconto_parcelado', 10))
     orcamento_salvo.observacoes = request.form.get('observacoes', '')
     
     # ✅ NOVO: Salvar as opções de pagamento excluídas
