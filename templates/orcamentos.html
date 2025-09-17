@@ -175,6 +175,33 @@
         flex-shrink: 0;
     }
 }
+
+	.table tbody tr {
+        cursor: pointer;
+    }
+    
+    .table tbody tr:hover {
+        background-color: #f5f5f5 !important;
+    }
+    
+    /* Impedir que o clique nos botões de ação propague para a linha */
+    .action-buttons {
+        cursor: default;
+    }
+    
+    .action-buttons * {
+        cursor: pointer;
+    }
+
+	 /* Adicione este estilo para destacar linhas selecionadas */
+    .table tbody tr.selected {
+        background-color: #e3f2fd !important;
+    }
+    
+    /* Estilo para o checkbox quando a linha está selecionada */
+    .table tbody tr.selected .selecionar-orcamento {
+        accent-color: #4e73df;
+    }
     </style>
 </head>
 <body>
@@ -1190,6 +1217,58 @@ document.getElementById('deleteAmbienteBtn').addEventListener('click', function(
         }
     });
 });	
+
+		// Adicione esta função para tornar as linhas clicáveis
+function setupRowClickEvents() {
+    document.querySelectorAll('#orcamento_table tr').forEach(row => {
+        row.addEventListener('click', function(e) {
+            if (e.target.closest('.actions-cell') || e.target.closest('.action-buttons')) {
+                return;
+            }
+            
+            if (e.target.type === 'checkbox') {
+                return;
+            }
+            
+            const checkbox = this.querySelector('.selecionar-orcamento');
+            if (checkbox) {
+                checkbox.checked = !checkbox.checked;
+                
+                // Adicionar/remover a classe "selected" na linha
+                if (checkbox.checked) {
+                    this.classList.add('selected');
+                } else {
+                    this.classList.remove('selected');
+                }
+                
+                const event = new Event('change');
+                checkbox.dispatchEvent(event);
+            }
+        });
+    });
+    
+    // Também adicione a classe "selected" quando o checkbox for clicado diretamente
+    document.querySelectorAll('.selecionar-orcamento').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const row = this.closest('tr');
+            if (this.checked) {
+                row.classList.add('selected');
+            } else {
+                row.classList.remove('selected');
+            }
+        });
+    });
+}
+
+// Chame esta função quando o DOM estiver carregado
+document.addEventListener('DOMContentLoaded', function() {
+    // ... seu código existente ...
+    
+    // Configurar os eventos de clique nas linhas
+    setupRowClickEvents();
+    
+    // ... resto do seu código ...
+});
     </script>
 </body>
 </html>
