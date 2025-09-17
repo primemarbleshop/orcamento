@@ -1095,8 +1095,28 @@ function atualizarValorComDesconto(field, desconto) {
     valorElement.textContent = formatarMoeda(valorFinal);
 }
 
-// Event listener para o botão Salvar Alterações do Rodapé
+// NOVA FUNÇÃO: Atualizar todos os campos do formulário com os valores atuais
+function atualizarFormulario() {
+    // CORREÇÃO: Usar textContent em vez de value para elementos de exibição
+    document.getElementById('formPrazoEntrega').value = document.getElementById('deliveryDaysDisplay').textContent;
+    document.getElementById('formDescontoAvista').value = document.getElementById('discount1Display').textContent;
+    document.getElementById('formDescontoParcelado').value = document.getElementById('discount2Display').textContent;
+    document.getElementById('formObservacoes').value = document.getElementById('observacoesDisplay').textContent;
+    document.getElementById('formExcludePayments').value = hiddenPaymentOptions.join(',');
+}
+
+// Event listener para o botão Salvar Alterações do Rodapé - MODIFICADO
 document.getElementById('btnSalvarRodape').addEventListener('click', function() {
+    // Garantir que todos os valores estejam atualizados no formulário
+    atualizarFormulario();
+    
+    // DEBUG: Verificar os valores que estão sendo enviados
+    console.log('Prazo entrega:', document.getElementById('formPrazoEntrega').value);
+    console.log('Desconto à vista:', document.getElementById('formDescontoAvista').value);
+    console.log('Desconto parcelado:', document.getElementById('formDescontoParcelado').value);
+    console.log('Observações:', document.getElementById('formObservacoes').value);
+    console.log('Pagamentos excluídos:', document.getElementById('formExcludePayments').value);
+    
     document.getElementById('rodapeForm').submit();
 });
 
@@ -1115,6 +1135,9 @@ document.addEventListener('DOMContentLoaded', function() {
             button.textContent = 'Ocultar no PDF';
         }
     });
+    
+    // Inicializar campos do formulário com valores atuais
+    atualizarFormulario();
 });
 </script>
 </div>
