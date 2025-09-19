@@ -83,7 +83,7 @@
         border-radius: 5px;
         box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
         text-align: center;
-        margin-bottom: 20px; /* Aumentado para dar espaço para a linha */
+        margin-bottom: 20px;
         float: right;
         clear: both;
     } 
@@ -109,7 +109,7 @@
     .orcamento-footer {
         margin-top: 15px;
         padding: 8px;
-        border-top: 2px solid #FFD700; /* Linha amarela */
+        border-top: 2px solid #FFD700;
         background-color: transparent;
         page-break-inside: avoid;
         font-size: 13px;
@@ -144,7 +144,7 @@
     }
 
     .payment-option {
-        margin-bottom: 15px; /* Aumentado para dar espaço ao botão */
+        margin-bottom: 15px;
         flex: 1;
         min-width: 0;
         padding: 0 8px;
@@ -363,15 +363,13 @@
         background-color: #5a6268;
     }
 
-    /* Nova classe para linha separadora */
     .separator-line {
-        border-top: 2px solid #FFD700; /* Linha amarela */
+        border-top: 2px solid #FFD700;
         margin: 15px 0;
         width: 100%;
         clear: both;
     }
 
-    /* Container para o total-box para controlar o fluxo */
     .total-container {
         width: 100%;
         display: block;
@@ -379,7 +377,6 @@
         margin-bottom: 15px;
     }
 
-    /* Estilo para o valor do ambiente */
     .ambiente-total {
         font-weight: bold;
         color: #333;
@@ -388,26 +385,36 @@
         display: inline-block;
     }
 
-   /* NOVO ESTILO: Título do ambiente com título à esquerda e valor à direita */
-.ambiente-header {
-    font-size: 18px;
-    font-weight: bold;
-    margin-top: 30px;
-    margin-bottom: 15px;
-    color: #000;
-    background-color: transparent;
-    padding: 12px 20px;
-    border-top: 2px solid #FFD700; /* Linha amarela mantida em cima */
-    display: flex;
-    justify-content: space-between; /* Altera para espaço entre os elementos */
-    align-items: center;
-    flex-wrap: wrap;
-    /* CORREÇÃO: Garantir que o cabeçalho não seja dividido entre páginas */
-    page-break-inside: avoid;
-    break-inside: avoid;
-}
+    /* SOLUÇÃO MELHORADA para o cabeçalho do ambiente */
+    .ambiente-header {
+        font-size: 18px;
+        font-weight: bold;
+        margin-top: 30px;
+        margin-bottom: 15px;
+        color: #000;
+        background-color: transparent;
+        padding: 12px 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        position: relative;
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+    
+    /* Linha amarela como pseudo-elemento para melhor controle */
+    .ambiente-header::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background-color: #FFD700;
+        z-index: 1;
+    }
 
-    /* NOVO ESTILO: Subtítulo do tipo de produto */
     .produto-header {
         font-size: 16px;
         font-weight: bold;
@@ -418,14 +425,14 @@
         background-color: transparent;
         padding: 8px 15px;
         border-radius: 4px;
-        /* CORREÇÃO: Garantir que o cabeçalho do produto não seja dividido */
         page-break-after: avoid;
     }
 
-    /* NOVA CLASSE: Container para ambiente para evitar quebra interna */
+    /* Container para ambiente com proteção reforçada contra quebra */
     .ambiente-container {
         page-break-inside: avoid;
         break-inside: avoid;
+        overflow: hidden;
     }
 
     @media print {
@@ -542,7 +549,7 @@
             font-size: 12px !important;
             margin-top: 10px !important;
             padding: 5px !important;
-            border-top: 2px solid #FFD700 !important; /* Mantém amarelo no PDF */
+            border-top: 2px solid #FFD700 !important;
         }
         
         .footer-title {
@@ -590,25 +597,28 @@
         }
         
         .separator-line {
-            border-top: 2px solid #FFD700 !important; /* Mantém amarelo no PDF */
+            border-top: 2px solid #FFD700 !important;
             margin: 10px 0 !important;
         }
         
-        /* Estilos de impressão para o título do ambiente */
-.ambiente-header {
-    font-size: 16px !important;
-    background-color: transparent !important;
-    box-shadow: none !important;
-    border-top: 2px solid #FFD700 !important; /* Linha amarela mantida em cima */
-    page-break-after: avoid;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-    margin-top: 20px !important;
-    margin-bottom: 10px !important;
-    padding: 5px 10px !important;
-    display: flex !important;
-    justify-content: space-between !important; /* Mantém o layout no PDF */
-}
+        /* ESTILOS DE IMPRESSÃO MELHORADOS para o título do ambiente */
+        .ambiente-header {
+            font-size: 16px !important;
+            background-color: transparent !important;
+            box-shadow: none !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            margin-top: 20px !important;
+            margin-bottom: 10px !important;
+            padding: 5px 10px !important;
+            display: flex !important;
+            justify-content: space-between !important;
+        }
+        
+        .ambiente-header::before {
+            height: 2px !important;
+            background-color: #FFD700 !important;
+        }
         
         .produto-header {
             font-size: 14px !important;
@@ -619,10 +629,11 @@
             padding: 5px 10px !important;
         }
 
-        /* CORREÇÃO: Container para ambiente em impressão */
+        /* Container para ambiente em impressão com proteção reforçada */
         .ambiente-container {
             page-break-inside: avoid !important;
             break-inside: avoid !important;
+            overflow: visible !important;
         }
     }
 
