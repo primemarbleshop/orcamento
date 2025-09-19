@@ -340,108 +340,77 @@
         <!-- Card da lista de orçamentos -->
         <div class="card card-custom">
             <div class="card-header card-header-custom d-flex justify-content-between align-items-center">
-                <h5 class="m-0 font-weight-bold"><i class="fas fa-list me-2"></i>Lista de Orçamentos</h5>
-                <h5 class="m-0 font-weight-bold">Valor Final: <span id="valor-final" class="valor-final">R$ 0,00</span></h5>
-            </div>
-            <div class="card-body">
-                <!-- Filtros -->
-                <div class="row filtro-section">
-                    <div class="col-md-3 mb-2">
-                        <label for="filtro_cliente" class="form-label">Filtrar por Cliente:</label>
-                        <select id="filtro_cliente" class="form-select" onchange="filterOrcamentos()">
-                            <option value="Todos">Todos</option>
-                            {% for cliente in clientes %}
-                                <option value="{{ cliente.nome }}">{{ cliente.nome }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
+    <h5 class="m-0 font-weight-bold"><i class="fas fa-list me-2"></i>Lista de Orçamentos</h5>
+    <h5 class="m-0 font-weight-bold">Valor Final: <span id="valor-final" class="valor-final">R$ 0,00</span></h5>
+</div>
 
-                    <div class="col-md-2 mb-2">
-                        <label for="filtro_data_inicio" class="form-label">Data Inicial:</label>
-                        <input type="date" id="filtro_data_inicio" class="form-control" onchange="filterOrcamentos()">
-                    </div>
+<!-- FILTROS MODIFICADOS -->
+<div class="row filtro-section">
+    <div class="col-md-3 mb-2">
+        <label for="filtro_cliente" class="form-label">Filtrar por Cliente:</label>
+        <select id="filtro_cliente" class="form-select" onchange="carregarOrcamentos()">
+            <option value="Todos">Todos</option>
+            {% for cliente in clientes %}
+                <option value="{{ cliente.nome }}">{{ cliente.nome }}</option>
+            {% endfor %}
+        </select>
+    </div>
 
-                    <div class="col-md-2 mb-2">
-                        <label for="filtro_data_fim" class="form-label">Data Final:</label>
-                        <input type="date" id="filtro_data_fim" class="form-control" onchange="filterOrcamentos()">
-                    </div>
+    <div class="col-md-2 mb-2">
+        <label for="filtro_data_inicio" class="form-label">Data Inicial:</label>
+        <input type="date" id="filtro_data_inicio" class="form-control" onchange="carregarOrcamentos()">
+    </div>
 
-                    <div class="col-md-2 mb-2">
-                        <label for="filtro_quantidade" class="form-label">Mostrar:</label>
-                        <select id="filtro_quantidade" class="form-select" onchange="filterOrcamentos()">
-                            <option value="15">Últimos 15</option>
-                            <option value="30">Últimos 30</option>
-                            <option value="50">Últimos 50</option>
-                            <option value="100">Últimos 100</option>
-                            <option value="all">Todos</option>
-                        </select>
-                    </div>
+    <div class="col-md-2 mb-2">
+        <label for="filtro_data_fim" class="form-label">Data Final:</label>
+        <input type="date" id="filtro_data_fim" class="form-control" onchange="carregarOrcamentos()">
+    </div>
 
-                    <div class="col-md-3 mb-2 d-flex align-items-end">
-                        <button type="button" class="btn btn-custom-primary w-100" onclick="resetFilters()">
-                            <i class="fas fa-sync-alt me-1"></i> Limpar Filtros
-                        </button>
-                    </div>
-                </div>
+    <div class="col-md-2 mb-2">
+        <label for="filtro_quantidade" class="form-label">Mostrar:</label>
+        <select id="filtro_quantidade" class="form-select" onchange="carregarOrcamentos()">
+            <option value="15">Últimos 15</option>
+            <option value="30">Últimos 30</option>
+            <option value="50">Últimos 50</option>
+            <option value="100">Últimos 100</option>
+            <option value="0">Todos</option>
+        </select>
+    </div>
 
-                <!-- Tabela de orçamentos -->
-                <div class="table-responsive">
-                    <table class="table table-striped table-bordered table-hover">
-                        <thead>
-                            <tr>
-                                <th>    </th>
-                                {% if is_admin %}
-                                    <th>Criado por</th>
-                                {% endif %}
-                                <th>Cliente</th>
-                                <th>Ambiente</th>
-                                <th>Produto</th>
-                                <th>Material</th>
-                                <th>Qtd</th>
-                                <th>Compr.</th>
-                                <th>Larg.</th>
-                                <th>Outros Custos</th>
-                                <th>Valor</th>
-                                <th>  Data  </th>
-                                <th class="actions-cell">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="orcamento_table">
-                            {% for orcamento, nome_usuario in orcamentos %}
-                            <tr data-id="{{ orcamento.id }}" data-cliente="{{ orcamento.cliente.nome }}" data-data="{{ orcamento.data.strftime('%Y-%m-%d %H:%M:%S') }}">
-                                <td class="checkbox-cell">
-                                    <input type="checkbox" class="selecionar-orcamento" data-valor="{{ orcamento.valor_total }}">
-                                </td>
-                                {% if is_admin %}
-                                    <td>{{ nome_usuario }}</td>
-                                {% endif %}
-                                <td>{{ orcamento.cliente.nome }}</td>
-                                <td>{{ orcamento.ambiente.nome if orcamento.ambiente else 'Não definido' }}</td>
-                                <td>{{ orcamento.tipo_produto }}</td>
-                                <td>{{ orcamento.material.nome }}</td>
-                                <td>{{ orcamento.quantidade }}</td>
-                                <td>{{ orcamento.comprimento }}</td>
-                                <td>{{ orcamento.largura }}</td>
-                                <td>{{ orcamento.outros_custos }}</td>
-                                <td class="valor-total">{{ "R$ {:,.2f}".format(orcamento.valor_total).replace(",", "X").replace(".", ",").replace("X", ".") }}</td>
-                                <td>{{ orcamento.data.strftime('%d-%m-%y') }}</td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <a href="{{ url_for('editar_orcamento', id=orcamento.id) }}" class="btn btn-sm btn-custom-primary" title="Editar">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <form action="{{ url_for('deletar_orcamento', id=orcamento.id) }}" method="POST" class="d-inline" onsubmit="confirmarExclusao(event, this)">
-                                            <button type="submit" class="btn btn-sm btn-custom-danger" title="Excluir">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+    <div class="col-md-3 mb-2 d-flex align-items-end">
+        <button type="button" class="btn btn-custom-primary w-100" onclick="resetFilters()">
+            <i class="fas fa-sync-alt me-1"></i> Limpar Filtros
+        </button>
+    </div>
+</div>
+
+<!-- TABELA VAZIA (será preenchida via AJAX) -->
+<div class="table-responsive">
+    <table class="table table-striped table-bordered table-hover">
+        <thead>
+            <tr>
+                <th>    </th>
+                {% if is_admin %}
+                    <th>Criado por</th>
+                {% endif %}
+                <th>Cliente</th>
+                <th>Ambiente</th>
+                <th>Produto</th>
+                <th>Material</th>
+                <th>Qtd</th>
+                <th>Compr.</th>
+                <th>Larg.</th>
+                <th>Outros Custos</th>
+                <th>Valor</th>
+                <th>  Data  </th>
+                <th class="actions-cell">Ações</th>
+            </tr>
+        </thead>
+        <tbody id="orcamento_table">
+            <!-- Conteúdo será carregado via AJAX -->
+        </tbody>
+    </table>
+</div>
 
                 <!-- Botões de ação -->
                 <div class="row mt-4">
@@ -1055,64 +1024,149 @@ document.getElementById('edit-selected').addEventListener('click', function() {
 });
 
         // Função para filtrar orçamentos
-        function filterOrcamentos() {
-            const filtroCliente = document.getElementById('filtro_cliente').value;
-            const filtroDataInicio = document.getElementById('filtro_data_inicio').value;
-            const filtroDataFim = document.getElementById('filtro_data_fim').value;
-            const filtroQuantidade = document.getElementById('filtro_quantidade').value;
-            
-            const rows = document.querySelectorAll('#orcamento_table tr');
-            let visibleCount = 0;
-            
-            // Primeiro, mostrar todas as linhas
-            rows.forEach(row => {
-                row.style.display = '';
-            });
-            
-            // Aplicar filtros
-            rows.forEach(row => {
-                const cliente = row.getAttribute('data-cliente');
-                const dataStr = row.getAttribute('data-data');
-                const data = dataStr.split(' ')[0]; // Pegar apenas a data (YYYY-MM-DD)
-                
-                let show = true;
-                
-                // Filtrar por cliente
-                if (filtroCliente !== 'Todos' && cliente !== filtroCliente) {
-                    show = false;
-                }
-                
-                // Filtrar por data
-                if (filtroDataInicio && data < filtroDataInicio) {
-                    show = false;
-                }
-                if (filtroDataFim && data > filtroDataFim) {
-                    show = false;
-                }
-                
-                // Aplicar filtro de quantidade (mostrar os mais recentes primeiro)
-                if (show && filtroQuantidade !== 'all') {
-                    // Se já atingiu o limite, ocultar
-                    if (visibleCount >= parseInt(filtroQuantidade)) {
-                        show = false;
-                    } else {
-                        visibleCount++;
-                    }
-                }
-                
-                if (show) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-            
-            // Salvar filtros no localStorage
-            localStorage.setItem('filtroCliente', filtroCliente);
-            localStorage.setItem('filtroDataInicio', filtroDataInicio);
-            localStorage.setItem('filtroDataFim', filtroDataFim);
-            localStorage.setItem('filtroQuantidade', filtroQuantidade);
+        function carregarOrcamentos() {
+    const filtroCliente = document.getElementById('filtro_cliente').value;
+    const filtroDataInicio = document.getElementById('filtro_data_inicio').value;
+    const filtroDataFim = document.getElementById('filtro_data_fim').value;
+    const limite = document.getElementById('filtro_quantidade').value;
+    
+    // Mostrar indicador de carregamento
+    document.getElementById('orcamento_table').innerHTML = `
+        <tr>
+            <td colspan="${is_admin ? 13 : 12}" class="text-center py-4">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Carregando...</span>
+                </div>
+                <p class="mt-2">Carregando orçamentos...</p>
+            </td>
+        </tr>
+    `;
+    
+    // Fazer requisição AJAX para o backend com os filtros
+    fetch(`/orcamentos?filtro_cliente=${filtroCliente}&filtro_data_inicio=${filtroDataInicio}&filtro_data_fim=${filtroDataFim}&limite=${limite}`, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
         }
+    })
+    .then(response => response.json())
+    .then(data => {
+        // Limpar tabela
+        const tabela = document.getElementById('orcamento_table');
+        tabela.innerHTML = '';
+        
+        // Preencher com os novos dados
+        data.orcamentos.forEach(item => {
+            const valorFormatado = "R$ " + item.valor_total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            
+            const linha = document.createElement('tr');
+            linha.setAttribute('data-id', item.id);
+            linha.setAttribute('data-cliente', item.cliente_nome);
+            linha.setAttribute('data-data', item.data);
+            
+            linha.innerHTML = `
+                <td class="checkbox-cell">
+                    <input type="checkbox" class="selecionar-orcamento" data-valor="${item.valor_total}">
+                </td>
+                ${is_admin ? `<td>${item.nome_usuario}</td>` : ''}
+                <td>${item.cliente_nome}</td>
+                <td>${item.ambiente_nome}</td>
+                <td>${item.tipo_produto}</td>
+                <td>${item.material_nome}</td>
+                <td>${item.quantidade}</td>
+                <td>${item.comprimento}</td>
+                <td>${item.largura}</td>
+                <td>${item.outros_custos}</td>
+                <td class="valor-total">${valorFormatado}</td>
+                <td>${item.data}</td>
+                <td>
+                    <div class="action-buttons">
+                        <a href="/orcamentos/edit/${item.id}" class="btn btn-sm btn-custom-primary" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <form action="/deletar_orcamento/${item.id}" method="POST" class="d-inline" onsubmit="confirmarExclusao(event, this)">
+                            <button type="submit" class="btn btn-sm btn-custom-danger" title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            `;
+            
+            tabela.appendChild(linha);
+        });
+        
+        // Configurar eventos das linhas
+        setupRowClickEvents();
+        
+        // Re-inicializar event listeners para checkboxes
+        document.querySelectorAll('.selecionar-orcamento').forEach(checkbox => {
+            checkbox.addEventListener('change', atualizarValorFinal);
+        });
+    })
+    .catch(error => {
+        console.error('Erro ao carregar orçamentos:', error);
+        document.getElementById('orcamento_table').innerHTML = `
+            <tr>
+                <td colspan="${is_admin ? 13 : 12}" class="text-center text-danger py-4">
+                    Erro ao carregar orçamentos. Por favor, recarregue a página.
+                </td>
+            </tr>
+        `;
+    });
+    
+    // Salvar filtros no localStorage
+    localStorage.setItem('filtroCliente', filtroCliente);
+    localStorage.setItem('filtroDataInicio', filtroDataInicio);
+    localStorage.setItem('filtroDataFim', filtroDataFim);
+    localStorage.setItem('filtroQuantidade', limite);
+}
+
+// FUNÇÃO PARA LIMPAR FILTROS
+function resetFilters() {
+    document.getElementById('filtro_cliente').value = 'Todos';
+    
+    // Definir datas padrão (últimos 30 dias)
+    const hoje = new Date();
+    const trintaDiasAtras = new Date();
+    trintaDiasAtras.setDate(hoje.getDate() - 30);
+    
+    document.getElementById('filtro_data_inicio').value = trintaDiasAtras.toISOString().split('T')[0];
+    document.getElementById('filtro_data_fim').value = hoje.toISOString().split('T')[0];
+    document.getElementById('filtro_quantidade').value = '15';
+    
+    // Limpar localStorage
+    localStorage.removeItem('filtroCliente');
+    localStorage.removeItem('filtroDataInicio');
+    localStorage.removeItem('filtroDataFim');
+    localStorage.removeItem('filtroQuantidade');
+    
+    carregarOrcamentos();
+}
+
+// NO CARREGAMENTO DA PÁGINA
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar Select2
+    $('#cliente_id, #material_id, #tipo_produto, #ambiente_id').select2({
+        width: '100%',
+        placeholder: "Selecione",
+        allowClear: true
+    });
+    
+    // Configurar datas padrão se não estiverem definidas
+    if (!localStorage.getItem('filtroDataInicio')) {
+        const hoje = new Date();
+        const trintaDiasAtras = new Date();
+        trintaDiasAtras.setDate(hoje.getDate() - 30);
+        
+        document.getElementById('filtro_data_inicio').value = trintaDiasAtras.toISOString().split('T')[0];
+        document.getElementById('filtro_data_fim').value = hoje.toISOString().split('T')[0];
+    }
+    
+    // Carregar orçamentos iniciais
+    carregarOrcamentos();
+    
+    // Restante do código de inicialização...
+});
 
         // Função para resetar os filtros
         function resetFilters() {
