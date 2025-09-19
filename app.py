@@ -371,88 +371,33 @@ def listar_orcamentos():
 
         return redirect(url_for('listar_orcamentos'))
 
-    filtro_cliente = request.args.get('filtro_cliente', 'Todos')
-    filtro_data_inicio = request.args.get('filtro_data_inicio', '')
-    filtro_data_fim = request.args.get('filtro_data_fim', '')
-    limite = request.args.get('limite', 15, type=int)
-
     user_cpf = session.get('user_cpf')
 
     if not user_cpf:
         flash("Faça login para acessar os orçamentos.", "error")
         return redirect(url_for('login'))
 
-    # QUERY BASE
     if session.get('admin'):
-        query = db.session.query(
+        orcamentos = db.session.query(
             Orcamento,
             Usuario.nome.label('nome_usuario')
-        ).join(Usuario, Orcamento.dono == Usuario.cpf)
+        ).join(Usuario, Orcamento.dono == Usuario.cpf).order_by(Orcamento.data.desc()).all()
     
         clientes = Cliente.query.order_by(Cliente.nome).all()
         ambientes = Ambiente.query.order_by(Ambiente.nome).all()
     
     else:
-        query = db.session.query(
+        orcamentos = db.session.query(
             Orcamento,
             Usuario.nome.label('nome_usuario')
-        ).join(Usuario, Orcamento.dono == Usuario.cpf).filter(Orcamento.dono == user_cpf)
+        ).join(Usuario, Orcamento.dono == Usuario.cpf).filter(Orcamento.dono == user_cpf).order_by(Orcamento.data.desc()).all()
     
         clientes = Cliente.query.filter_by(dono=user_cpf).order_by(Cliente.nome).all()
         ambientes = Ambiente.query.filter_by(dono=user_cpf).order_by(Ambiente.nome).all()
 
-    # APLICAR FILTROS
-    if filtro_cliente != 'Todos':
-        query = query.join(Cliente).filter(Cliente.nome == filtro_cliente)
-    
-    if filtro_data_inicio:
-        try:
-            data_inicio = datetime.strptime(filtro_data_inicio, '%Y-%m-%d')
-            query = query.filter(Orcamento.data >= data_inicio)
-        except ValueError:
-            pass
-    
-    if filtro_data_fim:
-        try:
-            data_fim = datetime.strptime(filtro_data_fim, '%Y-%m-%d')
-            data_fim = data_fim.replace(hour=23, minute=59, second=59)
-            query = query.filter(Orcamento.data <= data_fim)
-        except ValueError:
-            pass
-    
-    # ORDENAR E LIMITAR
-    query = query.order_by(Orcamento.data.desc())
-    
-    if limite != 0:  # 0 significa "todos"
-        query = query.limit(limite)
-    
-    orcamentos = query.all()
     materiais = Material.query.order_by(Material.nome).all()
     is_admin = session.get('admin', False)
 
-    # SE FOR REQUISIÇÃO AJAX, RETORNAR JSON
-    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        orcamentos_data = []
-        for orcamento, nome_usuario in orcamentos:
-            orcamentos_data.append({
-                'id': orcamento.id,
-                'cliente_nome': orcamento.cliente.nome,
-                'ambiente_nome': orcamento.ambiente.nome if orcamento.ambiente else 'Não definido',
-                'tipo_produto': orcamento.tipo_produto,
-                'material_nome': orcamento.material.nome,
-                'quantidade': orcamento.quantidade,
-                'comprimento': orcamento.comprimento,
-                'largura': orcamento.largura,
-                'outros_custos': orcamento.outros_custos,
-                'valor_total': orcamento.valor_total,
-                'data': orcamento.data.strftime('%d-%m-%y'),
-                'nome_usuario': nome_usuario
-            })
-        return jsonify({
-            'orcamentos': orcamentos_data,
-            'total': len(orcamentos)
-        })
-    
     return render_template(
         'orcamentos.html',
         orcamentos=orcamentos,
@@ -461,6 +406,7 @@ def listar_orcamentos():
         materiais=materiais,
         is_admin=is_admin
     )
+
     
 import re  # Para usar expressões regulares
 
