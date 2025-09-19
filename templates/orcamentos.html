@@ -1060,8 +1060,6 @@ document.getElementById('edit-selected').addEventListener('click', function() {
             
             const linha = document.createElement('tr');
             linha.setAttribute('data-id', item.id);
-            linha.setAttribute('data-cliente', item.cliente_nome);
-            linha.setAttribute('data-data', item.data);
             
             linha.innerHTML = `
                 <td class="checkbox-cell">
@@ -1102,6 +1100,9 @@ document.getElementById('edit-selected').addEventListener('click', function() {
         document.querySelectorAll('.selecionar-orcamento').forEach(checkbox => {
             checkbox.addEventListener('change', atualizarValorFinal);
         });
+        
+        // Atualizar valor final
+        atualizarValorFinal();
     })
     .catch(error => {
         console.error('Erro ao carregar orçamentos:', error);
@@ -1113,13 +1114,19 @@ document.getElementById('edit-selected').addEventListener('click', function() {
             </tr>
         `;
     });
-    
-    // Salvar filtros no localStorage
-    localStorage.setItem('filtroCliente', filtroCliente);
-    localStorage.setItem('filtroDataInicio', filtroDataInicio);
-    localStorage.setItem('filtroDataFim', filtroDataFim);
-    localStorage.setItem('filtroQuantidade', limite);
 }
+
+// Configurar event listeners para os filtros
+document.addEventListener('DOMContentLoaded', function() {
+    // Configurar eventos de mudança para os filtros
+    document.getElementById('filtro_cliente').addEventListener('change', carregarOrcamentos);
+    document.getElementById('filtro_data_inicio').addEventListener('change', carregarOrcamentos);
+    document.getElementById('filtro_data_fim').addEventListener('change', carregarOrcamentos);
+    document.getElementById('filtro_quantidade').addEventListener('change', carregarOrcamentos);
+    
+    // Carregar orçamentos inicialmente
+    carregarOrcamentos();
+});
 
 // FUNÇÃO PARA LIMPAR FILTROS
 function resetFilters() {
