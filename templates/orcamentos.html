@@ -138,70 +138,85 @@
         }
         
         .select-with-buttons {
-    display: flex;
-    gap: 5px;
-}
+            display: flex;
+            gap: 5px;
+        }
 
-.select-with-buttons select {
-    flex: 1;
-}
+        .select-with-buttons select {
+            flex: 1;
+        }
 
-.select-with-buttons .btn {
-    width: 38px;
-    height: 38px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0;
-}
+        .select-with-buttons .btn {
+            width: 38px;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
 
-@media (max-width: 768px) {
-    .action-buttons {
-        flex-direction: column;
-    }
-    
-    .btn-action {
-        width: 100%;
-        margin-bottom: 5px;
-    }
-    
-    .select-with-buttons {
-        flex-direction: row;
-    }
-    
-    .select-with-buttons .btn {
-        width: 38px;
-        height: 38px;
-        flex-shrink: 0;
-    }
-}
+        @media (max-width: 768px) {
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .btn-action {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+            
+            .select-with-buttons {
+                flex-direction: row;
+            }
+            
+            .select-with-buttons .btn {
+                width: 38px;
+                height: 38px;
+                flex-shrink: 0;
+            }
+        }
 
-	.table tbody tr {
-        cursor: pointer;
-    }
-    
-    .table tbody tr:hover {
-        background-color: #f5f5f5 !important;
-    }
-    
-    /* Impedir que o clique nos botões de ação propague para a linha */
-    .action-buttons {
-        cursor: default;
-    }
-    
-    .action-buttons * {
-        cursor: pointer;
-    }
+        .table tbody tr {
+            cursor: pointer;
+        }
+        
+        .table tbody tr:hover {
+            background-color: #f5f5f5 !important;
+        }
+        
+        /* Impedir que o clique nos botões de ação propague para a linha */
+        .action-buttons {
+            cursor: default;
+        }
+        
+        .action-buttons * {
+            cursor: pointer;
+        }
 
-	 /* Adicione este estilo para destacar linhas selecionadas */
-    .table tbody tr.selected {
-        background-color: #e3f2fd !important;
-    }
-    
-    /* Estilo para o checkbox quando a linha está selecionada */
-    .table tbody tr.selected .selecionar-orcamento {
-        accent-color: #4e73df;
-    }
+        /* Adicione este estilo para destacar linhas selecionadas */
+        .table tbody tr.selected {
+            background-color: #e3f2fd !important;
+        }
+        
+        /* Estilo para o checkbox quando a linha está selecionada */
+        .table tbody tr.selected .selecionar-orcamento {
+            accent-color: #4e73df;
+        }
+        
+        .alert-info {
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+        
+        .filtro-auto {
+            transition: all 0.3s ease;
+        }
+        
+        .filtro-auto:focus {
+            border-color: #4e73df;
+            box-shadow: 0 0 0 0.2rem rgba(78, 115, 223, 0.25);
+        }
     </style>
 </head>
 <body>
@@ -232,7 +247,7 @@
                             <label for="cliente_id" class="form-label">Cliente:</label>
                             <select name="cliente_id" id="cliente_id" class="form-select">
                                 {% for cliente in clientes %}
-                                    <option value="{{ cliente.id }}" {% if cliente.id == selected_cliente_id %}selected{% endif %}>
+                                    <option value="{{ cliente.id }}">
                                         {{ cliente.nome }}
                                     </option>
                                 {% endfor %}
@@ -274,7 +289,7 @@
                             <label for="material_id" class="form-label">Material:</label>
                             <select name="material_id" id="material_id" class="form-select">
                                 {% for material in materiais %}
-                                    <option value="{{ material.id }}" {% if material.id == selected_material_id %}selected{% endif %}>
+                                    <option value="{{ material.id }}">
                                         {{ material.nome }}
                                     </option>
                                 {% endfor %}
@@ -348,41 +363,48 @@
                 <div class="row filtro-section">
                     <div class="col-md-3 mb-2">
                         <label for="filtro_cliente" class="form-label">Filtrar por Cliente:</label>
-                        <select id="filtro_cliente" class="form-select" onchange="filterOrcamentos()">
-                            <option value="Todos">Todos</option>
+                        <select id="filtro_cliente" class="form-select filtro-auto" onchange="aplicarFiltrosAuto()">
+                            <option value="Todos" {% if filtro_cliente_atual == 'Todos' %}selected{% endif %}>Todos</option>
                             {% for cliente in clientes %}
-                                <option value="{{ cliente.nome }}">{{ cliente.nome }}</option>
+                                <option value="{{ cliente.nome }}" 
+                                    {% if cliente.nome == filtro_cliente_atual %}selected{% endif %}>
+                                    {{ cliente.nome }}
+                                </option>
                             {% endfor %}
                         </select>
                     </div>
 
                     <div class="col-md-2 mb-2">
                         <label for="filtro_data_inicio" class="form-label">Data Inicial:</label>
-                        <input type="date" id="filtro_data_inicio" class="form-control" onchange="filterOrcamentos()">
+                        <input type="date" id="filtro_data_inicio" class="form-control filtro-auto" 
+                               value="{{ filtro_data_inicio_atual }}" onchange="aplicarFiltrosAuto()">
                     </div>
 
                     <div class="col-md-2 mb-2">
                         <label for="filtro_data_fim" class="form-label">Data Final:</label>
-                        <input type="date" id="filtro_data_fim" class="form-control" onchange="filterOrcamentos()">
+                        <input type="date" id="filtro_data_fim" class="form-control filtro-auto" 
+                               value="{{ filtro_data_fim_atual }}" onchange="aplicarFiltrosAuto()">
                     </div>
 
                     <div class="col-md-2 mb-2">
                         <label for="filtro_quantidade" class="form-label">Mostrar:</label>
-                        <select id="filtro_quantidade" class="form-select" onchange="filterOrcamentos()">
-                            <option value="15">Últimos 15</option>
-                            <option value="30">Últimos 30</option>
-                            <option value="50">Últimos 50</option>
-                            <option value="100">Últimos 100</option>
-                            <option value="all">Todos</option>
+                        <select id="filtro_quantidade" class="form-select filtro-auto" onchange="aplicarFiltrosAuto()">
+                            <option value="15" {% if limite_atual == 15 %}selected{% endif %}>Últimos 15</option>
+                            <option value="30" {% if limite_atual == 30 %}selected{% endif %}>Últimos 30</option>
+                            <option value="50" {% if limite_atual == 50 %}selected{% endif %}>Últimos 50</option>
+                            <option value="100" {% if limite_atual == 100 %}selected{% endif %}>Últimos 100</option>
+                            <option value="0" {% if limite_atual == 0 %}selected{% endif %}>Todos</option>
                         </select>
                     </div>
 
                     <div class="col-md-3 mb-2 d-flex align-items-end">
-                        <button type="button" class="btn btn-custom-primary w-100" onclick="resetFilters()">
+                        <button type="button" class="btn btn-secondary w-100" onclick="resetFilters()">
                             <i class="fas fa-sync-alt me-1"></i> Limpar Filtros
                         </button>
                     </div>
                 </div>
+
+               
 
                 <!-- Tabela de orçamentos -->
                 <div class="table-responsive">
@@ -566,8 +588,6 @@
                     </div>
                 `;
                 
-                
-                
                 // Campos específicos para cuba esculpida
                 camposEspecificos += `
                     <div class="col-md-12" id="cuba_esculpida_fields" style="display: none;">
@@ -598,7 +618,8 @@
                         </div>
                     </div>
                 `;
-		// Campos de cooktop (apenas para Bancada)
+		
+                // Campos de cooktop (apenas para Bancada)
                 if (tipoProduto === 'Bancada') {
                     camposEspecificos += `
                         <div class="row dynamic-field">
@@ -743,15 +764,6 @@
             });
         }
 
-        // Função para selecionar/deselecionar todos os checkboxes
-        function toggleSelectAll(source) {
-            const checkboxes = document.querySelectorAll('.selecionar-orcamento');
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = source.checked;
-            });
-            atualizarValorFinal();
-        }
-
         // Função para atualizar o valor total dos orçamentos selecionados
         function atualizarValorFinal() {
 		    let total = 0;
@@ -762,69 +774,29 @@
 		        "R$ " + total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
 		}
 
-        // Adicionar event listener para os checkboxes
-        document.addEventListener('DOMContentLoaded', function() {
-            // Inicializar Select2
-            $('#cliente_id, #material_id, #tipo_produto, #ambiente_id').select2({
-                width: '100%',
-                placeholder: "Selecione",
-                allowClear: true
-            });
+        // Função para aplicar filtros automaticamente (sem botão)
+        function aplicarFiltrosAuto() {
+            const filtroCliente = document.getElementById('filtro_cliente').value;
+            const filtroDataInicio = document.getElementById('filtro_data_inicio').value;
+            const filtroDataFim = document.getElementById('filtro_data_fim').value;
+            const limite = document.getElementById('filtro_quantidade').value;
             
-            // Restaurar seleções do localStorage
-            if (localStorage.getItem('cliente_id')) {
-                $('#cliente_id').val(localStorage.getItem('cliente_id')).trigger('change');
-            }
-            if (localStorage.getItem('tipo_produto')) {
-                $('#tipo_produto').val(localStorage.getItem('tipo_produto')).trigger('change');
-                toggleFields(); // Atualizar campos dinâmicos
-            }
-            if (localStorage.getItem('material_id')) {
-                $('#material_id').val(localStorage.getItem('material_id')).trigger('change');
-            }
-            if (localStorage.getItem('ambiente_id')) {
-                $('#ambiente_id').val(localStorage.getItem('ambiente_id')).trigger('change');
-            }
+            // Construir URL com parâmetros
+            const params = new URLSearchParams();
+            if (filtroCliente !== 'Todos') params.append('filtro_cliente', filtroCliente);
+            if (filtroDataInicio) params.append('filtro_data_inicio', filtroDataInicio);
+            if (filtroDataFim) params.append('filtro_data_fim', filtroDataFim);
+            if (limite !== '15') params.append('limite', limite);
             
-            // Salvar seleções no localStorage
-            $('#cliente_id, #tipo_produto, #material_id, #ambiente_id').on('change', function() {
-                localStorage.setItem(this.id, $(this).val());
-                if (this.id === 'tipo_produto') {
-                    toggleFields(); // Atualizar campos dinâmicos
-                }
-            });
-            
-            // Inicializar datas com valores padrão
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('filtro_data_inicio').value = today;
-            document.getElementById('filtro_data_fim').value = today;
-            
-            // Adicionar event listeners aos checkboxes
-            document.querySelectorAll('.selecionar-orcamento').forEach(checkbox => {
-                checkbox.addEventListener('change', atualizarValorFinal);
-            });
-            
-            // Inicializar o valor total
-            atualizarValorFinal();
-            
-                       
-            // Carregar filtros salvos
-            if (localStorage.getItem('filtroCliente')) {
-                document.getElementById('filtro_cliente').value = localStorage.getItem('filtroCliente');
-            }
-            if (localStorage.getItem('filtroDataInicio')) {
-                document.getElementById('filtro_data_inicio').value = localStorage.getItem('filtroDataInicio');
-            }
-            if (localStorage.getItem('filtroDataFim')) {
-                document.getElementById('filtro_data_fim').value = localStorage.getItem('filtroDataFim');
-            }
-            if (localStorage.getItem('filtroQuantidade')) {
-                document.getElementById('filtro_quantidade').value = localStorage.getItem('filtroQuantidade');
-            }
-            
-            // Aplicar filtros ao carregar a página
-            filterOrcamentos();
-        });
+            // Recarregar a página com os filtros aplicados
+            window.location.href = `/orcamentos?${params.toString()}`;
+        }
+
+        // Função para resetar os filtros
+        function resetFilters() {
+            // Redirecionar para a URL base sem parâmetros
+            window.location.href = '/orcamentos';
+        }
 
         // Função para enviar orçamentos selecionados
         function enviarOrcamentos() {
@@ -841,6 +813,27 @@
             // Redirecionar para a página de detalhes
             window.location.href = `/detalhes_orcamento?ids=${selecionados.join(",")}`;
         }
+
+        // Adicionar event listener para os checkboxes
+        document.addEventListener('DOMContentLoaded', function() {
+            // Inicializar Select2
+            $('#cliente_id, #material_id, #tipo_produto, #ambiente_id').select2({
+                width: '100%',
+                placeholder: "Selecione",
+                allowClear: true
+            });
+            
+            // Adicionar event listeners aos checkboxes
+            document.querySelectorAll('.selecionar-orcamento').forEach(checkbox => {
+                checkbox.addEventListener('change', atualizarValorFinal);
+            });
+            
+            // Inicializar o valor total
+            atualizarValorFinal();
+            
+            // Configurar os eventos de clique nas linhas
+            setupRowClickEvents();
+        });
 
         // Função para deletar orçamentos selecionados
         document.getElementById('delete-selected').addEventListener('click', function() {
@@ -939,336 +932,250 @@
         });
 
         // Função para editar material e RT dos orçamentos selecionados
-document.getElementById('edit-selected').addEventListener('click', function() {
-    const selecionados = [];
-    document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
-        selecionados.push(checkbox.closest('tr').getAttribute('data-id'));
-    });
-    
-    if (selecionados.length === 0) {
-        Swal.fire("Atenção", "Selecione pelo menos um orçamento!", "warning");
-        return;
-    }
-    
-    // Criar modal para seleção do material e RT
-    Swal.fire({
-        title: 'Editar Selecionados',
-        html: `
-            <div class="mb-3">
-                <label for="select-material" class="form-label">Novo Material (opcional):</label>
-                <select id="select-material" class="swal2-select" style="width: 100%">
-                    <option value="" selected>Manter material atual</option>
-                    {% for material in materiais %}
-                        <option value="{{ material.id }}">{{ material.nome }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-            <div class="mb-3">
-                <label for="rt-option" class="form-label">RT (opcional):</label>
-                <select id="rt-option" class="swal2-select" style="width: 100%">
-                    <option value="" selected>Manter RT atual</option>
-                    <option value="Não">Não</option>
-                    <option value="Sim">Sim</option>
-                </select>
-            </div>
-            <div class="mb-3" id="rt-percent-field" style="display: none;">
-                <label for="rt-percent" class="form-label">Porcentagem RT (%):</label>
-                <input type="number" id="rt-percent" class="form-control" step="0.01" min="0" value="0">
-            </div>
-        `,
-        didOpen: () => {
-            // Aplicar Select2 ao select dentro do SweetAlert
-            $('#select-material').select2({
-                dropdownParent: $('.swal2-popup'),
-                placeholder: "Manter material atual",
-                allowClear: true,
-                width: '100%'
+        document.getElementById('edit-selected').addEventListener('click', function() {
+            const selecionados = [];
+            document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
+                selecionados.push(checkbox.closest('tr').getAttribute('data-id'));
             });
             
-            $('#rt-option').select2({
-                dropdownParent: $('.swal2-popup'),
-                placeholder: "Manter RT atual",
-                allowClear: true,
-                width: '100%'
-            });
-            
-            // Mostrar/ocultar campo de porcentagem RT
-            $('#rt-option').on('change', function() {
-                if ($(this).val() === 'Sim') {
-                    $('#rt-percent-field').show();
-                } else {
-                    $('#rt-percent-field').hide();
-                }
-            });
-        },
-        preConfirm: () => {
-            const materialId = $('#select-material').val();
-            const rtOption = $('#rt-option').val();
-            const rtPercent = rtOption === 'Sim' ? $('#rt-percent').val() : 0;
-            
-            // Validação apenas se RT for "Sim"
-            if (rtOption === 'Sim' && (!rtPercent || parseFloat(rtPercent) <= 0)) {
-                Swal.showValidationMessage('Por favor, informe uma porcentagem RT válida.');
-                return false;
+            if (selecionados.length === 0) {
+                Swal.fire("Atenção", "Selecione pelo menos um orçamento!", "warning");
+                return;
             }
             
-            return {
-                material_id: materialId || null, // null significa manter o material atual
-                rt: rtOption || null, // null significa manter a RT atual
-                rt_percentual: parseFloat(rtPercent) || 0
-            };
-        },
-        showCancelButton: true,
-        confirmButtonText: 'Salvar',
-        cancelButtonText: 'Cancelar',
-        width: '600px'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Enviar requisição para editar material e RT
-            fetch("/orcamentos/editar_material_rt_selecionados", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                    orcamento_ids: selecionados,
-                    material_id: result.value.material_id,
-                    rt: result.value.rt,
-                    rt_percentual: result.value.rt_percentual
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    Swal.fire("Sucesso!", "Materiais e RT atualizados com sucesso!", "success").then(() => {
-                        location.reload();
+            // Criar modal para seleção do material e RT
+            Swal.fire({
+                title: 'Editar Selecionados',
+                html: `
+                    <div class="mb-3">
+                        <label for="select-material" class="form-label">Novo Material (opcional):</label>
+                        <select id="select-material" class="swal2-select" style="width: 100%">
+                            <option value="" selected>Manter material atual</option>
+                            {% for material in materiais %}
+                                <option value="{{ material.id }}">{{ material.nome }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="rt-option" class="form-label">RT (opcional):</label>
+                        <select id="rt-option" class="swal2-select" style="width: 100%">
+                            <option value="" selected>Manter RT atual</option>
+                            <option value="Não">Não</option>
+                            <option value="Sim">Sim</option>
+                        </select>
+                    </div>
+                    <div class="mb-3" id="rt-percent-field" style="display: none;">
+                        <label for="rt-percent" class="form-label">Porcentagem RT (%):</label>
+                        <input type="number" id="rt-percent" class="form-control" step="0.01" min="0" value="0">
+                    </div>
+                `,
+                didOpen: () => {
+                    // Aplicar Select2 ao select dentro do SweetAlert
+                    $('#select-material').select2({
+                        dropdownParent: $('.swal2-popup'),
+                        placeholder: "Manter material atual",
+                        allowClear: true,
+                        width: '100%'
                     });
-                } else {
-                    Swal.fire("Erro!", data.error || "Erro ao atualizar materiais e RT", "error");
-                }
-            })
-            .catch(error => {
-                Swal.fire("Erro!", "Erro ao atualizar materiais e RT!", "error");
-            });
-        }
-    });
-});
-
-        // Função para filtrar orçamentos
-        function filterOrcamentos() {
-            const filtroCliente = document.getElementById('filtro_cliente').value;
-            const filtroDataInicio = document.getElementById('filtro_data_inicio').value;
-            const filtroDataFim = document.getElementById('filtro_data_fim').value;
-            const filtroQuantidade = document.getElementById('filtro_quantidade').value;
-            
-            const rows = document.querySelectorAll('#orcamento_table tr');
-            let visibleCount = 0;
-            
-            // Primeiro, mostrar todas as linhas
-            rows.forEach(row => {
-                row.style.display = '';
-            });
-            
-            // Aplicar filtros
-            rows.forEach(row => {
-                const cliente = row.getAttribute('data-cliente');
-                const dataStr = row.getAttribute('data-data');
-                const data = dataStr.split(' ')[0]; // Pegar apenas a data (YYYY-MM-DD)
-                
-                let show = true;
-                
-                // Filtrar por cliente
-                if (filtroCliente !== 'Todos' && cliente !== filtroCliente) {
-                    show = false;
-                }
-                
-                // Filtrar por data
-                if (filtroDataInicio && data < filtroDataInicio) {
-                    show = false;
-                }
-                if (filtroDataFim && data > filtroDataFim) {
-                    show = false;
-                }
-                
-                // Aplicar filtro de quantidade (mostrar os mais recentes primeiro)
-                if (show && filtroQuantidade !== 'all') {
-                    // Se já atingiu o limite, ocultar
-                    if (visibleCount >= parseInt(filtroQuantidade)) {
-                        show = false;
-                    } else {
-                        visibleCount++;
+                    
+                    $('#rt-option').select2({
+                        dropdownParent: $('.swal2-popup'),
+                        placeholder: "Manter RT atual",
+                        allowClear: true,
+                        width: '100%'
+                    });
+                    
+                    // Mostrar/ocultar campo de porcentagem RT
+                    $('#rt-option').on('change', function() {
+                        if ($(this).val() === 'Sim') {
+                            $('#rt-percent-field').show();
+                        } else {
+                            $('#rt-percent-field').hide();
+                        }
+                    });
+                },
+                preConfirm: () => {
+                    const materialId = $('#select-material').val();
+                    const rtOption = $('#rt-option').val();
+                    const rtPercent = rtOption === 'Sim' ? $('#rt-percent').val() : 0;
+                    
+                    // Validação apenas se RT for "Sim"
+                    if (rtOption === 'Sim' && (!rtPercent || parseFloat(rtPercent) <= 0)) {
+                        Swal.showValidationMessage('Por favor, informe uma porcentagem RT válida.');
+                        return false;
                     }
-                }
-                
-                if (show) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
+                    
+                    return {
+                        material_id: materialId || null, // null significa manter o material atual
+                        rt: rtOption || null, // null significa manter a RT atual
+                        rt_percentual: parseFloat(rtPercent) || 0
+                    };
+                },
+                showCancelButton: true,
+                confirmButtonText: 'Salvar',
+                cancelButtonText: 'Cancelar',
+                width: '600px'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Enviar requisição para editar material e RT
+                    fetch("/orcamentos/editar_material_rt_selecionados", {
+                        method: "POST",
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            orcamento_ids: selecionados,
+                            material_id: result.value.material_id,
+                            rt: result.value.rt,
+                            rt_percentual: result.value.rt_percentual
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire("Sucesso!", "Materiais e RT atualizados com sucesso!", "success").then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire("Erro!", data.error || "Erro ao atualizar materiais e RT", "error");
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire("Erro!", "Erro ao atualizar materiais e RT!", "error");
+                    });
                 }
             });
-            
-            // Salvar filtros no localStorage
-            localStorage.setItem('filtroCliente', filtroCliente);
-            localStorage.setItem('filtroDataInicio', filtroDataInicio);
-            localStorage.setItem('filtroDataFim', filtroDataFim);
-            localStorage.setItem('filtroQuantidade', filtroQuantidade);
-        }
+        });
 
-        // Função para resetar os filtros
-        function resetFilters() {
-            document.getElementById('filtro_cliente').value = 'Todos';
-            document.getElementById('filtro_data_inicio').value = '';
-            document.getElementById('filtro_data_fim').value = '';
-            document.getElementById('filtro_quantidade').value = '15';
+        // Adicionar ambiente
+        document.getElementById('saveAmbienteBtn').addEventListener('click', function() {
+            const nome = document.getElementById('novo_ambiente_nome').value.trim();
             
-            // Limpar localStorage
-            localStorage.removeItem('filtroCliente');
-            localStorage.removeItem('filtroDataInicio');
-            localStorage.removeItem('filtroDataFim');
-            localStorage.removeItem('filtroQuantidade');
+            if (!nome) {
+                Swal.fire('Erro', 'Por favor, informe um nome para o ambiente.', 'error');
+                return;
+            }
             
-            filterOrcamentos();
-        }
-
-		
-	// Adicionar ambiente
-document.getElementById('saveAmbienteBtn').addEventListener('click', function() {
-    const nome = document.getElementById('novo_ambiente_nome').value.trim();
-    
-    if (!nome) {
-        Swal.fire('Erro', 'Por favor, informe um nome para o ambiente.', 'error');
-        return;
-    }
-    
-    fetch('/adicionar_ambiente', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ nome: nome })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Fechar o modal
-            $('#addAmbienteModal').modal('hide');
-            
-            // Adicionar a nova opção ao select de ambientes
-            const novoOption = document.createElement('option');
-            novoOption.value = data.ambiente_id;
-            novoOption.textContent = nome;
-            document.getElementById('ambiente_id').appendChild(novoOption);
-            
-            // Selecionar o novo ambiente
-            document.getElementById('ambiente_id').value = data.ambiente_id;
-            
-            Swal.fire('Sucesso', 'Ambiente adicionado com sucesso!', 'success');
-        } else {
-            Swal.fire('Erro', data.message, 'error');
-        }
-    })
-    .catch(error => {
-        Swal.fire('Erro', 'Erro ao adicionar ambiente.', 'error');
-    });
-});
-
-// Deletar ambiente
-document.getElementById('deleteAmbienteBtn').addEventListener('click', function() {
-    const ambienteSelect = document.getElementById('ambiente_id');
-    const ambienteId = ambienteSelect.value;
-    const ambienteNome = ambienteSelect.options[ambienteSelect.selectedIndex].text;
-    
-    if (!ambienteId) {
-        Swal.fire('Erro', 'Selecione um ambiente para excluir.', 'error');
-        return;
-    }
-    
-    Swal.fire({
-        title: 'Tem certeza?',
-        text: `Deseja excluir o ambiente "${ambienteNome}"?`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Sim, excluir!',
-        cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fetch('/deletar_ambiente', {
+            fetch('/adicionar_ambiente', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ ambiente_id: ambienteId })
+                body: JSON.stringify({ nome: nome })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    // Remover a opção do select
-                    ambienteSelect.remove(ambienteSelect.selectedIndex);
-                    Swal.fire('Sucesso', 'Ambiente excluído com sucesso!', 'success');
+                    // Fechar o modal
+                    $('#addAmbienteModal').modal('hide');
+                    
+                    // Adicionar a nova opção ao select de ambientes
+                    const novoOption = document.createElement('option');
+                    novoOption.value = data.ambiente_id;
+                    novoOption.textContent = nome;
+                    document.getElementById('ambiente_id').appendChild(novoOption);
+                    
+                    // Selecionar o novo ambiente
+                    document.getElementById('ambiente_id').value = data.ambiente_id;
+                    
+                    Swal.fire('Sucesso', 'Ambiente adicionado com sucesso!', 'success');
                 } else {
                     Swal.fire('Erro', data.message, 'error');
                 }
             })
             .catch(error => {
-                Swal.fire('Erro', 'Erro ao excluir ambiente.', 'error');
+                Swal.fire('Erro', 'Erro ao adicionar ambiente.', 'error');
+            });
+        });
+
+        // Deletar ambiente
+        document.getElementById('deleteAmbienteBtn').addEventListener('click', function() {
+            const ambienteSelect = document.getElementById('ambiente_id');
+            const ambienteId = ambienteSelect.value;
+            const ambienteNome = ambienteSelect.options[ambienteSelect.selectedIndex].text;
+            
+            if (!ambienteId) {
+                Swal.fire('Erro', 'Selecione um ambiente para excluir.', 'error');
+                return;
+            }
+            
+            Swal.fire({
+                title: 'Tem certeza?',
+                text: `Deseja excluir o ambiente "${ambienteNome}"?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sim, excluir!',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('/deletar_ambiente', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ ambiente_id: ambienteId })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Remover a opção do select
+                            ambienteSelect.remove(ambienteSelect.selectedIndex);
+                            Swal.fire('Sucesso', 'Ambiente excluído com sucesso!', 'success');
+                        } else {
+                            Swal.fire('Erro', data.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire('Erro', 'Erro ao excluir ambiente.', 'error');
+                    });
+                }
+            });
+        });	
+
+        // Adicione esta função para tornar as linhas clicáveis
+        function setupRowClickEvents() {
+            document.querySelectorAll('#orcamento_table tr').forEach(row => {
+                row.addEventListener('click', function(e) {
+                    if (e.target.closest('.actions-cell') || e.target.closest('.action-buttons')) {
+                        return;
+                    }
+                    
+                    if (e.target.type === 'checkbox') {
+                        return;
+                    }
+                    
+                    const checkbox = this.querySelector('.selecionar-orcamento');
+                    if (checkbox) {
+                        checkbox.checked = !checkbox.checked;
+                        
+                        // Adicionar/remover a classe "selected" na linha
+                        if (checkbox.checked) {
+                            this.classList.add('selected');
+                        } else {
+                            this.classList.remove('selected');
+                        }
+                        
+                        const event = new Event('change');
+                        checkbox.dispatchEvent(event);
+                    }
+                });
+            });
+            
+            // Também adicione a classe "selected" quando o checkbox for clicado diretamente
+            document.querySelectorAll('.selecionar-orcamento').forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    const row = this.closest('tr');
+                    if (this.checked) {
+                        row.classList.add('selected');
+                    } else {
+                        row.classList.remove('selected');
+                    }
+                });
             });
         }
-    });
-});	
-
-		// Adicione esta função para tornar as linhas clicáveis
-function setupRowClickEvents() {
-    document.querySelectorAll('#orcamento_table tr').forEach(row => {
-        row.addEventListener('click', function(e) {
-            if (e.target.closest('.actions-cell') || e.target.closest('.action-buttons')) {
-                return;
-            }
-            
-            if (e.target.type === 'checkbox') {
-                return;
-            }
-            
-            const checkbox = this.querySelector('.selecionar-orcamento');
-            if (checkbox) {
-                checkbox.checked = !checkbox.checked;
-                
-                // Adicionar/remover a classe "selected" na linha
-                if (checkbox.checked) {
-                    this.classList.add('selected');
-                } else {
-                    this.classList.remove('selected');
-                }
-                
-                const event = new Event('change');
-                checkbox.dispatchEvent(event);
-            }
-        });
-    });
-    
-    // Também adicione a classe "selected" quando o checkbox for clicado diretamente
-    document.querySelectorAll('.selecionar-orcamento').forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            const row = this.closest('tr');
-            if (this.checked) {
-                row.classList.add('selected');
-            } else {
-                row.classList.remove('selected');
-            }
-        });
-    });
-}
-
-// Chame esta função quando o DOM estiver carregado
-document.addEventListener('DOMContentLoaded', function() {
-    // ... seu código existente ...
-    
-    // Configurar os eventos de clique nas linhas
-    setupRowClickEvents();
-    
-    // ... resto do seu código ...
-});
     </script>
 </body>
 </html>
+		
