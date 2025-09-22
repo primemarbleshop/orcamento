@@ -25,8 +25,6 @@ app.config.from_object(Config)  # Aplica configurações do config.py
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
-
-
 def atualizar_valor_orcamento_salvo(orcamento_salvo_id):
     """Recalcula o valor total de um orçamento salvo."""
     orcamento_salvo = OrcamentoSalvo.query.get(orcamento_salvo_id)
@@ -46,7 +44,6 @@ def atualizar_valor_orcamento_salvo(orcamento_salvo_id):
             orcamento_salvo.valor_total = valor_total
             db.session.commit()
 
-
 @app.route("/upload_db", methods=["POST"])
 def upload_db():
     """Endpoint para upload do banco de dados SQLite para o volume persistente no Render."""
@@ -58,8 +55,6 @@ def upload_db():
 
 br_tz = timezone('America/Sao_Paulo')
 
-
-    
 class Usuario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
@@ -187,6 +182,21 @@ def listar_orcamentos():
     selected_cliente_id = None
     selected_material_id = None
     selected_ambiente_id = None
+
+    # Obter parâmetros de filtro da query string
+    filtro_cliente = request.args.get('filtro_cliente', 'Todos')
+    filtro_data_inicio = request.args.get('filtro_data_inicio', '')
+    filtro_data_fim = request.args.get('filtro_data_fim', '')
+    limite = request.args.get('limite', '15')
+    
+    # Converter limite para inteiro, tratando o caso 'all'
+    try:
+        if limite == '0' or limite.lower() == 'all':
+            limite_int = 0  # 0 significa carregar todos
+        else:
+            limite_int = int(limite)
+    except (ValueError, TypeError):
+        limite_int = 15  # Valor padrão
 
     if request.method == 'POST':
         cliente_id = request.form.get('cliente_id')
@@ -377,21 +387,51 @@ def listar_orcamentos():
         flash("Faça login para acessar os orçamentos.", "error")
         return redirect(url_for('login'))
 
+    # Construir query base
     if session.get('admin'):
-        orcamentos = db.session.query(
+        query = db.session.query(
             Orcamento,
             Usuario.nome.label('nome_usuario')
-        ).join(Usuario, Orcamento.dono == Usuario.cpf).order_by(Orcamento.data.desc()).all()
+        ).join(Usuario, Orcamento.dono == Usuario.cpf)
+    else:
+        query = db.session.query(
+            Orcamento,
+            Usuario.nome.label('nome_usuario')
+        ).join(Usuario, Orcamento.dono == Usuario.cpf).filter(Orcamento.dono == user_cpf)
+
+    # Aplicar filtros
+    if filtro_cliente != 'Todos':
+        query = query.join(Cliente).filter(Cliente.nome == filtro_cliente)
     
+    if filtro_data_inicio:
+        try:
+            data_inicio = datetime.strptime(filtro_data_inicio, '%Y-%m-%d')
+            query = query.filter(Orcamento.data >= data_inicio)
+        except ValueError:
+            pass
+    
+    if filtro_data_fim:
+        try:
+            data_fim = datetime.strptime(filtro_data_fim, '%Y-%m-%d')
+            # Adicionar 1 dia para incluir o dia final
+            data_fim = data_fim.replace(hour=23, minute=59, second=59)
+            query = query.filter(Orcamento.data <= data_fim)
+        except ValueError:
+            pass
+
+    # Ordenar e limitar
+    query = query.order_by(Orcamento.data.desc())
+    
+    if limite_int > 0:  # Aplicar limite apenas se for maior que 0
+        query = query.limit(limite_int)
+
+    orcamentos = query.all()
+
+    # Carregar listas para os selects
+    if session.get('admin'):
         clientes = Cliente.query.order_by(Cliente.nome).all()
         ambientes = Ambiente.query.order_by(Ambiente.nome).all()
-    
     else:
-        orcamentos = db.session.query(
-            Orcamento,
-            Usuario.nome.label('nome_usuario')
-        ).join(Usuario, Orcamento.dono == Usuario.cpf).filter(Orcamento.dono == user_cpf).order_by(Orcamento.data.desc()).all()
-    
         clientes = Cliente.query.filter_by(dono=user_cpf).order_by(Cliente.nome).all()
         ambientes = Ambiente.query.filter_by(dono=user_cpf).order_by(Ambiente.nome).all()
 
@@ -404,7 +444,12 @@ def listar_orcamentos():
         clientes=clientes,
         ambientes=ambientes,
         materiais=materiais,
-        is_admin=is_admin
+        is_admin=is_admin,
+        # Passar os filtros atuais para o template
+        filtro_cliente_atual=filtro_cliente,
+        filtro_data_inicio_atual=filtro_data_inicio,
+        filtro_data_fim_atual=filtro_data_fim,
+        limite_atual=limite_int
     )
 
     
