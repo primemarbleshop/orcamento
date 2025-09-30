@@ -722,22 +722,22 @@
     </br></br></br></br>
 
     {% for ambiente_nome, tipos_produtos in ambientes_agrupados.items() %}
-    {% set ambiente_total = namespace(value=0) %}
-    {% for tipo_produto, produtos in tipos_produtos.items() %}
-        {% for produto in produtos %}
-            {% set ambiente_total.value = ambiente_total.value + produto.valor_total %}
-        {% endfor %}
+{% set ambiente_total = namespace(value=0) %}
+{% for tipo_produto, produtos in tipos_produtos.items() %}
+    {% for produto in produtos %}
+        {% set ambiente_total.value = ambiente_total.value + produto.valor_total %}
     {% endfor %}
-    
-    <!-- Container para ambiente para evitar quebra de página -->
+{% endfor %}
+
+<div class="ambiente-header">
+    <span>{{ ambiente_nome }}</span>
+    <span class="ambiente-total">R$ {{ "{:,.2f}".format(ambiente_total.value).replace(",", "X").replace(".", ",").replace("X", ".") }}</span>
+</div>
+
+{% for tipo_produto, produtos in tipos_produtos.items() %}
+    <!-- Container para tipo de produto para evitar quebra de página -->
     <div class="ambiente-container">
-        <div class="ambiente-header">
-            <span>{{ ambiente_nome }}</span>
-            <span class="ambiente-total">R$ {{ "{:,.2f}".format(ambiente_total.value).replace(",", "X").replace(".", ",").replace("X", ".") }}</span>
-        </div>
-        
-        {% for tipo_produto, produtos in tipos_produtos.items() %}
-            <div class="produto-header">{{ tipo_produto }}</div>
+        <div class="produto-header">{{ tipo_produto }}</div>
             <table>
                 <thead>
                     <tr>
