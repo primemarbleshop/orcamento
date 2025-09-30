@@ -774,56 +774,71 @@
             "R$ " + total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     }
 
-    // Função para aplicar filtros automaticamente (sem botão)
-    function aplicarFiltrosAuto() {
-        const filtroCliente = document.getElementById('filtro_cliente').value;
-        const filtroDataInicio = document.getElementById('filtro_data_inicio').value;
-        const filtroDataFim = document.getElementById('filtro_data_fim').value;
-        const limite = document.getElementById('filtro_quantidade').value;
-        
-        // Salvar filtros no localStorage antes de recarregar
-        salvarFiltrosNoLocalStorage();
-        
-        // Construir URL com parâmetros
-        const params = new URLSearchParams();
-        if (filtroCliente !== 'Todos') params.append('filtro_cliente', filtroCliente);
-        if (filtroDataInicio) params.append('filtro_data_inicio', filtroDataInicio);
-        if (filtroDataFim) params.append('filtro_data_fim', filtroDataFim);
-        if (limite !== '15') params.append('limite', limite);
-        
-        // Recarregar a página com os filtros aplicados
-        window.location.href = `/orcamentos?${params.toString()}`;
-    }
+   // Função para salvar filtros no localStorage
+function salvarFiltrosNoLocalStorage() {
+    const filtroCliente = document.getElementById('filtro_cliente').value;
+    const filtroDataInicio = document.getElementById('filtro_data_inicio').value;
+    const filtroDataFim = document.getElementById('filtro_data_fim').value;
+    const limite = document.getElementById('filtro_quantidade').value;
+    
+    localStorage.setItem('filtroCliente', filtroCliente);
+    localStorage.setItem('filtroDataInicio', filtroDataInicio);
+    localStorage.setItem('filtroDataFim', filtroDataFim);
+    localStorage.setItem('filtroQuantidade', limite);
+}
 
-    // Função para salvar filtros no localStorage
-    function salvarFiltrosNoLocalStorage() {
-        const filtroCliente = document.getElementById('filtro_cliente').value;
-        const filtroDataInicio = document.getElementById('filtro_data_inicio').value;
-        const filtroDataFim = document.getElementById('filtro_data_fim').value;
-        const limite = document.getElementById('filtro_quantidade').value;
-        
-        localStorage.setItem('filtroCliente', filtroCliente);
-        localStorage.setItem('filtroDataInicio', filtroDataInicio);
-        localStorage.setItem('filtroDataFim', filtroDataFim);
-        localStorage.setItem('filtroQuantidade', limite);
-    }
+// Função para salvar seleções do formulário no localStorage
+function salvarSelecoesFormulario() {
+    const clienteId = document.getElementById('cliente_id').value;
+    const tipoProduto = document.getElementById('tipo_produto').value;
+    const materialId = document.getElementById('material_id').value;
+    const ambienteId = document.getElementById('ambiente_id').value;
+    
+    localStorage.setItem('cliente_id', clienteId);
+    localStorage.setItem('tipo_produto', tipoProduto);
+    localStorage.setItem('material_id', materialId);
+    localStorage.setItem('ambiente_id', ambienteId);
+}
 
-    // Função para salvar seleções do formulário no localStorage
-    function salvarSelecoesFormulario() {
-        const clienteId = document.getElementById('cliente_id').value;
-        const tipoProduto = document.getElementById('tipo_produto').value;
-        const materialId = document.getElementById('material_id').value;
-        const ambienteId = document.getElementById('ambiente_id').value;
-        
-        localStorage.setItem('cliente_id', clienteId);
-        localStorage.setItem('tipo_produto', tipoProduto);
-        localStorage.setItem('material_id', materialId);
-        localStorage.setItem('ambiente_id', ambienteId);
-    }
-
-    // 🔵 CORREÇÃO: Função para carregar seleções salvas
+// 🔵 SOLUÇÃO DEFINITIVA: Função para carregar seleções salvas
 function carregarSelecoesSalvas() {
-    // Carregar seleções do formulário
+    const urlParams = new URLSearchParams(window.location.search);
+    
+    // 🔵 SINCRONIZAÇÃO COMPLETA: URL → localStorage → Campos
+    // 1. Se há parâmetros na URL, atualizar localStorage
+    if (urlParams.has('filtro_cliente')) {
+        const clienteURL = urlParams.get('filtro_cliente');
+        localStorage.setItem('filtroCliente', clienteURL);
+        document.getElementById('filtro_cliente').value = clienteURL;
+    } else if (localStorage.getItem('filtroCliente')) {
+        document.getElementById('filtro_cliente').value = localStorage.getItem('filtroCliente');
+    }
+    
+    if (urlParams.has('filtro_data_inicio')) {
+        const dataInicioURL = urlParams.get('filtro_data_inicio');
+        localStorage.setItem('filtroDataInicio', dataInicioURL);
+        document.getElementById('filtro_data_inicio').value = dataInicioURL;
+    } else if (localStorage.getItem('filtroDataInicio')) {
+        document.getElementById('filtro_data_inicio').value = localStorage.getItem('filtroDataInicio');
+    }
+    
+    if (urlParams.has('filtro_data_fim')) {
+        const dataFimURL = urlParams.get('filtro_data_fim');
+        localStorage.setItem('filtroDataFim', dataFimURL);
+        document.getElementById('filtro_data_fim').value = dataFimURL;
+    } else if (localStorage.getItem('filtroDataFim')) {
+        document.getElementById('filtro_data_fim').value = localStorage.getItem('filtroDataFim');
+    }
+    
+    if (urlParams.has('limite')) {
+        const limiteURL = urlParams.get('limite');
+        localStorage.setItem('filtroQuantidade', limiteURL);
+        document.getElementById('filtro_quantidade').value = limiteURL;
+    } else if (localStorage.getItem('filtroQuantidade')) {
+        document.getElementById('filtro_quantidade').value = localStorage.getItem('filtroQuantidade');
+    }
+    
+    // 🔵 Carregar seleções do formulário (não relacionadas aos filtros)
     if (localStorage.getItem('cliente_id')) {
         $('#cliente_id').val(localStorage.getItem('cliente_id')).trigger('change');
     }
@@ -837,59 +852,9 @@ function carregarSelecoesSalvas() {
     if (localStorage.getItem('ambiente_id')) {
         $('#ambiente_id').val(localStorage.getItem('ambiente_id')).trigger('change');
     }
-    
-    // 🔵 CORREÇÃO: Sempre carregar filtros do localStorage, independente da URL
-    // Isso garante que os campos mostrem o que estava salvo
-    if (localStorage.getItem('filtroCliente')) {
-        document.getElementById('filtro_cliente').value = localStorage.getItem('filtroCliente');
-    }
-    
-    if (localStorage.getItem('filtroDataInicio')) {
-        document.getElementById('filtro_data_inicio').value = localStorage.getItem('filtroDataInicio');
-    }
-    
-    if (localStorage.getItem('filtroDataFim')) {
-        document.getElementById('filtro_data_fim').value = localStorage.getItem('filtroDataFim');
-    }
-    
-    if (localStorage.getItem('filtroQuantidade')) {
-        document.getElementById('filtro_quantidade').value = localStorage.getItem('filtroQuantidade');
-    }
 }
 
-// 🔵 NOVA FUNÇÃO: Aplicar filtros automaticamente ao carregar a página
-function aplicarFiltrosAoCarregar() {
-    const urlParams = new URLSearchParams(window.location.search);
-    
-    // Se NÃO há parâmetros na URL mas há filtros salvos, aplicar os filtros salvos
-    if (!urlParams.toString() && (
-        localStorage.getItem('filtroCliente') || 
-        localStorage.getItem('filtroDataInicio') || 
-        localStorage.getItem('filtroDataFim') || 
-        localStorage.getItem('filtroQuantidade')
-    )) {
-        const filtroCliente = localStorage.getItem('filtroCliente') || 'Todos';
-        const filtroDataInicio = localStorage.getItem('filtroDataInicio') || '';
-        const filtroDataFim = localStorage.getItem('filtroDataFim') || '';
-        const limite = localStorage.getItem('filtroQuantidade') || '15';
-        
-        // Construir URL com parâmetros do localStorage
-        const params = new URLSearchParams();
-        if (filtroCliente !== 'Todos') params.append('filtro_cliente', filtroCliente);
-        if (filtroDataInicio) params.append('filtro_data_inicio', filtroDataInicio);
-        if (filtroDataFim) params.append('filtro_data_fim', filtroDataFim);
-        if (limite !== '15') params.append('limite', limite);
-        
-        // Recarregar a página com os filtros aplicados apenas se houver parâmetros
-        if (params.toString()) {
-            window.location.href = `/orcamentos?${params.toString()}`;
-            return true; // Indicar que a página será recarregada
-        }
-    }
-    return false; // Indicar que não há necessidade de recarregar
-}
-
-// 🔵 ATUALIZAÇÃO: Função para aplicar filtros automaticamente (sem botão)
+// 🔵 ÚNICA FUNÇÃO aplicarFiltrosAuto (REMOVIDA A DUPLICAÇÃO)
 function aplicarFiltrosAuto() {
     const filtroCliente = document.getElementById('filtro_cliente').value;
     const filtroDataInicio = document.getElementById('filtro_data_inicio').value;
@@ -910,7 +875,7 @@ function aplicarFiltrosAuto() {
     window.location.href = `/orcamentos?${params.toString()}`;
 }
 
-// 🔵 ATUALIZAÇÃO: Event listener corrigido
+// 🔵 SOLUÇÃO DEFINITIVA: Event listener corrigido
 document.addEventListener('DOMContentLoaded', function() {
     // Inicializar Select2
     $('#cliente_id, #material_id, #tipo_produto, #ambiente_id').select2({
@@ -919,248 +884,245 @@ document.addEventListener('DOMContentLoaded', function() {
         allowClear: true
     });
     
-    // 🔵 CORREÇÃO: Primeiro verificar se precisa aplicar filtros salvos
-    const precisaRecarregar = aplicarFiltrosAoCarregar();
+    // 🔵 CARREGAR TUDO DE UMA VEZ
+    carregarSelecoesSalvas();
     
-    // Se não precisa recarregar, carregar as seleções normalmente
-    if (!precisaRecarregar) {
-        carregarSelecoesSalvas();
-        
-        // Salvar seleções quando mudar
-        $('#cliente_id, #tipo_produto, #material_id, #ambiente_id').on('change', function() {
-            salvarSelecoesFormulario();
-            if (this.id === 'tipo_produto') {
-                toggleFields(); // Atualizar campos dinâmicos
-            }
+    // Salvar seleções quando mudar
+    $('#cliente_id, #tipo_produto, #material_id, #ambiente_id').on('change', function() {
+        salvarSelecoesFormulario();
+        if (this.id === 'tipo_produto') {
+            toggleFields(); // Atualizar campos dinâmicos
+        }
+    });
+    
+    // 🔵 CORREÇÃO: Salvar E APLICAR filtros quando mudar
+    document.querySelectorAll('.filtro-auto').forEach(element => {
+        element.addEventListener('change', function() {
+            salvarFiltrosNoLocalStorage();
+            aplicarFiltrosAuto(); // 🔵 AGORA APLICA AUTOMATICAMENTE
+        });
+    });
+    
+    // Adicionar event listeners aos checkboxes
+    document.querySelectorAll('.selecionar-orcamento').forEach(checkbox => {
+        checkbox.addEventListener('change', atualizarValorFinal);
+    });
+    
+    // Inicializar o valor total
+    atualizarValorFinal();
+    
+    // Configurar os eventos de clique nas linhas
+    setupRowClickEvents();
+    
+    // 🔵 Manter todos os event listeners dos botões de ação
+    document.getElementById('delete-selected').addEventListener('click', function() {
+        const selecionados = [];
+        document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
+            selecionados.push(checkbox.closest('tr').getAttribute('data-id'));
         });
         
-        // Salvar filtros quando mudar (sem recarregar imediatamente)
-        document.querySelectorAll('.filtro-auto').forEach(element => {
-            element.addEventListener('change', function() {
-                salvarFiltrosNoLocalStorage();
-            });
-        });
+        if (selecionados.length === 0) {
+            Swal.fire("Atenção", "Selecione pelo menos um orçamento para deletar!", "warning");
+            return;
+        }
         
-        // Adicionar event listeners aos checkboxes
-        document.querySelectorAll('.selecionar-orcamento').forEach(checkbox => {
-            checkbox.addEventListener('change', atualizarValorFinal);
-        });
-        
-        // Inicializar o valor total
-        atualizarValorFinal();
-        
-        // Configurar os eventos de clique nas linhas
-        setupRowClickEvents();
-
-        // 🔵 Adicionar event listeners para os botões de ação
-        document.getElementById('delete-selected').addEventListener('click', function() {
-            const selecionados = [];
-            document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
-                selecionados.push(checkbox.closest('tr').getAttribute('data-id'));
-            });
-            
-            if (selecionados.length === 0) {
-                Swal.fire("Atenção", "Selecione pelo menos um orçamento para deletar!", "warning");
-                return;
-            }
-            
-            Swal.fire({
-                title: "Tem certeza?",
-                text: `Você está prestes a deletar ${selecionados.length} orçamento(s)!`,
-                icon: "warning",
-                showCancelButton: true,
-                confirmButtonColor: "#d33",
-                cancelButtonColor: "#3085d6",
-                confirmButtonText: "Sim, deletar!",
-                cancelButtonText: "Cancelar"
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Enviar requisição para deletar
-                    fetch("/orcamentos/delete_selecionados", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({ ids: selecionados })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            Swal.fire("Deletado!", data.success, "success").then(() => {
-                                location.reload();
-                            });
-                        } else {
-                            Swal.fire("Erro!", data.error, "error");
-                        }
-                    })
-                    .catch(error => {
-                        Swal.fire("Erro!", "Erro ao deletar orçamentos!", "error");
-                    });
-                }
-            });
-        });
-
-        document.getElementById('duplicate-selected').addEventListener('click', function() {
-            const selecionados = [];
-            document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
-                selecionados.push(checkbox.closest('tr').getAttribute('data-id'));
-            });
-            
-            if (selecionados.length === 0) {
-                Swal.fire("Atenção", "Selecione pelo menos um orçamento para duplicar!", "warning");
-                return;
-            }
-            
-            Swal.fire({
-                title: "Confirmar Duplicação",
-                text: `Deseja duplicar ${selecionados.length} orçamento(s)?`,
-                icon: "question",
-                showCancelButton: true,
-                confirmButtonColor: "#1cc88a",
-                cancelButtonColor: "#6c757d",
-                confirmButtonText: "Sim, duplicar!",
-                cancelButtonText: "Cancelar"
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Enviar requisição para duplicar
-                    fetch("/orcamentos/duplicar_selecionados", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({ orcamento_ids: selecionados })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            Swal.fire("Sucesso!", "Orçamentos duplicados com sucesso!", "success").then(() => {
-                                location.reload();
-                            });
-                        } else {
-                            Swal.fire("Erro!", data.error, "error");
-                        }
-                    })
-                    .catch(error => {
-                        Swal.fire("Erro!", "Erro ao duplicar orçamentos!", "error");
-                    });
-                }
-            });
-        });
-
-        document.getElementById('edit-selected').addEventListener('click', function() {
-            const selecionados = [];
-            document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
-                selecionados.push(checkbox.closest('tr').getAttribute('data-id'));
-            });
-            
-            if (selecionados.length === 0) {
-                Swal.fire("Atenção", "Selecione pelo menos um orçamento!", "warning");
-                return;
-            }
-            
-            // Criar modal para seleção do material e RT
-            Swal.fire({
-                title: 'Editar Selecionados',
-                html: `
-                    <div class="mb-3">
-                        <label for="select-material" class="form-label">Novo Material (opcional):</label>
-                        <select id="select-material" class="swal2-select" style="width: 100%">
-                            <option value="" selected>Manter material atual</option>
-                            {% for material in materiais %}
-                                <option value="{{ material.id }}">{{ material.nome }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="rt-option" class="form-label">RT (opcional):</label>
-                        <select id="rt-option" class="swal2-select" style="width: 100%">
-                            <option value="" selected>Manter RT atual</option>
-                            <option value="Não">Não</option>
-                            <option value="Sim">Sim</option>
-                        </select>
-                    </div>
-                    <div class="mb-3" id="rt-percent-field" style="display: none;">
-                        <label for="rt-percent" class="form-label">Porcentagem RT (%):</label>
-                        <input type="number" id="rt-percent" class="form-control" step="0.01" min="0" value="0">
-                    </div>
-                `,
-                didOpen: () => {
-                    // Aplicar Select2 ao select dentro do SweetAlert
-                    $('#select-material').select2({
-                        dropdownParent: $('.swal2-popup'),
-                        placeholder: "Manter material atual",
-                        allowClear: true,
-                        width: '100%'
-                    });
-                    
-                    $('#rt-option').select2({
-                        dropdownParent: $('.swal2-popup'),
-                        placeholder: "Manter RT atual",
-                        allowClear: true,
-                        width: '100%'
-                    });
-                    
-                    // Mostrar/ocultar campo de porcentagem RT
-                    $('#rt-option').on('change', function() {
-                        if ($(this).val() === 'Sim') {
-                            $('#rt-percent-field').show();
-                        } else {
-                            $('#rt-percent-field').hide();
-                        }
-                    });
-                },
-                preConfirm: () => {
-                    const materialId = $('#select-material').val();
-                    const rtOption = $('#rt-option').val();
-                    const rtPercent = rtOption === 'Sim' ? $('#rt-percent').val() : 0;
-                    
-                    // Validação apenas se RT for "Sim"
-                    if (rtOption === 'Sim' && (!rtPercent || parseFloat(rtPercent) <= 0)) {
-                        Swal.showValidationMessage('Por favor, informe uma porcentagem RT válida.');
-                        return false;
+        Swal.fire({
+            title: "Tem certeza?",
+            text: `Você está prestes a deletar ${selecionados.length} orçamento(s)!`,
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            cancelButtonColor: "#3085d6",
+            confirmButtonText: "Sim, deletar!",
+            cancelButtonText: "Cancelar"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch("/orcamentos/delete_selecionados", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ ids: selecionados })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire("Deletado!", data.success, "success").then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire("Erro!", data.error, "error");
                     }
-                    
-                    return {
-                        material_id: materialId || null, // null significa manter o material atual
-                        rt: rtOption || null, // null significa manter a RT atual
-                        rt_percentual: parseFloat(rtPercent) || 0
-                    };
-                },
-                showCancelButton: true,
-                confirmButtonText: 'Salvar',
-                cancelButtonText: 'Cancelar',
-                width: '600px'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Enviar requisição para editar material e RT
-                    fetch("/orcamentos/editar_material_rt_selecionados", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                            orcamento_ids: selecionados,
-                            material_id: result.value.material_id,
-                            rt: result.value.rt,
-                            rt_percentual: result.value.rt_percentual
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            Swal.fire("Sucesso!", "Materiais e RT atualizados com sucesso!", "success").then(() => {
-                                location.reload();
-                            });
-                        } else {
-                            Swal.fire("Erro!", data.error || "Erro ao atualizar materiais e RT", "error");
-                        }
-                    })
-                    .catch(error => {
-                        Swal.fire("Erro!", "Erro ao atualizar materiais e RT!", "error");
-                    });
-                }
-            });
+                })
+                .catch(error => {
+                    Swal.fire("Erro!", "Erro ao deletar orçamentos!", "error");
+                });
+            }
         });
+    });
+
+    document.getElementById('duplicate-selected').addEventListener('click', function() {
+        const selecionados = [];
+        document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
+            selecionados.push(checkbox.closest('tr').getAttribute('data-id'));
+        });
+        
+        if (selecionados.length === 0) {
+            Swal.fire("Atenção", "Selecione pelo menos um orçamento para duplicar!", "warning");
+            return;
+        }
+        
+        Swal.fire({
+            title: "Confirmar Duplicação",
+            text: `Deseja duplicar ${selecionados.length} orçamento(s)?`,
+            icon: "question",
+            showCancelButton: true,
+            confirmButtonColor: "#1cc88a",
+            cancelButtonColor: "#6c757d",
+            confirmButtonText: "Sim, duplicar!",
+            cancelButtonText: "Cancelar"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Enviar requisição para duplicar
+                fetch("/orcamentos/duplicar_selecionados", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ orcamento_ids: selecionados })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire("Sucesso!", "Orçamentos duplicados com sucesso!", "success").then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire("Erro!", data.error, "error");
+                    }
+                })
+                .catch(error => {
+                    Swal.fire("Erro!", "Erro ao duplicar orçamentos!", "error");
+                });
+            }
+        });
+    });
+
+    document.getElementById('edit-selected').addEventListener('click', function() {
+        const selecionados = [];
+        document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
+            selecionados.push(checkbox.closest('tr').getAttribute('data-id'));
+        });
+        
+        if (selecionados.length === 0) {
+            Swal.fire("Atenção", "Selecione pelo menos um orçamento!", "warning");
+            return;
+        }
+        
+        // Criar modal para seleção do material e RT
+        Swal.fire({
+            title: 'Editar Selecionados',
+            html: `
+                <div class="mb-3">
+                    <label for="select-material" class="form-label">Novo Material (opcional):</label>
+                    <select id="select-material" class="swal2-select" style="width: 100%">
+                        <option value="" selected>Manter material atual</option>
+                        {% for material in materiais %}
+                            <option value="{{ material.id }}">{{ material.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="rt-option" class="form-label">RT (opcional):</label>
+                    <select id="rt-option" class="swal2-select" style="width: 100%">
+                        <option value="" selected>Manter RT atual</option>
+                        <option value="Não">Não</option>
+                        <option value="Sim">Sim</option>
+                    </select>
+                </div>
+                <div class="mb-3" id="rt-percent-field" style="display: none;">
+                    <label for="rt-percent" class="form-label">Porcentagem RT (%):</label>
+                    <input type="number" id="rt-percent" class="form-control" step="0.01" min="0" value="0">
+                </div>
+            `,
+            didOpen: () => {
+                // Aplicar Select2 ao select dentro do SweetAlert
+                $('#select-material').select2({
+                    dropdownParent: $('.swal2-popup'),
+                    placeholder: "Manter material atual",
+                    allowClear: true,
+                    width: '100%'
+                });
+                
+                $('#rt-option').select2({
+                    dropdownParent: $('.swal2-popup'),
+                    placeholder: "Manter RT atual",
+                    allowClear: true,
+                    width: '100%'
+                });
+                
+                // Mostrar/ocultar campo de porcentagem RT
+                $('#rt-option').on('change', function() {
+                    if ($(this).val() === 'Sim') {
+                        $('#rt-percent-field').show();
+                    } else {
+                        $('#rt-percent-field').hide();
+                    }
+                });
+            },
+            preConfirm: () => {
+                const materialId = $('#select-material').val();
+                const rtOption = $('#rt-option').val();
+                const rtPercent = rtOption === 'Sim' ? $('#rt-percent').val() : 0;
+                
+                // Validação apenas se RT for "Sim"
+                if (rtOption === 'Sim' && (!rtPercent || parseFloat(rtPercent) <= 0)) {
+                    Swal.showValidationMessage('Por favor, informe uma porcentagem RT válida.');
+                    return false;
+                }
+                
+                return {
+                    material_id: materialId || null, // null significa manter o material atual
+                    rt: rtOption || null, // null significa manter a RT atual
+                    rt_percentual: parseFloat(rtPercent) || 0
+                };
+            },
+            showCancelButton: true,
+            confirmButtonText: 'Salvar',
+            cancelButtonText: 'Cancelar',
+            width: '600px'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Enviar requisição para editar material e RT
+                fetch("/orcamentos/editar_material_rt_selecionados", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        orcamento_ids: selecionados,
+                        material_id: result.value.material_id,
+                        rt: result.value.rt,
+                        rt_percentual: result.value.rt_percentual
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire("Sucesso!", "Materiais e RT atualizados com sucesso!", "success").then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire("Erro!", data.error || "Erro ao atualizar materiais e RT", "error");
+                    }
+                })
+                .catch(error => {
+                    Swal.fire("Erro!", "Erro ao atualizar materiais e RT!", "error");
+                });
+            }
+        });
+    });
+});
 
         // Adicionar ambiente
         document.getElementById('saveAmbienteBtn').addEventListener('click', function() {
