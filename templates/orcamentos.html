@@ -895,21 +895,21 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // 🔵 CORREÇÃO: Remover event listeners antigos primeiro para evitar duplicação
-    document.querySelectorAll('.filtro-auto').forEach(element => {
-        // Clonar e substituir o elemento para remover event listeners antigos
-        const newElement = element.cloneNode(true);
-        element.parentNode.replaceChild(newElement, element);
-    });
+    // 🔵 CORREÇÃO: VARIÁVEL PARA CONTROLAR SE JÁ ESTÁ APLICANDO FILTROS
+    let aplicandoFiltros = false;
     
-    // 🔵 CORREÇÃO: Adicionar event listeners NOVOS para os filtros
+    // 🔵 CORREÇÃO: Adicionar event listeners para os filtros
     document.querySelectorAll('.filtro-auto').forEach(element => {
         element.addEventListener('change', function() {
-            // 🔵 Apenas salvar no localStorage, NÃO aplicar automaticamente
+            // 🔵 EVITAR LOOP: Se já está aplicando filtros, ignorar
+            if (aplicandoFiltros) return;
+            
+            // 🔵 Apenas salvar no localStorage
             salvarFiltrosNoLocalStorage();
             
             // 🔵 PEQUENA PAUSA para garantir que o localStorage foi salvo
             setTimeout(() => {
+                aplicandoFiltros = true;
                 aplicarFiltrosAuto();
             }, 100);
         });
