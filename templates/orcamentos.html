@@ -492,541 +492,493 @@
     </div>
 
     <!-- JavaScript Libraries -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-       <script>
-        // Função para mostrar/ocultar campos dinâmicos
-        function toggleFields() {
-            const tipoProduto = document.getElementById('tipo_produto').value;
-            const container = document.getElementById('dynamicFieldsContainer');
-            
-            // Limpar container
-            container.innerHTML = '';
-            
-            // Campos comuns a vários tipos de produtos
-            let camposComuns = `
+<script>
+    // Função para mostrar/ocultar campos dinâmicos
+    function toggleFields() {
+        const tipoProduto = document.getElementById('tipo_produto').value;
+        const container = document.getElementById('dynamicFieldsContainer');
+        
+        // Limpar container
+        container.innerHTML = '';
+        
+        // Campos comuns a vários tipos de produtos
+        let camposComuns = `
+            <div class="row dynamic-field">
+                <div class="col-md-12">
+                    <h5><i class="fas fa-money-bill-wave me-2"></i>Outras Configurações</h5>
+                </div>
+                <div class="col-md-6 form-section">
+                    <label for="outros_custos" class="form-label">Outros Custos (R$):</label>
+                    <input type="number" id="outros_custos" name="outros_custos" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
+                </div>
+                <div class="col-md-6 form-section">
+                    <label for="rt" class="form-label">Há RT?</label>
+                    <select name="rt" id="rt" class="form-select" onchange="toggleRTFields()">
+                        <option value="Não">Não</option>
+                        <option value="Sim">Sim</option>
+                    </select>
+                    <div id="rt_percent_field" style="display: none;" class="mt-2">
+                        <label for="rt_percentual" class="form-label">Porcentagem RT (%):</label>
+                        <input type="number" id="rt_percentual" name="rt_percentual" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Campos específicos para cada tipo de produto
+        if (tipoProduto === 'Bancada' || tipoProduto === 'Lavatorio') {
+            let camposEspecificos = `
                 <div class="row dynamic-field">
                     <div class="col-md-12">
-                        <h5><i class="fas fa-money-bill-wave me-2"></i>Outras Configurações</h5>
+                        <h5><i class="fas fa-ruler-combined me-2"></i>Acabamentos</h5>
                     </div>
                     <div class="col-md-6 form-section">
-                        <label for="outros_custos" class="form-label">Outros Custos (R$):</label>
-                        <input type="number" id="outros_custos" name="outros_custos" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
+                        <label for="comprimento_saia" class="form-label">Comprimento Saia (cm):</label>
+                        <input type="number" id="comprimento_saia" name="comprimento_saia" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
                     </div>
                     <div class="col-md-6 form-section">
-                        <label for="rt" class="form-label">Há RT?</label>
-                        <select name="rt" id="rt" class="form-select" onchange="toggleRTFields()">
+                        <label for="largura_saia" class="form-label">Largura Saia (cm):</label>
+                        <input type="number" id="largura_saia" name="largura_saia" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
+                    </div>
+            `;
+            
+            // Adicionar campos de fronte apenas para Bancada e Lavatorio
+            camposEspecificos += `
+                    <div class="col-md-6 form-section">
+                        <label for="comprimento_fronte" class="form-label">Comprimento Fronte (cm):</label>
+                        <input type="number" id="comprimento_fronte" name="comprimento_fronte" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
+                    </div>
+                    <div class="col-md-6 form-section">
+                        <label for="largura_fronte" class="form-label">Largura Fronte (cm):</label>
+                        <input type="number" id="largura_fronte" name="largura_fronte" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
+                    </div>
+                </div>
+            `;
+            
+            // Campos de cuba (apenas para Bancada e Lavatorio)
+            camposEspecificos += `
+                <div class="row dynamic-field">
+                    <div class="col-md-12">
+                        <h5><i class="fas fa-tint me-2"></i>Configurações da Cuba</h5>
+                    </div>
+                    <div class="col-md-4 form-section">
+                        <label for="tipo_cuba" class="form-label">Tipo de Cuba:</label>
+                        <select name="tipo_cuba" id="tipo_cuba" class="form-select" onchange="toggleCubaFields()">
+                            <option value="">Selecione...</option>
+                            <option value="Embutida">Embutida</option>
+                            <option value="Esculpida">Esculpida</option>
+                            <option value="Tradicional Inox">Tradicional Inox</option>
+                            <option value="Tanque Inox">Tanque Inox</option>
+                            <option value="Apoio Cliente">Apoio Cliente</option>
+                            <option value="Embutida Cliente">Embutida Cliente</option>
+                            <option value="Gourmet Cliente">Gourmet Cliente</option>
+                            <option value="Sobrepor Cliente">Sobrepor Cliente</option>
+                            <option value="Tanque Inox Cliente">Tanque Inox Cliente</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 form-section">
+                        <label for="quantidade_cubas" class="form-label">Quantidade de Cubas:</label>
+                        <input type="number" id="quantidade_cubas" name="quantidade_cubas" class="form-control" value="1" min="0">
+                    </div>
+                </div>
+            `;
+            
+            // Campos específicos para cuba esculpida
+            camposEspecificos += `
+                <div class="col-md-12" id="cuba_esculpida_fields" style="display: none;">
+                    <div class="row mt-3">
+                        <div class="col-md-4 form-section">
+                            <label for="modelo_cuba" class="form-label">Modelo da Cuba:</label>
+                            <select name="modelo_cuba" id="modelo_cuba" class="form-select">
+                                <option value="Normal">Normal</option>
+                                <option value="Prainha">Prainha</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-12" id="medidas_cuba_fields" style="display: none;">
+                    <div class="row mt-3">
+                        <div class="col-md-4 form-section">
+                            <label for="comprimento_cuba" class="form-label">Comprimento Cuba (cm):</label>
+                            <input type="number" id="comprimento_cuba" name="comprimento_cuba" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
+                        </div>
+                        <div class="col-md-4 form-section">
+                            <label for="largura_cuba" class="form-label">Largura Cuba (cm):</label>
+                            <input type="number" id="largura_cuba" name="largura_cuba" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
+                        </div>
+                        <div class="col-md-4 form-section">
+                            <label for="profundidade_cuba" class="form-label">Profundidade Cuba (cm):</label>
+                            <input type="number" id="profundidade_cuba" name="profundidade_cuba" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Campos de cooktop (apenas para Bancada)
+            if (tipoProduto === 'Bancada') {
+                camposEspecificos += `
+                    <div class="row dynamic-field">
+                        <div class="col-md-12">
+                            <h5><i class="fas fa-fire me-2"></i>Configurações do Cooktop</h5>
+                        </div>
+                        <div class="col-md-4 form-section">
+                            <label for="tem_cooktop" class="form-label">Tem Cooktop?</label>
+                            <select name="tem_cooktop" id="tem_cooktop" class="form-select">
+                                <option value="Não">Não</option>
+                                <option value="Sim">Sim</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            container.innerHTML = camposEspecificos + camposComuns;
+        } 
+        else if (tipoProduto === 'Ilharga' || tipoProduto === 'Ilharga Bipolida') {
+            let camposEspecificos = `
+                <div class="row dynamic-field">
+                    <div class="col-md-12">
+                        <h5><i class="fas fa-ruler-combined me-2"></i>Acabamentos</h5>
+                    </div>
+                    <div class="col-md-6 form-section">
+                        <label for="comprimento_saia" class="form-label">Comprimento Saia (cm):</label>
+                        <input type="number" id="comprimento_saia" name="comprimento_saia" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
+                    </div>
+                    <div class="col-md-6 form-section">
+                        <label for="largura_saia" class="form-label">Largura Saia (cm):</label>
+                        <input type="number" id="largura_saia" name="largura_saia" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
+                    </div>
+                </div>
+            `;
+            
+            container.innerHTML = camposEspecificos + camposComuns;
+        }
+        else if (tipoProduto === 'Nicho') {
+            let camposEspecificos = `
+                <div class="row dynamic-field">
+                    <div class="col-md-12">
+                        <h5><i class="fas fa-box-open me-2"></i>Configurações do Nicho</h5>
+                    </div>
+                    <div class="col-md-4 form-section">
+                        <label for="profundidade_nicho" class="form-label">Profundidade (cm):</label>
+                        <input type="number" id="profundidade_nicho" name="profundidade_nicho" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
+                    </div>
+                    <div class="col-md-4 form-section">
+                        <label for="tem_fundo" class="form-label">Tem Fundo?</label>
+                        <select name="tem_fundo" id="tem_fundo" class="form-select">
+                            <option value="Sim">Sim</option>
+                            <option value="Não">Não</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4 form-section">
+                        <label for="alisar" class="form-label">Alisar:</label>
+                        <select name="alisar" id="alisar" class="form-select" onchange="toggleAlisarFields()">
                             <option value="Não">Não</option>
                             <option value="Sim">Sim</option>
                         </select>
-                        <div id="rt_percent_field" style="display: none;" class="mt-2">
-                            <label for="rt_percentual" class="form-label">Porcentagem RT (%):</label>
-                            <input type="number" id="rt_percentual" name="rt_percentual" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
+                    </div>
+                    <div class="col-md-12" id="alisar_fields" style="display: none;">
+                        <div class="row mt-3">
+                            <div class="col-md-6 form-section">
+                                <label for="largura_alisar" class="form-label">Largura Alisar (cm):</label>
+                                <input type="number" id="largura_alisar" name="largura_alisar" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
+                            </div>
                         </div>
                     </div>
                 </div>
             `;
             
-            // Campos específicos para cada tipo de produto
-            if (tipoProduto === 'Bancada' || tipoProduto === 'Lavatorio') {
-                let camposEspecificos = `
-                    <div class="row dynamic-field">
-                        <div class="col-md-12">
-                            <h5><i class="fas fa-ruler-combined me-2"></i>Acabamentos</h5>
-                        </div>
-                        <div class="col-md-6 form-section">
-                            <label for="comprimento_saia" class="form-label">Comprimento Saia (cm):</label>
-                            <input type="number" id="comprimento_saia" name="comprimento_saia" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
-                        </div>
-                        <div class="col-md-6 form-section">
-                            <label for="largura_saia" class="form-label">Largura Saia (cm):</label>
-                            <input type="number" id="largura_saia" name="largura_saia" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
-                        </div>
-                `;
-                
-                // Adicionar campos de fronte apenas para Bancada e Lavatorio
-                camposEspecificos += `
-                        <div class="col-md-6 form-section">
-                            <label for="comprimento_fronte" class="form-label">Comprimento Fronte (cm):</label>
-                            <input type="number" id="comprimento_fronte" name="comprimento_fronte" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
-                        </div>
-                        <div class="col-md-6 form-section">
-                            <label for="largura_fronte" class="form-label">Largura Fronte (cm):</label>
-                            <input type="number" id="largura_fronte" name="largura_fronte" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
-                        </div>
-                    </div>
-                `;
-                
-                // Campos de cuba (apenas para Bancada e Lavatorio)
-                camposEspecificos += `
-                    <div class="row dynamic-field">
-                        <div class="col-md-12">
-                            <h5><i class="fas fa-tint me-2"></i>Configurações da Cuba</h5>
-                        </div>
-                        <div class="col-md-4 form-section">
-                            <label for="tipo_cuba" class="form-label">Tipo de Cuba:</label>
-                            <select name="tipo_cuba" id="tipo_cuba" class="form-select" onchange="toggleCubaFields()">
-                                <option value="">Selecione...</option>
-                                <option value="Embutida">Embutida</option>
-                                <option value="Esculpida">Esculpida</option>
-                                <option value="Tradicional Inox">Tradicional Inox</option>
-                                <option value="Tanque Inox">Tanque Inox</option>
-								<option value="Apoio Cliente">Apoio Cliente</option>
-                                <option value="Embutida Cliente">Embutida Cliente</option>
-                                <option value="Gourmet Cliente">Gourmet Cliente</option>
-								<option value="Sobrepor Cliente">Sobrepor Cliente</option>
-								<option value="Tanque Inox Cliente">Tanque Inox Cliente</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 form-section">
-                            <label for="quantidade_cubas" class="form-label">Quantidade de Cubas:</label>
-                            <input type="number" id="quantidade_cubas" name="quantidade_cubas" class="form-control" value="1" min="0">
-                        </div>
-                    </div>
-                `;
-                
-                // Campos específicos para cuba esculpida
-                camposEspecificos += `
-                    <div class="col-md-12" id="cuba_esculpida_fields" style="display: none;">
-                        <div class="row mt-3">
-                            <div class="col-md-4 form-section">
-                                <label for="modelo_cuba" class="form-label">Modelo da Cuba:</label>
-                                <select name="modelo_cuba" id="modelo_cuba" class="form-select">
-                                    <option value="Normal">Normal</option>
-                                    <option value="Prainha">Prainha</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-12" id="medidas_cuba_fields" style="display: none;">
-                        <div class="row mt-3">
-                            <div class="col-md-4 form-section">
-                                <label for="comprimento_cuba" class="form-label">Comprimento Cuba (cm):</label>
-                                <input type="number" id="comprimento_cuba" name="comprimento_cuba" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
-                            </div>
-                            <div class="col-md-4 form-section">
-                                <label for="largura_cuba" class="form-label">Largura Cuba (cm):</label>
-                                <input type="number" id="largura_cuba" name="largura_cuba" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
-                            </div>
-                            <div class="col-md-4 form-section">
-                                <label for="profundidade_cuba" class="form-label">Profundidade Cuba (cm):</label>
-                                <input type="number" id="profundidade_cuba" name="profundidade_cuba" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
-                            </div>
-                        </div>
-                    </div>
-                `;
-		
-                // Campos de cooktop (apenas para Bancada)
-                if (tipoProduto === 'Bancada') {
-                    camposEspecificos += `
-                        <div class="row dynamic-field">
-                            <div class="col-md-12">
-                                <h5><i class="fas fa-fire me-2"></i>Configurações do Cooktop</h5>
-                            </div>
-                            <div class="col-md-4 form-section">
-                                <label for="tem_cooktop" class="form-label">Tem Cooktop?</label>
-                                <select name="tem_cooktop" id="tem_cooktop" class="form-select">
-                                    <option value="Não">Não</option>
-                                    <option value="Sim">Sim</option>
-                                </select>
-                            </div>
-                        </div>
-                    `;
-                }
-                
-                container.innerHTML = camposEspecificos + camposComuns;
-            } 
-            else if (tipoProduto === 'Ilharga' || tipoProduto === 'Ilharga Bipolida') {
-                let camposEspecificos = `
-                    <div class="row dynamic-field">
-                        <div class="col-md-12">
-                            <h5><i class="fas fa-ruler-combined me-2"></i>Acabamentos</h5>
-                        </div>
-                        <div class="col-md-6 form-section">
-                            <label for="comprimento_saia" class="form-label">Comprimento Saia (cm):</label>
-                            <input type="number" id="comprimento_saia" name="comprimento_saia" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
-                        </div>
-                        <div class="col-md-6 form-section">
-                            <label for="largura_saia" class="form-label">Largura Saia (cm):</label>
-                            <input type="number" id="largura_saia" name="largura_saia" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
-                        </div>
-                    </div>
-                `;
-                
-                container.innerHTML = camposEspecificos + camposComuns;
+            container.innerHTML = camposEspecificos + camposComuns;
+        }
+        else if (tipoProduto === 'Pedra de Box') {
+            // Pedra de Box não precisa de campos adicionais além dos comuns
+            container.innerHTML = camposComuns;
+        }
+        else {
+            // Para outros tipos de produtos (Pedra Simples, etc.)
+            container.innerHTML = camposComuns;
+        }
+    }
+
+    // Função para mostrar/ocultar campos de cuba esculpida
+    function toggleCubaFields() {
+        const tipoCuba = document.getElementById("tipo_cuba").value;
+        const medidasCubaFields = document.getElementById("medidas_cuba_fields");
+        const cubaEsculpidaFields = document.getElementById("cuba_esculpida_fields");
+        
+        if (tipoCuba === "Esculpida") {
+            medidasCubaFields.style.display = "block";
+            cubaEsculpidaFields.style.display = "block";
+        } else {
+            medidasCubaFields.style.display = "none";
+            cubaEsculpidaFields.style.display = "none";
+        }
+    }
+
+    // Função para mostrar/ocultar campo de porcentagem RT
+    function toggleRTFields() {
+        const temRT = document.getElementById("rt").value;
+        const rtPercentField = document.getElementById("rt_percent_field");
+        
+        if (temRT === "Sim") {
+            rtPercentField.style.display = "block";
+        } else {
+            rtPercentField.style.display = "none";
+        }
+    }
+
+    // Função para mostrar/ocultar campos de alisar
+    function toggleAlisarFields() {
+        const temAlisar = document.getElementById("alisar").value;
+        const alisarFields = document.getElementById("alisar_fields");
+        
+        if (temAlisar === "Sim") {
+            alisarFields.style.display = "block";
+        } else {
+            alisarFields.style.display = "none";
+        }
+    }
+
+    // Função para confirmar exclusão
+    function confirmarExclusao(event, form) {
+        event.preventDefault();
+        
+        Swal.fire({
+            title: "Tem certeza?",
+            text: "Essa ação não pode ser desfeita!",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            cancelButtonColor: "#3085d6",
+            confirmButtonText: "Sim, deletar!",
+            cancelButtonText: "Cancelar"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                form.submit();
             }
-            else if (tipoProduto === 'Nicho') {
-                let camposEspecificos = `
-                    <div class="row dynamic-field">
-                        <div class="col-md-12">
-                            <h5><i class="fas fa-box-open me-2"></i>Configurações do Nicho</h5>
-                        </div>
-                        <div class="col-md-4 form-section">
-                            <label for="profundidade_nicho" class="form-label">Profundidade (cm):</label>
-                            <input type="number" id="profundidade_nicho" name="profundidade_nicho" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
-                        </div>
-                        <div class="col-md-4 form-section">
-                            <label for="tem_fundo" class="form-label">Tem Fundo?</label>
-                            <select name="tem_fundo" id="tem_fundo" class="form-select">
-                                <option value="Sim">Sim</option>
-                                <option value="Não">Não</option>
-                            </select>
-                        </div>
-                        <div class="col-md-4 form-section">
-                            <label for="alisar" class="form-label">Alisar:</label>
-                            <select name="alisar" id="alisar" class="form-select" onchange="toggleAlisarFields()">
-                                <option value="Não">Não</option>
-                                <option value="Sim">Sim</option>
-                            </select>
-                        </div>
-                        <div class="col-md-12" id="alisar_fields" style="display: none;">
-                            <div class="row mt-3">
-                                <div class="col-md-6 form-section">
-                                    <label for="largura_alisar" class="form-label">Largura Alisar (cm):</label>
-                                    <input type="number" id="largura_alisar" name="largura_alisar" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
-                container.innerHTML = camposEspecificos + camposComuns;
-            }
-            else if (tipoProduto === 'Pedra de Box') {
-                // Pedra de Box não precisa de campos adicionais além dos comuns
-                container.innerHTML = camposComuns;
-            }
-            else {
-                // Para outros tipos de produtos (Pedra Simples, etc.)
-                container.innerHTML = camposComuns;
-            }
+        });
+    }
+
+    // Função para atualizar o valor total dos orçamentos selecionados
+    function atualizarValorFinal() {
+        let total = 0;
+        document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
+            total += parseFloat(checkbox.dataset.valor);
+        });
+        document.getElementById('valor-final').textContent = 
+            "R$ " + total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+
+    // Função para aplicar filtros automaticamente (sem botão)
+    function aplicarFiltrosAuto() {
+        const filtroCliente = document.getElementById('filtro_cliente').value;
+        const filtroDataInicio = document.getElementById('filtro_data_inicio').value;
+        const filtroDataFim = document.getElementById('filtro_data_fim').value;
+        const limite = document.getElementById('filtro_quantidade').value;
+        
+        // Salvar filtros no localStorage antes de recarregar
+        salvarFiltrosNoLocalStorage();
+        
+        // Construir URL com parâmetros
+        const params = new URLSearchParams();
+        if (filtroCliente !== 'Todos') params.append('filtro_cliente', filtroCliente);
+        if (filtroDataInicio) params.append('filtro_data_inicio', filtroDataInicio);
+        if (filtroDataFim) params.append('filtro_data_fim', filtroDataFim);
+        if (limite !== '15') params.append('limite', limite);
+        
+        // Recarregar a página com os filtros aplicados
+        window.location.href = `/orcamentos?${params.toString()}`;
+    }
+
+    // Função para salvar filtros no localStorage
+    function salvarFiltrosNoLocalStorage() {
+        const filtroCliente = document.getElementById('filtro_cliente').value;
+        const filtroDataInicio = document.getElementById('filtro_data_inicio').value;
+        const filtroDataFim = document.getElementById('filtro_data_fim').value;
+        const limite = document.getElementById('filtro_quantidade').value;
+        
+        localStorage.setItem('filtroCliente', filtroCliente);
+        localStorage.setItem('filtroDataInicio', filtroDataInicio);
+        localStorage.setItem('filtroDataFim', filtroDataFim);
+        localStorage.setItem('filtroQuantidade', limite);
+    }
+
+    // Função para salvar seleções do formulário no localStorage
+    function salvarSelecoesFormulario() {
+        const clienteId = document.getElementById('cliente_id').value;
+        const tipoProduto = document.getElementById('tipo_produto').value;
+        const materialId = document.getElementById('material_id').value;
+        const ambienteId = document.getElementById('ambiente_id').value;
+        
+        localStorage.setItem('cliente_id', clienteId);
+        localStorage.setItem('tipo_produto', tipoProduto);
+        localStorage.setItem('material_id', materialId);
+        localStorage.setItem('ambiente_id', ambienteId);
+    }
+
+    // 🔵 CORREÇÃO SIMPLIFICADA: Função para carregar seleções salvas
+    function carregarSelecoesSalvas() {
+        // Carregar seleções do formulário
+        if (localStorage.getItem('cliente_id')) {
+            $('#cliente_id').val(localStorage.getItem('cliente_id')).trigger('change');
         }
-
-        // Função para mostrar/ocultar campos de cuba esculpida
-        function toggleCubaFields() {
-            const tipoCuba = document.getElementById("tipo_cuba").value;
-            const medidasCubaFields = document.getElementById("medidas_cuba_fields");
-            const cubaEsculpidaFields = document.getElementById("cuba_esculpida_fields");
-            
-            if (tipoCuba === "Esculpida") {
-                medidasCubaFields.style.display = "block";
-                cubaEsculpidaFields.style.display = "block";
-            } else {
-                medidasCubaFields.style.display = "none";
-                cubaEsculpidaFields.style.display = "none";
-            }
-        }
-
-        // Função para mostrar/ocultar campo de porcentagem RT
-        function toggleRTFields() {
-            const temRT = document.getElementById("rt").value;
-            const rtPercentField = document.getElementById("rt_percent_field");
-            
-            if (temRT === "Sim") {
-                rtPercentField.style.display = "block";
-            } else {
-                rtPercentField.style.display = "none";
-            }
-        }
-
-        // Função para mostrar/ocultar campos de alisar
-        function toggleAlisarFields() {
-            const temAlisar = document.getElementById("alisar").value;
-            const alisarFields = document.getElementById("alisar_fields");
-            
-            if (temAlisar === "Sim") {
-                alisarFields.style.display = "block";
-            } else {
-                alisarFields.style.display = "none";
-            }
-        }
-
-        // Função para confirmar exclusão
-        function confirmarExclusao(event, form) {
-            event.preventDefault();
-            
-            Swal.fire({
-                title: "Tem certeza?",
-                text: "Essa ação não pode ser desfeita!",
-                icon: "warning",
-                showCancelButton: true,
-                confirmButtonColor: "#d33",
-                cancelButtonColor: "#3085d6",
-                confirmButtonText: "Sim, deletar!",
-                cancelButtonText: "Cancelar"
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    form.submit();
-                }
-            });
-        }
-
-        // Função para atualizar o valor total dos orçamentos selecionados
-        function atualizarValorFinal() {
-		    let total = 0;
-		    document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
-		        total += parseFloat(checkbox.dataset.valor);
-		    });
-		    document.getElementById('valor-final').textContent = 
-		        "R$ " + total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-		}
-
-        // Função para aplicar filtros automaticamente (sem botão)
-        function aplicarFiltrosAuto() {
-            const filtroCliente = document.getElementById('filtro_cliente').value;
-            const filtroDataInicio = document.getElementById('filtro_data_inicio').value;
-            const filtroDataFim = document.getElementById('filtro_data_fim').value;
-            const limite = document.getElementById('filtro_quantidade').value;
-            
-            // Salvar filtros no localStorage antes de recarregar
-            salvarFiltrosNoLocalStorage();
-            
-            // Construir URL com parâmetros
-            const params = new URLSearchParams();
-            if (filtroCliente !== 'Todos') params.append('filtro_cliente', filtroCliente);
-            if (filtroDataInicio) params.append('filtro_data_inicio', filtroDataInicio);
-            if (filtroDataFim) params.append('filtro_data_fim', filtroDataFim);
-            if (limite !== '15') params.append('limite', limite);
-            
-            // Recarregar a página com os filtros aplicados
-            window.location.href = `/orcamentos?${params.toString()}`;
-        }
-
-        // Função para salvar filtros no localStorage
-        function salvarFiltrosNoLocalStorage() {
-            const filtroCliente = document.getElementById('filtro_cliente').value;
-            const filtroDataInicio = document.getElementById('filtro_data_inicio').value;
-            const filtroDataFim = document.getElementById('filtro_data_fim').value;
-            const limite = document.getElementById('filtro_quantidade').value;
-            
-            localStorage.setItem('filtroCliente', filtroCliente);
-            localStorage.setItem('filtroDataInicio', filtroDataInicio);
-            localStorage.setItem('filtroDataFim', filtroDataFim);
-            localStorage.setItem('filtroQuantidade', limite);
-        }
-
-        // Função para salvar seleções do formulário no localStorage
-        function salvarSelecoesFormulario() {
-            const clienteId = document.getElementById('cliente_id').value;
-            const tipoProduto = document.getElementById('tipo_produto').value;
-            const materialId = document.getElementById('material_id').value;
-            const ambienteId = document.getElementById('ambiente_id').value;
-            
-            localStorage.setItem('cliente_id', clienteId);
-            localStorage.setItem('tipo_produto', tipoProduto);
-            localStorage.setItem('material_id', materialId);
-            localStorage.setItem('ambiente_id', ambienteId);
-        }
-
-        // 🔵 NOVA FUNÇÃO: Sincronizar filtros com a URL
-function sincronizarFiltrosComURL() {
-    const urlParams = new URLSearchParams(window.location.search);
-    
-    // Se houver parâmetros na URL, atualizar o localStorage para manter a sincronia
-    if (urlParams.has('limite')) {
-        const limiteURL = urlParams.get('limite');
-        document.getElementById('filtro_quantidade').value = limiteURL;
-        localStorage.setItem('filtroQuantidade', limiteURL);
-    }
-    
-    if (urlParams.has('filtro_cliente')) {
-        const clienteURL = urlParams.get('filtro_cliente');
-        document.getElementById('filtro_cliente').value = clienteURL;
-        localStorage.setItem('filtroCliente', clienteURL);
-    }
-    
-    if (urlParams.has('filtro_data_inicio')) {
-        const dataInicioURL = urlParams.get('filtro_data_inicio');
-        document.getElementById('filtro_data_inicio').value = dataInicioURL;
-        localStorage.setItem('filtroDataInicio', dataInicioURL);
-    }
-    
-    if (urlParams.has('filtro_data_fim')) {
-        const dataFimURL = urlParams.get('filtro_data_fim');
-        document.getElementById('filtro_data_fim').value = dataFimURL;
-        localStorage.setItem('filtroDataFim', dataFimURL);
-    }
-}
-
-// 🔵 CORREÇÃO: Função para carregar seleções salvas
-function carregarSelecoesSalvas() {
-    // Carregar seleções do formulário
-    if (localStorage.getItem('cliente_id')) {
-        $('#cliente_id').val(localStorage.getItem('cliente_id')).trigger('change');
-    }
-    if (localStorage.getItem('tipo_produto')) {
-        $('#tipo_produto').val(localStorage.getItem('tipo_produto')).trigger('change');
-        toggleFields(); // Atualizar campos dinâmicos
-    }
-    if (localStorage.getItem('material_id')) {
-        $('#material_id').val(localStorage.getItem('material_id')).trigger('change');
-    }
-    if (localStorage.getItem('ambiente_id')) {
-        $('#ambiente_id').val(localStorage.getItem('ambiente_id')).trigger('change');
-    }
-    
-    // 🔵 CORREÇÃO: Sempre carregar filtros do localStorage
-    const urlParams = new URLSearchParams(window.location.search);
-    
-    // Carregar filtro de cliente
-    if (!urlParams.has('filtro_cliente') && localStorage.getItem('filtroCliente')) {
-        document.getElementById('filtro_cliente').value = localStorage.getItem('filtroCliente');
-    }
-    
-    // Carregar filtro de data início
-    if (!urlParams.has('filtro_data_inicio') && localStorage.getItem('filtroDataInicio')) {
-        document.getElementById('filtro_data_inicio').value = localStorage.getItem('filtroDataInicio');
-    }
-    
-    // Carregar filtro de data fim
-    if (!urlParams.has('filtro_data_fim') && localStorage.getItem('filtroDataFim')) {
-        document.getElementById('filtro_data_fim').value = localStorage.getItem('filtroDataFim');
-    }
-    
-    // 🔵 CORREÇÃO PRINCIPAL: Sempre carregar o limite do localStorage
-    if (localStorage.getItem('filtroQuantidade')) {
-        document.getElementById('filtro_quantidade').value = localStorage.getItem('filtroQuantidade');
-    }
-}
-
-// 🔵 CORREÇÃO: Função para aplicar filtros automaticamente
-function aplicarFiltrosAuto() {
-    const filtroCliente = document.getElementById('filtro_cliente').value;
-    const filtroDataInicio = document.getElementById('filtro_data_inicio').value;
-    const filtroDataFim = document.getElementById('filtro_data_fim').value;
-    const limite = document.getElementById('filtro_quantidade').value;
-    
-    // 🔵 GARANTIR: Salvar filtros no localStorage ANTES de recarregar
-    salvarFiltrosNoLocalStorage();
-    
-    // Construir URL com parâmetros
-    const params = new URLSearchParams();
-    if (filtroCliente !== 'Todos') params.append('filtro_cliente', filtroCliente);
-    if (filtroDataInicio) params.append('filtro_data_inicio', filtroDataInicio);
-    if (filtroDataFim) params.append('filtro_data_fim', filtroDataFim);
-    if (limite !== '15') params.append('limite', limite);
-    
-    // Recarregar a página com os filtros aplicados
-    window.location.href = `/orcamentos?${params.toString()}`;
-}
-
-// 🔵 CORREÇÃO: Função para salvar filtros no localStorage
-function salvarFiltrosNoLocalStorage() {
-    const filtroCliente = document.getElementById('filtro_cliente').value;
-    const filtroDataInicio = document.getElementById('filtro_data_inicio').value;
-    const filtroDataFim = document.getElementById('filtro_data_fim').value;
-    const limite = document.getElementById('filtro_quantidade').value;
-    
-    localStorage.setItem('filtroCliente', filtroCliente);
-    localStorage.setItem('filtroDataInicio', filtroDataInicio);
-    localStorage.setItem('filtroDataFim', filtroDataFim);
-    localStorage.setItem('filtroQuantidade', limite);
-}
-
-// 🔵 CORREÇÃO: Função para salvar seleções do formulário no localStorage
-function salvarSelecoesFormulario() {
-    const clienteId = document.getElementById('cliente_id').value;
-    const tipoProduto = document.getElementById('tipo_produto').value;
-    const materialId = document.getElementById('material_id').value;
-    const ambienteId = document.getElementById('ambiente_id').value;
-    
-    localStorage.setItem('cliente_id', clienteId);
-    localStorage.setItem('tipo_produto', tipoProduto);
-    localStorage.setItem('material_id', materialId);
-    localStorage.setItem('ambiente_id', ambienteId);
-}
-
-// Função para resetar os filtros
-function resetFilters() {
-    // Limpar localStorage dos filtros
-    localStorage.removeItem('filtroCliente');
-    localStorage.removeItem('filtroDataInicio');
-    localStorage.removeItem('filtroDataFim');
-    localStorage.removeItem('filtroQuantidade');
-    
-    // Redirecionar para a URL base sem parâmetros
-    window.location.href = '/orcamentos';
-}
-
-// Função para enviar orçamentos selecionados
-function enviarOrcamentos() {
-    const selecionados = [];
-    document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
-        selecionados.push(checkbox.closest('tr').getAttribute('data-id'));
-    });
-    
-    if (selecionados.length === 0) {
-        Swal.fire("Atenção", "Selecione pelo menos um orçamento!", "warning");
-        return;
-    }
-    
-    // Redirecionar para a página de detalhes
-    window.location.href = `/detalhes_orcamento?ids=${selecionados.join(",")}`;
-}
-
-// 🔵 CORREÇÃO: Adicionar event listener para os checkboxes
-document.addEventListener('DOMContentLoaded', function() {
-    // Inicializar Select2
-    $('#cliente_id, #material_id, #tipo_produto, #ambiente_id').select2({
-        width: '100%',
-        placeholder: "Selecione",
-        allowClear: true
-    });
-    
-    // 🔵 CORREÇÃO: PRIMEIRO sincronizar com a URL, DEPOIS carregar do localStorage
-    sincronizarFiltrosComURL();
-    carregarSelecoesSalvas();
-    
-    // Salvar seleções quando mudar
-    $('#cliente_id, #tipo_produto, #material_id, #ambiente_id').on('change', function() {
-        salvarSelecoesFormulario();
-        if (this.id === 'tipo_produto') {
+        if (localStorage.getItem('tipo_produto')) {
+            $('#tipo_produto').val(localStorage.getItem('tipo_produto')).trigger('change');
             toggleFields(); // Atualizar campos dinâmicos
         }
-    });
-    
-    // 🔵 CORREÇÃO: Salvar filtros quando mudar (sem recarregar imediatamente)
-    document.querySelectorAll('.filtro-auto').forEach(element => {
-        element.addEventListener('change', function() {
-            salvarFiltrosNoLocalStorage();
-        });
-    });
-    
-    // Adicionar event listeners aos checkboxes
-    document.querySelectorAll('.selecionar-orcamento').forEach(checkbox => {
-        checkbox.addEventListener('change', atualizarValorFinal);
-    });
-    
-    // Inicializar o valor total
-    atualizarValorFinal();
-    
-    // Configurar os eventos de clique nas linhas
-    setupRowClickEvents();
-});
-            
-            // Salvar filtros quando mudar (sem recarregar imediatamente)
-            document.querySelectorAll('.filtro-auto').forEach(element => {
-                element.addEventListener('change', function() {
-                    salvarFiltrosNoLocalStorage();
-                });
-            });
-            
-            // Adicionar event listeners aos checkboxes
-            document.querySelectorAll('.selecionar-orcamento').forEach(checkbox => {
-                checkbox.addEventListener('change', atualizarValorFinal);
-            });
-            
-            // Inicializar o valor total
-            atualizarValorFinal();
-            
-            // Configurar os eventos de clique nas linhas
-            setupRowClickEvents();
-        });
+        if (localStorage.getItem('material_id')) {
+            $('#material_id').val(localStorage.getItem('material_id')).trigger('change');
+        }
+        if (localStorage.getItem('ambiente_id')) {
+            $('#ambiente_id').val(localStorage.getItem('ambiente_id')).trigger('change');
+        }
+        
+        // 🔵 CORREÇÃO: Priorizar parâmetros da URL, depois localStorage
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // Filtro cliente - URL tem prioridade
+        if (urlParams.has('filtro_cliente')) {
+            document.getElementById('filtro_cliente').value = urlParams.get('filtro_cliente');
+        } else if (localStorage.getItem('filtroCliente')) {
+            document.getElementById('filtro_cliente').value = localStorage.getItem('filtroCliente');
+        }
+        
+        // Filtro data início - URL tem prioridade
+        if (urlParams.has('filtro_data_inicio')) {
+            document.getElementById('filtro_data_inicio').value = urlParams.get('filtro_data_inicio');
+        } else if (localStorage.getItem('filtroDataInicio')) {
+            document.getElementById('filtro_data_inicio').value = localStorage.getItem('filtroDataInicio');
+        }
+        
+        // Filtro data fim - URL tem prioridade
+        if (urlParams.has('filtro_data_fim')) {
+            document.getElementById('filtro_data_fim').value = urlParams.get('filtro_data_fim');
+        } else if (localStorage.getItem('filtroDataFim')) {
+            document.getElementById('filtro_data_fim').value = localStorage.getItem('filtroDataFim');
+        }
+        
+        // 🔵 CORREÇÃO PRINCIPAL: Filtro quantidade - URL tem prioridade
+        if (urlParams.has('limite')) {
+            document.getElementById('filtro_quantidade').value = urlParams.get('limite');
+        } else if (localStorage.getItem('filtroQuantidade')) {
+            document.getElementById('filtro_quantidade').value = localStorage.getItem('filtroQuantidade');
+        }
+    }
 
-        // Função para deletar orçamentos selecionados
+    // Função para resetar os filtros
+    function resetFilters() {
+        // Limpar localStorage dos filtros
+        localStorage.removeItem('filtroCliente');
+        localStorage.removeItem('filtroDataInicio');
+        localStorage.removeItem('filtroDataFim');
+        localStorage.removeItem('filtroQuantidade');
+        
+        // Redirecionar para a URL base sem parâmetros
+        window.location.href = '/orcamentos';
+    }
+
+    // Função para enviar orçamentos selecionados
+    function enviarOrcamentos() {
+        const selecionados = [];
+        document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
+            selecionados.push(checkbox.closest('tr').getAttribute('data-id'));
+        });
+        
+        if (selecionados.length === 0) {
+            Swal.fire("Atenção", "Selecione pelo menos um orçamento!", "warning");
+            return;
+        }
+        
+        // Redirecionar para a página de detalhes
+        window.location.href = `/detalhes_orcamento?ids=${selecionados.join(",")}`;
+    }
+
+    // Adicione esta função para tornar as linhas clicáveis
+    function setupRowClickEvents() {
+        document.querySelectorAll('#orcamento_table tr').forEach(row => {
+            row.addEventListener('click', function(e) {
+                if (e.target.closest('.actions-cell') || e.target.closest('.action-buttons')) {
+                    return;
+                }
+                
+                if (e.target.type === 'checkbox') {
+                    return;
+                }
+                
+                const checkbox = this.querySelector('.selecionar-orcamento');
+                if (checkbox) {
+                    checkbox.checked = !checkbox.checked;
+                    
+                    // Adicionar/remover a classe "selected" na linha
+                    if (checkbox.checked) {
+                        this.classList.add('selected');
+                    } else {
+                        this.classList.remove('selected');
+                    }
+                    
+                    const event = new Event('change');
+                    checkbox.dispatchEvent(event);
+                }
+            });
+        });
+        
+        // Também adicione a classe "selected" quando o checkbox for clicado diretamente
+        document.querySelectorAll('.selecionar-orcamento').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const row = this.closest('tr');
+                if (this.checked) {
+                    row.classList.add('selected');
+                } else {
+                    row.classList.remove('selected');
+                }
+            });
+        });
+    }
+
+    // 🔵 CORREÇÃO: Event listener único e organizado
+    document.addEventListener('DOMContentLoaded', function() {
+        // Inicializar Select2
+        $('#cliente_id, #material_id, #tipo_produto, #ambiente_id').select2({
+            width: '100%',
+            placeholder: "Selecione",
+            allowClear: true
+        });
+        
+        // Carregar seleções salvas
+        carregarSelecoesSalvas();
+        
+        // Salvar seleções quando mudar
+        $('#cliente_id, #tipo_produto, #material_id, #ambiente_id').on('change', function() {
+            salvarSelecoesFormulario();
+            if (this.id === 'tipo_produto') {
+                toggleFields(); // Atualizar campos dinâmicos
+            }
+        });
+        
+        // Salvar filtros quando mudar (sem recarregar imediatamente)
+        document.querySelectorAll('.filtro-auto').forEach(element => {
+            element.addEventListener('change', function() {
+                salvarFiltrosNoLocalStorage();
+            });
+        });
+        
+        // Adicionar event listeners aos checkboxes
+        document.querySelectorAll('.selecionar-orcamento').forEach(checkbox => {
+            checkbox.addEventListener('change', atualizarValorFinal);
+        });
+        
+        // Inicializar o valor total
+        atualizarValorFinal();
+        
+        // Configurar os eventos de clique nas linhas
+        setupRowClickEvents();
+
+        // 🔵 Adicionar event listeners para os botões de ação
         document.getElementById('delete-selected').addEventListener('click', function() {
             const selecionados = [];
             document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
@@ -1074,7 +1026,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
 
-        // Função para duplicar orçamentos selecionados
         document.getElementById('duplicate-selected').addEventListener('click', function() {
             const selecionados = [];
             document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
@@ -1122,7 +1073,6 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
 
-        // Função para editar material e RT dos orçamentos selecionados
         document.getElementById('edit-selected').addEventListener('click', function() {
             const selecionados = [];
             document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
@@ -1332,50 +1282,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     });
                 }
             });
-        });	
-
-        // Adicione esta função para tornar as linhas clicáveis
-        function setupRowClickEvents() {
-            document.querySelectorAll('#orcamento_table tr').forEach(row => {
-                row.addEventListener('click', function(e) {
-                    if (e.target.closest('.actions-cell') || e.target.closest('.action-buttons')) {
-                        return;
-                    }
-                    
-                    if (e.target.type === 'checkbox') {
-                        return;
-                    }
-                    
-                    const checkbox = this.querySelector('.selecionar-orcamento');
-                    if (checkbox) {
-                        checkbox.checked = !checkbox.checked;
-                        
-                        // Adicionar/remover a classe "selected" na linha
-                        if (checkbox.checked) {
-                            this.classList.add('selected');
-                        } else {
-                            this.classList.remove('selected');
-                        }
-                        
-                        const event = new Event('change');
-                        checkbox.dispatchEvent(event);
-                    }
-                });
-            });
-            
-            // Também adicione a classe "selected" quando o checkbox for clicado diretamente
-            document.querySelectorAll('.selecionar-orcamento').forEach(checkbox => {
-                checkbox.addEventListener('change', function() {
-                    const row = this.closest('tr');
-                    if (this.checked) {
-                        row.classList.add('selected');
-                    } else {
-                        row.classList.remove('selected');
-                    }
-                });
-            });
-        }
-    </script>
+        });
+    });
+</script>
 </body>
 </html>
 		
