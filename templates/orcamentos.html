@@ -774,7 +774,7 @@
             "R$ " + total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     }
 
-   // Função para salvar filtros no localStorage
+  // Função para salvar filtros no localStorage
 function salvarFiltrosNoLocalStorage() {
     const filtroCliente = document.getElementById('filtro_cliente').value;
     const filtroDataInicio = document.getElementById('filtro_data_inicio').value;
@@ -854,7 +854,7 @@ function carregarSelecoesSalvas() {
     }
 }
 
-// 🔵 ÚNICA FUNÇÃO aplicarFiltrosAuto (REMOVIDA A DUPLICAÇÃO)
+// 🔵 CORREÇÃO: Função para aplicar filtros automaticamente
 function aplicarFiltrosAuto() {
     const filtroCliente = document.getElementById('filtro_cliente').value;
     const filtroDataInicio = document.getElementById('filtro_data_inicio').value;
@@ -895,11 +895,23 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // 🔵 CORREÇÃO: Salvar E APLICAR filtros quando mudar
+    // 🔵 CORREÇÃO: Remover event listeners antigos primeiro para evitar duplicação
+    document.querySelectorAll('.filtro-auto').forEach(element => {
+        // Clonar e substituir o elemento para remover event listeners antigos
+        const newElement = element.cloneNode(true);
+        element.parentNode.replaceChild(newElement, element);
+    });
+    
+    // 🔵 CORREÇÃO: Adicionar event listeners NOVOS para os filtros
     document.querySelectorAll('.filtro-auto').forEach(element => {
         element.addEventListener('change', function() {
+            // 🔵 Apenas salvar no localStorage, NÃO aplicar automaticamente
             salvarFiltrosNoLocalStorage();
-            aplicarFiltrosAuto(); // 🔵 AGORA APLICA AUTOMATICAMENTE
+            
+            // 🔵 PEQUENA PAUSA para garantir que o localStorage foi salvo
+            setTimeout(() => {
+                aplicarFiltrosAuto();
+            }, 100);
         });
     });
     
