@@ -881,17 +881,20 @@
         }
     }
 
-    // Função para resetar os filtros
-    function resetFilters() {
-        // Limpar localStorage dos filtros
-        localStorage.removeItem('filtroCliente');
-        localStorage.removeItem('filtroDataInicio');
-        localStorage.removeItem('filtroDataFim');
-        localStorage.removeItem('filtroQuantidade');
-        
-        // Redirecionar para a URL base sem parâmetros
-        window.location.href = '/orcamentos';
-    }
+    // Função para resetar os filtros - ATUALIZADA
+function resetFilters() {
+    // Limpar Select2 do filtro cliente - NOVO CÓDIGO
+    $('#filtro_cliente').val(null).trigger('change');
+    
+    // Limpar localStorage dos filtros
+    localStorage.removeItem('filtroCliente');
+    localStorage.removeItem('filtroDataInicio');
+    localStorage.removeItem('filtroDataFim');
+    localStorage.removeItem('filtroQuantidade');
+    
+    // Redirecionar para a URL base sem parâmetros
+    window.location.href = '/orcamentos';
+}
 
     // Função para enviar orçamentos selecionados
     function enviarOrcamentos() {
@@ -911,12 +914,27 @@
 
     // Adicionar event listener para os checkboxes
     document.addEventListener('DOMContentLoaded', function() {
-        // Inicializar Select2
-        $('#cliente_id, #material_id, #tipo_produto, #ambiente_id').select2({
-            width: '100%',
-            placeholder: "Selecione",
-            allowClear: true
-        });
+        // Inicializar Select2 - ADICIONADO #filtro_cliente
+$('#cliente_id, #material_id, #tipo_produto, #ambiente_id, #filtro_cliente').select2({
+    width: '100%',
+    placeholder: "Selecione",
+    allowClear: true
+});
+
+// Evento específico para o Select2 do filtro cliente - NOVO CÓDIGO
+$('#filtro_cliente').on('select2:select', function() {
+    salvarFiltrosNoLocalStorage();
+    setTimeout(() => {
+        aplicarFiltrosAuto();
+    }, 100);
+});
+
+$('#filtro_cliente').on('select2:clear', function() {
+    salvarFiltrosNoLocalStorage();
+    setTimeout(() => {
+        aplicarFiltrosAuto();
+    }, 100);
+});
         
         // Carregar seleções salvas (AGORA COM SEGURANÇA PARA SAFARI)
         carregarSelecoesSalvas();
@@ -929,16 +947,16 @@
             }
         });
         
-        // Salvar filtros quando mudar e aplicar automaticamente
-        document.querySelectorAll('.filtro-auto').forEach(element => {
-            element.addEventListener('change', function() {
-                salvarFiltrosNoLocalStorage();
-                // Aplicar filtros automaticamente após mudança manual
-                setTimeout(() => {
-                    aplicarFiltrosAuto();
-                }, 100);
-            });
-        });
+       // Salvar filtros quando mudar e aplicar automaticamente
+document.querySelectorAll('.filtro-auto').forEach(element => {
+    element.addEventListener('change', function() {
+        salvarFiltrosNoLocalStorage();
+        // Aplicar filtros automaticamente após mudança manual
+        setTimeout(() => {
+            aplicarFiltrosAuto();
+        }, 100);
+    });
+});
         
         // Adicionar event listeners aos checkboxes
         document.querySelectorAll('.selecionar-orcamento').forEach(checkbox => {
