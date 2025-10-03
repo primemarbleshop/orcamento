@@ -207,16 +207,16 @@
                             <label for="telefone" class="form-label">Telefone:</label>
                             <div class="phone-input-group">
                                 <select id="pais" name="pais" class="form-select country-select">
-                                    <option value="BR" data-code="55">🇧🇷 Brasil</option>
-                                    <option value="US" data-code="1">🇺🇸 Estados Unidos</option>
-                                    <option value="PT" data-code="351">🇵🇹 Portugal</option>
-                                    <option value="ES" data-code="34">🇪🇸 Espanha</option>
-                                    <option value="FR" data-code="33">🇫🇷 França</option>
-                                    <option value="DE" data-code="49">🇩🇪 Alemanha</option>
-                                    <option value="IT" data-code="39">🇮🇹 Itália</option>
-                                    <option value="UK" data-code="44">🇬🇧 Reino Unido</option>
-                                    <option value="AR" data-code="54">🇦🇷 Argentina</option>
-                                    <option value="UY" data-code="598">🇺🇾 Uruguai</option>
+                                    <option value="BR" data-code="55" data-mask="(00) 00000-0000">🇧🇷 Brasil</option>
+                                    <option value="US" data-code="1" data-mask="(000) 000-0000">🇺🇸 Estados Unidos</option>
+                                    <option value="PT" data-code="351" data-mask="00 000 0000">🇵🇹 Portugal</option>
+                                    <option value="ES" data-code="34" data-mask="000 000 000">🇪🇸 Espanha</option>
+                                    <option value="FR" data-code="33" data-mask="0 00 00 00 00">🇫🇷 França</option>
+                                    <option value="DE" data-code="49" data-mask="000 00000000">🇩🇪 Alemanha</option>
+                                    <option value="IT" data-code="39" data-mask="000 000 0000">🇮🇹 Itália</option>
+                                    <option value="UK" data-code="44" data-mask="0000 000000">🇬🇧 Reino Unido</option>
+                                    <option value="AR" data-code="54" data-mask="000 00-0000">🇦🇷 Argentina</option>
+                                    <option value="UY" data-code="598" data-mask="00 000 000">🇺🇾 Uruguai</option>
                                 </select>
                                 <div class="phone-input-container">
                                     <input type="text" id="telefone" name="telefone" class="form-control phone-input" required>
@@ -315,10 +315,10 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-    
-
     // Função para aplicar máscara de telefone
     function applyPhoneMask(input, mask) {
+        if (!mask) return; // Se não houver máscara, não faz nada
+        
         let value = input.value.replace(/\D/g, '');
         let maskedValue = '';
         let maskIndex = 0;
@@ -355,13 +355,17 @@
         const countryCode = selectedOption.getAttribute('data-code');
         const countryMask = selectedOption.getAttribute('data-mask');
         
+        // Se não houver máscara definida, usar padrão brasileiro como fallback
+        const mask = countryMask || '(00) 00000-0000';
+        const code = countryCode || '55';
+        
         // Atualizar placeholders, máscara e hint
-        phoneInput.placeholder = countryMask;
-        countryCodeInput.value = countryCode;
+        phoneInput.placeholder = mask;
+        countryCodeInput.value = code;
         countryNameInput.value = selectedCountry;
         
         // Atualizar o hint com o formato
-        formatHint.textContent = countryMask;
+        formatHint.textContent = mask;
         
         // Limpar o campo de telefone quando mudar de país
         phoneInput.value = '';
@@ -370,11 +374,13 @@
         // Remover event listeners anteriores para evitar duplicação
         phoneInput.removeEventListener('input', phoneInput._maskHandler);
         
-        // Aplicar máscara em tempo real
-        phoneInput._maskHandler = function(e) {
-            applyPhoneMask(e.target, countryMask);
-        };
-        phoneInput.addEventListener('input', phoneInput._maskHandler);
+        // Aplicar máscara em tempo real apenas se houver máscara
+        if (mask) {
+            phoneInput._maskHandler = function(e) {
+                applyPhoneMask(e.target, mask);
+            };
+            phoneInput.addEventListener('input', phoneInput._maskHandler);
+        }
     }
 
     // Função para confirmar exclusão
