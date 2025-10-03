@@ -470,7 +470,7 @@ def formatar_telefone(telefone):
     
 @app.route('/clientes', methods=['GET', 'POST'])
 def clientes():
-    if 'user_cpf' not in session:
+    if 'user_cpf' not in session:  # Se não estiver logado, redireciona para login
         return redirect(url_for('login'))
 
     if request.method == 'POST':
@@ -479,19 +479,20 @@ def clientes():
         telefone = request.form.get('telefone', '')
         pais_selecionado = request.form.get('pais_selecionado', 'BR')
         codigo_pais = request.form.get('codigo_pais', '55')
-        dono = session['user_cpf']
+        dono = session['user_cpf']  # Define o dono como o CPF do usuário logado
 
-        # Apenas adicionar código do país se não for Brasil
-        # O JavaScript já cuidou da formatação visual
-        if pais_selecionado != 'BR' and not telefone.startswith('+'):
+        # Formatar o telefone com código do país se não for Brasil
+        if pais_selecionado != 'BR':
             telefone = f"+{codigo_pais} {telefone}"
         # Para Brasil, manter exatamente como o usuário digitou/formatou
 
+        # Verifica se o cliente já existe pelo telefone e dono
         cliente_existente = Cliente.query.filter_by(telefone=telefone, dono=dono).first()
         if cliente_existente:
             flash("Esse cliente já está cadastrado!", "error")
             return redirect(url_for('clientes'))
 
+        # Criar novo cliente (agora com dono)
         novo_cliente = Cliente(
             nome=nome, 
             endereco=endereco, 
@@ -501,6 +502,7 @@ def clientes():
 
         db.session.add(novo_cliente)
         db.session.commit()
+
         flash("Cliente cadastrado com sucesso!", "success")
         return redirect(url_for('clientes'))
 
@@ -508,16 +510,16 @@ def clientes():
     is_admin = session.get('admin', False)
 
     if is_admin:
-        # Admin vê todos os clientes e os usuários que os criaram
+        # Admin vê todos os clientes e os usuários que os criaram - ORDENADO POR NOME
         clientes = db.session.query(Cliente, Usuario.nome.label('nome_usuario'))\
                              .join(Usuario, Cliente.dono == Usuario.cpf)\
-                             .order_by(Cliente.nome).all()
+                             .order_by(Cliente.nome.asc()).all()  # Adicionado .asc() para ordem alfabética
     else:
-        # Usuário comum vê apenas os clientes que ele cadastrou
+        # Usuário comum vê apenas os clientes que ele cadastrou - ORDENADO POR NOME
         clientes = db.session.query(Cliente, Usuario.nome.label('nome_usuario'))\
                              .join(Usuario, Cliente.dono == Usuario.cpf)\
                              .filter(Cliente.dono == session['user_cpf'])\
-                             .order_by(Cliente.nome).all()
+                             .order_by(Cliente.nome.asc()).all()  # Adicionado .asc() para ordem alfabética
 
     return render_template('clientes.html', clientes=clientes)
 
