@@ -142,7 +142,8 @@ class Orcamento(db.Model):
     quantidade = db.Column(db.Integer, nullable=False)
     comprimento = db.Column(db.Float, nullable=False)
     largura = db.Column(db.Float, nullable=False)
-    outros_custos = db.Column(db.Float, default=0.0)
+    instalacao = db.Column(db.String(50), default="Não")  # Sim ou Não, padrão "Não"
+    instalacao_valor = db.Column(db.Float, default=0.0)   # Valor digitado
     rt = db.Column(db.String(50), default="Não")
     rt_percentual = db.Column(db.Float, default=0.0)
     valor_total = db.Column(db.Float, nullable=False, default=0.0)
@@ -206,7 +207,8 @@ def listar_orcamentos():
         quantidade = int(request.form['quantidade'])
         comprimento = float(request.form.get('comprimento', 0) or 0)
         largura = float(request.form.get('largura', 0) or 0)
-        outros_custos = float(request.form.get('outros_custos', 0) or 0)
+        instalacao = request.form.get('instalacao', 'Não')  # padrão = "Não"
+        instalacao_valor = float(request.form.get('instalacao_valor', 0) or 0)
         rt = request.form.get('rt', 'Não')
         rt_percentual = float(request.form.get('rt_percentual', 0) or 0)
         data_atual = datetime.now(br_tz)
@@ -328,7 +330,8 @@ def listar_orcamentos():
         if tem_cooktop == 'Sim':
             valor_total_criar += cooktop_valor
 
-        valor_total_criar += outros_custos
+        if instalacao == 'Sim':
+        valor_total_criar += instalacao_valor
 
         valor_total_criar *= quantidade
 
@@ -351,7 +354,8 @@ def listar_orcamentos():
                 quantidade=quantidade,
                 comprimento=comprimento,
                 largura=largura,
-                outros_custos=outros_custos,
+                instalacao=instalacao,
+                instalacao_valor=instalacao_valor,
                 rt=rt,
                 rt_percentual=rt_percentual,
                 comprimento_saia=comprimento_saia,
@@ -627,7 +631,8 @@ def editar_orcamento(id):
         orcamento.quantidade = int(request.form.get('quantidade', orcamento.quantidade))
         orcamento.comprimento = float(request.form.get('comprimento', orcamento.comprimento or 0)or 0)
         orcamento.largura = float(request.form.get('largura', orcamento.largura or 0)or 0)
-        orcamento.outros_custos = float(request.form.get('outros_custos', orcamento.outros_custos or 0)or 0)
+        orcamento.instalacao = request.form.get('instalacao', orcamento.instalacao or 'Não')
+        orcamento.instalacao_valor = float(request.form.get('instalacao_valor', orcamento.instalacao_valor or 0) or 0)
         orcamento.rt = request.form.get('rt', orcamento.rt)
         orcamento.rt_percentual = float(request.form.get('rt_percentual', orcamento.rt_percentual or 0)or 0)
 
@@ -763,8 +768,8 @@ def editar_orcamento(id):
         print(f"Valor do campo tem_cooktop: {orcamento.tem_cooktop}")
 
 
-        # **Adicionando outros custos**
-        valor_total_criar += orcamento.outros_custos
+        if orcamento.instalacao == 'Sim':
+        valor_total_editar += orcamento.instalacao_valor
 
         valor_total_criar *= orcamento.quantidade
 
@@ -1558,8 +1563,8 @@ def editar_material_rt_selecionados():
         if orcamento.tem_cooktop == 'Sim':
             valor_total_criar += cooktop_valor
 
-        # Outros custos
-        valor_total_criar += orcamento.outros_custos or 0
+        if orcamento.instalacao == 'Sim':
+        valor_total_criar += orcamento.instalacao_valor or 0
 
         # Quantidade
         valor_total_criar *= orcamento.quantidade
@@ -1609,7 +1614,8 @@ def duplicar_selecionados():
                     quantidade = original.quantidade,
                     comprimento = original.comprimento,
                     largura = original.largura,
-                    outros_custos = original.outros_custos,
+                    instalacao = original.instalacao or "Não",
+                    instalacao_valor = original.instalacao_valor or 0,
                     rt = original.rt,
                     rt_percentual = original.rt_percentual,
                     comprimento_saia = original.comprimento_saia,
