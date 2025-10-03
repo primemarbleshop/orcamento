@@ -474,10 +474,12 @@ def clientes():
         codigo_pais = request.form.get('codigo_pais', '55')
         dono = session['user_cpf']  # Define o dono como o CPF do usuário logado
 
-        # Formatar o telefone com código do país se não for Brasil
-        if pais_selecionado != 'BR':
+        # APENAS adicionar código do país se não for Brasil
+        # O JAVASCRIPT já cuidou da formatação - NÃO CHAMAR formatar_telefone
+        if pais_selecionado != 'BR' and not telefone.startswith('+'):
             telefone = f"+{codigo_pais} {telefone}"
-        # Para Brasil, manter exatamente como o usuário digitou/formatou
+        # Para Brasil, manter exatamente como o JavaScript formatou
+        # NÃO FAZER NADA - telefone já está formatado pelo frontend
 
         # Verifica se o cliente já existe pelo telefone e dono
         cliente_existente = Cliente.query.filter_by(telefone=telefone, dono=dono).first()
@@ -503,16 +505,19 @@ def clientes():
     is_admin = session.get('admin', False)
 
     if is_admin:
-        # Admin vê todos os clientes e os usuários que os criaram - ORDENADO POR NOME
-        clientes = db.session.query(Cliente, Usuario.nome.label('nome_usuario'))\
-                             .join(Usuario, Cliente.dono == Usuario.cpf)\
-                             .order_by(db.func.lower(Cliente.nome)).all()  # Ordenação case-insensitive
+        # Admin vê todos os clientes - ORDENADO POR NOME (case-insensitive no Python)
+        clientes_query = db.session.query(Cliente, Usuario.nome.label('nome_usuario'))\
+                                  .join(Usuario, Cliente.dono == Usuario.cpf)\
+                                  .all()
     else:
         # Usuário comum vê apenas os clientes que ele cadastrou - ORDENADO POR NOME
-        clientes = db.session.query(Cliente, Usuario.nome.label('nome_usuario'))\
-                             .join(Usuario, Cliente.dono == Usuario.cpf)\
-                             .filter(Cliente.dono == session['user_cpf'])\
-                             .order_by(db.func.lower(Cliente.nome)).all()  # Ordenação case-insensitive
+        clientes_query = db.session.query(Cliente, Usuario.nome.label('nome_usuario'))\
+                                  .join(Usuario, Cliente.dono == Usuario.cpf)\
+                                  .filter(Cliente.dono == session['user_cpf'])\
+                                  .all()
+
+    # Ordenar os resultados por nome (case-insensitive no Python)
+    clientes = sorted(clientes_query, key=lambda x: x.Cliente.nome.lower())
 
     return render_template('clientes.html', clientes=clientes)
 
@@ -544,11 +549,13 @@ def editar_cliente(id):
         pais_selecionado = request.form.get('pais_selecionado', 'BR')
         codigo_pais = request.form.get('codigo_pais', '55')
 
-        # Apenas adicionar código do país se não for Brasil
+        # APENAS adicionar código do país se não for Brasil
+        # O JAVASCRIPT já cuidou da formatação - NÃO CHAMAR formatar_telefone
         if pais_selecionado != 'BR' and not telefone.startswith('+'):
             telefone = f"+{codigo_pais} {telefone}"
         # Para Brasil, manter exatamente como está
 
+        # Atualiza os dados
         cliente.nome = nome
         cliente.endereco = endereco
         cliente.telefone = telefone
