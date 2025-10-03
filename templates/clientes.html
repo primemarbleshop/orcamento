@@ -513,21 +513,17 @@
             
         
 
+// Exibir mensagens flash
 {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
-        <script>
-            {% for category, message in messages %}
-                {# Verificar se a mensagem é específica de clientes #}
-                {% if 'cliente' in message.lower() or 'client' in message.lower() %}
-                    Swal.fire({
-                        title: "{% if category == 'error' %}Erro{% else %}Sucesso{% endif %}",
-                        text: "{{ message }}",
-                        icon: "{% if category == 'error' %}error{% else %}success{% endif %}",
-                        confirmButtonText: "OK"
-                    });
-                {% endif %}
-            {% endfor %}
-        </script>
+        {% for category, message in messages %}
+            Swal.fire({
+                title: "{% if category == 'error' %}Erro{% else %}Sucesso{% endif %}",
+                text: "{{ message }}",
+                icon: "{% if category == 'error' %}error{% else %}success{% endif %}",
+                confirmButtonText: "OK"
+            });
+        {% endfor %}
     {% endif %}
 {% endwith %}
         });
