@@ -506,20 +506,20 @@ def clientes():
         flash("Cliente cadastrado com sucesso!", "success")
         return redirect(url_for('clientes'))
 
-     # Verifica se o usuário logado é administrador
+    # Verifica se o usuário logado é administrador
     is_admin = session.get('admin', False)
 
     if is_admin:
-        # Admin vê todos os clientes - ORDENADO POR NOME (compatível com SQLite)
+        # Admin vê todos os clientes e os usuários que os criaram - ORDENADO POR NOME
         clientes = db.session.query(Cliente, Usuario.nome.label('nome_usuario'))\
                              .join(Usuario, Cliente.dono == Usuario.cpf)\
-                             .order_by(Cliente.nome.collate('unicode')).all()
+                             .order_by(db.func.lower(Cliente.nome)).all()  # Ordenação case-insensitive
     else:
         # Usuário comum vê apenas os clientes que ele cadastrou - ORDENADO POR NOME
         clientes = db.session.query(Cliente, Usuario.nome.label('nome_usuario'))\
                              .join(Usuario, Cliente.dono == Usuario.cpf)\
                              .filter(Cliente.dono == session['user_cpf'])\
-                             .order_by(Cliente.nome.collate('unicode')).all()
+                             .order_by(db.func.lower(Cliente.nome)).all()  # Ordenação case-insensitive
 
     return render_template('clientes.html', clientes=clientes)
 
