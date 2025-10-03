@@ -470,7 +470,7 @@ def formatar_telefone(telefone):
     
 @app.route('/clientes', methods=['GET', 'POST'])
 def clientes():
-    if 'user_cpf' not in session:  # Se não estiver logado, redireciona para login
+    if 'user_cpf' not in session:
         return redirect(url_for('login'))
 
     if request.method == 'POST':
@@ -479,22 +479,19 @@ def clientes():
         telefone = request.form.get('telefone', '')
         pais_selecionado = request.form.get('pais_selecionado', 'BR')
         codigo_pais = request.form.get('codigo_pais', '55')
-        dono = session['user_cpf']  # Define o dono como o CPF do usuário logado
+        dono = session['user_cpf']
 
-        # Formatar o telefone com código do país se não for Brasil
-        if pais_selecionado != 'BR':
+        # Apenas adicionar código do país se não for Brasil
+        # O JavaScript já cuidou da formatação visual
+        if pais_selecionado != 'BR' and not telefone.startswith('+'):
             telefone = f"+{codigo_pais} {telefone}"
-        else:
-            # Formatar no padrão brasileiro usando a função formatar_telefone
-            telefone = formatar_telefone(telefone)
+        # Para Brasil, manter exatamente como o usuário digitou/formatou
 
-        # Verifica se o cliente já existe pelo telefone e dono
         cliente_existente = Cliente.query.filter_by(telefone=telefone, dono=dono).first()
         if cliente_existente:
             flash("Esse cliente já está cadastrado!", "error")
             return redirect(url_for('clientes'))
 
-        # Criar novo cliente (agora com dono)
         novo_cliente = Cliente(
             nome=nome, 
             endereco=endereco, 
@@ -504,7 +501,6 @@ def clientes():
 
         db.session.add(novo_cliente)
         db.session.commit()
-
         flash("Cliente cadastrado com sucesso!", "success")
         return redirect(url_for('clientes'))
 
@@ -553,13 +549,11 @@ def editar_cliente(id):
         pais_selecionado = request.form.get('pais_selecionado', 'BR')
         codigo_pais = request.form.get('codigo_pais', '55')
 
-        # Formatar o telefone baseado no país
+        # Apenas adicionar código do país se não for Brasil
         if pais_selecionado != 'BR' and not telefone.startswith('+'):
             telefone = f"+{codigo_pais} {telefone}"
-        elif pais_selecionado == 'BR':
-            telefone = formatar_telefone(telefone)
+        # Para Brasil, manter exatamente como está
 
-        # Atualiza os dados
         cliente.nome = nome
         cliente.endereco = endereco
         cliente.telefone = telefone
