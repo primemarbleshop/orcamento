@@ -315,220 +315,199 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-        // Função para aplicar máscara de telefone
-        function applyPhoneMask(input, mask) {
-            if (!mask) return;
-            
-            let value = input.value.replace(/\D/g, '');
-            let maskedValue = '';
-            let maskIndex = 0;
-            
-            for (let i = 0; i < mask.length && maskIndex < value.length; i++) {
-                if (mask[i] === '0') {
-                    maskedValue += value[maskIndex];
-                    maskIndex++;
-                } else {
-                    maskedValue += mask[i];
-                }
-            }
-            
-            input.value = maskedValue;
-            
-            // Atualizar classe para controle do hint
-            if (input.value.length > 0) {
-                input.classList.add('filled');
-            } else {
-                input.classList.remove('filled');
-            }
-        }
-
-        // Função para atualizar a formatação do telefone baseado no país selecionado
-        function updatePhoneFormat() {
-            const countrySelect = document.getElementById('pais');
-            const phoneInput = document.getElementById('telefone');
-            const countryCodeInput = document.getElementById('codigo_pais');
-            const countryNameInput = document.getElementById('pais_selecionado');
-            const formatHint = document.getElementById('phone-format-hint');
-            
-            const selectedOption = countrySelect.options[countrySelect.selectedIndex];
-            const selectedCountry = selectedOption.value;
-            const countryCode = selectedOption.getAttribute('data-code');
-            const countryMask = selectedOption.getAttribute('data-mask');
-            
-            // Atualizar placeholders, máscara e hint
-            phoneInput.placeholder = countryMask;
-            countryCodeInput.value = countryCode;
-            countryNameInput.value = selectedCountry;
-            
-            // Atualizar o hint com o formato
-            formatHint.textContent = countryMask;
-            
-            // Limpar o campo de telefone quando mudar de país
-            phoneInput.value = '';
-            phoneInput.classList.remove('filled');
-            
-            // Remover event listeners anteriores para evitar duplicação
-            phoneInput.removeEventListener('input', phoneInput._maskHandler);
-            
-            // Aplicar máscara em tempo real
-            phoneInput._maskHandler = function(e) {
-                applyPhoneMask(e.target, countryMask);
-            };
-            phoneInput.addEventListener('input', phoneInput._maskHandler);
-        }
-
-        // Função para confirmar exclusão
-        function confirmarExclusao(event, url) {
-            event.preventDefault();
-            
-            Swal.fire({
-                title: "Tem certeza?",
-                text: "Essa ação não poderá ser desfeita!",
-                icon: "warning",
-                showCancelButton: true,
-                confirmButtonColor: "#d33",
-                cancelButtonColor: "#3085d6",
-                confirmButtonText: "Sim, deletar!",
-                cancelButtonText: "Cancelar"
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    fetch(url, { method: "POST" })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            Swal.fire({
-                                title: "Deletado!",
-                                text: "O cliente foi excluído com sucesso.",
-                                icon: "success",
-                                timer: 2000,
-                                showConfirmButton: false
-                            });
-                            setTimeout(() => location.reload(), 2000);
-                        } else {
-                            Swal.fire("Erro!", data.error || "Não foi possível excluir o cliente.", "error");
-                        }
-                    })
-                    .catch(() => {
-                        Swal.fire("Erro!", "Erro na comunicação com o servidor.", "error");
-                    });
-                }
-            });
-        }
-
-        // Função para filtrar clientes
-        function filterClientes() {
-            const filtroNome = document.getElementById('filtro_nome').value.toLowerCase();
-            const filtroTelefone = document.getElementById('filtro_telefone').value.toLowerCase();
-            
-            const rows = document.querySelectorAll('#cliente_table tr');
-            
-            rows.forEach(row => {
-                const nome = row.getAttribute('data-nome').toLowerCase();
-                const telefone = row.getAttribute('data-telefone').toLowerCase();
-                
-                let show = true;
-                
-                // Filtrar por nome
-                if (filtroNome && !nome.includes(filtroNome)) {
-                    show = false;
-                }
-                
-                // Filtrar por telefone
-                if (filtroTelefone && !telefone.includes(filtroTelefone)) {
-                    show = false;
-                }
-                
-                if (show) {
-                    row.style.display = '';
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-            
-            // Salvar filtros no localStorage
-            localStorage.setItem('filtroNome', filtroNome);
-            localStorage.setItem('filtroTelefone', filtroTelefone);
-        }
-
-        // Função para resetar os filtros
-        function resetFilters() {
-            document.getElementById('filtro_nome').value = '';
-            document.getElementById('filtro_telefone').value = '';
-            
-            // Limpar localStorage
-            localStorage.removeItem('filtroNome');
-            localStorage.removeItem('filtroTelefone');
-            
-            filterClientes();
-        }
-
-        // Inicialização quando a página carrega
-        document.addEventListener("DOMContentLoaded", function() {
-            // Configurar o seletor de países
-            const countrySelect = document.getElementById('pais');
-            if (countrySelect) {
-                countrySelect.addEventListener('change', updatePhoneFormat);
-                updatePhoneFormat(); // Inicializar com o formato do Brasil
-            }
-            
-            // Carregar filtros salvos
-            if (localStorage.getItem('filtroNome')) {
-                document.getElementById('filtro_nome').value = localStorage.getItem('filtroNome');
-            }
-            if (localStorage.getItem('filtroTelefone')) {
-                document.getElementById('filtro_telefone').value = localStorage.getItem('filtroTelefone');
-            }
-            
-            // Aplicar filtros ao carregar a página
-            filterClientes();
-            
-            // Exibir mensagens flash
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        Swal.fire({
-                            title: "{% if category == 'error' %}Erro{% else %}Sucesso{% endif %}",
-                            text: "{{ message }}",
-                            icon: "{% if category == 'error' %}error{% else %}success{% endif %}",
-                            confirmButtonText: "OK"
-                        });
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
-        });
-
-        
-// Função para ordenar a tabela por nome
-function ordenarTabela() {
-    const table = document.getElementById('cliente_table');
-    const rows = Array.from(table.getElementsByTagName('tr'));
-    
-    // Ordenar as linhas pelo nome (segunda coluna para admin, primeira para usuário comum)
-    rows.sort((a, b) => {
-        const isAdmin = {% if session['admin'] %}true{% else %}false{% endif %};
-        const nomeA = a.cells[isAdmin ? 2 : 0].textContent.trim().toLowerCase();
-        const nomeB = b.cells[isAdmin ? 2 : 0].textContent.trim().toLowerCase();
-        return nomeA.localeCompare(nomeB, 'pt-BR');
-    });
-    
-    // Remover todas as linhas e adicionar na ordem correta
-    rows.forEach(row => table.appendChild(row));
-}
-
-// Chamar a função quando a página carregar
-document.addEventListener("DOMContentLoaded", function() {
-    // ... código existente ...
-    
-    // Ordenar a tabela após carregar
-    ordenarTabela();
-    
-    // Reordenar após filtrar
-    const originalFilterClientes = filterClientes;
-    filterClientes = function() {
-        originalFilterClientes();
-        ordenarTabela();
+    // Configurações de formatação por país
+    const countryFormats = {
+        'BR': { mask: '(00) 00000-0000', placeholder: '(00) 00000-0000', code: '55' },
+        'US': { mask: '(000) 000-0000', placeholder: '(000) 000-0000', code: '1' },
+        'PT': { mask: '00 000 0000', placeholder: '00 000 0000', code: '351' },
+        'ES': { mask: '000 000 000', placeholder: '000 000 000', code: '34' },
+        'FR': { mask: '0 00 00 00 00', placeholder: '0 00 00 00 00', code: '33' },
+        'DE': { mask: '000 00000000', placeholder: '000 00000000', code: '49' },
+        'IT': { mask: '000 000 0000', placeholder: '000 000 0000', code: '39' },
+        'UK': { mask: '0000 000000', placeholder: '0000 000000', code: '44' },
+        'AR': { mask: '000 00-0000', placeholder: '000 00-0000', code: '54' },
+        'UY': { mask: '00 000 000', placeholder: '00 000 000', code: '598' }
     };
-});
-    </script>
+
+    // Função para aplicar máscara de telefone
+    function applyPhoneMask(input, mask) {
+        let value = input.value.replace(/\D/g, '');
+        let maskedValue = '';
+        let maskIndex = 0;
+        
+        for (let i = 0; i < mask.length && maskIndex < value.length; i++) {
+            if (mask[i] === '0') {
+                maskedValue += value[maskIndex];
+                maskIndex++;
+            } else {
+                maskedValue += mask[i];
+            }
+        }
+        
+        input.value = maskedValue;
+        
+        // Atualizar classe para controle do hint
+        if (input.value.length > 0) {
+            input.classList.add('filled');
+        } else {
+            input.classList.remove('filled');
+        }
+    }
+
+    // Função para atualizar a formatação do telefone baseado no país selecionado
+    function updatePhoneFormat() {
+        const countrySelect = document.getElementById('pais');
+        const phoneInput = document.getElementById('telefone');
+        const countryCodeInput = document.getElementById('codigo_pais');
+        const countryNameInput = document.getElementById('pais_selecionado');
+        const formatHint = document.getElementById('phone-format-hint');
+        
+        const selectedOption = countrySelect.options[countrySelect.selectedIndex];
+        const selectedCountry = selectedOption.value;
+        const countryCode = selectedOption.getAttribute('data-code');
+        const countryMask = selectedOption.getAttribute('data-mask');
+        
+        // Atualizar placeholders, máscara e hint
+        phoneInput.placeholder = countryMask;
+        countryCodeInput.value = countryCode;
+        countryNameInput.value = selectedCountry;
+        
+        // Atualizar o hint com o formato
+        formatHint.textContent = countryMask;
+        
+        // Limpar o campo de telefone quando mudar de país
+        phoneInput.value = '';
+        phoneInput.classList.remove('filled');
+        
+        // Remover event listeners anteriores para evitar duplicação
+        phoneInput.removeEventListener('input', phoneInput._maskHandler);
+        
+        // Aplicar máscara em tempo real
+        phoneInput._maskHandler = function(e) {
+            applyPhoneMask(e.target, countryMask);
+        };
+        phoneInput.addEventListener('input', phoneInput._maskHandler);
+    }
+
+    // Função para confirmar exclusão
+    function confirmarExclusao(event, url) {
+        event.preventDefault();
+        
+        Swal.fire({
+            title: "Tem certeza?",
+            text: "Essa ação não poderá ser desfeita!",
+            icon: "warning",
+            showCancelButton: true,
+            confirmButtonColor: "#d33",
+            cancelButtonColor: "#3085d6",
+            confirmButtonText: "Sim, deletar!",
+            cancelButtonText: "Cancelar"
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch(url, { method: "POST" })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire({
+                            title: "Deletado!",
+                            text: "O cliente foi excluído com sucesso.",
+                            icon: "success",
+                            timer: 2000,
+                            showConfirmButton: false
+                        });
+                        setTimeout(() => location.reload(), 2000);
+                    } else {
+                        Swal.fire("Erro!", data.error || "Não foi possível excluir o cliente.", "error");
+                    }
+                })
+                .catch(() => {
+                    Swal.fire("Erro!", "Erro na comunicação com o servidor.", "error");
+                });
+            }
+        });
+    }
+
+    // Função para filtrar clientes
+    function filterClientes() {
+        const filtroNome = document.getElementById('filtro_nome').value.toLowerCase();
+        const filtroTelefone = document.getElementById('filtro_telefone').value.toLowerCase();
+        
+        const rows = document.querySelectorAll('#cliente_table tr');
+        
+        rows.forEach(row => {
+            const nome = row.getAttribute('data-nome').toLowerCase();
+            const telefone = row.getAttribute('data-telefone').toLowerCase();
+            
+            let show = true;
+            
+            // Filtrar por nome
+            if (filtroNome && !nome.includes(filtroNome)) {
+                show = false;
+            }
+            
+            // Filtrar por telefone
+            if (filtroTelefone && !telefone.includes(filtroTelefone)) {
+                show = false;
+            }
+            
+            if (show) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+        
+        // Salvar filtros no localStorage
+        localStorage.setItem('filtroNome', filtroNome);
+        localStorage.setItem('filtroTelefone', filtroTelefone);
+    }
+
+    // Função para resetar os filtros
+    function resetFilters() {
+        document.getElementById('filtro_nome').value = '';
+        document.getElementById('filtro_telefone').value = '';
+        
+        // Limpar localStorage
+        localStorage.removeItem('filtroNome');
+        localStorage.removeItem('filtroTelefone');
+        
+        filterClientes();
+    }
+
+    // Inicialização quando a página carrega
+    document.addEventListener("DOMContentLoaded", function() {
+        // Configurar o seletor de países
+        const countrySelect = document.getElementById('pais');
+        if (countrySelect) {
+            countrySelect.addEventListener('change', updatePhoneFormat);
+            updatePhoneFormat(); // Inicializar com o formato do Brasil
+        }
+        
+        // Carregar filtros salvos
+        if (localStorage.getItem('filtroNome')) {
+            document.getElementById('filtro_nome').value = localStorage.getItem('filtroNome');
+        }
+        if (localStorage.getItem('filtroTelefone')) {
+            document.getElementById('filtro_telefone').value = localStorage.getItem('filtroTelefone');
+        }
+        
+        // Aplicar filtros ao carregar a página
+        filterClientes();
+        
+        // Exibir mensagens flash
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    Swal.fire({
+                        title: "{% if category == 'error' %}Erro{% else %}Sucesso{% endif %}",
+                        text: "{{ message }}",
+                        icon: "{% if category == 'error' %}error{% else %}success{% endif %}",
+                        confirmButtonText: "OK"
+                    });
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    });
+</script>
 </body>
 </html>
