@@ -769,7 +769,7 @@ def editar_orcamento(id):
 
 
         if orcamento.instalacao == 'Sim':
-            valor_total_editar += orcamento.instalacao_valor
+            valor_total_criar += orcamento.instalacao_valor
 
         valor_total_criar *= orcamento.quantidade
 
