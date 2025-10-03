@@ -331,7 +331,7 @@ def listar_orcamentos():
             valor_total_criar += cooktop_valor
 
         if instalacao == 'Sim':
-        valor_total_criar += instalacao_valor
+            valor_total_criar += instalacao_valor
 
         valor_total_criar *= quantidade
 
@@ -769,7 +769,7 @@ def editar_orcamento(id):
 
 
         if orcamento.instalacao == 'Sim':
-        valor_total_editar += orcamento.instalacao_valor
+            valor_total_editar += orcamento.instalacao_valor
 
         valor_total_criar *= orcamento.quantidade
 
@@ -1564,7 +1564,7 @@ def editar_material_rt_selecionados():
             valor_total_criar += cooktop_valor
 
         if orcamento.instalacao == 'Sim':
-        valor_total_criar += orcamento.instalacao_valor or 0
+            valor_total_criar += orcamento.instalacao_valor or 0
 
         # Quantidade
         valor_total_criar *= orcamento.quantidade
