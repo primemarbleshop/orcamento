@@ -122,6 +122,50 @@
             margin-bottom: 20px;
             box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         }
+        
+        .phone-input-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .country-select {
+            width: 180px;
+            flex-shrink: 0;
+        }
+        
+        .phone-input-container {
+            position: relative;
+            flex-grow: 1;
+        }
+        
+        .phone-format-hint {
+            position: absolute;
+            top: 50%;
+            left: 12px;
+            transform: translateY(-50%);
+            color: #999;
+            pointer-events: none;
+            font-size: 0.875rem;
+            z-index: 5;
+            opacity: 0.8;
+            font-weight: 400;
+        }
+        
+        .phone-input {
+            position: relative;
+            z-index: 10;
+            background: transparent;
+        }
+        
+        .phone-input:focus + .phone-format-hint,
+        .phone-input.filled + .phone-format-hint {
+            opacity: 0;
+        }
+        
+        .country-flag {
+            font-size: 1.1em;
+            margin-right: 8px;
+        }
     </style>
 </head>
 <body>
@@ -161,7 +205,26 @@
 
                         <div class="col-md-6 col-lg-4 form-section">
                             <label for="telefone" class="form-label">Telefone:</label>
-                            <input type="text" id="telefone" name="telefone" class="form-control" placeholder="(00) 00000-0000" required>
+                            <div class="phone-input-group">
+                                <select id="pais" name="pais" class="form-select country-select">
+                                    <option value="BR" data-code="55" data-mask="(00) 00000-0000">🇧🇷 Brasil</option>
+                                    <option value="US" data-code="1" data-mask="(000) 000-0000">🇺🇸 Estados Unidos</option>
+                                    <option value="PT" data-code="351" data-mask="00 000 0000">🇵🇹 Portugal</option>
+                                    <option value="ES" data-code="34" data-mask="000 000 000">🇪🇸 Espanha</option>
+                                    <option value="FR" data-code="33" data-mask="0 00 00 00 00">🇫🇷 França</option>
+                                    <option value="DE" data-code="49" data-mask="000 00000000">🇩🇪 Alemanha</option>
+                                    <option value="IT" data-code="39" data-mask="000 000 0000">🇮🇹 Itália</option>
+                                    <option value="UK" data-code="44" data-mask="0000 000000">🇬🇧 Reino Unido</option>
+                                    <option value="AR" data-code="54" data-mask="000 00-0000">🇦🇷 Argentina</option>
+                                    <option value="UY" data-code="598" data-mask="00 000 000">🇺🇾 Uruguai</option>
+                                </select>
+                                <div class="phone-input-container">
+                                    <input type="text" id="telefone" name="telefone" class="form-control phone-input" required>
+                                    <div id="phone-format-hint" class="phone-format-hint">(00) 00000-0000</div>
+                                </div>
+                            </div>
+                            <input type="hidden" id="codigo_pais" name="codigo_pais" value="55">
+                            <input type="hidden" id="pais_selecionado" name="pais_selecionado" value="BR">
                         </div>
                     </div>
 
@@ -252,6 +315,68 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
+        // Função para aplicar máscara de telefone
+        function applyPhoneMask(input, mask) {
+            if (!mask) return;
+            
+            let value = input.value.replace(/\D/g, '');
+            let maskedValue = '';
+            let maskIndex = 0;
+            
+            for (let i = 0; i < mask.length && maskIndex < value.length; i++) {
+                if (mask[i] === '0') {
+                    maskedValue += value[maskIndex];
+                    maskIndex++;
+                } else {
+                    maskedValue += mask[i];
+                }
+            }
+            
+            input.value = maskedValue;
+            
+            // Atualizar classe para controle do hint
+            if (input.value.length > 0) {
+                input.classList.add('filled');
+            } else {
+                input.classList.remove('filled');
+            }
+        }
+
+        // Função para atualizar a formatação do telefone baseado no país selecionado
+        function updatePhoneFormat() {
+            const countrySelect = document.getElementById('pais');
+            const phoneInput = document.getElementById('telefone');
+            const countryCodeInput = document.getElementById('codigo_pais');
+            const countryNameInput = document.getElementById('pais_selecionado');
+            const formatHint = document.getElementById('phone-format-hint');
+            
+            const selectedOption = countrySelect.options[countrySelect.selectedIndex];
+            const selectedCountry = selectedOption.value;
+            const countryCode = selectedOption.getAttribute('data-code');
+            const countryMask = selectedOption.getAttribute('data-mask');
+            
+            // Atualizar placeholders, máscara e hint
+            phoneInput.placeholder = countryMask;
+            countryCodeInput.value = countryCode;
+            countryNameInput.value = selectedCountry;
+            
+            // Atualizar o hint com o formato
+            formatHint.textContent = countryMask;
+            
+            // Limpar o campo de telefone quando mudar de país
+            phoneInput.value = '';
+            phoneInput.classList.remove('filled');
+            
+            // Remover event listeners anteriores para evitar duplicação
+            phoneInput.removeEventListener('input', phoneInput._maskHandler);
+            
+            // Aplicar máscara em tempo real
+            phoneInput._maskHandler = function(e) {
+                applyPhoneMask(e.target, countryMask);
+            };
+            phoneInput.addEventListener('input', phoneInput._maskHandler);
+        }
+
         // Função para confirmar exclusão
         function confirmarExclusao(event, url) {
             event.preventDefault();
@@ -337,27 +462,13 @@
             filterClientes();
         }
 
-        // Formatação automática dos campos
+        // Inicialização quando a página carrega
         document.addEventListener("DOMContentLoaded", function() {
-            // Formatar telefone
-            const telefoneInput = document.getElementById('telefone');
-            if (telefoneInput) {
-                telefoneInput.addEventListener('input', function(e) {
-                    let value = e.target.value.replace(/\D/g, '');
-                    if (value.length > 11) value = value.slice(0, 11);
-                    
-                    if (value.length > 10) {
-                        value = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
-                    } else if (value.length > 6) {
-                        value = value.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
-                    } else if (value.length > 2) {
-                        value = value.replace(/(\d{2})(\d{0,5})/, '($1) $2');
-                    } else if (value.length > 0) {
-                        value = value.replace(/(\d{0,2})/, '($1');
-                    }
-                    
-                    e.target.value = value;
-                });
+            // Configurar o seletor de países
+            const countrySelect = document.getElementById('pais');
+            if (countrySelect) {
+                countrySelect.addEventListener('change', updatePhoneFormat);
+                updatePhoneFormat(); // Inicializar com o formato do Brasil
             }
             
             // Carregar filtros salvos
