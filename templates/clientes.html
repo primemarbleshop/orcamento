@@ -138,6 +138,512 @@
             flex-grow: 1;
         }
         
+        .phone-format-hint {
+            position: absolute;
+            top: 50%;
+            left: 12px;
+            transform: translateY(-50%);
+            color: #999;
+            pointer-events: none;
+            font-size: 0.875rem;
+            z-index: 5;
+            opacity: 0.8;
+            font-weight: 400;
+        }
+        
+        .phone-input {
+            position: relative;
+            z-index: 10;
+            background: transparent;
+        }
+        
+        .phone-input:focus + .phone-format-hint,
+        .phone-input.filled + .phone-format-hint {
+            opacity: 0;
+        }
+        
+        .country-flag {
+            font-size: 1.1em;
+            margin-right: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <!-- Cabeçalho -->
+        <div class="page-header">
+            <div class="row align-items-center">
+                <div class="col">
+                    <h1 class="h3 text-gray-800"><i class="fas fa-users me-2"></i>Gerenciar Clientes</h1>
+                </div>
+                <div class="col-auto">
+                    <a href="/" class="btn btn-custom-primary">
+                        <i class="fas fa-home me-1"></i> Voltar para a Página Inicial
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card do formulário de cadastro de cliente -->
+        {% if session['user_cpf'] != "39903780000115" %}
+        <div class="card card-custom mb-4">
+            <div class="card-header card-header-custom">
+                <h5 class="m-0 font-weight-bold"><i class="fas fa-plus-circle me-2"></i>Novo Cliente</h5>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="clienteForm">
+                    <div class="row">
+                        <div class="col-md-6 col-lg-4 form-section">
+                            <label for="nome" class="form-label">Nome:</label>
+                            <input type="text" id="nome" name="nome" class="form-control" required>
+                        </div>
+
+                        <div class="col-md-6 col-lg-4 form-section">
+                            <label for="endereco" class="form-label">Endereço:</label>
+                            <input type="text" id="endereco" name="endereco" class="form-control">
+                        </div>
+
+                        <div class="col-md-6 col-lg-4 form-section">
+                            <label for="telefone" class="form-label">Telefone:</label>
+                            <div class="phone-input-group">
+                                <select id="pais" name="pais" class="form-select country-select">
+                                    <option value="BR" data-code="55" data-mask="(00) 00000-0000">🇧🇷 Brasil</option>
+                                    <option value="US" data-code="1" data-mask="(000) 000-0000">🇺🇸 Estados Unidos</option>
+                                    <option value="PT" data-code="351" data-mask="00 000 0000">🇵🇹 Portugal</option>
+                                    <option value="ES" data-code="34" data-mask="000 000 000">🇪🇸 Espanha</option>
+                                    <option value="FR" data-code="33" data-mask="0 00 00 00 00">🇫🇷 França</option>
+                                    <option value="DE" data-code="49" data-mask="000 00000000">🇩🇪 Alemanha</option>
+                                    <option value="IT" data-code="39" data-mask="000 000 0000">🇮🇹 Itália</option>
+                                    <option value="UK" data-code="44" data-mask="0000 000000">🇬🇧 Reino Unido</option>
+                                    <option value="AR" data-code="54" data-mask="000 00-0000">🇦🇷 Argentina</option>
+                                    <option value="UY" data-code="598" data-mask="00 000 000">🇺🇾 Uruguai</option>
+                                </select>
+                                <div class="phone-input-container">
+                                    <input type="text" id="telefone" name="telefone" class="form-control phone-input" required>
+                                    
+                                </div>
+                            </div>
+                            <input type="hidden" id="codigo_pais" name="codigo_pais" value="55">
+                            <input type="hidden" id="pais_selecionado" name="pais_selecionado" value="BR">
+                        </div>
+                    </div>
+
+                    <div class="row mt-3">
+                        <div class="col-md-12 text-end">
+                            <button type="submit" class="btn btn-custom-success">
+                                <i class="fas fa-save me-1"></i> Cadastrar Cliente
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Card da lista de clientes -->
+        <div class="card card-custom">
+            <div class="card-header card-header-custom">
+                <h5 class="m-0 font-weight-bold"><i class="fas fa-list me-2"></i>Lista de Clientes</h5>
+            </div>
+            <div class="card-body">
+                <!-- Filtros -->
+                <div class="row filtro-section">
+                    <div class="col-md-4 mb-2">
+                        <label for="filtro_nome" class="form-label">Filtrar por Nome:</label>
+                        <input type="text" id="filtro_nome" class="form-control" placeholder="Digite para filtrar..." onkeyup="filterClientes()">
+                    </div>
+
+                    <div class="col-md-4 mb-2">
+                        <label for="filtro_telefone" class="form-label">Filtrar por Telefone:</label>
+                        <input type="text" id="filtro_telefone" class="form-control" placeholder="Digite para filtrar..." onkeyup="filterClientes()">
+                    </div>
+
+                    <div class="col-md-4 mb-2 d-flex align-items-end">
+                        <button type="button" class="btn btn-custom-primary w-100" onclick="resetFilters()">
+                            <i class="fas fa-sync-alt me-1"></i> Limpar Filtros
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tabela de clientes -->
+                <div class="table-responsive">
+                    <table class="table table-striped table-bordered table-hover">
+                        <thead>
+                            <tr>
+                                {% if session['admin'] %}
+                                    <th>Criado por</th>
+                                    <th>ID</th>
+                                {% endif %}
+                                <th>Nome</th>
+                                <th>Endereço</th>
+                                <th>Telefone</th>
+                                <th class="actions-cell">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="cliente_table">
+                            {% for cliente, nome_usuario in clientes %}
+                            <tr data-nome="{{ cliente.nome }}" data-telefone="{{ cliente.telefone }}">
+                                {% if session['admin'] %}
+                                    <td>{{ nome_usuario }}</td>
+                                    <td>{{ cliente.id }}</td>
+                                {% endif %}
+                                <td>{{ cliente.nome }}</td>
+                                <td>{{ cliente.endereco }}</td>
+                                <td>{{ cliente.telefone }}</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <a href="{{ url_for('editar_cliente', id=cliente.id) }}" class="btn btn-sm btn-custom-primary" title="Editar">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <button class="btn btn-sm btn-custom-danger" title="Excluir" onclick="confirmarExclusao(event, '{{ url_for('deletar_cliente', id=cliente.id) }}')">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Libraries -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+    <script>
+        // Função para aplicar máscara de telefone
+        function applyPhoneMask(input, mask) {
+            if (!mask) return; // Se não houver máscara, não faz nada
+            
+            let value = input.value.replace(/\D/g, '');
+            let maskedValue = '';
+            let maskIndex = 0;
+            
+            for (let i = 0; i < mask.length && maskIndex < value.length; i++) {
+                if (mask[i] === '0') {
+                    maskedValue += value[maskIndex];
+                    maskIndex++;
+                } else {
+                    maskedValue += mask[i];
+                }
+            }
+            
+            input.value = maskedValue;
+            
+            // Atualizar classe para controle do hint
+            if (input.value.length > 0) {
+                input.classList.add('filled');
+            } else {
+                input.classList.remove('filled');
+            }
+        }
+
+        // Função para atualizar a formatação do telefone baseado no país selecionado
+        function updatePhoneFormat() {
+            const countrySelect = document.getElementById('pais');
+            const phoneInput = document.getElementById('telefone');
+            const countryCodeInput = document.getElementById('codigo_pais');
+            const countryNameInput = document.getElementById('pais_selecionado');
+            const formatHint = document.getElementById('phone-format-hint');
+            
+            const selectedOption = countrySelect.options[countrySelect.selectedIndex];
+            const selectedCountry = selectedOption.value;
+            const countryCode = selectedOption.getAttribute('data-code');
+            const countryMask = selectedOption.getAttribute('data-mask');
+            
+            // Se não houver máscara definida, usar padrão brasileiro como fallback
+            const mask = countryMask || '(00) 00000-0000';
+            const code = countryCode || '55';
+            
+            // Atualizar placeholders, máscara e hint
+            phoneInput.placeholder = mask;
+            countryCodeInput.value = code;
+            countryNameInput.value = selectedCountry;
+            
+            // Atualizar o hint com o formato
+            formatHint.textContent = mask;
+            
+            // Limpar o campo de telefone quando mudar de país
+            phoneInput.value = '';
+            phoneInput.classList.remove('filled');
+            
+            // Remover event listeners anteriores para evitar duplicação
+            phoneInput.removeEventListener('input', phoneInput._maskHandler);
+            
+            // Aplicar máscara em tempo real apenas se houver máscara
+            if (mask) {
+                phoneInput._maskHandler = function(e) {
+                    applyPhoneMask(e.target, mask);
+                };
+                phoneInput.addEventListener('input', phoneInput._maskHandler);
+            }
+        }
+
+        // Função para confirmar exclusão
+        function confirmarExclusao(event, url) {
+            event.preventDefault();
+            
+            Swal.fire({
+                title: "Tem certeza?",
+                text: "Essa ação não poderá ser desfeita!",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#3085d6",
+                confirmButtonText: "Sim, deletar!",
+                cancelButtonText: "Cancelar"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(url, { method: "POST" })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire({
+                                title: "Deletado!",
+                                text: "O cliente foi excluído com sucesso.",
+                                icon: "success",
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                            setTimeout(() => location.reload(), 2000);
+                        } else {
+                            Swal.fire("Erro!", data.error || "Não foi possível excluir o cliente.", "error");
+                        }
+                    })
+                    .catch(() => {
+                        Swal.fire("Erro!", "Erro na comunicação com o servidor.", "error");
+                    });
+                }
+            });
+        }
+
+        // Função para filtrar clientes
+        function filterClientes() {
+            const filtroNome = document.getElementById('filtro_nome').value.toLowerCase();
+            const filtroTelefone = document.getElementById('filtro_telefone').value.toLowerCase();
+            
+            const rows = document.querySelectorAll('#cliente_table tr');
+            
+            rows.forEach(row => {
+                const nome = row.getAttribute('data-nome').toLowerCase();
+                const telefone = row.getAttribute('data-telefone').toLowerCase();
+                
+                let show = true;
+                
+                // Filtrar por nome
+                if (filtroNome && !nome.includes(filtroNome)) {
+                    show = false;
+                }
+                
+                // Filtrar por telefone
+                if (filtroTelefone && !telefone.includes(filtroTelefone)) {
+                    show = false;
+                }
+                
+                if (show) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+            
+            // Salvar filtros no localStorage
+            localStorage.setItem('filtroNome', filtroNome);
+            localStorage.setItem('filtroTelefone', filtroTelefone);
+        }
+
+        // Função para resetar os filtros
+        function resetFilters() {
+            document.getElementById('filtro_nome').value = '';
+            document.getElementById('filtro_telefone').value = '';
+            
+            // Limpar localStorage
+            localStorage.removeItem('filtroNome');
+            localStorage.removeItem('filtroTelefone');
+            
+            filterClientes();
+        }
+
+        // Inicialização quando a página carrega
+        document.addEventListener("DOMContentLoaded", function() {
+            // Configurar o seletor de países
+            const countrySelect = document.getElementById('pais');
+            if (countrySelect) {
+                countrySelect.addEventListener('change', updatePhoneFormat);
+                updatePhoneFormat(); // Inicializar com o formato do Brasil
+            }
+            
+            // Carregar filtros salvos
+            if (localStorage.getItem('filtroNome')) {
+                document.getElementById('filtro_nome').value = localStorage.getItem('filtroNome');
+            }
+            if (localStorage.getItem('filtroTelefone')) {
+                document.getElementById('filtro_telefone').value = localStorage.getItem('filtroTelefone');
+            }
+            
+            // Aplicar filtros ao carregar a página
+            filterClientes();
+            
+            // Exibir mensagens flash
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        Swal.fire({
+                            title: "{% if category == 'error' %}Erro{% else %}Sucesso{% endif %}",
+                            text: "{{ message }}",
+                            icon: "{% if category == 'error' %}error{% else %}success{% endif %}",
+                            confirmButtonText: "OK"
+                        });
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        });
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Clientes</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    <style>
+        :root {
+            --primary: #4e73df;
+            --secondary: #6c757d;
+            --success: #1cc88a;
+            --danger: #e74a3b;
+            --warning: #f6c23e;
+            --light: #f8f9fc;
+            --dark: #5a5c69;
+        }
+        
+        body {
+            background-color: #f8f9fc;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        .card-custom {
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            border: none;
+        }
+        
+        .card-header-custom {
+            background: linear-gradient(135deg, var(--primary) 0%, #2a3d8f 100%);
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+            padding: 15px 20px;
+        }
+        
+        .btn-custom-primary {
+            background-color: var(--primary);
+            border-color: var(--primary);
+            color: white;
+        }
+        
+        .btn-custom-primary:hover {
+            background-color: #2e59d9;
+            border-color: #2e59d9;
+            color: white;
+        }
+        
+        .btn-custom-danger {
+            background-color: var(--danger);
+            border-color: var(--danger);
+            color: white;
+        }
+        
+        .btn-custom-danger:hover {
+            background-color: #be2617;
+            border-color: #be2617;
+            color: white;
+        }
+        
+        .btn-custom-success {
+            background-color: var(--success);
+            border-color: var(--success);
+            color: white;
+        }
+        
+        .btn-custom-success:hover {
+            background-color: #17a673;
+            border-color: #17a673;
+            color: white;
+        }
+        
+        .table th {
+            background: linear-gradient(135deg, var(--primary) 0%, #2a3d8f 100%);
+            color: white;
+            vertical-align: middle;
+        }
+        
+        .form-section {
+            margin-bottom: 15px;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .page-header {
+            border-bottom: 1px solid #e3e6f0;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+        
+        .actions-cell {
+            width: 120px;
+        }
+        
+        @media (max-width: 768px) {
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .btn-action {
+                width: 100%;
+                margin-bottom: 5px;
+            }
+        }
+        
+        .filtro-section {
+            background-color: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        
+        .phone-input-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .country-select {
+            width: 180px;
+            flex-shrink: 0;
+        }
+        
+        .phone-input-container {
+            position: relative;
+            flex-grow: 1;
+        }
+        
         .
     </style>
 </head>
