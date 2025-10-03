@@ -496,6 +496,39 @@
                 {% endif %}
             {% endwith %}
         });
+
+        
+// Função para ordenar a tabela por nome
+function ordenarTabela() {
+    const table = document.getElementById('cliente_table');
+    const rows = Array.from(table.getElementsByTagName('tr'));
+    
+    // Ordenar as linhas pelo nome (segunda coluna para admin, primeira para usuário comum)
+    rows.sort((a, b) => {
+        const isAdmin = {% if session['admin'] %}true{% else %}false{% endif %};
+        const nomeA = a.cells[isAdmin ? 2 : 0].textContent.trim().toLowerCase();
+        const nomeB = b.cells[isAdmin ? 2 : 0].textContent.trim().toLowerCase();
+        return nomeA.localeCompare(nomeB, 'pt-BR');
+    });
+    
+    // Remover todas as linhas e adicionar na ordem correta
+    rows.forEach(row => table.appendChild(row));
+}
+
+// Chamar a função quando a página carregar
+document.addEventListener("DOMContentLoaded", function() {
+    // ... código existente ...
+    
+    // Ordenar a tabela após carregar
+    ordenarTabela();
+    
+    // Reordenar após filtrar
+    const originalFilterClientes = filterClientes;
+    filterClientes = function() {
+        originalFilterClientes();
+        ordenarTabela();
+    };
+});
     </script>
 </body>
 </html>
