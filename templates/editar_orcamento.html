@@ -139,15 +139,15 @@
                         </div>
 
                         <div class="col-md-6 col-lg-3 form-section">
-    <label for="ambiente_id" class="form-label">Ambiente:</label>
-    <select name="ambiente_id" id="ambiente_id" class="form-select select2">
-        {% for ambiente in ambientes %}
-            <option value="{{ ambiente.id }}" {% if ambiente.id == orcamento.ambiente_id %}selected{% endif %}>
-                {{ ambiente.nome }}
-            </option>
-        {% endfor %}
-    </select>
-</div>
+                            <label for="ambiente_id" class="form-label">Ambiente:</label>
+                            <select name="ambiente_id" id="ambiente_id" class="form-select select2">
+                                {% for ambiente in ambientes %}
+                                    <option value="{{ ambiente.id }}" {% if ambiente.id == orcamento.ambiente_id %}selected{% endif %}>
+                                        {{ ambiente.nome }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
 
                         <div class="col-md-6 col-lg-3 form-section">
                             <label for="tipo_produto" class="form-label">Tipo de Produto:</label>
@@ -190,21 +190,31 @@
                             <label for="largura" class="form-label">Largura (cm):</label>
                             <input type="number" id="largura" name="largura" class="form-control" value="{{ orcamento.largura }}" step="0.01" min="0" required pattern="[0-9]+([,][0-9]+)?">
                         </div>
-                        
-                        <div class="col-md-6 col-lg-3 form-section">
-    <label for="instalacao" class="form-label">Instalação:</label>
-    <select name="instalacao" id="instalacao" class="form-select" onchange="toggleInstalacaoFields()">
-        <option value="Não" {% if orcamento.instalacao == 'Não' %}selected{% endif %}>Não</option>
-        <option value="Sim" {% if orcamento.instalacao == 'Sim' %}selected{% endif %}>Sim</option>
-    </select>
-    <div id="instalacao_valor_field" style="display: {% if orcamento.instalacao == 'Sim' %}block{% else %}none{% endif %};" class="mt-2">
-        <label for="instalacao_valor" class="form-label">Valor Instalação (R$):</label>
-        <input type="number" id="instalacao_valor" name="instalacao_valor" class="form-control" 
-               value="{{ orcamento.instalacao_valor }}" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
-    </div>
-</div>
-                        
-                        <div class="col-md-6 col-lg-3 form-section">
+                    </div>
+
+                    <!-- Campos dinâmicos -->
+                    <div id="dynamicFieldsContainer">
+                        <!-- Os campos dinâmicos serão inseridos aqui via JavaScript -->
+                    </div>
+                    
+                    <!-- Card para Instalação e RT (igual à página de orçamentos) -->
+                    <div class="row dynamic-field">
+                        <div class="col-md-12">
+                            <h5><i class="fas fa-money-bill-wave me-2"></i>Outras Configurações</h5>
+                        </div>
+                        <div class="col-md-6 form-section">
+                            <label for="instalacao" class="form-label">Instalação:</label>
+                            <select name="instalacao" id="instalacao" class="form-select" onchange="toggleInstalacaoFields()">
+                                <option value="Não" {% if orcamento.instalacao == 'Não' %}selected{% endif %}>Não</option>
+                                <option value="Sim" {% if orcamento.instalacao == 'Sim' %}selected{% endif %}>Sim</option>
+                            </select>
+                            <div id="instalacao_valor_field" style="display: {% if orcamento.instalacao == 'Sim' %}block{% else %}none{% endif %};" class="mt-2">
+                                <label for="instalacao_valor" class="form-label">Valor Instalação (R$):</label>
+                                <input type="number" id="instalacao_valor" name="instalacao_valor" class="form-control" 
+                                       value="{{ orcamento.instalacao_valor }}" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
+                            </div>
+                        </div>
+                        <div class="col-md-6 form-section">
                             <label for="rt" class="form-label">Há RT?</label>
                             <select name="rt" id="rt" class="form-select" onchange="toggleRTFields()">
                                 <option value="Não" {% if orcamento.rt == 'Não' %}selected{% endif %}>Não</option>
@@ -215,11 +225,6 @@
                                 <input type="number" id="rt_percentual" name="rt_percentual" class="form-control" value="{{ orcamento.rt_percentual }}" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
                             </div>
                         </div>
-                    </div>
-
-                    <!-- Campos dinâmicos -->
-                    <div id="dynamicFieldsContainer">
-                        <!-- Os campos dinâmicos serão inseridos aqui via JavaScript -->
                     </div>
                     
                     <!-- Vincular a orçamento salvo -->
@@ -474,14 +479,21 @@
             }
         }
 
+        // Função para mostrar/ocultar campos de instalação
+        function toggleInstalacaoFields() {
+            const select = document.getElementById('instalacao');
+            const field = document.getElementById('instalacao_valor_field');
+            field.style.display = select.value === 'Sim' ? 'block' : 'none';
+        }
+
         // Inicialização quando o documento estiver pronto
         document.addEventListener('DOMContentLoaded', function() {
             // Inicializar Select2
             $('#cliente_id, #material_id, #tipo_produto, #orcamento_salvo, #ambiente_id').select2({
-    width: '100%',
-    placeholder: "Selecione",
-    allowClear: true
-});
+                width: '100%',
+                placeholder: "Selecione",
+                allowClear: true
+            });
             
             // Carregar campos dinâmicos com base no tipo de produto atual
             toggleFields();
@@ -491,13 +503,6 @@
             localStorage.removeItem('edit_tipo_produto');
             localStorage.removeItem('edit_material_id');
         });
-
-        
-function toggleInstalacaoFields() {
-    const select = document.getElementById('instalacao');
-    const field = document.getElementById('instalacao_valor_field');
-    field.style.display = select.value === 'Sim' ? 'block' : 'none';
-}
     </script>
 </body>
 </html>
