@@ -288,7 +288,73 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-   
+    // Função para aplicar máscara de telefone
+        function applyPhoneMask(input, mask) {
+            if (!mask) return; // Se não houver máscara, não faz nada
+            
+            let value = input.value.replace(/\D/g, '');
+            let maskedValue = '';
+            let maskIndex = 0;
+            
+            for (let i = 0; i < mask.length && maskIndex < value.length; i++) {
+                if (mask[i] === '0') {
+                    maskedValue += value[maskIndex];
+                    maskIndex++;
+                } else {
+                    maskedValue += mask[i];
+                }
+            }
+            
+            input.value = maskedValue;
+            
+            // Atualizar classe para controle do hint
+            if (input.value.length > 0) {
+                input.classList.add('filled');
+            } else {
+                input.classList.remove('filled');
+            }
+        }
+
+        // Função para atualizar a formatação do telefone baseado no país selecionado
+        function updatePhoneFormat() {
+            const countrySelect = document.getElementById('pais');
+            const phoneInput = document.getElementById('telefone');
+            const countryCodeInput = document.getElementById('codigo_pais');
+            const countryNameInput = document.getElementById('pais_selecionado');
+            const formatHint = document.getElementById('phone-format-hint');
+            
+            const selectedOption = countrySelect.options[countrySelect.selectedIndex];
+            const selectedCountry = selectedOption.value;
+            const countryCode = selectedOption.getAttribute('data-code');
+            const countryMask = selectedOption.getAttribute('data-mask');
+            
+            // Se não houver máscara definida, usar padrão brasileiro como fallback
+            const mask = countryMask || '(00) 00000-0000';
+            const code = countryCode || '55';
+            
+            // Atualizar placeholders, máscara e hint
+            phoneInput.placeholder = mask;
+            countryCodeInput.value = code;
+            countryNameInput.value = selectedCountry;
+            
+            // Atualizar o hint com o formato
+            formatHint.textContent = mask;
+            
+            // Limpar o campo de telefone quando mudar de país
+            phoneInput.value = '';
+            phoneInput.classList.remove('filled');
+            
+            // Remover event listeners anteriores para evitar duplicação
+            phoneInput.removeEventListener('input', phoneInput._maskHandler);
+            
+            // Aplicar máscara em tempo real apenas se houver máscara
+            if (mask) {
+                phoneInput._maskHandler = function(e) {
+                    applyPhoneMask(e.target, mask);
+                };
+                phoneInput.addEventListener('input', phoneInput._maskHandler);
+            }
+        }
 
    
 
