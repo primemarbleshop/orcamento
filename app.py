@@ -467,21 +467,7 @@ def formatar_telefone(telefone):
     elif len(telefone) == 10:
         return f"({telefone[:2]}) {telefone[2:6]}-{telefone[6:]}"
     return telefone  # Retorna como está se não tiver o formato correto
-
-def formatar_documento(documento):
-    """ Formata CPF ou CNPJ automaticamente """
-
-    # Remove qualquer caractere que não seja número
-    documento = re.sub(r'\D', '', documento)
-
-    if len(documento) == 11:  # CPF
-        return f"{documento[:3]}.{documento[3:6]}.{documento[6:9]}-{documento[9:]}"
     
-    elif len(documento) == 14:  # CNPJ
-        return f"{documento[:2]}.{documento[2:5]}.{documento[5:8]}/{documento[8:12]}-{documento[12:]}"
-    
-    return documento  # Retorna o mesmo valor se não for CPF nem CNPJ
-
 @app.route('/clientes', methods=['GET', 'POST'])
 def clientes():
     if 'user_cpf' not in session:  # Se não estiver logado, redireciona para login
@@ -491,21 +477,30 @@ def clientes():
         nome = request.form['nome']
         endereco = request.form.get('endereco', '')
         telefone = request.form.get('telefone', '')
-        documento = request.form.get('cpf_cnpj', '')
+        pais_selecionado = request.form.get('pais_selecionado', 'BR')
+        codigo_pais = request.form.get('codigo_pais', '55')
         dono = session['user_cpf']  # Define o dono como o CPF do usuário logado
 
-        # Formatar os dados antes de salvar no banco
-        telefone = formatar_telefone(telefone)
-        documento = formatar_documento(documento)
+        # Formatar o telefone com código do país se não for Brasil
+        if pais_selecionado != 'BR':
+            telefone = f"+{codigo_pais} {telefone}"
+        else:
+            # Formatar no padrão brasileiro usando a função formatar_telefone
+            telefone = formatar_telefone(telefone)
 
-        # Verifica se o cliente já existe pelo nome e dono
+        # Verifica se o cliente já existe pelo telefone e dono
         cliente_existente = Cliente.query.filter_by(telefone=telefone, dono=dono).first()
         if cliente_existente:
             flash("Esse cliente já está cadastrado!", "error")
             return redirect(url_for('clientes'))
 
         # Criar novo cliente (agora com dono)
-        novo_cliente = Cliente(nome=nome, endereco=endereco, telefone=telefone, documento=documento, dono=dono)
+        novo_cliente = Cliente(
+            nome=nome, 
+            endereco=endereco, 
+            telefone=telefone,
+            dono=dono
+        )
 
         db.session.add(novo_cliente)
         db.session.commit()
@@ -533,7 +528,6 @@ def clientes():
 
 
 
-
 @app.route('/materiais', methods=['GET', 'POST'])
 def materiais():
     if request.method == 'POST':
@@ -556,32 +550,26 @@ def editar_cliente(id):
         nome = request.form['nome']
         endereco = request.form['endereco']
         telefone = request.form.get('telefone', '')
-        documento = request.form.get('documento', '').strip()  # Agora opcional
+        pais_selecionado = request.form.get('pais_selecionado', 'BR')
+        codigo_pais = request.form.get('codigo_pais', '55')
 
-        # Aplicar formatação
-        telefone = formatar_telefone(telefone)
-        documento = formatar_documento(documento)
-
-        # Verifica duplicidade apenas se o documento foi informado
-        if documento:
-            documento_existente = Cliente.query.filter(
-                Cliente.documento == documento, Cliente.id != id
-            ).first()
-            if documento_existente:
-                flash("Erro: Este CPF/CNPJ já está cadastrado em outro cliente!", "error")
-                return redirect(url_for('editar_cliente', id=id))
+        # Formatar o telefone baseado no país
+        if pais_selecionado != 'BR' and not telefone.startswith('+'):
+            telefone = f"+{codigo_pais} {telefone}"
+        elif pais_selecionado == 'BR':
+            telefone = formatar_telefone(telefone)
 
         # Atualiza os dados
         cliente.nome = nome
         cliente.endereco = endereco
         cliente.telefone = telefone
-        cliente.documento = documento  # Pode ser vazio
         db.session.commit()
 
         flash("Cliente atualizado com sucesso!", "success")
         return redirect(url_for('clientes'))
 
     return render_template('editar_cliente.html', cliente=cliente)
+
 
 @app.route('/materiais/edit/<int:id>', methods=['GET', 'POST'])
 def editar_material(id):
