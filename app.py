@@ -474,7 +474,13 @@ def clientes():
         codigo_pais = request.form.get('codigo_pais', '55')
         dono = session['user_cpf']  # Define o dono como o CPF do usuário logado
 
-        
+        # APENAS adicionar código do país se não for Brasil
+        # O JAVASCRIPT já cuidou da formatação - NÃO CHAMAR formatar_telefone
+        if pais_selecionado != 'BR' and not telefone.startswith('+'):
+            telefone = f"+{codigo_pais} {telefone}"
+        # Para Brasil, manter exatamente como o JavaScript formatou
+        # NÃO FAZER NADA - telefone já está formatado pelo frontend
+
         # Verifica se o cliente já existe pelo telefone e dono
         cliente_existente = Cliente.query.filter_by(telefone=telefone, dono=dono).first()
         if cliente_existente:
@@ -543,7 +549,12 @@ def editar_cliente(id):
         pais_selecionado = request.form.get('pais_selecionado', 'BR')
         codigo_pais = request.form.get('codigo_pais', '55')
 
-       
+        # APENAS adicionar código do país se não for Brasil
+        # O JAVASCRIPT já cuidou da formatação - NÃO CHAMAR formatar_telefone
+        if pais_selecionado != 'BR' and not telefone.startswith('+'):
+            telefone = f"+{codigo_pais} {telefone}"
+        # Para Brasil, manter exatamente como está
+
         # Atualiza os dados
         cliente.nome = nome
         cliente.endereco = endereco
