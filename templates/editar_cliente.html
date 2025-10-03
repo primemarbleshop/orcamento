@@ -4,184 +4,134 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Editar Cliente</title>
-    
-    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    
     <style>
-        :root {
-            --primary: #4e73df;
-            --secondary: #6c757d;
-            --success: #1cc88a;
-            --danger: #e74a3b;
-            --warning: #f6c23e;
-            --light: #f8f9fc;
-            --dark: #5a5c69;
+        .phone-input-group {
+            display: flex;
+            gap: 10px;
         }
-        
-        body {
-            background-color: #f8f9fc;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            padding: 20px;
+        .country-select {
+            width: 180px;
         }
-        
-        .card-custom {
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            border: none;
+        .phone-input-container {
+            position: relative;
+            flex-grow: 1;
         }
-        
-        .card-header-custom {
-            background: linear-gradient(135deg, var(--primary) 0%, #2a3d8f 100%);
-            color: white;
-            border-radius: 10px 10px 0 0 !important;
-            padding: 15px 20px;
+        .phone-format-hint {
+            position: absolute;
+            top: 50%;
+            left: 12px;
+            transform: translateY(-50%);
+            color: #999;
+            pointer-events: none;
+            font-size: 0.875rem;
+            z-index: 5;
+            opacity: 0.8;
+            font-weight: 400;
         }
-        
-        .btn-custom-primary {
-            background-color: var(--primary);
-            border-color: var(--primary);
-            color: white;
+        .phone-input {
+            position: relative;
+            z-index: 10;
+            background: transparent;
         }
-        
-        .btn-custom-primary:hover {
-            background-color: #2e59d9;
-            border-color: #2e59d9;
-            color: white;
-        }
-        
-        .btn-custom-success {
-            background-color: var(--success);
-            border-color: var(--success);
-            color: white;
-        }
-        
-        .btn-custom-success:hover {
-            background-color: #17a673;
-            border-color: #17a673;
-            color: white;
-        }
-        
-        .btn-custom-secondary {
-            background-color: var(--secondary);
-            border-color: var(--secondary);
-            color: white;
-        }
-        
-        .btn-custom-secondary:hover {
-            background-color: #5a6268;
-            border-color: #5a6268;
-            color: white;
-        }
-        
-        .form-section {
-            margin-bottom: 15px;
-        }
-        
-        .page-header {
-            border-bottom: 1px solid #e3e6f0;
-            padding-bottom: 15px;
-            margin-bottom: 25px;
+        .phone-input:focus + .phone-format-hint,
+        .phone-input.filled + .phone-format-hint {
+            opacity: 0;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Cabeçalho -->
-        <div class="page-header">
-            <div class="row align-items-center">
-                <div class="col">
-                    <h1 class="h3 text-gray-800"><i class="fas fa-user-edit me-2"></i>Editar Cliente</h1>
-                </div>
-                <div class="col-auto">
-                    <a href="/clientes" class="btn btn-custom-secondary">
-                        <i class="fas fa-arrow-left me-1"></i> Voltar para Lista de Clientes
-                    </a>
-                </div>
+    <div class="container mt-4">
+        <h2>Editar Cliente</h2>
+        <form method="POST">
+            <div class="mb-3">
+                <label for="nome" class="form-label">Nome:</label>
+                <input type="text" id="nome" name="nome" class="form-control" value="{{ cliente.nome }}" required>
             </div>
-        </div>
-
-        <!-- Card do formulário de edição -->
-        <div class="card card-custom">
-            <div class="card-header card-header-custom">
-                <h5 class="m-0 font-weight-bold"><i class="fas fa-edit me-2"></i>Editar Informações do Cliente</h5>
+            
+            <div class="mb-3">
+                <label for="endereco" class="form-label">Endereço:</label>
+                <input type="text" id="endereco" name="endereco" class="form-control" value="{{ cliente.endereco }}">
             </div>
-            <div class="card-body">
-                <form action="{{ url_for('editar_cliente', id=cliente.id) }}" method="POST">
-                    <div class="row">
-                        <div class="col-md-6 form-section">
-                            <label for="nome" class="form-label">Nome:</label>
-                            <input type="text" id="nome" name="nome" class="form-control" value="{{ cliente.nome }}" required>
-                        </div>
-
-                        <div class="col-md-6 form-section">
-                            <label for="telefone" class="form-label">Telefone:</label>
-                            <input type="text" id="telefone" name="telefone" class="form-control" value="{{ cliente.telefone }}" placeholder="(00) 00000-0000" required>
-                        </div>
-
-                        <div class="col-12 form-section">
-                            <label for="endereco" class="form-label">Endereço:</label>
-                            <input type="text" id="endereco" name="endereco" class="form-control" value="{{ cliente.endereco }}">
-                        </div>
+            
+            <div class="mb-3">
+                <label for="telefone" class="form-label">Telefone:</label>
+                <div class="phone-input-group">
+                    <select id="pais" name="pais" class="form-select country-select">
+                        <option value="BR" data-code="55" data-mask="(00) 00000-0000">🇧🇷 Brasil</option>
+                        <option value="US" data-code="1" data-mask="(000) 000-0000">🇺🇸 Estados Unidos</option>
+                        <option value="PT" data-code="351" data-mask="00 000 0000">🇵🇹 Portugal</option>
+                        <option value="ES" data-code="34" data-mask="000 000 000">🇪🇸 Espanha</option>
+                        <option value="FR" data-code="33" data-mask="0 00 00 00 00">🇫🇷 França</option>
+                        <option value="DE" data-code="49" data-mask="000 00000000">🇩🇪 Alemanha</option>
+                        <option value="IT" data-code="39" data-mask="000 000 0000">🇮🇹 Itália</option>
+                        <option value="UK" data-code="44" data-mask="0000 000000">🇬🇧 Reino Unido</option>
+                        <option value="AR" data-code="54" data-mask="000 00-0000">🇦🇷 Argentina</option>
+                        <option value="UY" data-code="598" data-mask="00 000 000">🇺🇾 Uruguai</option>
+                    </select>
+                    <div class="phone-input-container">
+                        <input type="text" id="telefone" name="telefone" class="form-control phone-input" value="{{ cliente.telefone }}" required>
+                        <div id="phone-format-hint" class="phone-format-hint">(00) 00000-0000</div>
                     </div>
-
-                    <div class="row mt-4">
-                        <div class="col-12 text-end">
-                            <button type="submit" class="btn btn-custom-success">
-                                <i class="fas fa-save me-1"></i> Salvar Alterações
-                            </button>
-                        </div>
-                    </div>
-                </form>
+                </div>
+                <input type="hidden" id="codigo_pais" name="codigo_pais" value="55">
+                <input type="hidden" id="pais_selecionado" name="pais_selecionado" value="BR">
             </div>
-        </div>
+            
+            <button type="submit" class="btn btn-primary">Atualizar Cliente</button>
+            <a href="{{ url_for('clientes') }}" class="btn btn-secondary">Cancelar</a>
+        </form>
     </div>
 
-    <!-- JavaScript Libraries -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
     <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            // Formatar telefone
-            const telefoneInput = document.getElementById('telefone');
-            if (telefoneInput) {
-                telefoneInput.addEventListener('input', function(e) {
-                    let value = e.target.value.replace(/\D/g, '');
-                    if (value.length > 11) value = value.slice(0, 11);
-                    
-                    if (value.length > 10) {
-                        value = value.replace(/(\d{2})(\d{5})(\d{4})/, '($1) $2-$3');
-                    } else if (value.length > 6) {
-                        value = value.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3');
-                    } else if (value.length > 2) {
-                        value = value.replace(/(\d{2})(\d{0,5})/, '($1) $2');
-                    } else if (value.length > 0) {
-                        value = value.replace(/(\d{0,2})/, '($1');
-                    }
-                    
-                    e.target.value = value;
-                });
-            }
+        function applyPhoneMask(input, mask) {
+            let value = input.value.replace(/\D/g, '');
+            let maskedValue = '';
+            let maskIndex = 0;
             
-            // Exibir mensagens flash
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    {% for category, message in messages %}
-                        Swal.fire({
-                            title: "{% if category == 'error' %}Erro{% else %}Sucesso{% endif %}",
-                            text: "{{ message }}",
-                            icon: "{% if category == 'error' %}error{% else %}success{% endif %}",
-                            confirmButtonText: "OK"
-                        });
-                    {% endfor %}
-                {% endif %}
-            {% endwith %}
+            for (let i = 0; i < mask.length && maskIndex < value.length; i++) {
+                if (mask[i] === '0') {
+                    maskedValue += value[maskIndex];
+                    maskIndex++;
+                } else {
+                    maskedValue += mask[i];
+                }
+            }
+            input.value = maskedValue;
+            
+            if (input.value.length > 0) {
+                input.classList.add('filled');
+            } else {
+                input.classList.remove('filled');
+            }
+        }
+
+        function updatePhoneFormat() {
+            const countrySelect = document.getElementById('pais');
+            const phoneInput = document.getElementById('telefone');
+            const formatHint = document.getElementById('phone-format-hint');
+            
+            const selectedOption = countrySelect.options[countrySelect.selectedIndex];
+            const countryCode = selectedOption.getAttribute('data-code');
+            const countryMask = selectedOption.getAttribute('data-mask');
+            
+            phoneInput.placeholder = countryMask;
+            document.getElementById('codigo_pais').value = countryCode;
+            document.getElementById('pais_selecionado').value = selectedOption.value;
+            
+            formatHint.textContent = countryMask;
+            
+            phoneInput.removeEventListener('input', phoneInput._maskHandler);
+            phoneInput._maskHandler = function(e) {
+                applyPhoneMask(e.target, countryMask);
+            };
+            phoneInput.addEventListener('input', phoneInput._maskHandler);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const countrySelect = document.getElementById('pais');
+            countrySelect.addEventListener('change', updatePhoneFormat);
+            updatePhoneFormat();
         });
     </script>
 </body>
