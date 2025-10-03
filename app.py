@@ -1504,8 +1504,6 @@ def editar_material_rt_selecionados():
 
         valor_total_criar += valor_base
 
-        # ... (resto do cálculo permanece igual) ...
-
         # Nicho
         if orcamento.tipo_produto == 'Nicho':
             profundidade_nicho = max(orcamento.profundidade_nicho or 0, 10)
@@ -1563,10 +1561,11 @@ def editar_material_rt_selecionados():
         if orcamento.tem_cooktop == 'Sim':
             valor_total_criar += cooktop_valor
 
+        # 🔥 CORREÇÃO: ADICIONAR INSTALAÇÃO AQUI - ANTES DA MULTIPLICAÇÃO POR QUANTIDADE
         if orcamento.instalacao == 'Sim':
             valor_total_criar += orcamento.instalacao_valor or 0
 
-        # Quantidade
+        # Quantidade - MULTIPLICAR APÓS TODOS OS ACréSCIMOS
         valor_total_criar *= orcamento.quantidade
 
         # RT - usar os valores atuais ou novos
