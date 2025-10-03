@@ -459,14 +459,7 @@ def listar_orcamentos():
     
 import re  # Para usar expressões regulares
 
-def formatar_telefone(telefone):
-    """ Formata o telefone para o padrão (XX) XXXXX-XXXX """
-    telefone = re.sub(r'\D', '', telefone)  # Remove tudo que não for número
-    if len(telefone) == 11:
-        return f"({telefone[:2]}) {telefone[2:7]}-{telefone[7:]}"
-    elif len(telefone) == 10:
-        return f"({telefone[:2]}) {telefone[2:6]}-{telefone[6:]}"
-    return telefone  # Retorna como está se não tiver o formato correto
+
     
 @app.route('/clientes', methods=['GET', 'POST'])
 def clientes():
