@@ -511,37 +511,17 @@
             // Aplicar filtros ao carregar a página
             filterClientes();
             
-           // Exibir mensagens flash APENAS da página de clientes
+        
 {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
         {% for category, message in messages %}
-            {# Lista de mensagens permitidas na página de clientes #}
-            {% set allowed_messages = [
-                'cliente cadastrado com sucesso',
-                'cliente atualizado com sucesso', 
-                'cliente excluído com sucesso',
-                'esse cliente já está cadastrado',
-                'sucesso',
-                'erro'
-            ] %}
-            
-            {# Verificar se a mensagem é permitida #}
-            {% set show_message = false %}
-            {% for allowed in allowed_messages %}
-                {% if allowed in message.lower() %}
-                    {% set show_message = true %}
-                {% endif %}
-            {% endfor %}
-            
-            {# Exibir apenas mensagens permitidas #}
-            {% if show_message %}
-                Swal.fire({
-                    title: "{% if category == 'error' %}Erro{% else %}Sucesso{% endif %}",
-                    text: "{{ message }}",
-                    icon: "{% if category == 'error' %}error{% else %}success{% endif %}",
-                    confirmButtonText: "OK"
-                });
-            {% endif %}
+            {# Exibir TODAS as mensagens, já que estamos na página de clientes #}
+            Swal.fire({
+                title: "{% if category == 'error' %}Erro{% else %}Sucesso{% endif %}",
+                text: "{{ message }}",
+                icon: "{% if category == 'error' %}error{% else %}success{% endif %}",
+                confirmButtonText: "OK"
+            });
         {% endfor %}
     {% endif %}
 {% endwith %}
