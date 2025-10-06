@@ -513,17 +513,19 @@
         
 
 // Exibir mensagens flash (apenas mensagens com categoria 'clientes', e seguro para JS)
-{% with messages = get_flashed_messages(with_categories=true, category_filter=['clientes']) %}
-    {% if messages %}
-        {% for category, message in messages %}
-            Swal.fire({
-                title: {{ ('Erro' if category == 'error' else 'Sucesso')|tojson }},
-                text: {{ message|tojson }},
-                icon: {{ ('error' if category == 'error' else 'success')|tojson }},
-                confirmButtonText: "OK"
-            });
-        {% endfor %}
-    {% endif %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      {% if 'clientes' in category %}
+        Swal.fire({
+          title: {{ ('Erro' if 'error' in category else 'Sucesso')|tojson }},
+          text: {{ message|tojson }},
+          icon: {{ ('error' if 'error' in category else 'success')|tojson }},
+          confirmButtonText: "OK"
+        });
+      {% endif %}
+    {% endfor %}
+  {% endif %}
 {% endwith %}
         });
     </script>
