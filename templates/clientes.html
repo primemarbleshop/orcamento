@@ -289,7 +289,6 @@
     <!-- JavaScript Libraries -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
         // Configurações de telefone por país
@@ -513,14 +512,14 @@
             
         
 
-// Exibir mensagens flash
-{% with messages = get_flashed_messages(with_categories=true) %}
+// Exibir mensagens flash (apenas mensagens com categoria 'clientes', e seguro para JS)
+{% with messages = get_flashed_messages(with_categories=true, category_filter=['clientes']) %}
     {% if messages %}
         {% for category, message in messages %}
             Swal.fire({
-                title: "{% if category == 'error' %}Erro{% else %}Sucesso{% endif %}",
-                text: "{{ message }}",
-                icon: "{% if category == 'error' %}error{% else %}success{% endif %}",
+                title: {{ ('Erro' if category == 'error' else 'Sucesso')|tojson }},
+                text: {{ message|tojson }},
+                icon: {{ ('error' if category == 'error' else 'success')|tojson }},
                 confirmButtonText: "OK"
             });
         {% endfor %}
