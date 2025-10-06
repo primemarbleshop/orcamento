@@ -484,21 +484,21 @@ def clientes():
         # Verifica se o cliente já existe pelo telefone e dono
         cliente_existente = Cliente.query.filter_by(telefone=telefone, dono=dono).first()
         if cliente_existente:
-            flash("Esse cliente já está cadastrado!", "error")
+            flash("Esse cliente já está cadastrado!", "error_clientes")
             return redirect(url_for('clientes'))
-
+        
         # Criar novo cliente (agora com dono)
         novo_cliente = Cliente(
-            nome=nome, 
-            endereco=endereco, 
+            nome=nome,
+            endereco=endereco,
             telefone=telefone,
             dono=dono
         )
-
+        
         db.session.add(novo_cliente)
         db.session.commit()
-
-        flash("Cliente cadastrado com sucesso!", "success")
+        
+        flash("Cliente cadastrado com sucesso!", "success_clientes")
         return redirect(url_for('clientes'))
 
     # Verifica se o usuário logado é administrador
