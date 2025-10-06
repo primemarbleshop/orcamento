@@ -502,8 +502,11 @@
     <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-    <script>
-    
+   <script>
+    // =============================================
+    // FUNÇÕES PRINCIPAIS - FILTROS E PERSISTÊNCIA
+    // =============================================
+
     // Função para recarregar mantendo filtros
     function recarregarComFiltros() {
         window.location.reload();
@@ -617,31 +620,32 @@
         }
     }
 
-    // Função para mostrar/ocultar campos dinâmicos
+    // =============================================
+    // FUNÇÕES DE CAMPOS DINÂMICOS
+    // =============================================
+
     function toggleFields() {
         const tipoProduto = document.getElementById('tipo_produto').value;
         const container = document.getElementById('dynamicFieldsContainer');
-        
-        // Limpar container
         container.innerHTML = '';
-        
-        // Campos comuns a vários tipos de produtos
+
+        // Campos comuns
         let camposComuns = `
             <div class="row dynamic-field">
                 <div class="col-md-12">
                     <h5><i class="fas fa-money-bill-wave me-2"></i>Outras Configurações</h5>
                 </div>
                 <div class="col-md-6 form-section">
-    <label for="instalacao" class="form-label">Instalação:</label>
-    <select name="instalacao" id="instalacao" class="form-select" onchange="toggleInstalacaoFields()">
-        <option value="Não" selected>Não</option>
-        <option value="Sim">Sim</option>
-    </select>
-    <div id="instalacao_valor_field" style="display:none;" class="mt-2">
-        <label for="instalacao_valor" class="form-label">Valor Instalação (R$):</label>
-        <input type="number" id="instalacao_valor" name="instalacao_valor" class="form-control" step="0.01" min="0" value="0">
-    </div>
-</div>
+                    <label for="instalacao" class="form-label">Instalação:</label>
+                    <select name="instalacao" id="instalacao" class="form-select" onchange="toggleInstalacaoFields()">
+                        <option value="Não" selected>Não</option>
+                        <option value="Sim">Sim</option>
+                    </select>
+                    <div id="instalacao_valor_field" style="display:none;" class="mt-2">
+                        <label for="instalacao_valor" class="form-label">Valor Instalação (R$):</label>
+                        <input type="number" id="instalacao_valor" name="instalacao_valor" class="form-control" step="0.01" min="0" value="0">
+                    </div>
+                </div>
                 <div class="col-md-6 form-section">
                     <label for="rt" class="form-label">Há RT?</label>
                     <select name="rt" id="rt" class="form-select" onchange="toggleRTFields()">
@@ -655,39 +659,34 @@
                 </div>
             </div>
         `;
-        
+
         // Campos específicos para cada tipo de produto
+        let camposEspecificos = '';
+
         if (tipoProduto === 'Bancada' || tipoProduto === 'Lavatorio') {
-            let camposEspecificos = `
+            camposEspecificos = `
                 <div class="row dynamic-field">
                     <div class="col-md-12">
                         <h5><i class="fas fa-ruler-combined me-2"></i>Acabamentos</h5>
                     </div>
                     <div class="col-md-6 form-section">
                         <label for="comprimento_saia" class="form-label">Comprimento Saia (cm):</label>
-                        <input type="number" id="comprimento_saia" name="comprimento_saia" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
+                        <input type="number" id="comprimento_saia" name="comprimento_saia" class="form-control" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
                     </div>
                     <div class="col-md-6 form-section">
                         <label for="largura_saia" class="form-label">Largura Saia (cm):</label>
-                        <input type="number" id="largura_saia" name="largura_saia" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
+                        <input type="number" id="largura_saia" name="largura_saia" class="form-control" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
                     </div>
-            `;
-            
-            // Adicionar campos de fronte apenas para Bancada e Lavatorio
-            camposEspecificos += `
                     <div class="col-md-6 form-section">
                         <label for="comprimento_fronte" class="form-label">Comprimento Fronte (cm):</label>
-                        <input type="number" id="comprimento_fronte" name="comprimento_fronte" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
+                        <input type="number" id="comprimento_fronte" name="comprimento_fronte" class="form-control" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
                     </div>
                     <div class="col-md-6 form-section">
                         <label for="largura_fronte" class="form-label">Largura Fronte (cm):</label>
-                        <input type="number" id="largura_fronte" name="largura_fronte" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
+                        <input type="number" id="largura_fronte" name="largura_fronte" class="form-control" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
                     </div>
                 </div>
-            `;
-            
-            // Campos de cuba (apenas para Bancada e Lavatorio)
-            camposEspecificos += `
+                
                 <div class="row dynamic-field">
                     <div class="col-md-12">
                         <h5><i class="fas fa-tint me-2"></i>Configurações da Cuba</h5>
@@ -709,13 +708,10 @@
                     </div>
                     <div class="col-md-4 form-section">
                         <label for="quantidade_cubas" class="form-label">Quantidade de Cubas:</label>
-                        <input type="number" id="quantidade_cubas" name="quantidade_cubas" class="form-control" value="1" min="0">
+                        <input type="number" id="quantidade_cubas" name="quantidade_cubas" class="form-control" min="0">
                     </div>
                 </div>
-            `;
-            
-            // Campos específicos para cuba esculpida
-            camposEspecificos += `
+                
                 <div class="col-md-12" id="cuba_esculpida_fields" style="display: none;">
                     <div class="row mt-3">
                         <div class="col-md-4 form-section">
@@ -727,24 +723,25 @@
                         </div>
                     </div>
                 </div>
+                
                 <div class="col-md-12" id="medidas_cuba_fields" style="display: none;">
                     <div class="row mt-3">
                         <div class="col-md-4 form-section">
                             <label for="comprimento_cuba" class="form-label">Comprimento Cuba (cm):</label>
-                            <input type="number" id="comprimento_cuba" name="comprimento_cuba" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
+                            <input type="number" id="comprimento_cuba" name="comprimento_cuba" class="form-control" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
                         </div>
                         <div class="col-md-4 form-section">
                             <label for="largura_cuba" class="form-label">Largura Cuba (cm):</label>
-                            <input type="number" id="largura_cuba" name="largura_cuba" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
+                            <input type="number" id="largura_cuba" name="largura_cuba" class="form-control" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
                         </div>
                         <div class="col-md-4 form-section">
                             <label for="profundidade_cuba" class="form-label">Profundidade Cuba (cm):</label>
-                            <input type="number" id="profundidade_cuba" name="profundidade_cuba" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
+                            <input type="number" id="profundidade_cuba" name="profundidade_cuba" class="form-control" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
                         </div>
                     </div>
                 </div>
             `;
-    
+            
             // Campos de cooktop (apenas para Bancada)
             if (tipoProduto === 'Bancada') {
                 camposEspecificos += `
@@ -762,37 +759,33 @@
                     </div>
                 `;
             }
-            
-            container.innerHTML = camposEspecificos + camposComuns;
         } 
         else if (tipoProduto === 'Ilharga' || tipoProduto === 'Ilharga Bipolida') {
-            let camposEspecificos = `
+            camposEspecificos = `
                 <div class="row dynamic-field">
                     <div class="col-md-12">
                         <h5><i class="fas fa-ruler-combined me-2"></i>Acabamentos</h5>
                     </div>
                     <div class="col-md-6 form-section">
                         <label for="comprimento_saia" class="form-label">Comprimento Saia (cm):</label>
-                        <input type="number" id="comprimento_saia" name="comprimento_saia" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
+                        <input type="number" id="comprimento_saia" name="comprimento_saia" class="form-control" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
                     </div>
                     <div class="col-md-6 form-section">
                         <label for="largura_saia" class="form-label">Largura Saia (cm):</label>
-                        <input type="number" id="largura_saia" name="largura_saia" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
+                        <input type="number" id="largura_saia" name="largura_saia" class="form-control" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
                     </div>
                 </div>
             `;
-            
-            container.innerHTML = camposEspecificos + camposComuns;
         }
         else if (tipoProduto === 'Nicho') {
-            let camposEspecificos = `
+            camposEspecificos = `
                 <div class="row dynamic-field">
                     <div class="col-md-12">
                         <h5><i class="fas fa-box-open me-2"></i>Configurações do Nicho</h5>
                     </div>
                     <div class="col-md-4 form-section">
                         <label for="profundidade_nicho" class="form-label">Profundidade (cm):</label>
-                        <input type="number" id="profundidade_nicho" name="profundidade_nicho" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
+                        <input type="number" id="profundidade_nicho" name="profundidade_nicho" class="form-control" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
                     </div>
                     <div class="col-md-4 form-section">
                         <label for="tem_fundo" class="form-label">Tem Fundo?</label>
@@ -802,8 +795,8 @@
                         </select>
                     </div>
                     <div class="col-md-4 form-section">
-                        <label for="alisar" class="form-label">Alisar:</label>
-                        <select name="alisar" id="alisar" class="form-select" onchange="toggleAlisarFields()">
+                        <label for="tem_alisar" class="form-label">Alisar:</label>
+                        <select name="tem_alisar" id="tem_alisar" class="form-select" onchange="toggleAlisarFields()">
                             <option value="Não">Não</option>
                             <option value="Sim">Sim</option>
                         </select>
@@ -812,65 +805,61 @@
                         <div class="row mt-3">
                             <div class="col-md-6 form-section">
                                 <label for="largura_alisar" class="form-label">Largura Alisar (cm):</label>
-                                <input type="number" id="largura_alisar" name="largura_alisar" class="form-control" step="0.01" min="0" value="0" pattern="[0-9]+([,][0-9]+)?">
+                                <input type="number" id="largura_alisar" name="largura_alisar" class="form-control" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
                             </div>
                         </div>
                     </div>
                 </div>
             `;
-            
-            container.innerHTML = camposEspecificos + camposComuns;
         }
-        else if (tipoProduto === 'Pedra de Box') {
-            // Pedra de Box não precisa de campos adicionais além dos comuns
-            container.innerHTML = camposComuns;
-        }
-        else {
-            // Para outros tipos de produtos (Pedra Simples, etc.)
-            container.innerHTML = camposComuns;
+
+        // Combinar campos comuns e específicos
+        container.innerHTML = camposEspecificos + camposComuns;
+    }
+
+    function toggleInstalacaoFields() {
+        const select = document.getElementById('instalacao');
+        const field = document.getElementById('instalacao_valor_field');
+        if (select && field) {
+            field.style.display = select.value === 'Sim' ? 'block' : 'none';
         }
     }
 
-    // Função para mostrar/ocultar campos de cuba esculpida
-    function toggleCubaFields() {
-        const tipoCuba = document.getElementById("tipo_cuba").value;
-        const medidasCubaFields = document.getElementById("medidas_cuba_fields");
-        const cubaEsculpidaFields = document.getElementById("cuba_esculpida_fields");
-        
-        if (tipoCuba === "Esculpida") {
-            medidasCubaFields.style.display = "block";
-            cubaEsculpidaFields.style.display = "block";
-        } else {
-            medidasCubaFields.style.display = "none";
-            cubaEsculpidaFields.style.display = "none";
-        }
-    }
-
-    // Função para mostrar/ocultar campo de porcentagem RT
     function toggleRTFields() {
-        const temRT = document.getElementById("rt").value;
-        const rtPercentField = document.getElementById("rt_percent_field");
-        
-        if (temRT === "Sim") {
-            rtPercentField.style.display = "block";
-        } else {
-            rtPercentField.style.display = "none";
+        const rt = document.getElementById('rt');
+        const field = document.getElementById('rt_percent_field');
+        if (rt && field) {
+            field.style.display = rt.value === 'Sim' ? 'block' : 'none';
         }
     }
 
-    // Função para mostrar/ocultar campos de alisar
+    function toggleCubaFields() {
+        const tipo = document.getElementById('tipo_cuba');
+        const esculpida = document.getElementById('cuba_esculpida_fields');
+        const medidas = document.getElementById('medidas_cuba_fields');
+        if (tipo && esculpida && medidas) {
+            if (tipo.value === 'Esculpida') {
+                esculpida.style.display = 'block';
+                medidas.style.display = 'block';
+            } else {
+                esculpida.style.display = 'none';
+                medidas.style.display = 'none';
+            }
+        }
+    }
+
     function toggleAlisarFields() {
-        const temAlisar = document.getElementById("alisar").value;
-        const alisarFields = document.getElementById("alisar_fields");
-        
-        if (temAlisar === "Sim") {
-            alisarFields.style.display = "block";
-        } else {
-            alisarFields.style.display = "none";
+        const alisar = document.getElementById('tem_alisar');
+        const fields = document.getElementById('alisar_fields');
+        if (alisar && fields) {
+            fields.style.display = alisar.value === 'Sim' ? 'block' : 'none';
         }
     }
 
-    // Função para confirmar exclusão
+    // =============================================
+    // FUNÇÕES DE INTERAÇÃO E CONFIRMAÇÕES
+    // =============================================
+
     function confirmarExclusao(event, form) {
         event.preventDefault();
         
@@ -890,7 +879,6 @@
         });
     }
 
-    // Função para atualizar o valor total dos orçamentos selecionados
     function atualizarValorFinal() {
         let total = 0;
         document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
@@ -899,6 +887,7 @@
         document.getElementById('valor-final').textContent = 
             "R$ " + total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     }
+
     function enviarOrcamentos() {
         const selecionados = [];
         document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
@@ -1303,6 +1292,6 @@
             });
         });	
     }
-    </script>
+</script>
 </body>
 </html>
