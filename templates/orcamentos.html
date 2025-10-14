@@ -538,7 +538,7 @@
         localStorage.setItem('ambiente_id', ambienteId);
     }
 
-    // Função para aplicar filtros automaticamente
+    // Função para aplicar filtros automaticamente - CORRIGIDA
     function aplicarFiltrosAuto() {
         const filtroCliente = document.getElementById('filtro_cliente').value;
         const filtroDataInicio = document.getElementById('filtro_data_inicio').value;
@@ -550,30 +550,48 @@
         
         // Construir URL com parâmetros
         const params = new URLSearchParams();
-        if (filtroCliente !== 'Todos') params.append('filtro_cliente', filtroCliente);
+        if (filtroCliente && filtroCliente !== 'Todos') params.append('filtro_cliente', filtroCliente);
         if (filtroDataInicio) params.append('filtro_data_inicio', filtroDataInicio);
         if (filtroDataFim) params.append('filtro_data_fim', filtroDataFim);
-        if (limite !== '15') params.append('limite', limite);
+        if (limite && limite !== '15') params.append('limite', limite);
         
         const urlBase = window.location.origin + window.location.pathname;
-        const urlAtual = window.location.href;
-        const novaUrl = `${urlBase}?${params.toString()}`;
+        const novaUrl = params.toString() ? `${urlBase}?${params.toString()}` : urlBase;
         
-        // Só redirecionar se a URL for realmente diferente
-        if (novaUrl !== urlAtual) {
-            window.location.href = novaUrl;
-        }
+        // Redirecionar para a URL com filtros
+        window.location.href = novaUrl;
     }
 
-    // Função para carregar seleções salvas
+    // Função para carregar seleções salvas - CORRIGIDA
     function carregarSelecoesSalvas() {
-        // Carregar seleções do formulário
+        // Primeiro carregue os filtros da URL (prioridade máxima)
+        const urlParams = new URLSearchParams(window.location.search);
+        
+        // Se não há parâmetros na URL, carregue do localStorage
+        if (urlParams.toString() === '') {
+            // Carregar filtros do localStorage
+            if (localStorage.getItem('filtroCliente')) {
+                $('#filtro_cliente').val(localStorage.getItem('filtroCliente')).trigger('change');
+            }
+            if (localStorage.getItem('filtroDataInicio')) {
+                document.getElementById('filtro_data_inicio').value = localStorage.getItem('filtroDataInicio');
+            }
+            if (localStorage.getItem('filtroDataFim')) {
+                document.getElementById('filtro_data_fim').value = localStorage.getItem('filtroDataFim');
+            }
+            if (localStorage.getItem('filtroQuantidade')) {
+                document.getElementById('filtro_quantidade').value = localStorage.getItem('filtroQuantidade');
+            }
+        }
+        
+        // Sempre carregar seleções do formulário do localStorage
         if (localStorage.getItem('cliente_id')) {
             $('#cliente_id').val(localStorage.getItem('cliente_id')).trigger('change');
         }
         if (localStorage.getItem('tipo_produto')) {
             $('#tipo_produto').val(localStorage.getItem('tipo_produto')).trigger('change');
-            toggleFields();
+            // Aguardar um pouco para garantir que o DOM esteja pronto
+            setTimeout(toggleFields, 100);
         }
         if (localStorage.getItem('material_id')) {
             $('#material_id').val(localStorage.getItem('material_id')).trigger('change');
@@ -581,23 +599,9 @@
         if (localStorage.getItem('ambiente_id')) {
             $('#ambiente_id').val(localStorage.getItem('ambiente_id')).trigger('change');
         }
-        
-        // Carregar filtros do localStorage
-        if (localStorage.getItem('filtroCliente')) {
-            document.getElementById('filtro_cliente').value = localStorage.getItem('filtroCliente');
-        }
-        if (localStorage.getItem('filtroDataInicio')) {
-            document.getElementById('filtro_data_inicio').value = localStorage.getItem('filtroDataInicio');
-        }
-        if (localStorage.getItem('filtroDataFim')) {
-            document.getElementById('filtro_data_fim').value = localStorage.getItem('filtroDataFim');
-        }
-        if (localStorage.getItem('filtroQuantidade')) {
-            document.getElementById('filtro_quantidade').value = localStorage.getItem('filtroQuantidade');
-        }
     }
 
-    // Função para resetar os filtros
+    // Função para resetar os filtros - CORRIGIDA
     function resetFilters() {
         // Limpar Select2 do filtro cliente
         $('#filtro_cliente').val('Todos').trigger('change');
@@ -615,9 +619,7 @@
         
         // Redirecionar para URL base sem parâmetros
         const urlBase = window.location.origin + window.location.pathname;
-        if (window.location.href !== urlBase) {
-            window.location.href = urlBase;
-        }
+        window.location.href = urlBase;
     }
 
     // =============================================
@@ -905,7 +907,7 @@
     }
 
     // =============================================
-    // CONFIGURAÇÃO DE EVENT LISTENERS
+    // CONFIGURAÇÃO DE EVENT LISTENERS - CORRIGIDA
     // =============================================
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -919,7 +921,7 @@
         // Carregar seleções salvas
         carregarSelecoesSalvas();
         
-        // Event listeners para salvar seleções
+        // Event listeners para salvar seleções do formulário
         $('#cliente_id, #tipo_produto, #material_id, #ambiente_id').on('change', function() {
             salvarSelecoesFormulario();
             if (this.id === 'tipo_produto') {
@@ -927,26 +929,23 @@
             }
         });
         
-        // Event listeners para filtros com debounce
+        // Event listeners para filtros - CORREÇÃO IMPORTANTE
         let timeoutFiltro;
         document.querySelectorAll('.filtro-auto').forEach(element => {
             element.addEventListener('change', function() {
-                salvarFiltrosNoLocalStorage();
-                
                 clearTimeout(timeoutFiltro);
                 timeoutFiltro = setTimeout(() => {
                     aplicarFiltrosAuto();
-                }, 500);
+                }, 800); // Aumentei o tempo para 800ms para evitar redirecionamentos muito rápidos
             });
         });
         
         // Event listener específico para Select2 do filtro cliente
         $('#filtro_cliente').on('select2:select select2:clear', function() {
-            salvarFiltrosNoLocalStorage();
             clearTimeout(timeoutFiltro);
             timeoutFiltro = setTimeout(() => {
                 aplicarFiltrosAuto();
-            }, 500);
+            }, 800);
         });
         
         // Event listeners para checkboxes
@@ -1292,6 +1291,15 @@
             });
         });	
     }
+
+    // =============================================
+    // NOVA FUNÇÃO PARA SALVAR ESTADO DOS FILTROS NA NAVEGAÇÃO
+    // =============================================
+
+    // Salvar filtros quando a página for descarregada (usuário sair)
+    window.addEventListener('beforeunload', function() {
+        salvarFiltrosNoLocalStorage();
+    });
 </script>
 </body>
 </html>
