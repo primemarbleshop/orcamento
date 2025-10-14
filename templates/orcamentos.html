@@ -507,6 +507,9 @@
     // FUNÇÕES PRINCIPAIS - FILTROS E PERSISTÊNCIA
     // =============================================
 
+    // Variável para controlar se é o primeiro carregamento
+    let primeiroCarregamento = true;
+
     // Função para recarregar mantendo filtros
     function recarregarComFiltros() {
         window.location.reload();
@@ -558,30 +561,50 @@
         const urlBase = window.location.origin + window.location.pathname;
         const novaUrl = params.toString() ? `${urlBase}?${params.toString()}` : urlBase;
         
-        // Redirecionar para a URL com filtros
-        window.location.href = novaUrl;
+        // Só redirecionar se a URL for diferente da atual
+        if (novaUrl !== window.location.href) {
+            window.location.href = novaUrl;
+        }
     }
 
-    // Função para carregar seleções salvas - CORRIGIDA
+    // Função para carregar seleções salvas - CORRIGIDA DEFINITIVAMENTE
     function carregarSelecoesSalvas() {
         // Primeiro carregue os filtros da URL (prioridade máxima)
         const urlParams = new URLSearchParams(window.location.search);
         
-        // Se não há parâmetros na URL, carregue do localStorage
-        if (urlParams.toString() === '') {
+        // Se não há parâmetros na URL E é o primeiro carregamento, carregue do localStorage E APLIQUE
+        if (urlParams.toString() === '' && primeiroCarregamento) {
+            let temFiltrosSalvos = false;
+            
             // Carregar filtros do localStorage
             if (localStorage.getItem('filtroCliente')) {
-                $('#filtro_cliente').val(localStorage.getItem('filtroCliente')).trigger('change');
+                const filtroCliente = localStorage.getItem('filtroCliente');
+                $('#filtro_cliente').val(filtroCliente).trigger('change');
+                temFiltrosSalvos = true;
             }
             if (localStorage.getItem('filtroDataInicio')) {
                 document.getElementById('filtro_data_inicio').value = localStorage.getItem('filtroDataInicio');
+                temFiltrosSalvos = true;
             }
             if (localStorage.getItem('filtroDataFim')) {
                 document.getElementById('filtro_data_fim').value = localStorage.getItem('filtroDataFim');
+                temFiltrosSalvos = true;
             }
             if (localStorage.getItem('filtroQuantidade')) {
                 document.getElementById('filtro_quantidade').value = localStorage.getItem('filtroQuantidade');
+                temFiltrosSalvos = true;
             }
+            
+            // Se há filtros salvos, aplicar automaticamente após um delay
+            if (temFiltrosSalvos) {
+                console.log('Filtros salvos detectados, aplicando automaticamente...');
+                setTimeout(() => {
+                    aplicarFiltrosAuto();
+                }, 800);
+            }
+            
+            // Marcar que o primeiro carregamento já foi feito
+            primeiroCarregamento = false;
         }
         
         // Sempre carregar seleções do formulário do localStorage
@@ -929,14 +952,14 @@
             }
         });
         
-        // Event listeners para filtros - CORREÇÃO IMPORTANTE
+        // Event listeners para filtros
         let timeoutFiltro;
         document.querySelectorAll('.filtro-auto').forEach(element => {
             element.addEventListener('change', function() {
                 clearTimeout(timeoutFiltro);
                 timeoutFiltro = setTimeout(() => {
                     aplicarFiltrosAuto();
-                }, 800); // Aumentei o tempo para 800ms para evitar redirecionamentos muito rápidos
+                }, 800);
             });
         });
         
@@ -1293,7 +1316,7 @@
     }
 
     // =============================================
-    // NOVA FUNÇÃO PARA SALVAR ESTADO DOS FILTROS NA NAVEGAÇÃO
+    // SALVAR FILTROS AO SAIR DA PÁGINA
     // =============================================
 
     // Salvar filtros quando a página for descarregada (usuário sair)
