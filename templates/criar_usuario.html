@@ -97,7 +97,7 @@
         <h1 class="titulo-centralizado">Criar Novo Usuário</h1>
 
         <div class="form-box">
-            <form method="POST" action="{{ url_for('criar_usuario') }}">
+            <form method="POST" action="{{ url_for('criar_usuario') }}" id="userForm">
                 <label for="nome">Nome:</label>
                 <input type="text" id="nome" name="nome" required>
                 
@@ -143,6 +143,19 @@
                 value = value.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
                 e.target.value = value;
             }
+        });
+
+        // Remover formatação antes de enviar o formulário
+        document.getElementById('userForm').addEventListener('submit', function(e) {
+            // Limpar formatação do CPF
+            const cpfField = document.getElementById('cpf');
+            cpfField.value = cpfField.value.replace(/\D/g, '');
+            
+            // Limpar formatação do telefone
+            const telefoneField = document.getElementById('telefone');
+            telefoneField.value = telefoneField.value.replace(/\D/g, '');
+            
+            // O formulário será enviado com os valores sem formatação
         });
     </script>
 </body>
