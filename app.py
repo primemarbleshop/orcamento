@@ -1413,8 +1413,8 @@ def gerar_pdf_orcamento(codigo):
         page_width = page.rect.width
         page_height = page.rect.height
 
-        logo_width = 240
-        logo_height = 120
+        logo_width = 210
+        logo_height = 105
 
         rect = fitz.Rect(page_width - logo_width - -20, 20, page_width - -20, 20 + logo_height)
         page.insert_image(rect, filename=logo_path)
