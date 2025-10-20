@@ -48,6 +48,7 @@
         label {
             display: block;
             margin-top: 10px;
+            text-align: left;
         }
 
         input {
@@ -58,8 +59,10 @@
             border: 1px solid #ccc;
         }
 
-        button {
-            margin-top: 15px;
+        button[type="submit"] {
+            display: block;
+            width: 100%;
+            margin-top: 20px;
             padding: 10px 15px;
             background-color: #0275d8;
             color: white;
@@ -69,7 +72,7 @@
             font-weight: bold;
         }
 
-        button:hover {
+        button[type="submit"]:hover {
             background-color: #025aa5;
         }
 
@@ -85,6 +88,44 @@
         .back-link:hover {
             text-decoration: underline;
         }
+
+        .password-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: #666;
+            margin: 0;
+            padding: 0;
+            width: auto;
+        }
+
+        .toggle-password:hover {
+            color: #333;
+            background: none;
+        }
+
+        .error-message {
+            color: red;
+            font-size: 12px;
+            margin-top: -5px;
+            margin-bottom: 10px;
+            text-align: left;
+            display: none;
+        }
+        
+        .form-buttons {
+            margin-top: 15px;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
@@ -92,28 +133,51 @@
         <h1 class="titulo-centralizado">Editar Usuário</h1>
 
         <div class="form-box">
-            <form method="POST">
+            <form method="POST" id="editarUsuarioForm">
                 <label for="nome">Nome:</label>
                 <input type="text" id="nome" name="nome" value="{{ usuario.nome }}" required>
 
-                <label for="cpf">CPF:</label>
-                <input type="text" id="cpf" name="cpf" value="{{ usuario.cpf }}" required readonly>
+                <label for="cpf">CPF (Login):</label>
+                <input type="text" id="cpf" name="cpf" value="{{ usuario.cpf }}" required>
 
                 <label for="telefone">Telefone:</label>
                 <input type="text" id="telefone" name="telefone" value="{{ usuario.telefone }}" placeholder="(00) 00000-0000">
 
                 <label for="senha">Nova Senha:</label>
-                <input type="password" id="senha" name="senha" placeholder="Deixe em branco para manter a atual">
+                <div class="password-container">
+                    <input type="password" id="senha" name="senha" placeholder="Deixe em branco para manter a atual">
+                    <button type="button" class="toggle-password" onclick="togglePassword('senha')">👁️</button>
+                </div>
+
+                <label for="confirmar_senha">Confirmar Nova Senha:</label>
+                <div class="password-container">
+                    <input type="password" id="confirmar_senha" name="confirmar_senha" placeholder="Repita a nova senha">
+                    <button type="button" class="toggle-password" onclick="togglePassword('confirmar_senha')">👁️</button>
+                </div>
+                
+                <div class="error-message" id="passwordError">As senhas não coincidem!</div>
 
                 <button type="submit">Salvar Alterações</button>
             </form>
 
-            <br>
-            <a href="{{ url_for('gerenciar_usuarios') }}" class="back-link">← Voltar</a>
+            <div class="form-buttons">
+                <a href="{{ url_for('gerenciar_usuarios') }}" class="back-link">← Voltar para Gerenciar Usuários</a>
+            </div>
         </div>
     </div>
 
     <script>
+        // Máscara para o CPF
+        document.getElementById('cpf').addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length <= 11) {
+                value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+                e.target.value = value;
+            }
+        });
+
         // Máscara para o telefone
         document.getElementById('telefone').addEventListener('input', function(e) {
             let value = e.target.value.replace(/\D/g, '');
@@ -126,6 +190,48 @@
                 e.target.value = value;
             }
         });
+
+        // Função para mostrar/ocultar senha
+        function togglePassword(fieldId) {
+            const passwordField = document.getElementById(fieldId);
+            const toggleButton = passwordField.nextElementSibling;
+            
+            if (passwordField.type === 'password') {
+                passwordField.type = 'text';
+                toggleButton.textContent = '🔒';
+            } else {
+                passwordField.type = 'password';
+                toggleButton.textContent = '👁️';
+            }
+        }
+
+        // Validação de confirmação de senha
+        document.getElementById('editarUsuarioForm').addEventListener('submit', function(e) {
+            const senha = document.getElementById('senha').value;
+            const confirmarSenha = document.getElementById('confirmar_senha').value;
+            const passwordError = document.getElementById('passwordError');
+            
+            // Se algum campo de senha foi preenchido, ambos devem ser iguais
+            if (senha !== '' || confirmarSenha !== '') {
+                if (senha !== confirmarSenha) {
+                    e.preventDefault();
+                    passwordError.style.display = 'block';
+                    
+                    // Rolando para o erro
+                    passwordError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                } else {
+                    passwordError.style.display = 'none';
+                }
+            }
+        });
+
+        // Esconder mensagem de erro quando o usuário começar a digitar
+        document.getElementById('senha').addEventListener('input', hidePasswordError);
+        document.getElementById('confirmar_senha').addEventListener('input', hidePasswordError);
+        
+        function hidePasswordError() {
+            document.getElementById('passwordError').style.display = 'none';
+        }
     </script>
 </body>
 </html>
