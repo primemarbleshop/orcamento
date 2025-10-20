@@ -922,9 +922,12 @@ def login():
         cpf = request.form['cpf']
         senha = request.form['senha']
 
-        usuario = Usuario.query.filter_by(cpf=cpf).first()
+        # 🔥 CORREÇÃO: Remove pontos e traços do CPF para buscar no banco
+        cpf_limpo = re.sub(r'[\.\-]', '', cpf)
 
-        if usuario and usuario.check_senha(senha):  # Agora todas as senhas são comparadas corretamente
+        usuario = Usuario.query.filter_by(cpf=cpf_limpo).first()
+
+        if usuario and usuario.check_senha(senha):
             session['user_cpf'] = usuario.cpf
             session['admin'] = usuario.is_admin
             return redirect(url_for('index'))
