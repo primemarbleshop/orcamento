@@ -503,135 +503,224 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
    <script>
-   // =============================================
-// FUNÇÕES PRINCIPAIS - FILTROS EM TEMPO REAL
+  // Função SIMPLIFICADA para aplicar filtros
+function aplicarFiltrosEmTempoReal() {
+    console.log('🎯 INICIANDO FILTRAGEM');
+    
+    const filtroCliente = document.getElementById('filtro_cliente').value;
+    const filtroDataInicio = document.getElementById('filtro_data_inicio').value;
+    const filtroDataFim = document.getElementById('filtro_data_fim').value;
+    const limite = parseInt(document.getElementById('filtro_quantidade').value);
+    
+    console.log('📋 PARÂMETROS:', { filtroCliente, filtroDataInicio, filtroDataFim, limite });
+    
+    const todasLinhas = Array.from(document.querySelectorAll('#orcamento_table tr'));
+    console.log('📊 TOTAL DE LINHAS:', todasLinhas.length);
+    
+    // PASSO 1: Esconder todas as linhas primeiro
+    todasLinhas.forEach(linha => {
+        linha.style.display = 'none';
+    });
+    
+    // PASSO 2: Coletar linhas que passam nos filtros
+    let linhasQuePassam = [];
+    
+    for (let i = 0; i < todasLinhas.length; i++) {
+        const linha = todasLinhas[i];
+        const cliente = linha.getAttribute('data-cliente');
+        const dataStr = linha.getAttribute('data-data');
+        let deveMostrar = true;
+        
+        // Filtro cliente
+        if (filtroCliente && filtroCliente !== 'Todos' && cliente !== filtroCliente) {
+            deveMostrar = false;
+        }
+        
+        // Filtro data início
+        if (deveMostrar && filtroDataInicio) {
+            const dataLinha = new Date(dataStr);
+            const dataInicio = new Date(filtroDataInicio);
+            if (dataLinha < dataInicio) {
+                deveMostrar = false;
+            }
+        }
+        
+        // Filtro data fim
+        if (deveMostrar && filtroDataFim) {
+            const dataLinha = new Date(dataStr);
+            const dataFim = new Date(filtroDataFim);
+            dataFim.setHours(23, 59, 59, 999);
+            if (dataLinha > dataFim) {
+                deveMostrar = false;
+            }
+        }
+        
+        if (deveMostrar) {
+            linhasQuePassam.push({
+                elemento: linha,
+                data: new Date(dataStr),
+                index: i
+            });
+        }
+    }
+    
+    console.log('✅ LINHAS QUE PASSARAM NOS FILTROS:', linhasQuePassam.length);
+    
+    // PASSO 3: Ordenar por data (mais recente primeiro)
+    linhasQuePassam.sort((a, b) => b.data - a.data);
+    
+    // PASSO 4: Aplicar limite
+    let linhasParaMostrar = linhasQuePassam;
+    if (limite > 0) {
+        linhasParaMostrar = linhasQuePassam.slice(0, limite);
+        console.log(`✂️ APLICANDO LIMITE: ${limite} de ${linhasQuePassam.length} linhas`);
+    } else {
+        console.log('📈 MOSTRANDO TODAS AS LINHAS');
+    }
+    
+    // PASSO 5: Mostrar apenas as linhas selecionadas
+    linhasParaMostrar.forEach(item => {
+        item.elemento.style.display = '';
+    });
+    
+    console.log('🎉 LINHAS VISÍVEIS:', linhasParaMostrar.length);
+    atualizarContadorLinhas();
+}
+
+// Função para debug do estado atual
+function debugEstado() {
+    const limiteSelecionado = document.getElementById('filtro_quantidade').value;
+    const linhasVisiveis = document.querySelectorAll('#orcamento_table tr:not([style*="display: none"])').length;
+    const totalLinhas = document.querySelectorAll('#orcamento_table tr').length;
+    
+    console.log('=== 🔍 DEBUG COMPLETO ===');
+    console.log('Filtro "Mostrar" selecionado:', limiteSelecionado);
+    console.log('Linhas visíveis:', linhasVisiveis);
+    console.log('Total de linhas:', totalLinhas);
+    
+    // Verificar se o evento está sendo capturado
+    console.log('Event listener está funcionando?', 'SIM - esta mensagem prova isso');
+    
+    // Mostrar algumas linhas visíveis
+    const primeirasLinhas = Array.from(document.querySelectorAll('#orcamento_table tr:not([style*="display: none"])'))
+        .slice(0, 3)
+        .map(tr => ({
+            id: tr.getAttribute('data-id'),
+            cliente: tr.getAttribute('data-cliente'),
+            data: tr.getAttribute('data-data')
+        }));
+    console.log('Primeiras linhas visíveis:', primeirasLinhas);
+    console.log('========================');
+}
+
 // =============================================
-// =============================================
-// SOLUÇÃO DEFINITIVA PARA O FILTRO "MOSTRAR"
+// CONFIGURAÇÃO SIMPLIFICADA - GARANTINDO QUE OS EVENTOS FUNCIONEM
 // =============================================
 
-// Função para aplicar filtros em tempo real
-function aplicarFiltrosEmTempoReal() {
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 PÁGINA CARREGADA - INICIANDO CONFIGURAÇÃO');
+    
+    // 1. Inicializar Select2
+    $('#cliente_id, #material_id, #tipo_produto, #ambiente_id, #filtro_cliente').select2({
+        width: '100%',
+        placeholder: "Selecione",
+        allowClear: true
+    });
+
+    // 2. Configurar evento DIRETO no select de quantidade
+    const selectQuantidade = document.getElementById('filtro_quantidade');
+    if (selectQuantidade) {
+        selectQuantidade.addEventListener('change', function() {
+            console.log('🔄 EVENTO: Filtro quantidade alterado para', this.value);
+            aplicarFiltrosEmTempoReal();
+        });
+        console.log('✅ Event listener do filtro quantidade configurado');
+    } else {
+        console.log('❌ ERRO: Elemento filtro_quantidade não encontrado!');
+    }
+
+    // 3. Configurar outros eventos de filtro
+    document.getElementById('filtro_data_inicio').addEventListener('change', function() {
+        console.log('📅 EVENTO: Data início alterada');
+        aplicarFiltrosEmTempoReal();
+    });
+    
+    document.getElementById('filtro_data_fim').addEventListener('change', function() {
+        console.log('📅 EVENTO: Data fim alterada');
+        aplicarFiltrosEmTempoReal();
+    });
+
+    // 4. Evento para Select2 do cliente
+    $('#filtro_cliente').on('select2:select select2:clear', function() {
+        console.log('👤 EVENTO: Cliente alterado');
+        aplicarFiltrosEmTempoReal();
+    });
+
+    // 5. Carregar configurações salvas
+    setTimeout(() => {
+        carregarConfiguracoesSalvas();
+        // Aplicar filtros após um tempo para garantir que tudo carregou
+        setTimeout(() => {
+            console.log('🎬 APLICANDO FILTROS INICIAIS');
+            aplicarFiltrosEmTempoReal();
+        }, 500);
+    }, 100);
+});
+
+// Função SIMPLIFICADA para carregar configurações
+function carregarConfiguracoesSalvas() {
+    console.log('📂 CARREGANDO CONFIGURAÇÕES SALVAS');
+    
+    // Carregar limite
+    const limiteSalvo = localStorage.getItem('filtroQuantidade');
+    if (limiteSalvo) {
+        document.getElementById('filtro_quantidade').value = limiteSalvo;
+        console.log('💾 Limite carregado:', limiteSalvo);
+    }
+    
+    // Carregar outros filtros
+    const clienteSalvo = localStorage.getItem('filtroCliente');
+    if (clienteSalvo) {
+        $('#filtro_cliente').val(clienteSalvo).trigger('change');
+    }
+    
+    const dataInicioSalva = localStorage.getItem('filtroDataInicio');
+    if (dataInicioSalva) {
+        document.getElementById('filtro_data_inicio').value = dataInicioSalva;
+    }
+    
+    const dataFimSalva = localStorage.getItem('filtroDataFim');
+    if (dataFimSalva) {
+        document.getElementById('filtro_data_fim').value = dataFimSalva;
+    }
+}
+
+// Função para salvar configurações
+function salvarFiltrosNoLocalStorage() {
     const filtroCliente = document.getElementById('filtro_cliente').value;
     const filtroDataInicio = document.getElementById('filtro_data_inicio').value;
     const filtroDataFim = document.getElementById('filtro_data_fim').value;
     const limite = document.getElementById('filtro_quantidade').value;
     
-    console.log('🚀 Aplicando filtros:', { 
-        cliente: filtroCliente, 
-        dataInicio: filtroDataInicio, 
-        dataFim: filtroDataFim, 
-        limite: limite 
-    });
-    
-    // Salvar filtros
-    salvarFiltrosNoLocalStorage();
-    
-    // Filtrar linhas da tabela
-    filtrarTabelaEmTempoReal(filtroCliente, filtroDataInicio, filtroDataFim, limite);
+    localStorage.setItem('filtroCliente', filtroCliente);
+    localStorage.setItem('filtroDataInicio', filtroDataInicio);
+    localStorage.setItem('filtroDataFim', filtroDataFim);
+    localStorage.setItem('filtroQuantidade', limite);
 }
 
-// NOVA FUNÇÃO DE FILTRAGEM - ABORDAGEM SIMPLIFICADA
-function filtrarTabelaEmTempoReal(filtroCliente, filtroDataInicio, filtroDataFim, limite) {
-    const todasLinhas = Array.from(document.querySelectorAll('#orcamento_table tr'));
-    
-    console.log(`📊 Total de linhas na tabela: ${todasLinhas.length}`);
-    
-    // PASSO 1: Aplicar filtros básicos (cliente e data)
-    let linhasFiltradas = todasLinhas.filter(linha => {
-        const cliente = linha.getAttribute('data-cliente');
-        const dataStr = linha.getAttribute('data-data');
-        let mostrar = true;
-        
-        // Filtro por cliente
-        if (filtroCliente && filtroCliente !== 'Todos' && cliente !== filtroCliente) {
-            mostrar = false;
-        }
-        
-        // Filtro por data inicial
-        if (mostrar && filtroDataInicio) {
-            const dataLinha = new Date(dataStr);
-            const dataInicio = new Date(filtroDataInicio);
-            if (dataLinha < dataInicio) {
-                mostrar = false;
-            }
-        }
-        
-        // Filtro por data final
-        if (mostrar && filtroDataFim) {
-            const dataLinha = new Date(dataStr);
-            const dataFim = new Date(filtroDataFim);
-            dataFim.setHours(23, 59, 59, 999);
-            if (dataLinha > dataFim) {
-                mostrar = false;
-            }
-        }
-        
-        return mostrar;
-    });
-    
-    console.log(`✅ Linhas após filtros básicos: ${linhasFiltradas.length}`);
-    
-    // PASSO 2: Ordenar por data (mais recente primeiro)
-    linhasFiltradas.sort((a, b) => {
-        const dataA = new Date(a.getAttribute('data-data'));
-        const dataB = new Date(b.getAttribute('data-data'));
-        return dataB - dataA;
-    });
-    
-    // PASSO 3: Aplicar limite
-    if (limite && limite !== '0') {
-        const limiteNum = parseInt(limite);
-        console.log(`✂️ Aplicando limite de ${limiteNum} linhas`);
-        linhasFiltradas = linhasFiltradas.slice(0, limiteNum);
-    } else {
-        console.log('📈 Mostrando TODAS as linhas (limite: 0)');
-    }
-    
-    console.log(`🎯 Linhas após aplicar limite: ${linhasFiltradas.length}`);
-    
-    // PASSO 4: Atualizar visibilidade
-    // Primeiro esconder TODAS as linhas
-    todasLinhas.forEach(linha => {
-        linha.style.display = 'none';
-    });
-    
-    // Depois mostrar apenas as filtradas
-    linhasFiltradas.forEach(linha => {
-        linha.style.display = '';
-    });
-    
-    // Atualizar contador
-    atualizarContadorLinhas();
-}
-
-// Função para debug - execute no console para testar
-function debugFiltro() {
-    const limite = document.getElementById('filtro_quantidade').value;
+// Função para atualizar contador
+function atualizarContadorLinhas() {
     const linhasVisiveis = document.querySelectorAll('#orcamento_table tr:not([style*="display: none"])').length;
     const totalLinhas = document.querySelectorAll('#orcamento_table tr').length;
     
-    console.log('=== 🐛 DEBUG FILTRO ===');
-    console.log('Limite selecionado:', limite);
-    console.log('Total de linhas:', totalLinhas);
-    console.log('Linhas visíveis:', linhasVisiveis);
-    console.log('Filtro cliente:', document.getElementById('filtro_cliente').value);
-    console.log('Data início:', document.getElementById('filtro_data_inicio').value);
-    console.log('Data fim:', document.getElementById('filtro_data_fim').value);
+    console.log(`📊 CONTADOR: ${linhasVisiveis} de ${totalLinhas} orçamentos visíveis`);
     
-    // Mostrar IDs das linhas visíveis
-    const idsVisiveis = Array.from(document.querySelectorAll('#orcamento_table tr:not([style*="display: none"])'))
-        .map(tr => tr.getAttribute('data-id'));
-    console.log('IDs visíveis:', idsVisiveis);
-    console.log('=====================');
+    // Atualizar elemento visual se existir
+    const contadorElement = document.getElementById('contador-linhas');
+    if (contadorElement) {
+        contadorElement.textContent = `Mostrando ${linhasVisiveis} de ${totalLinhas} orçamentos`;
+    }
 }
-
-// Função para forçar limite específico (teste)
-function testarLimite(limite) {
-    document.getElementById('filtro_quantidade').value = limite;
-    aplicarFiltrosEmTempoReal();
-}
-
 // =============================================
 // CONFIGURAÇÃO DOS EVENT LISTENERS - ATUALIZADA
 // =============================================
