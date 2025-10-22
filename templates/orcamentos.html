@@ -504,6 +504,11 @@
 
    <script>
     // =============================================
+    // VARIÁVEIS GLOBAIS
+    // =============================================
+    let timeoutFiltro;
+
+    // =============================================
     // FUNÇÕES PRINCIPAIS - FILTROS EM TEMPO REAL
     // =============================================
 
@@ -521,15 +526,22 @@
         filtrarTabelaEmTempoReal(filtroCliente, filtroDataInicio, filtroDataFim, limite);
     }
 
-    // Função para filtrar tabela em tempo real
+    // Função para filtrar tabela em tempo real - CORRIGIDA
     function filtrarTabelaEmTempoReal(filtroCliente, filtroDataInicio, filtroDataFim, limite) {
         const linhas = document.querySelectorAll('#orcamento_table tr');
         let linhasVisiveis = 0;
         
+        // Primeiro, mostrar todas as linhas
+        linhas.forEach(linha => {
+            linha.style.display = '';
+        });
+        
+        // Agora aplicar filtros
         linhas.forEach(linha => {
             let mostrar = true;
             const cliente = linha.getAttribute('data-cliente');
-            const data = linha.getAttribute('data-data');
+            const dataTexto = linha.getAttribute('data-data');
+            const dataLinha = new Date(dataTexto);
             
             // Filtrar por cliente
             if (filtroCliente && filtroCliente !== 'Todos' && cliente !== filtroCliente) {
@@ -538,39 +550,54 @@
             
             // Filtrar por data
             if (filtroDataInicio) {
-                const dataLinha = new Date(data);
                 const dataInicio = new Date(filtroDataInicio);
+                dataInicio.setHours(0, 0, 0, 0);
                 if (dataLinha < dataInicio) {
                     mostrar = false;
                 }
             }
             
             if (filtroDataFim) {
-                const dataLinha = new Date(data);
                 const dataFim = new Date(filtroDataFim);
-                dataFim.setHours(23, 59, 59, 999); // Fim do dia
+                dataFim.setHours(23, 59, 59, 999);
                 if (dataLinha > dataFim) {
                     mostrar = false;
                 }
             }
             
-            // Aplicar filtro de limite (mostrar apenas os últimos X)
-            if (limite && limite !== '0') {
-                // Para o filtro de limite, vamos ordenar por data e mostrar apenas os mais recentes
-                if (mostrar) {
-                    linhasVisiveis++;
-                    if (linhasVisiveis > parseInt(limite)) {
-                        mostrar = false;
-                    }
-                }
-            }
-            
             // Aplicar visibilidade
+            if (mostrar) {
+                linhasVisiveis++;
+            }
             linha.style.display = mostrar ? '' : 'none';
         });
         
+        // Aplicar filtro de limite (mostrar apenas os últimos X)
+        if (limite && limite !== '0' && linhasVisiveis > parseInt(limite)) {
+            aplicarFiltroLimite(parseInt(limite));
+        }
+        
         // Atualizar contador
         atualizarContadorLinhas();
+    }
+
+    // Função para aplicar filtro de limite por data - NOVA FUNÇÃO
+    function aplicarFiltroLimite(limite) {
+        const linhasVisiveis = Array.from(document.querySelectorAll('#orcamento_table tr:not([style*="display: none"])'));
+        
+        // Ordenar por data (mais recentes primeiro)
+        linhasVisiveis.sort((a, b) => {
+            const dataA = new Date(a.getAttribute('data-data'));
+            const dataB = new Date(b.getAttribute('data-data'));
+            return dataB - dataA;
+        });
+        
+        // Mostrar apenas os primeiros 'limite' registros
+        linhasVisiveis.forEach((linha, index) => {
+            if (index >= limite) {
+                linha.style.display = 'none';
+            }
+        });
     }
 
     // Função para atualizar contador de linhas
@@ -578,8 +605,15 @@
         const linhasVisiveis = document.querySelectorAll('#orcamento_table tr:not([style*="display: none"])').length;
         const totalLinhas = document.querySelectorAll('#orcamento_table tr').length;
         
-        // Você pode adicionar um contador visual se desejar
-        console.log(`Mostrando ${linhasVisiveis} de ${totalLinhas} orçamentos`);
+        // Adicionar contador visual
+        let contadorElement = document.getElementById('contador-orcamentos');
+        if (!contadorElement) {
+            contadorElement = document.createElement('div');
+            contadorElement.id = 'contador-orcamentos';
+            contadorElement.className = 'alert alert-info mt-3';
+            document.querySelector('.table-responsive').parentNode.insertBefore(contadorElement, document.querySelector('.table-responsive').nextSibling);
+        }
+        contadorElement.innerHTML = `<i class="fas fa-info-circle me-2"></i>Mostrando ${linhasVisiveis} de ${totalLinhas} orçamentos`;
     }
 
     // Função para salvar filtros no localStorage
@@ -644,6 +678,39 @@
         if (localStorage.getItem('ambiente_id')) {
             $('#ambiente_id').val(localStorage.getItem('ambiente_id')).trigger('change');
         }
+
+        // VERIFICAR SE HÁ ORÇAMENTOS DUPLICADOS PARA SELECIONAR AUTOMATICAMENTE
+        if (localStorage.getItem('orcamentosDuplicadosSelecionar')) {
+            const idsParaSelecionar = JSON.parse(localStorage.getItem('orcamentosDuplicadosSelecionar'));
+            
+            // Aguardar um pouco para garantir que a tabela esteja completamente carregada
+            setTimeout(() => {
+                let selecionadosCount = 0;
+                
+                idsParaSelecionar.forEach(id => {
+                    const checkbox = document.querySelector(`.selecionar-orcamento[data-id="${id}"]`);
+                    if (checkbox) {
+                        checkbox.checked = true;
+                        checkbox.dispatchEvent(new Event('change'));
+                        selecionadosCount++;
+                    }
+                });
+                
+                // Mostrar mensagem de feedback
+                if (selecionadosCount > 0) {
+                    Swal.fire({
+                        title: 'Orçamentos Duplicados!',
+                        text: `${selecionadosCount} orçamento(s) duplicado(s) selecionado(s) automaticamente.`,
+                        icon: 'success',
+                        timer: 3000,
+                        showConfirmButton: false
+                    });
+                }
+                
+                // LIMPAR após usar (importante para não selecionar sempre)
+                localStorage.removeItem('orcamentosDuplicadosSelecionar');
+            }, 800);
+        }
     }
 
     // Função para resetar os filtros
@@ -664,6 +731,132 @@
         
         // Aplicar filtros em tempo real
         aplicarFiltrosEmTempoReal();
+    }
+
+    // =============================================
+    // SALVAR ORÇAMENTO SEM RECARREGAR A PÁGINA
+    // =============================================
+
+    // Função para salvar orçamento via AJAX - NOVA FUNÇÃO
+    function salvarOrcamentoAJAX(event) {
+        event.preventDefault();
+        
+        const formData = new FormData(document.getElementById('orcamentoForm'));
+        
+        // Mostrar loading
+        const submitBtn = event.target.querySelector('button[type="submit"]');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Salvando...';
+        submitBtn.disabled = true;
+        
+        fetch('/orcamentos/salvar_ajax', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Adicionar novo orçamento à tabela
+                adicionarOrcamentoNaTabela(data.orcamento);
+                
+                // Resetar formulário
+                document.getElementById('orcamentoForm').reset();
+                
+                // Restaurar seleções salvas
+                if (localStorage.getItem('cliente_id')) {
+                    $('#cliente_id').val(localStorage.getItem('cliente_id')).trigger('change');
+                }
+                if (localStorage.getItem('tipo_produto')) {
+                    $('#tipo_produto').val(localStorage.getItem('tipo_produto')).trigger('change');
+                    setTimeout(toggleFields, 100);
+                }
+                if (localStorage.getItem('material_id')) {
+                    $('#material_id').val(localStorage.getItem('material_id')).trigger('change');
+                }
+                if (localStorage.getItem('ambiente_id')) {
+                    $('#ambiente_id').val(localStorage.getItem('ambiente_id')).trigger('change');
+                }
+                
+                Swal.fire({
+                    title: 'Sucesso!',
+                    text: 'Orçamento salvo com sucesso!',
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } else {
+                Swal.fire('Erro!', data.error || 'Erro ao salvar orçamento', 'error');
+            }
+        })
+        .catch(error => {
+            Swal.fire('Erro!', 'Erro ao salvar orçamento', 'error');
+        })
+        .finally(() => {
+            // Restaurar botão
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        });
+    }
+
+    // Função para adicionar orçamento na tabela - NOVA FUNÇÃO
+    function adicionarOrcamentoNaTabela(orcamento) {
+        const tbody = document.getElementById('orcamento_table');
+        
+        // Formatar valor
+        const valorFormatado = "R$ " + orcamento.valor_total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        
+        // Formatar data
+        const dataObj = new Date(orcamento.data);
+        const dataFormatada = dataObj.toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit', year: '2-digit'});
+        
+        // Criar nova linha
+        const novaLinha = document.createElement('tr');
+        novaLinha.setAttribute('data-id', orcamento.id);
+        novaLinha.setAttribute('data-cliente', orcamento.cliente_nome);
+        novaLinha.setAttribute('data-data', orcamento.data);
+        
+        novaLinha.innerHTML = `
+            <td class="checkbox-cell">
+                <input type="checkbox" class="selecionar-orcamento" data-valor="${orcamento.valor_total}">
+            </td>
+            {% if is_admin %}
+                <td>${orcamento.usuario_nome || 'Usuário'}</td>
+            {% endif %}
+            <td>${orcamento.cliente_nome}</td>
+            <td>${orcamento.ambiente_nome || 'Não definido'}</td>
+            <td>${orcamento.tipo_produto}</td>
+            <td>${orcamento.material_nome}</td>
+            <td>${orcamento.quantidade}</td>
+            <td>${orcamento.comprimento}</td>
+            <td>${orcamento.largura}</td>
+            <td>${orcamento.instalacao}</td>
+            <td class="valor-total">${valorFormatado}</td>
+            <td>${dataFormatada}</td>
+            <td>
+                <div class="action-buttons">
+                    <a href="/editar_orcamento/${orcamento.id}?${new URLSearchParams(window.location.search)}" class="btn btn-sm btn-custom-primary" title="Editar">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                    <form action="/deletar_orcamento/${orcamento.id}?${new URLSearchParams(window.location.search)}" method="POST" class="d-inline" onsubmit="confirmarExclusao(event, this)">
+                        <button type="submit" class="btn btn-sm btn-custom-danger" title="Excluir">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </form>
+                </div>
+            </td>
+        `;
+        
+        // Adicionar no início da tabela
+        tbody.insertBefore(novaLinha, tbody.firstChild);
+        
+        // Adicionar event listeners à nova linha
+        setupRowClickEventsForRow(novaLinha);
+        
+        // Aplicar filtros atuais à nova linha
+        aplicarFiltrosEmTempoReal();
+        
+        // Atualizar valor final se estiver selecionado
+        atualizarValorFinal();
     }
 
     // =============================================
@@ -974,13 +1167,12 @@
         });
         
         // Event listeners para filtros em tempo real
-        let timeoutFiltro;
         document.querySelectorAll('.filtro-auto').forEach(element => {
             element.addEventListener('change', function() {
                 clearTimeout(timeoutFiltro);
                 timeoutFiltro = setTimeout(() => {
                     aplicarFiltrosEmTempoReal();
-                }, 300); // Delay reduzido para melhor responsividade
+                }, 300);
             });
         });
         
@@ -1005,36 +1197,44 @@
         
         // Configurar botões de ação
         setupActionButtons();
+        
+        // Configurar envio do formulário via AJAX
+        document.getElementById('orcamentoForm').addEventListener('submit', salvarOrcamentoAJAX);
     });
 
     function setupRowClickEvents() {
         document.querySelectorAll('#orcamento_table tr').forEach(row => {
-            row.addEventListener('click', function(e) {
-                if (e.target.closest('.actions-cell') || e.target.closest('.action-buttons')) {
-                    return;
+            setupRowClickEventsForRow(row);
+        });
+    }
+
+    function setupRowClickEventsForRow(row) {
+        row.addEventListener('click', function(e) {
+            if (e.target.closest('.actions-cell') || e.target.closest('.action-buttons')) {
+                return;
+            }
+            
+            if (e.target.type === 'checkbox') {
+                return;
+            }
+            
+            const checkbox = this.querySelector('.selecionar-orcamento');
+            if (checkbox) {
+                checkbox.checked = !checkbox.checked;
+                
+                if (checkbox.checked) {
+                    this.classList.add('selected');
+                } else {
+                    this.classList.remove('selected');
                 }
                 
-                if (e.target.type === 'checkbox') {
-                    return;
-                }
-                
-                const checkbox = this.querySelector('.selecionar-orcamento');
-                if (checkbox) {
-                    checkbox.checked = !checkbox.checked;
-                    
-                    if (checkbox.checked) {
-                        this.classList.add('selected');
-                    } else {
-                        this.classList.remove('selected');
-                    }
-                    
-                    const event = new Event('change');
-                    checkbox.dispatchEvent(event);
-                }
-            });
+                const event = new Event('change');
+                checkbox.dispatchEvent(event);
+            }
         });
         
-        document.querySelectorAll('.selecionar-orcamento').forEach(checkbox => {
+        const checkbox = row.querySelector('.selecionar-orcamento');
+        if (checkbox) {
             checkbox.addEventListener('change', function() {
                 const row = this.closest('tr');
                 if (this.checked) {
@@ -1043,7 +1243,7 @@
                     row.classList.remove('selected');
                 }
             });
-        });
+        }
     }
 
     // =============================================
@@ -1096,7 +1296,7 @@
             });
         });
 
-        // Botão Duplicar Selecionados
+        // Botão Duplicar Selecionados - MODIFICADO PARA SALVAR SELEÇÃO
         document.getElementById('duplicate-selected').addEventListener('click', function() {
             const selecionados = [];
             document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
@@ -1127,6 +1327,11 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
+                            // SALVAR OS IDs DOS NOVOS ORÇAMENTOS PARA SELECIONAR APÓS RECARREGAR
+                            if (data.novos_ids && data.novos_ids.length > 0) {
+                                localStorage.setItem('orcamentosDuplicadosSelecionar', JSON.stringify(data.novos_ids));
+                            }
+                            
                             Swal.fire("Sucesso!", "Orçamentos duplicados com sucesso!", "success").then(() => {
                                 window.location.reload();
                             });
