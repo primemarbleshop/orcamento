@@ -506,6 +506,9 @@
    // =============================================
 // FUNÇÕES PRINCIPAIS - FILTROS EM TEMPO REAL
 // =============================================
+// =============================================
+// SOLUÇÃO DEFINITIVA PARA O FILTRO "MOSTRAR"
+// =============================================
 
 // Função para aplicar filtros em tempo real
 function aplicarFiltrosEmTempoReal() {
@@ -514,156 +517,214 @@ function aplicarFiltrosEmTempoReal() {
     const filtroDataFim = document.getElementById('filtro_data_fim').value;
     const limite = document.getElementById('filtro_quantidade').value;
     
+    console.log('🚀 Aplicando filtros:', { 
+        cliente: filtroCliente, 
+        dataInicio: filtroDataInicio, 
+        dataFim: filtroDataFim, 
+        limite: limite 
+    });
+    
     // Salvar filtros
     salvarFiltrosNoLocalStorage();
     
-    // Filtrar linhas da tabela em tempo real
+    // Filtrar linhas da tabela
     filtrarTabelaEmTempoReal(filtroCliente, filtroDataInicio, filtroDataFim, limite);
 }
 
-// Função para filtrar tabela em tempo real - CORRIGIDA
+// NOVA FUNÇÃO DE FILTRAGEM - ABORDAGEM SIMPLIFICADA
 function filtrarTabelaEmTempoReal(filtroCliente, filtroDataInicio, filtroDataFim, limite) {
-    const linhas = document.querySelectorAll('#orcamento_table tr');
-    let linhasVisiveis = [];
+    const todasLinhas = Array.from(document.querySelectorAll('#orcamento_table tr'));
     
-    console.log('Aplicando filtros:', { filtroCliente, filtroDataInicio, filtroDataFim, limite });
+    console.log(`📊 Total de linhas na tabela: ${todasLinhas.length}`);
     
-    // Primeiro, aplicar filtros básicos e coletar linhas visíveis
-    linhas.forEach(linha => {
-        let mostrar = true;
+    // PASSO 1: Aplicar filtros básicos (cliente e data)
+    let linhasFiltradas = todasLinhas.filter(linha => {
         const cliente = linha.getAttribute('data-cliente');
         const dataStr = linha.getAttribute('data-data');
+        let mostrar = true;
         
-        // Filtrar por cliente
+        // Filtro por cliente
         if (filtroCliente && filtroCliente !== 'Todos' && cliente !== filtroCliente) {
             mostrar = false;
         }
         
-        // Filtrar por data
+        // Filtro por data inicial
         if (mostrar && filtroDataInicio) {
             const dataLinha = new Date(dataStr);
             const dataInicio = new Date(filtroDataInicio);
-            dataInicio.setHours(0, 0, 0, 0); // Início do dia
             if (dataLinha < dataInicio) {
                 mostrar = false;
             }
         }
         
+        // Filtro por data final
         if (mostrar && filtroDataFim) {
             const dataLinha = new Date(dataStr);
             const dataFim = new Date(filtroDataFim);
-            dataFim.setHours(23, 59, 59, 999); // Fim do dia
+            dataFim.setHours(23, 59, 59, 999);
             if (dataLinha > dataFim) {
                 mostrar = false;
             }
         }
         
-        // Se passar em todos os filtros, adicionar à lista
-        if (mostrar) {
-            linhasVisiveis.push({
-                elemento: linha,
-                data: new Date(dataStr)
-            });
-        }
+        return mostrar;
     });
     
-    console.log('Linhas que passaram nos filtros básicos:', linhasVisiveis.length);
+    console.log(`✅ Linhas após filtros básicos: ${linhasFiltradas.length}`);
     
-    // Ordenar por data (mais recentes primeiro)
-    linhasVisiveis.sort((a, b) => b.data - a.data);
+    // PASSO 2: Ordenar por data (mais recente primeiro)
+    linhasFiltradas.sort((a, b) => {
+        const dataA = new Date(a.getAttribute('data-data'));
+        const dataB = new Date(b.getAttribute('data-data'));
+        return dataB - dataA;
+    });
     
-    // Aplicar limite se necessário
+    // PASSO 3: Aplicar limite
     if (limite && limite !== '0') {
         const limiteNum = parseInt(limite);
-        console.log('Aplicando limite:', limiteNum);
-        linhasVisiveis = linhasVisiveis.slice(0, limiteNum);
+        console.log(`✂️ Aplicando limite de ${limiteNum} linhas`);
+        linhasFiltradas = linhasFiltradas.slice(0, limiteNum);
+    } else {
+        console.log('📈 Mostrando TODAS as linhas (limite: 0)');
     }
     
-    console.log('Linhas após aplicar limite:', linhasVisiveis.length);
+    console.log(`🎯 Linhas após aplicar limite: ${linhasFiltradas.length}`);
     
-    // Primeiro, esconder todas as linhas
-    linhas.forEach(linha => {
+    // PASSO 4: Atualizar visibilidade
+    // Primeiro esconder TODAS as linhas
+    todasLinhas.forEach(linha => {
         linha.style.display = 'none';
     });
     
-    // Depois, mostrar apenas as linhas que devem ser visíveis
-    linhasVisiveis.forEach(item => {
-        item.elemento.style.display = '';
+    // Depois mostrar apenas as filtradas
+    linhasFiltradas.forEach(linha => {
+        linha.style.display = '';
     });
     
     // Atualizar contador
     atualizarContadorLinhas();
 }
 
-// Função para atualizar contador de linhas
-function atualizarContadorLinhas() {
+// Função para debug - execute no console para testar
+function debugFiltro() {
+    const limite = document.getElementById('filtro_quantidade').value;
     const linhasVisiveis = document.querySelectorAll('#orcamento_table tr:not([style*="display: none"])').length;
     const totalLinhas = document.querySelectorAll('#orcamento_table tr').length;
     
-    // Adicionar contador visual (opcional)
-    const contadorElement = document.getElementById('contador-linhas');
-    if (!contadorElement) {
-        // Criar elemento de contador se não existir
-        const header = document.querySelector('.card-header-custom');
-        if (header) {
-            const contador = document.createElement('div');
-            contador.id = 'contador-linhas';
-            contador.className = 'text-light small';
-            contador.innerHTML = `Mostrando ${linhasVisiveis} de ${totalLinhas} orçamentos`;
-            header.appendChild(contador);
-        }
-    } else {
-        contadorElement.innerHTML = `Mostrando ${linhasVisiveis} de ${totalLinhas} orçamentos`;
+    console.log('=== 🐛 DEBUG FILTRO ===');
+    console.log('Limite selecionado:', limite);
+    console.log('Total de linhas:', totalLinhas);
+    console.log('Linhas visíveis:', linhasVisiveis);
+    console.log('Filtro cliente:', document.getElementById('filtro_cliente').value);
+    console.log('Data início:', document.getElementById('filtro_data_inicio').value);
+    console.log('Data fim:', document.getElementById('filtro_data_fim').value);
+    
+    // Mostrar IDs das linhas visíveis
+    const idsVisiveis = Array.from(document.querySelectorAll('#orcamento_table tr:not([style*="display: none"])'))
+        .map(tr => tr.getAttribute('data-id'));
+    console.log('IDs visíveis:', idsVisiveis);
+    console.log('=====================');
+}
+
+// Função para forçar limite específico (teste)
+function testarLimite(limite) {
+    document.getElementById('filtro_quantidade').value = limite;
+    aplicarFiltrosEmTempoReal();
+}
+
+// =============================================
+// CONFIGURAÇÃO DOS EVENT LISTENERS - ATUALIZADA
+// =============================================
+
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🔧 Inicializando página...');
+    
+    // Inicializar Select2
+    $('#cliente_id, #material_id, #tipo_produto, #ambiente_id, #filtro_cliente').select2({
+        width: '100%',
+        placeholder: "Selecione",
+        allowClear: true
+    });
+
+    // Carregar seleções salvas
+    carregarSelecoesSalvas();
+    
+    // EVENT LISTENER ESPECÍFICO PARA O FILTRO "MOSTRAR"
+    const filtroQuantidade = document.getElementById('filtro_quantidade');
+    if (filtroQuantidade) {
+        filtroQuantidade.addEventListener('change', function() {
+            console.log('🔄 Filtro "Mostrar" alterado para:', this.value);
+            aplicarFiltrosEmTempoReal();
+        });
     }
     
-    console.log(`Mostrando ${linhasVisiveis} de ${totalLinhas} orçamentos`);
-}
-
-// Função para salvar filtros no localStorage
-function salvarFiltrosNoLocalStorage() {
-    const filtroCliente = document.getElementById('filtro_cliente').value;
-    const filtroDataInicio = document.getElementById('filtro_data_inicio').value;
-    const filtroDataFim = document.getElementById('filtro_data_fim').value;
-    const limite = document.getElementById('filtro_quantidade').value;
+    // Event listeners para outros filtros
+    document.getElementById('filtro_data_inicio').addEventListener('change', aplicarFiltrosEmTempoReal);
+    document.getElementById('filtro_data_fim').addEventListener('change', aplicarFiltrosEmTempoReal);
     
-    localStorage.setItem('filtroCliente', filtroCliente);
-    localStorage.setItem('filtroDataInicio', filtroDataInicio);
-    localStorage.setItem('filtroDataFim', filtroDataFim);
-    localStorage.setItem('filtroQuantidade', limite);
-}
-
-// Função para salvar seleções do formulário no localStorage
-function salvarSelecoesFormulario() {
-    const clienteId = document.getElementById('cliente_id').value;
-    const tipoProduto = document.getElementById('tipo_produto').value;
-    const materialId = document.getElementById('material_id').value;
-    const ambienteId = document.getElementById('ambiente_id').value;
+    // Event listener para Select2 do filtro cliente
+    $('#filtro_cliente').on('select2:select select2:clear', function() {
+        console.log('👤 Filtro cliente alterado:', this.value);
+        aplicarFiltrosEmTempoReal();
+    });
     
-    localStorage.setItem('cliente_id', clienteId);
-    localStorage.setItem('tipo_produto', tipoProduto);
-    localStorage.setItem('material_id', materialId);
-    localStorage.setItem('ambiente_id', ambienteId);
-}
+    // Event listeners para salvar seleções do formulário
+    $('#cliente_id, #tipo_produto, #material_id, #ambiente_id').on('change', function() {
+        salvarSelecoesFormulario();
+        if (this.id === 'tipo_produto') {
+            toggleFields();
+        }
+    });
+    
+    // Event listeners para checkboxes
+    document.querySelectorAll('.selecionar-orcamento').forEach(checkbox => {
+        checkbox.addEventListener('change', atualizarValorFinal);
+    });
+    
+    // Inicializar o valor total
+    atualizarValorFinal();
+    
+    // Configurar eventos de clique nas linhas
+    setupRowClickEvents();
+    
+    // Configurar botões de ação
+    setupActionButtons();
+    
+    // Verificar se há orçamentos duplicados para selecionar automaticamente
+    selecionarOrcamentosDuplicados();
+    
+    // Aplicar filtros após tudo carregar
+    setTimeout(() => {
+        console.log('🎬 Aplicando filtros iniciais...');
+        aplicarFiltrosEmTempoReal();
+    }, 1000);
+});
 
 // Função para carregar seleções salvas - ATUALIZADA
 function carregarSelecoesSalvas() {
+    console.log('📂 Carregando seleções salvas...');
+    
     // Carregar filtros do localStorage
+    if (localStorage.getItem('filtroQuantidade')) {
+        const limiteSalvo = localStorage.getItem('filtroQuantidade');
+        console.log('💾 Limite salvo encontrado:', limiteSalvo);
+        document.getElementById('filtro_quantidade').value = limiteSalvo;
+    }
+    
     if (localStorage.getItem('filtroCliente')) {
         const filtroCliente = localStorage.getItem('filtroCliente');
         $('#filtro_cliente').val(filtroCliente).trigger('change');
     }
+    
     if (localStorage.getItem('filtroDataInicio')) {
         document.getElementById('filtro_data_inicio').value = localStorage.getItem('filtroDataInicio');
     }
+    
     if (localStorage.getItem('filtroDataFim')) {
         document.getElementById('filtro_data_fim').value = localStorage.getItem('filtroDataFim');
     }
-    if (localStorage.getItem('filtroQuantidade')) {
-        const limiteSalvo = localStorage.getItem('filtroQuantidade');
-        document.getElementById('filtro_quantidade').value = limiteSalvo;
-    }
     
-    // Carregar seleções do formulário do localStorage
+    // Carregar seleções do formulário
     if (localStorage.getItem('cliente_id')) {
         $('#cliente_id').val(localStorage.getItem('cliente_id')).trigger('change');
     }
@@ -677,15 +738,12 @@ function carregarSelecoesSalvas() {
     if (localStorage.getItem('ambiente_id')) {
         $('#ambiente_id').val(localStorage.getItem('ambiente_id')).trigger('change');
     }
-    
-    // Aplicar filtros após um breve delay para garantir que os selects carregaram
-    setTimeout(() => {
-        aplicarFiltrosEmTempoReal();
-    }, 300);
 }
 
 // Função para resetar os filtros
 function resetFilters() {
+    console.log('🗑️ Resetando filtros...');
+    
     // Limpar Select2 do filtro cliente
     $('#filtro_cliente').val('Todos').trigger('change');
     
@@ -700,11 +758,36 @@ function resetFilters() {
     localStorage.removeItem('filtroDataFim');
     localStorage.removeItem('filtroQuantidade');
     
-    // Aplicar filtros em tempo real
+    // Aplicar filtros
     setTimeout(() => {
         aplicarFiltrosEmTempoReal();
-    }, 100);
+    }, 500);
 }
+
+// Adicione este botão de debug temporariamente no HTML ou use no console
+function adicionarBotaoDebug() {
+    const debugBtn = document.createElement('button');
+    debugBtn.textContent = '🐛 Debug Filtro';
+    debugBtn.className = 'btn btn-warning btn-sm';
+    debugBtn.onclick = debugFiltro;
+    debugBtn.style.position = 'fixed';
+    debugBtn.style.top = '10px';
+    debugBtn.style.right = '10px';
+    debugBtn.style.zIndex = '9999';
+    document.body.appendChild(debugBtn);
+}
+
+// Execute esta função no console para testar limites específicos
+window.testarLimites = function() {
+    console.log('🧪 Testando limites:');
+    console.log('- testarLimite(15) para últimos 15');
+    console.log('- testarLimite(30) para últimos 30');
+    console.log('- testarLimite(0) para todos');
+    console.log('- debugFiltro() para ver estado atual');
+}
+
+// Inicializar botão de debug
+setTimeout(adicionarBotaoDebug, 2000);
 
 // =============================================
 // CONFIGURAÇÃO DE EVENT LISTENERS
