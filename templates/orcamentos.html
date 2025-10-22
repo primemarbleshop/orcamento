@@ -504,15 +504,82 @@
 
    <script>
     // =============================================
-    // FUNÇÕES PRINCIPAIS - FILTROS E PERSISTÊNCIA
+    // FUNÇÕES PRINCIPAIS - FILTROS EM TEMPO REAL
     // =============================================
 
-    // Variável para controlar se é o primeiro carregamento
-    let primeiroCarregamento = true;
+    // Função para aplicar filtros em tempo real
+    function aplicarFiltrosEmTempoReal() {
+        const filtroCliente = document.getElementById('filtro_cliente').value;
+        const filtroDataInicio = document.getElementById('filtro_data_inicio').value;
+        const filtroDataFim = document.getElementById('filtro_data_fim').value;
+        const limite = document.getElementById('filtro_quantidade').value;
+        
+        // Salvar filtros
+        salvarFiltrosNoLocalStorage();
+        
+        // Filtrar linhas da tabela em tempo real
+        filtrarTabelaEmTempoReal(filtroCliente, filtroDataInicio, filtroDataFim, limite);
+    }
 
-    // Função para recarregar mantendo filtros
-    function recarregarComFiltros() {
-        window.location.reload();
+    // Função para filtrar tabela em tempo real
+    function filtrarTabelaEmTempoReal(filtroCliente, filtroDataInicio, filtroDataFim, limite) {
+        const linhas = document.querySelectorAll('#orcamento_table tr');
+        let linhasVisiveis = 0;
+        
+        linhas.forEach(linha => {
+            let mostrar = true;
+            const cliente = linha.getAttribute('data-cliente');
+            const data = linha.getAttribute('data-data');
+            
+            // Filtrar por cliente
+            if (filtroCliente && filtroCliente !== 'Todos' && cliente !== filtroCliente) {
+                mostrar = false;
+            }
+            
+            // Filtrar por data
+            if (filtroDataInicio) {
+                const dataLinha = new Date(data);
+                const dataInicio = new Date(filtroDataInicio);
+                if (dataLinha < dataInicio) {
+                    mostrar = false;
+                }
+            }
+            
+            if (filtroDataFim) {
+                const dataLinha = new Date(data);
+                const dataFim = new Date(filtroDataFim);
+                dataFim.setHours(23, 59, 59, 999); // Fim do dia
+                if (dataLinha > dataFim) {
+                    mostrar = false;
+                }
+            }
+            
+            // Aplicar filtro de limite (mostrar apenas os últimos X)
+            if (limite && limite !== '0') {
+                // Para o filtro de limite, vamos ordenar por data e mostrar apenas os mais recentes
+                if (mostrar) {
+                    linhasVisiveis++;
+                    if (linhasVisiveis > parseInt(limite)) {
+                        mostrar = false;
+                    }
+                }
+            }
+            
+            // Aplicar visibilidade
+            linha.style.display = mostrar ? '' : 'none';
+        });
+        
+        // Atualizar contador
+        atualizarContadorLinhas();
+    }
+
+    // Função para atualizar contador de linhas
+    function atualizarContadorLinhas() {
+        const linhasVisiveis = document.querySelectorAll('#orcamento_table tr:not([style*="display: none"])').length;
+        const totalLinhas = document.querySelectorAll('#orcamento_table tr').length;
+        
+        // Você pode adicionar um contador visual se desejar
+        console.log(`Mostrando ${linhasVisiveis} de ${totalLinhas} orçamentos`);
     }
 
     // Função para salvar filtros no localStorage
@@ -541,79 +608,34 @@
         localStorage.setItem('ambiente_id', ambienteId);
     }
 
-    // Função para aplicar filtros automaticamente - CORRIGIDA
-    function aplicarFiltrosAuto() {
-        const filtroCliente = document.getElementById('filtro_cliente').value;
-        const filtroDataInicio = document.getElementById('filtro_data_inicio').value;
-        const filtroDataFim = document.getElementById('filtro_data_fim').value;
-        const limite = document.getElementById('filtro_quantidade').value;
-        
-        // Salvar filtros
-        salvarFiltrosNoLocalStorage();
-        
-        // Construir URL com parâmetros
-        const params = new URLSearchParams();
-        if (filtroCliente && filtroCliente !== 'Todos') params.append('filtro_cliente', filtroCliente);
-        if (filtroDataInicio) params.append('filtro_data_inicio', filtroDataInicio);
-        if (filtroDataFim) params.append('filtro_data_fim', filtroDataFim);
-        if (limite && limite !== '15') params.append('limite', limite);
-        
-        const urlBase = window.location.origin + window.location.pathname;
-        const novaUrl = params.toString() ? `${urlBase}?${params.toString()}` : urlBase;
-        
-        // Só redirecionar se a URL for diferente da atual
-        if (novaUrl !== window.location.href) {
-            window.location.href = novaUrl;
-        }
-    }
-
-    // Função para carregar seleções salvas - CORRIGIDA DEFINITIVAMENTE
+    // Função para carregar seleções salvas
     function carregarSelecoesSalvas() {
-        // Primeiro carregue os filtros da URL (prioridade máxima)
-        const urlParams = new URLSearchParams(window.location.search);
-        
-        // Se não há parâmetros na URL E é o primeiro carregamento, carregue do localStorage E APLIQUE
-        if (urlParams.toString() === '' && primeiroCarregamento) {
-            let temFiltrosSalvos = false;
-            
-            // Carregar filtros do localStorage
-            if (localStorage.getItem('filtroCliente')) {
-                const filtroCliente = localStorage.getItem('filtroCliente');
-                $('#filtro_cliente').val(filtroCliente).trigger('change');
-                temFiltrosSalvos = true;
-            }
-            if (localStorage.getItem('filtroDataInicio')) {
-                document.getElementById('filtro_data_inicio').value = localStorage.getItem('filtroDataInicio');
-                temFiltrosSalvos = true;
-            }
-            if (localStorage.getItem('filtroDataFim')) {
-                document.getElementById('filtro_data_fim').value = localStorage.getItem('filtroDataFim');
-                temFiltrosSalvos = true;
-            }
-            if (localStorage.getItem('filtroQuantidade')) {
-                document.getElementById('filtro_quantidade').value = localStorage.getItem('filtroQuantidade');
-                temFiltrosSalvos = true;
-            }
-            
-            // Se há filtros salvos, aplicar automaticamente após um delay
-            if (temFiltrosSalvos) {
-                console.log('Filtros salvos detectados, aplicando automaticamente...');
-                setTimeout(() => {
-                    aplicarFiltrosAuto();
-                }, 800);
-            }
-            
-            // Marcar que o primeiro carregamento já foi feito
-            primeiroCarregamento = false;
+        // Carregar filtros do localStorage
+        if (localStorage.getItem('filtroCliente')) {
+            const filtroCliente = localStorage.getItem('filtroCliente');
+            $('#filtro_cliente').val(filtroCliente).trigger('change');
+        }
+        if (localStorage.getItem('filtroDataInicio')) {
+            document.getElementById('filtro_data_inicio').value = localStorage.getItem('filtroDataInicio');
+        }
+        if (localStorage.getItem('filtroDataFim')) {
+            document.getElementById('filtro_data_fim').value = localStorage.getItem('filtroDataFim');
+        }
+        if (localStorage.getItem('filtroQuantidade')) {
+            document.getElementById('filtro_quantidade').value = localStorage.getItem('filtroQuantidade');
         }
         
-        // Sempre carregar seleções do formulário do localStorage
+        // Aplicar filtros imediatamente
+        setTimeout(() => {
+            aplicarFiltrosEmTempoReal();
+        }, 100);
+        
+        // Carregar seleções do formulário do localStorage
         if (localStorage.getItem('cliente_id')) {
             $('#cliente_id').val(localStorage.getItem('cliente_id')).trigger('change');
         }
         if (localStorage.getItem('tipo_produto')) {
             $('#tipo_produto').val(localStorage.getItem('tipo_produto')).trigger('change');
-            // Aguardar um pouco para garantir que o DOM esteja pronto
             setTimeout(toggleFields, 100);
         }
         if (localStorage.getItem('material_id')) {
@@ -624,7 +646,7 @@
         }
     }
 
-    // Função para resetar os filtros - CORRIGIDA
+    // Função para resetar os filtros
     function resetFilters() {
         // Limpar Select2 do filtro cliente
         $('#filtro_cliente').val('Todos').trigger('change');
@@ -640,9 +662,8 @@
         localStorage.removeItem('filtroDataFim');
         localStorage.removeItem('filtroQuantidade');
         
-        // Redirecionar para URL base sem parâmetros
-        const urlBase = window.location.origin + window.location.pathname;
-        window.location.href = urlBase;
+        // Aplicar filtros em tempo real
+        aplicarFiltrosEmTempoReal();
     }
 
     // =============================================
@@ -930,7 +951,7 @@
     }
 
     // =============================================
-    // CONFIGURAÇÃO DE EVENT LISTENERS - CORRIGIDA
+    // CONFIGURAÇÃO DE EVENT LISTENERS
     // =============================================
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -952,14 +973,14 @@
             }
         });
         
-        // Event listeners para filtros
+        // Event listeners para filtros em tempo real
         let timeoutFiltro;
         document.querySelectorAll('.filtro-auto').forEach(element => {
             element.addEventListener('change', function() {
                 clearTimeout(timeoutFiltro);
                 timeoutFiltro = setTimeout(() => {
-                    aplicarFiltrosAuto();
-                }, 800);
+                    aplicarFiltrosEmTempoReal();
+                }, 300); // Delay reduzido para melhor responsividade
             });
         });
         
@@ -967,8 +988,8 @@
         $('#filtro_cliente').on('select2:select select2:clear', function() {
             clearTimeout(timeoutFiltro);
             timeoutFiltro = setTimeout(() => {
-                aplicarFiltrosAuto();
-            }, 800);
+                aplicarFiltrosEmTempoReal();
+            }, 300);
         });
         
         // Event listeners para checkboxes
@@ -1062,7 +1083,7 @@
                     .then(data => {
                         if (data.success) {
                             Swal.fire("Deletado!", data.success, "success").then(() => {
-                                recarregarComFiltros();
+                                window.location.reload();
                             });
                         } else {
                             Swal.fire("Erro!", data.error, "error");
@@ -1107,7 +1128,7 @@
                     .then(data => {
                         if (data.success) {
                             Swal.fire("Sucesso!", "Orçamentos duplicados com sucesso!", "success").then(() => {
-                                recarregarComFiltros();
+                                window.location.reload();
                             });
                         } else {
                             Swal.fire("Erro!", data.error, "error");
@@ -1216,7 +1237,7 @@
                     .then(data => {
                         if (data.success) {
                             Swal.fire("Sucesso!", "Materiais e RT atualizados com sucesso!", "success").then(() => {
-                                recarregarComFiltros();
+                                window.location.reload();
                             });
                         } else {
                             Swal.fire("Erro!", data.error || "Erro ao atualizar materiais e RT", "error");
