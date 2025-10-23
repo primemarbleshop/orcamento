@@ -590,19 +590,18 @@ def editar_orcamento(id):
     # Filtrar apenas os clientes cujo dono é o usuário logado
     clientes = Cliente.query.filter_by(dono=usuario_cpf).all()
     ambientes = Ambiente.query.filter_by(dono=usuario_cpf).order_by(Ambiente.nome).all()
-
     materiais = Material.query.all()
 
+    # 🔥 CORREÇÃO: Filtrar orçamentos salvos apenas do usuário logado e ordenar por código decrescente
     orcamentos_salvos = (
         db.session.query(OrcamentoSalvo)
         .join(Orcamento, db.func.instr(OrcamentoSalvo.orcamentos_ids, db.cast(Orcamento.id, db.String())) > 0)
         .join(Cliente, Cliente.id == Orcamento.cliente_id)
         .filter(Cliente.dono == usuario_cpf)  # Filtra apenas se o usuário for dono do cliente
+        .order_by(OrcamentoSalvo.codigo.desc())  # 🔥 ORDENAR POR CÓDIGO DECRESCENTE
         .distinct()
         .all()
     )
-
-    
     
     
 
