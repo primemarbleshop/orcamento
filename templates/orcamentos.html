@@ -517,106 +517,147 @@
     let timeoutFiltro = null;
 
     // =============================================
-    // FUNÇÕES PRINCIPAIS - FILTRAGEM CLIENT-SIDE
+    // FUNÇÕES PRINCIPAIS - FILTRAGEM COM AJAX
     // =============================================
 
-    // Função para aplicar filtros sem recarregar a página
-function aplicarFiltrosClientSide() {
-    const filtroCliente = document.getElementById('filtro_cliente').value;
-    const filtroDataInicio = document.getElementById('filtro_data_inicio').value;
-    const filtroDataFim = document.getElementById('filtro_data_fim').value;
-    const limite = document.getElementById('filtro_quantidade').value;
-    
-    // 🔥 DETECTAR SE O LIMITE FOI ALTERADO - SE SIM, RECARREGAR
-    const limiteAnterior = filtrosAtivos.limite;
-    const limiteMudou = limite !== limiteAnterior;
-    
-    // Atualizar filtros ativos
-    filtrosAtivos = {
-        cliente: filtroCliente,
-        dataInicio: filtroDataInicio,
-        dataFim: filtroDataFim,
-        limite: limite
-    };
-    
-    // Salvar no localStorage
-    localStorage.setItem('filtroCliente', filtroCliente);
-    localStorage.setItem('filtroDataInicio', filtroDataInicio);
-    localStorage.setItem('filtroDataFim', filtroDataFim);
-    localStorage.setItem('filtroQuantidade', limite);
-    
-    // 🔥 SE O LIMITE MUDOU, RECARREGAR A PÁGINA (server-side)
-    if (limiteMudou) {
-        console.log('Limite alterado de', limiteAnterior, 'para', limite, '- recarregando dados do servidor...');
+    // Função para aplicar filtros SEM recarregar a página (COM AJAX)
+    function aplicarFiltrosClientSide() {
+        const filtroCliente = document.getElementById('filtro_cliente').value;
+        const filtroDataInicio = document.getElementById('filtro_data_inicio').value;
+        const filtroDataFim = document.getElementById('filtro_data_fim').value;
+        const limite = document.getElementById('filtro_quantidade').value;
+        
+        // Atualizar filtros ativos
+        filtrosAtivos = {
+            cliente: filtroCliente,
+            dataInicio: filtroDataInicio,
+            dataFim: filtroDataFim,
+            limite: limite
+        };
+        
+        // Salvar no localStorage
+        localStorage.setItem('filtroCliente', filtroCliente);
+        localStorage.setItem('filtroDataInicio', filtroDataInicio);
+        localStorage.setItem('filtroDataFim', filtroDataFim);
+        localStorage.setItem('filtroQuantidade', limite);
+        
+        // 🔥 BUSCAR DADOS VIA AJAX - SEM RECARREGAR
+        buscarDadosOrcamentos();
+        atualizarUrlSemRecarregar();
+    }
+
+    // 🔥 NOVA FUNÇÃO: Buscar dados do servidor via AJAX
+    function buscarDadosOrcamentos() {
         const params = new URLSearchParams();
         
-        if (filtroCliente && filtroCliente !== 'Todos') params.append('filtro_cliente', filtroCliente);
-        if (filtroDataInicio) params.append('filtro_data_inicio', filtroDataInicio);
-        if (filtroDataFim) params.append('filtro_data_fim', filtroDataFim);
-        if (limite && limite !== '15') params.append('limite', limite);
+        if (filtrosAtivos.cliente && filtrosAtivos.cliente !== 'Todos') {
+            params.append('filtro_cliente', filtrosAtivos.cliente);
+        }
+        if (filtrosAtivos.dataInicio) {
+            params.append('filtro_data_inicio', filtrosAtivos.dataInicio);
+        }
+        if (filtrosAtivos.dataFim) {
+            params.append('filtro_data_fim', filtrosAtivos.dataFim);
+        }
+        if (filtrosAtivos.limite && filtrosAtivos.limite !== '15') {
+            params.append('limite', filtrosAtivos.limite);
+        }
         
-        const urlBase = window.location.origin + window.location.pathname;
-        const novaUrl = params.toString() ? `${urlBase}?${params.toString()}` : urlBase;
+        // Mostrar loading
+        const tabelaBody = document.getElementById('orcamento_table');
+        tabelaBody.innerHTML = '<tr><td colspan="13" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><div class="mt-2">Carregando orçamentos...</div></td></tr>';
         
-        window.location.href = novaUrl;
-        return; // Parar execução aqui, a página será recarregada
-    }
-    
-    // Se apenas outros filtros mudaram, aplicar client-side
-    filtrarETabelaClientSide();
-    atualizarUrlSemRecarregar();
-}
-
-    // Função para filtrar e atualizar a tabela no cliente
-    function filtrarETabelaClientSide() {
-        const linhas = document.querySelectorAll('#orcamento_table tr');
-        let visibleCount = 0;
-        let valorTotalSelecionados = 0;
-        
-        linhas.forEach(linha => {
-            const cliente = linha.getAttribute('data-cliente');
-            const dataOrcamento = linha.getAttribute('data-data');
-            const valor = parseFloat(linha.querySelector('.selecionar-orcamento')?.dataset.valor || 0);
-            
-            let mostrar = true;
-            
-            // Filtro por cliente
-            if (filtrosAtivos.cliente !== 'Todos' && cliente !== filtrosAtivos.cliente) {
-                mostrar = false;
-            }
-            
-            // Filtro por data início
-            if (filtrosAtivos.dataInicio && dataOrcamento < filtrosAtivos.dataInicio) {
-                mostrar = false;
-            }
-            
-            // Filtro por data fim
-            if (filtrosAtivos.dataFim && dataOrcamento > filtrosAtivos.dataFim) {
-                mostrar = false;
-            }
-            
-            // Filtro por limite
-            if (filtrosAtivos.limite !== '0' && visibleCount >= parseInt(filtrosAtivos.limite)) {
-                mostrar = false;
-            }
-            
-            if (mostrar) {
-                linha.style.display = '';
-                visibleCount++;
-                
-                // Atualizar valor total se checkbox estiver marcado
-                const checkbox = linha.querySelector('.selecionar-orcamento');
-                if (checkbox && checkbox.checked) {
-                    valorTotalSelecionados += valor;
-                }
+        fetch(`/orcamentos/json?${params.toString()}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                atualizarTabelaComDados(data.orcamentos);
+                console.log(`Carregados ${data.total} orçamentos via AJAX`);
             } else {
-                linha.style.display = 'none';
+                throw new Error(data.error || 'Erro ao carregar dados');
             }
+        })
+        .catch(error => {
+            console.error('Erro ao buscar dados:', error);
+            tabelaBody.innerHTML = '<tr><td colspan="13" class="text-center text-danger py-4">Erro ao carregar orçamentos: ' + error.message + '</td></tr>';
+        });
+    }
+
+    // 🔥 NOVA FUNÇÃO: Atualizar tabela com dados do AJAX
+    function atualizarTabelaComDados(orcamentos) {
+        const tabelaBody = document.getElementById('orcamento_table');
+        const isAdmin = {{ 'true' if is_admin else 'false' }};
+        
+        if (orcamentos.length === 0) {
+            tabelaBody.innerHTML = '<tr><td colspan="13" class="text-center py-4">Nenhum orçamento encontrado</td></tr>';
+            document.getElementById('valor-final').textContent = "R$ 0,00";
+            return;
+        }
+        
+        let html = '';
+        
+        orcamentos.forEach(orcamento => {
+            const valorFormatado = "R$ " + orcamento.valor_total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+            
+            html += `
+            <tr data-id="${orcamento.id}" data-cliente="${orcamento.cliente_nome}" data-data="${orcamento.data_attr}">
+                <td class="checkbox-cell">
+                    <input type="checkbox" class="selecionar-orcamento" data-valor="${orcamento.valor_total}" data-id="${orcamento.id}">
+                </td>`;
+            
+            if (isAdmin) {
+                html += `<td>${orcamento.nome_usuario}</td>`;
+            }
+            
+            html += `
+                <td>${orcamento.cliente_nome}</td>
+                <td>${orcamento.ambiente_nome}</td>
+                <td>${orcamento.tipo_produto}</td>
+                <td>${orcamento.material_nome}</td>
+                <td>${orcamento.quantidade}</td>
+                <td>${orcamento.comprimento}</td>
+                <td>${orcamento.largura}</td>
+                <td>${orcamento.instalacao}</td>
+                <td class="valor-total">${valorFormatado}</td>
+                <td>${orcamento.data}</td>
+                <td>
+                    <div class="action-buttons">
+                        <a href="/orcamentos/edit/${orcamento.id}?${new URLSearchParams(window.location.search)}" class="btn btn-sm btn-custom-primary" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <form action="/deletar_orcamento/${orcamento.id}?${new URLSearchParams(window.location.search)}" method="POST" class="d-inline" onsubmit="confirmarExclusao(event, this)">
+                            <button type="submit" class="btn btn-sm btn-custom-danger" title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>`;
         });
         
-        // Atualizar contador e valor total
-        document.getElementById('valor-final').textContent = 
-            "R$ " + valorTotalSelecionados.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        tabelaBody.innerHTML = html;
+        
+        // Reconfigurar event listeners
+        setupRowClickEvents();
+        setupCheckboxEvents();
+        
+        // Atualizar valor total
+        atualizarValorFinal();
+    }
+
+    // 🔥 NOVA FUNÇÃO: Configurar eventos dos checkboxes
+    function setupCheckboxEvents() {
+        document.querySelectorAll('.selecionar-orcamento').forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                atualizarValorFinal();
+                const row = this.closest('tr');
+                if (this.checked) {
+                    row.classList.add('selected');
+                } else {
+                    row.classList.remove('selected');
+                }
+            });
+        });
     }
 
     // Função para atualizar URL sem recarregar a página
@@ -645,10 +686,10 @@ function aplicarFiltrosClientSide() {
     }
 
     // =============================================
-    // CARREGAMENTO INICIAL - SINCRONIZADO
+    // CARREGAMENTO INICIAL - SINCRONIZADO COM AJAX
     // =============================================
 
-    // Função para carregar seleções salvas (CORRIGIDA - SEM RECARREGAMENTO)
+    // Função para carregar seleções salvas (ATUALIZADA - COM AJAX)
     function carregarSelecoesSalvas() {
         const urlParams = new URLSearchParams(window.location.search);
         
@@ -693,9 +734,9 @@ function aplicarFiltrosClientSide() {
             $('#ambiente_id').val(localStorage.getItem('ambiente_id')).trigger('change');
         }
 
-        // APLICAR FILTROS IMEDIATAMENTE (client-side) - SEM RECARREGAR
+        // 🔥 BUSCAR DADOS VIA AJAX - SEM RECARREGAR A PÁGINA
         setTimeout(() => {
-            filtrarETabelaClientSide();
+            buscarDadosOrcamentos();
             atualizarUrlSemRecarregar();
         }, 100);
     }
@@ -936,238 +977,16 @@ function aplicarFiltrosClientSide() {
         }
     }
 
-   // =============================================
-// FUNÇÕES DE INTERAÇÃO (ATUALIZADAS)
-// =============================================
+    // =============================================
+    // FUNÇÕES DE INTERAÇÃO (ATUALIZADAS)
+    // =============================================
 
-function confirmarExclusao(event, form) {
-    event.preventDefault();
-    
-    Swal.fire({
-        title: "Tem certeza?",
-        text: "Essa ação não pode ser desfeita!",
-        icon: "warning",
-        showCancelButton: true,
-        confirmButtonColor: "#d33",
-        cancelButtonColor: "#3085d6",
-        confirmButtonText: "Sim, deletar!",
-        cancelButtonText: "Cancelar"
-    }).then((result) => {
-        if (result.isConfirmed) {
-            form.submit();
-        }
-    });
-}
-
-function atualizarValorFinal() {
-    let total = 0;
-    document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
-        total += parseFloat(checkbox.dataset.valor);
-    });
-    document.getElementById('valor-final').textContent = 
-        "R$ " + total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-}
-
-// Função para verificar se todos os orçamentos selecionados são do mesmo cliente
-function verificarMesmoCliente(orcamentoIds) {
-    return fetch("/orcamentos/verificar_mesmo_cliente", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orcamento_ids: orcamentoIds })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            return {
-                mesmoCliente: data.mesmo_cliente,
-                clienteNome: data.cliente_nome
-            };
-        } else {
-            throw new Error(data.error || "Erro ao verificar clientes");
-        }
-    });
-}
-
-// Função para mostrar alerta de clientes diferentes
-function mostrarAlertaClientesDiferentes() {
-    Swal.fire({
-        title: "Clientes Diferentes",
-        text: "Esta ação só pode ser executada com orçamentos do mesmo cliente!",
-        icon: "error",
-        confirmButtonColor: "#d33",
-        confirmButtonText: "Entendi"
-    });
-}
-
-// Função atualizada para enviar orçamentos (Exibir Detalhes)
-function enviarOrcamentos() {
-    const selecionados = [];
-    document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
-        selecionados.push(checkbox.closest('tr').getAttribute('data-id'));
-    });
-    
-    if (selecionados.length === 0) {
-        Swal.fire("Atenção", "Selecione pelo menos um orçamento!", "warning");
-        return;
-    }
-    
-    // 🔥 VERIFICAR SE SÃO DO MESMO CLIENTE
-    verificarMesmoCliente(selecionados)
-    .then(resultado => {
-        if (!resultado.mesmoCliente) {
-            mostrarAlertaClientesDiferentes();
-            return;
-        }
-        
-        // Se são do mesmo cliente, prosseguir
-        const params = new URLSearchParams();
-        if (filtrosAtivos.cliente && filtrosAtivos.cliente !== 'Todos') params.append('filtro_cliente', filtrosAtivos.cliente);
-        if (filtrosAtivos.dataInicio) params.append('filtro_data_inicio', filtrosAtivos.dataInicio);
-        if (filtrosAtivos.dataFim) params.append('filtro_data_fim', filtrosAtivos.dataFim);
-        if (filtrosAtivos.limite && filtrosAtivos.limite !== '15') params.append('limite', filtrosAtivos.limite);
-        
-        window.location.href = `/detalhes_orcamento?ids=${selecionados.join(",")}&${params.toString()}`;
-    })
-    .catch(error => {
-        Swal.fire("Erro!", "Erro ao verificar clientes: " + error.message, "error");
-    });
-}
-
-function resetFilters() {
-    $('#filtro_cliente').val('Todos').trigger('change');
-    document.getElementById('filtro_data_inicio').value = '';
-    document.getElementById('filtro_data_fim').value = '';
-    document.getElementById('filtro_quantidade').value = '15';
-    
-    localStorage.removeItem('filtroCliente');
-    localStorage.removeItem('filtroDataInicio');
-    localStorage.removeItem('filtroDataFim');
-    localStorage.removeItem('filtroQuantidade');
-    
-    // Aplicar reset client-side
-    aplicarFiltrosClientSide();
-    
-    // Atualizar URL para limpar parâmetros
-    window.history.replaceState({}, '', window.location.pathname);
-}
-
-function salvarSelecoesFormulario() {
-    const clienteId = document.getElementById('cliente_id').value;
-    const tipoProduto = document.getElementById('tipo_produto').value;
-    const materialId = document.getElementById('material_id').value;
-    const ambienteId = document.getElementById('ambiente_id').value;
-    
-    localStorage.setItem('cliente_id', clienteId);
-    localStorage.setItem('tipo_produto', tipoProduto);
-    localStorage.setItem('material_id', materialId);
-    localStorage.setItem('ambiente_id', ambienteId);
-}
-
-// =============================================
-// CONFIGURAÇÃO DE EVENT LISTENERS
-// =============================================
-
-document.addEventListener('DOMContentLoaded', function() {
-    // Inicializar Select2
-    $('#cliente_id, #material_id, #tipo_produto, #ambiente_id, #filtro_cliente').select2({
-        width: '100%',
-        placeholder: "Selecione",
-        allowClear: true
-    });
-
-    // CARREGAMENTO INICIAL - CORRIGIDO (SEM RECARREGAMENTO)
-    console.log('Iniciando carregamento de seleções...');
-    carregarSelecoesSalvas();
-    
-    // Event listeners para salvar seleções do formulário
-    $('#cliente_id, #tipo_produto, #material_id, #ambiente_id').on('change', function() {
-        salvarSelecoesFormulario();
-        if (this.id === 'tipo_produto') {
-            toggleFields();
-        }
-    });
-    
-    // Event listeners para filtros - AGORA COM FILTRAGEM CLIENT-SIDE
-    document.querySelectorAll('.filtro-auto').forEach(element => {
-        element.addEventListener('change', function() {
-            clearTimeout(timeoutFiltro);
-            timeoutFiltro = setTimeout(() => {
-                aplicarFiltrosClientSide();
-            }, 300);
-        });
-    });
-    
-    // Event listener específico para Select2 do filtro cliente
-    $('#filtro_cliente').on('select2:select select2:clear', function() {
-        clearTimeout(timeoutFiltro);
-        timeoutFiltro = setTimeout(() => {
-            aplicarFiltrosClientSide();
-        }, 300);
-    });
-    
-    // Event listeners para checkboxes
-    document.querySelectorAll('.selecionar-orcamento').forEach(checkbox => {
-        checkbox.addEventListener('change', function() {
-            atualizarValorFinal();
-            // Atualizar estado visual da linha
-            const row = this.closest('tr');
-            if (this.checked) {
-                row.classList.add('selected');
-            } else {
-                row.classList.remove('selected');
-            }
-        });
-    });
-    
-    // Configurar eventos de clique nas linhas
-    setupRowClickEvents();
-    
-    // Configurar botões de ação
-    setupActionButtons();
-
-    console.log('Carregamento inicial concluído - Modo Client-Side');
-});
-
-// =============================================
-// FUNÇÕES DE INTERAÇÃO EM LOTE (ATUALIZADAS)
-// =============================================
-
-function setupRowClickEvents() {
-    document.querySelectorAll('#orcamento_table tr').forEach(row => {
-        row.addEventListener('click', function(e) {
-            // Não propagar clique em ações ou checkboxes
-            if (e.target.closest('.actions-cell') || 
-                e.target.closest('.action-buttons') || 
-                e.target.type === 'checkbox') {
-                return;
-            }
-            
-            const checkbox = this.querySelector('.selecionar-orcamento');
-            if (checkbox) {
-                checkbox.checked = !checkbox.checked;
-                const event = new Event('change');
-                checkbox.dispatchEvent(event);
-            }
-        });
-    });
-}
-
-function setupActionButtons() {
-    // Botão Deletar Selecionados - PERMITE CLIENTES DIFERENTES
-    document.getElementById('delete-selected').addEventListener('click', function() {
-        const selecionados = [];
-        document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
-            selecionados.push(checkbox.closest('tr').getAttribute('data-id'));
-        });
-        
-        if (selecionados.length === 0) {
-            Swal.fire("Atenção", "Selecione pelo menos um orçamento para deletar!", "warning");
-            return;
-        }
+    function confirmarExclusao(event, form) {
+        event.preventDefault();
         
         Swal.fire({
             title: "Tem certeza?",
-            text: `Você está prestes a deletar ${selecionados.length} orçamento(s)!`,
+            text: "Essa ação não pode ser desfeita!",
             icon: "warning",
             showCancelButton: true,
             confirmButtonColor: "#d33",
@@ -1176,103 +995,53 @@ function setupActionButtons() {
             cancelButtonText: "Cancelar"
         }).then((result) => {
             if (result.isConfirmed) {
-                fetch("/orcamentos/delete_selecionados", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ ids: selecionados })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        Swal.fire("Deletado!", data.success, "success").then(() => {
-                            window.location.reload();
-                        });
-                    } else {
-                        Swal.fire("Erro!", data.error, "error");
-                    }
-                })
-                .catch(error => {
-                    Swal.fire("Erro!", "Erro ao deletar orçamentos!", "error");
-                });
+                form.submit();
             }
         });
-    });
+    }
 
-    // Botão Duplicar Selecionados - BLOQUEIA CLIENTES DIFERENTES
-    document.getElementById('duplicate-selected').addEventListener('click', function() {
-        const selecionados = [];
+    function atualizarValorFinal() {
+        let total = 0;
         document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
-            selecionados.push(checkbox.closest('tr').getAttribute('data-id'));
+            total += parseFloat(checkbox.dataset.valor);
         });
-        
-        if (selecionados.length === 0) {
-            Swal.fire("Atenção", "Selecione pelo menos um orçamento para duplicar!", "warning");
-            return;
-        }
+        document.getElementById('valor-final').textContent = 
+            "R$ " + total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
 
-        // 🔥 VERIFICAR SE SÃO DO MESMO CLIENTE
-        verificarMesmoCliente(selecionados)
-        .then(resultado => {
-            if (!resultado.mesmoCliente) {
-                mostrarAlertaClientesDiferentes();
-                return;
-            }
-
-            // Se são do mesmo cliente, prosseguir com duplicação
-            Swal.fire({
-                title: "Confirmar Duplicação",
-                text: `Deseja duplicar ${selecionados.length} orçamento(s) do cliente ${resultado.clienteNome}?`,
-                icon: "question",
-                showCancelButton: true,
-                confirmButtonColor: "#1cc88a",
-                cancelButtonColor: "#6c757d",
-                confirmButtonText: "Sim, duplicar!",
-                cancelButtonText: "Cancelar"
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    fetch("/orcamentos/duplicar_selecionados", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ orcamento_ids: selecionados })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            // 🔥 SALVAR OS NOVOS IDs NO LOCALSTORAGE PARA SELEÇÃO APÓS RECARREGAR
-                            if (data.novos_ids && data.novos_ids.length > 0) {
-                                localStorage.setItem('orcamentos_duplicados_selecionar', JSON.stringify(data.novos_ids));
-                                localStorage.setItem('quantidade_duplicados', data.novos_ids.length);
-                            } else {
-                                // Fallback: usar a quantidade de orçamentos duplicados
-                                localStorage.setItem('quantidade_duplicados', selecionados.length);
-                            }
-                            
-                            Swal.fire({
-                                title: "Sucesso!",
-                                text: `Orçamentos duplicados com sucesso! ${data.novos_ids ? data.novos_ids.length : selecionados.length} novo(s) item(ns) serão selecionados automaticamente.`,
-                                icon: "success",
-                                confirmButtonText: "OK"
-                            }).then(() => {
-                                window.location.reload();
-                            });
-                        } else {
-                            Swal.fire("Erro!", data.error, "error");
-                        }
-                    })
-                    .catch(error => {
-                        Swal.fire("Erro!", "Erro ao duplicar orçamentos!", "error");
-                    });
-                }
-            });
+    // Função para verificar se todos os orçamentos selecionados são do mesmo cliente
+    function verificarMesmoCliente(orcamentoIds) {
+        return fetch("/orcamentos/verificar_mesmo_cliente", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ orcamento_ids: orcamentoIds })
         })
-        .catch(error => {
-            Swal.fire("Erro!", "Erro ao verificar clientes: " + error.message, "error");
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                return {
+                    mesmoCliente: data.mesmo_cliente,
+                    clienteNome: data.cliente_nome
+                };
+            } else {
+                throw new Error(data.error || "Erro ao verificar clientes");
+            }
         });
-    });
+    }
 
+    // Função para mostrar alerta de clientes diferentes
+    function mostrarAlertaClientesDiferentes() {
+        Swal.fire({
+            title: "Clientes Diferentes",
+            text: "Esta ação só pode ser executada com orçamentos do mesmo cliente!",
+            icon: "error",
+            confirmButtonColor: "#d33",
+            confirmButtonText: "Entendi"
+        });
+    }
 
-    // Botão Editar Material/RT - BLOQUEIA CLIENTES DIFERENTES
-    document.getElementById('edit-selected').addEventListener('click', function() {
+    // Função atualizada para enviar orçamentos (Exibir Detalhes)
+    function enviarOrcamentos() {
         const selecionados = [];
         document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
             selecionados.push(checkbox.closest('tr').getAttribute('data-id'));
@@ -1282,7 +1051,7 @@ function setupActionButtons() {
             Swal.fire("Atenção", "Selecione pelo menos um orçamento!", "warning");
             return;
         }
-
+        
         // 🔥 VERIFICAR SE SÃO DO MESMO CLIENTE
         verificarMesmoCliente(selecionados)
         .then(resultado => {
@@ -1290,194 +1059,515 @@ function setupActionButtons() {
                 mostrarAlertaClientesDiferentes();
                 return;
             }
-
-            // Se são do mesmo cliente, prosseguir com edição
-            Swal.fire({
-                title: 'Editar Selecionados',
-                html: `
-                    <div class="mb-3">
-                        <label for="select-material" class="form-label">Novo Material (opcional):</label>
-                        <select id="select-material" class="swal2-select" style="width: 100%">
-                            <option value="" selected>Manter material atual</option>
-                            {% for material in materiais %}
-                                <option value="{{ material.id }}">{{ material.nome }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="rt-option" class="form-label">RT (opcional):</label>
-                        <select id="rt-option" class="swal2-select" style="width: 100%">
-                            <option value="" selected>Manter RT atual</option>
-                            <option value="Não">Não</option>
-                            <option value="Sim">Sim</option>
-                        </select>
-                    </div>
-                    <div class="mb-3" id="rt-percent-field" style="display: none;">
-                        <label for="rt-percent" class="form-label">Porcentagem RT (%):</label>
-                        <input type="number" id="rt-percent" class="form-control" step="0.01" min="0" value="0">
-                    </div>
-                `,
-                didOpen: () => {
-                    $('#select-material').select2({
-                        dropdownParent: $('.swal2-popup'),
-                        placeholder: "Manter material atual",
-                        allowClear: true,
-                        width: '100%'
-                    });
-                    
-                    $('#rt-option').select2({
-                        dropdownParent: $('.swal2-popup'),
-                        placeholder: "Manter RT atual",
-                        allowClear: true,
-                        width: '100%'
-                    });
-                    
-                    $('#rt-option').on('change', function() {
-                        if ($(this).val() === 'Sim') {
-                            $('#rt-percent-field').show();
-                        } else {
-                            $('#rt-percent-field').hide();
-                        }
-                    });
-                },
-                preConfirm: () => {
-                    const materialId = $('#select-material').val();
-                    const rtOption = $('#rt-option').val();
-                    const rtPercent = rtOption === 'Sim' ? $('#rt-percent').val() : 0;
-                    
-                    if (rtOption === 'Sim' && (!rtPercent || parseFloat(rtPercent) <= 0)) {
-                        Swal.showValidationMessage('Por favor, informe uma porcentagem RT válida.');
-                        return false;
-                    }
-                    
-                    return {
-                        material_id: materialId || null,
-                        rt: rtOption || null,
-                        rt_percentual: parseFloat(rtPercent) || 0
-                    };
-                },
-                showCancelButton: true,
-                confirmButtonText: 'Salvar',
-                cancelButtonText: 'Cancelar',
-                width: '600px'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    fetch("/orcamentos/editar_material_rt_selecionados", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                            orcamento_ids: selecionados,
-                            material_id: result.value.material_id,
-                            rt: result.value.rt,
-                            rt_percentual: result.value.rt_percentual
-                        })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            Swal.fire("Sucesso!", "Materiais e RT atualizados com sucesso!", "success").then(() => {
-                                window.location.reload();
-                            });
-                        } else {
-                            Swal.fire("Erro!", data.error || "Erro ao atualizar materiais e RT", "error");
-                        }
-                    })
-                    .catch(error => {
-                        Swal.fire("Erro!", "Erro ao atualizar materiais e RT!", "error");
-                    });
-                }
-            });
+            
+            // Se são do mesmo cliente, prosseguir
+            const params = new URLSearchParams();
+            if (filtrosAtivos.cliente && filtrosAtivos.cliente !== 'Todos') params.append('filtro_cliente', filtrosAtivos.cliente);
+            if (filtrosAtivos.dataInicio) params.append('filtro_data_inicio', filtrosAtivos.dataInicio);
+            if (filtrosAtivos.dataFim) params.append('filtro_data_fim', filtrosAtivos.dataFim);
+            if (filtrosAtivos.limite && filtrosAtivos.limite !== '15') params.append('limite', filtrosAtivos.limite);
+            
+            window.location.href = `/detalhes_orcamento?ids=${selecionados.join(",")}&${params.toString()}`;
         })
         .catch(error => {
             Swal.fire("Erro!", "Erro ao verificar clientes: " + error.message, "error");
         });
-    });
+    }
 
-    // Adicionar ambiente
-    document.getElementById('saveAmbienteBtn').addEventListener('click', function() {
-        const nome = document.getElementById('novo_ambiente_nome').value.trim();
+    function resetFilters() {
+        $('#filtro_cliente').val('Todos').trigger('change');
+        document.getElementById('filtro_data_inicio').value = '';
+        document.getElementById('filtro_data_fim').value = '';
+        document.getElementById('filtro_quantidade').value = '15';
         
-        if (!nome) {
-            Swal.fire('Erro', 'Por favor, informe um nome para o ambiente.', 'error');
-            return;
-        }
+        localStorage.removeItem('filtroCliente');
+        localStorage.removeItem('filtroDataInicio');
+        localStorage.removeItem('filtroDataFim');
+        localStorage.removeItem('filtroQuantidade');
         
-        fetch('/adicionar_ambiente', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ nome: nome })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                $('#addAmbienteModal').modal('hide');
-                
-                const novoOption = document.createElement('option');
-                novoOption.value = data.ambiente_id;
-                novoOption.textContent = nome;
-                document.getElementById('ambiente_id').appendChild(novoOption);
-                
-                document.getElementById('ambiente_id').value = data.ambiente_id;
-                salvarSelecoesFormulario();
-                
-                Swal.fire('Sucesso', 'Ambiente adicionado com sucesso!', 'success');
-            } else {
-                Swal.fire('Erro', data.message, 'error');
-            }
-        })
-        .catch(error => {
-            Swal.fire('Erro', 'Erro ao adicionar ambiente.', 'error');
+        // Aplicar reset via AJAX
+        aplicarFiltrosClientSide();
+        
+        // Atualizar URL para limpar parâmetros
+        window.history.replaceState({}, '', window.location.pathname);
+    }
+
+    function salvarSelecoesFormulario() {
+        const clienteId = document.getElementById('cliente_id').value;
+        const tipoProduto = document.getElementById('tipo_produto').value;
+        const materialId = document.getElementById('material_id').value;
+        const ambienteId = document.getElementById('ambiente_id').value;
+        
+        localStorage.setItem('cliente_id', clienteId);
+        localStorage.setItem('tipo_produto', tipoProduto);
+        localStorage.setItem('material_id', materialId);
+        localStorage.setItem('ambiente_id', ambienteId);
+    }
+
+    // =============================================
+    // CONFIGURAÇÃO DE EVENT LISTENERS
+    // =============================================
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Inicializar Select2
+        $('#cliente_id, #material_id, #tipo_produto, #ambiente_id, #filtro_cliente').select2({
+            width: '100%',
+            placeholder: "Selecione",
+            allowClear: true
         });
+
+        // CARREGAMENTO INICIAL - AGORA COM AJAX
+        console.log('Iniciando carregamento de seleções via AJAX...');
+        carregarSelecoesSalvas();
+        
+        // Event listeners para salvar seleções do formulário
+        $('#cliente_id, #tipo_produto, #material_id, #ambiente_id').on('change', function() {
+            salvarSelecoesFormulario();
+            if (this.id === 'tipo_produto') {
+                toggleFields();
+            }
+        });
+        
+        // Event listeners para filtros - AGORA COM AJAX
+        document.querySelectorAll('.filtro-auto').forEach(element => {
+            element.addEventListener('change', function() {
+                clearTimeout(timeoutFiltro);
+                timeoutFiltro = setTimeout(() => {
+                    aplicarFiltrosClientSide(); // ← AGORA USA AJAX
+                }, 500);
+            });
+        });
+        
+        // Event listener específico para Select2 do filtro cliente
+        $('#filtro_cliente').on('select2:select select2:clear', function() {
+            clearTimeout(timeoutFiltro);
+            timeoutFiltro = setTimeout(() => {
+                aplicarFiltrosClientSide(); // ← AGORA USA AJAX
+            }, 500);
+        });
+        
+        // Configurar botões de ação
+        setupActionButtons();
+
+        console.log('Carregamento inicial concluído - Modo AJAX');
     });
 
-    // Deletar ambiente
-    document.getElementById('deleteAmbienteBtn').addEventListener('click', function() {
-        const ambienteSelect = document.getElementById('ambiente_id');
-        const ambienteId = ambienteSelect.value;
-        const ambienteNome = ambienteSelect.options[ambienteSelect.selectedIndex].text;
-        
-        if (!ambienteId) {
-            Swal.fire('Erro', 'Selecione um ambiente para excluir.', 'error');
-            return;
-        }
-        
-        Swal.fire({
-            title: 'Tem certeza?',
-            text: `Deseja excluir o ambiente "${ambienteNome}"?`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Sim, excluir!',
-            cancelButtonText: 'Cancelar'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                fetch('/deletar_ambiente', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ ambiente_id: ambienteId })
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        ambienteSelect.remove(ambienteSelect.selectedIndex);
+    // =============================================
+    // FUNÇÕES DE INTERAÇÃO EM LOTE (ATUALIZADAS)
+    // =============================================
+
+    function setupRowClickEvents() {
+        document.querySelectorAll('#orcamento_table tr').forEach(row => {
+            row.addEventListener('click', function(e) {
+                // Não propagar clique em ações ou checkboxes
+                if (e.target.closest('.actions-cell') || 
+                    e.target.closest('.action-buttons') || 
+                    e.target.type === 'checkbox') {
+                    return;
+                }
+                
+                const checkbox = this.querySelector('.selecionar-orcamento');
+                if (checkbox) {
+                    checkbox.checked = !checkbox.checked;
+                    const event = new Event('change');
+                    checkbox.dispatchEvent(event);
+                }
+            });
+        });
+    }
+
+    function setupActionButtons() {
+        // Botão Deletar Selecionados - PERMITE CLIENTES DIFERENTES
+        document.getElementById('delete-selected').addEventListener('click', function() {
+            const selecionados = [];
+            document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
+                selecionados.push(checkbox.closest('tr').getAttribute('data-id'));
+            });
+            
+            if (selecionados.length === 0) {
+                Swal.fire("Atenção", "Selecione pelo menos um orçamento para deletar!", "warning");
+                return;
+            }
+            
+            Swal.fire({
+                title: "Tem certeza?",
+                text: `Você está prestes a deletar ${selecionados.length} orçamento(s)!`,
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#d33",
+                cancelButtonColor: "#3085d6",
+                confirmButtonText: "Sim, deletar!",
+                cancelButtonText: "Cancelar"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch("/orcamentos/delete_selecionados", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ ids: selecionados })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire("Deletado!", data.success, "success").then(() => {
+                                // Recarregar dados via AJAX após deletar
+                                buscarDadosOrcamentos();
+                            });
+                        } else {
+                            Swal.fire("Erro!", data.error, "error");
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire("Erro!", "Erro ao deletar orçamentos!", "error");
+                    });
+                }
+            });
+        });
+
+        // Botão Duplicar Selecionados - BLOQUEIA CLIENTES DIFERENTES
+        document.getElementById('duplicate-selected').addEventListener('click', function() {
+            const selecionados = [];
+            document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
+                selecionados.push(checkbox.closest('tr').getAttribute('data-id'));
+            });
+            
+            if (selecionados.length === 0) {
+                Swal.fire("Atenção", "Selecione pelo menos um orçamento para duplicar!", "warning");
+                return;
+            }
+
+            // 🔥 VERIFICAR SE SÃO DO MESMO CLIENTE
+            verificarMesmoCliente(selecionados)
+            .then(resultado => {
+                if (!resultado.mesmoCliente) {
+                    mostrarAlertaClientesDiferentes();
+                    return;
+                }
+
+                // Se são do mesmo cliente, prosseguir com duplicação
+                Swal.fire({
+                    title: "Confirmar Duplicação",
+                    text: `Deseja duplicar ${selecionados.length} orçamento(s) do cliente ${resultado.clienteNome}?`,
+                    icon: "question",
+                    showCancelButton: true,
+                    confirmButtonColor: "#1cc88a",
+                    cancelButtonColor: "#6c757d",
+                    confirmButtonText: "Sim, duplicar!",
+                    cancelButtonText: "Cancelar"
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        fetch("/orcamentos/duplicar_selecionados", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ orcamento_ids: selecionados })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                // 🔥 SALVAR OS NOVOS IDs NO LOCALSTORAGE PARA SELEÇÃO
+                                if (data.novos_ids && data.novos_ids.length > 0) {
+                                    localStorage.setItem('orcamentos_duplicados_selecionar', JSON.stringify(data.novos_ids));
+                                    localStorage.setItem('quantidade_duplicados', data.novos_ids.length);
+                                } else {
+                                    // Fallback: usar a quantidade de orçamentos duplicados
+                                    localStorage.setItem('quantidade_duplicados', selecionados.length);
+                                }
+                                
+                                Swal.fire({
+                                    title: "Sucesso!",
+                                    text: `Orçamentos duplicados com sucesso! ${data.novos_ids ? data.novos_ids.length : selecionados.length} novo(s) item(ns) serão selecionados automaticamente.`,
+                                    icon: "success",
+                                    confirmButtonText: "OK"
+                                }).then(() => {
+                                    // Recarregar dados via AJAX e selecionar os novos
+                                    buscarDadosOrcamentos();
+                                    setTimeout(selecionarItensDuplicados, 800);
+                                });
+                            } else {
+                                Swal.fire("Erro!", data.error, "error");
+                            }
+                        })
+                        .catch(error => {
+                            Swal.fire("Erro!", "Erro ao duplicar orçamentos!", "error");
+                        });
+                    }
+                });
+            })
+            .catch(error => {
+                Swal.fire("Erro!", "Erro ao verificar clientes: " + error.message, "error");
+            });
+        });
+
+        // Botão Editar Material/RT - BLOQUEIA CLIENTES DIFERENTES
+        document.getElementById('edit-selected').addEventListener('click', function() {
+            const selecionados = [];
+            document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
+                selecionados.push(checkbox.closest('tr').getAttribute('data-id'));
+            });
+            
+            if (selecionados.length === 0) {
+                Swal.fire("Atenção", "Selecione pelo menos um orçamento!", "warning");
+                return;
+            }
+
+            // 🔥 VERIFICAR SE SÃO DO MESMO CLIENTE
+            verificarMesmoCliente(selecionados)
+            .then(resultado => {
+                if (!resultado.mesmoCliente) {
+                    mostrarAlertaClientesDiferentes();
+                    return;
+                }
+
+                // Se são do mesmo cliente, prosseguir com edição
+                Swal.fire({
+                    title: 'Editar Selecionados',
+                    html: `
+                        <div class="mb-3">
+                            <label for="select-material" class="form-label">Novo Material (opcional):</label>
+                            <select id="select-material" class="swal2-select" style="width: 100%">
+                                <option value="" selected>Manter material atual</option>
+                                {% for material in materiais %}
+                                    <option value="{{ material.id }}">{{ material.nome }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="rt-option" class="form-label">RT (opcional):</label>
+                            <select id="rt-option" class="swal2-select" style="width: 100%">
+                                <option value="" selected>Manter RT atual</option>
+                                <option value="Não">Não</option>
+                                <option value="Sim">Sim</option>
+                            </select>
+                        </div>
+                        <div class="mb-3" id="rt-percent-field" style="display: none;">
+                            <label for="rt-percent" class="form-label">Porcentagem RT (%):</label>
+                            <input type="number" id="rt-percent" class="form-control" step="0.01" min="0" value="0">
+                        </div>
+                    `,
+                    didOpen: () => {
+                        $('#select-material').select2({
+                            dropdownParent: $('.swal2-popup'),
+                            placeholder: "Manter material atual",
+                            allowClear: true,
+                            width: '100%'
+                        });
                         
-                        if (localStorage.getItem('ambiente_id') === ambienteId) {
-                            localStorage.removeItem('ambiente_id');
+                        $('#rt-option').select2({
+                            dropdownParent: $('.swal2-popup'),
+                            placeholder: "Manter RT atual",
+                            allowClear: true,
+                            width: '100%'
+                        });
+                        
+                        $('#rt-option').on('change', function() {
+                            if ($(this).val() === 'Sim') {
+                                $('#rt-percent-field').show();
+                            } else {
+                                $('#rt-percent-field').hide();
+                            }
+                        });
+                    },
+                    preConfirm: () => {
+                        const materialId = $('#select-material').val();
+                        const rtOption = $('#rt-option').val();
+                        const rtPercent = rtOption === 'Sim' ? $('#rt-percent').val() : 0;
+                        
+                        if (rtOption === 'Sim' && (!rtPercent || parseFloat(rtPercent) <= 0)) {
+                            Swal.showValidationMessage('Por favor, informe uma porcentagem RT válida.');
+                            return false;
                         }
                         
-                        Swal.fire('Sucesso', 'Ambiente excluído com sucesso!', 'success');
-                    } else {
-                        Swal.fire('Erro', data.message, 'error');
+                        return {
+                            material_id: materialId || null,
+                            rt: rtOption || null,
+                            rt_percentual: parseFloat(rtPercent) || 0
+                        };
+                    },
+                    showCancelButton: true,
+                    confirmButtonText: 'Salvar',
+                    cancelButtonText: 'Cancelar',
+                    width: '600px'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        fetch("/orcamentos/editar_material_rt_selecionados", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                orcamento_ids: selecionados,
+                                material_id: result.value.material_id,
+                                rt: result.value.rt,
+                                rt_percentual: result.value.rt_percentual
+                            })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire("Sucesso!", "Materiais e RT atualizados com sucesso!", "success").then(() => {
+                                    // Recarregar dados via AJAX após editar
+                                    buscarDadosOrcamentos();
+                                });
+                            } else {
+                                Swal.fire("Erro!", data.error || "Erro ao atualizar materiais e RT", "error");
+                            }
+                        })
+                        .catch(error => {
+                            Swal.fire("Erro!", "Erro ao atualizar materiais e RT!", "error");
+                        });
                     }
-                })
-                .catch(error => {
-                    Swal.fire('Erro', 'Erro ao excluir ambiente.', 'error');
                 });
-            }
+            })
+            .catch(error => {
+                Swal.fire("Erro!", "Erro ao verificar clientes: " + error.message, "error");
+            });
         });
-    });	
-}
+
+        // 🔥 FUNÇÃO PARA SELECIONAR AUTOMATICAMENTE OS ITENS DUPLICADOS
+        function selecionarItensDuplicados() {
+            const orcamentosParaSelecionar = localStorage.getItem('orcamentos_duplicados_selecionar');
+            const quantidade = localStorage.getItem('quantidade_duplicados');
+            
+            if (orcamentosParaSelecionar || quantidade) {
+                console.log('Tentando selecionar orçamentos duplicados automaticamente...');
+                
+                // Aguardar um pouco para garantir que a tabela foi carregada
+                setTimeout(() => {
+                    let selecionadosCount = 0;
+                    
+                    // Tentar selecionar pelos IDs específicos primeiro
+                    if (orcamentosParaSelecionar) {
+                        try {
+                            const idsParaSelecionar = JSON.parse(orcamentosParaSelecionar);
+                            
+                            idsParaSelecionar.forEach(id => {
+                                const checkbox = document.querySelector(`.selecionar-orcamento[data-id="${id}"]`);
+                                if (checkbox) {
+                                    checkbox.checked = true;
+                                    checkbox.closest('tr').classList.add('selected');
+                                    selecionadosCount++;
+                                    console.log(`Selecionado orçamento ID: ${id}`);
+                                }
+                            });
+                        } catch (error) {
+                            console.error('Erro ao processar IDs para seleção:', error);
+                        }
+                    }
+                    
+                    // Se não encontrou pelos IDs, selecionar os primeiros X itens (fallback)
+                    if (selecionadosCount === 0 && quantidade) {
+                        const linhas = document.querySelectorAll('#orcamento_table tr');
+                        const qtd = parseInt(quantidade);
+                        
+                        console.log(`Selecionando os primeiros ${qtd} orçamentos como fallback`);
+                        
+                        for (let i = 0; i < qtd && i < linhas.length; i++) {
+                            const checkbox = linhas[i].querySelector('.selecionar-orcamento');
+                            if (checkbox) {
+                                checkbox.checked = true;
+                                linhas[i].classList.add('selected');
+                                selecionadosCount++;
+                            }
+                        }
+                    }
+                    
+                    // Atualizar valor total
+                    atualizarValorFinal();
+                    
+                    console.log(`Selecionados automaticamente: ${selecionadosCount} orçamento(s)`);
+                    
+                    // Limpar localStorage
+                    localStorage.removeItem('orcamentos_duplicados_selecionar');
+                    localStorage.removeItem('quantidade_duplicados');
+                    
+                }, 800); // Aguardar 800ms para garantir que a tabela carregou
+            }
+        }
+
+        // 🔥 CHAMAR A FUNÇÃO APÓS O CARREGAMENTO
+        selecionarItensDuplicados();
+
+        // Resto do código dos botões de ambiente (mantido igual)
+        document.getElementById('saveAmbienteBtn').addEventListener('click', function() {
+            const nome = document.getElementById('novo_ambiente_nome').value.trim();
+            
+            if (!nome) {
+                Swal.fire('Erro', 'Por favor, informe um nome para o ambiente.', 'error');
+                return;
+            }
+            
+            fetch('/adicionar_ambiente', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome: nome })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    $('#addAmbienteModal').modal('hide');
+                    
+                    const novoOption = document.createElement('option');
+                    novoOption.value = data.ambiente_id;
+                    novoOption.textContent = nome;
+                    document.getElementById('ambiente_id').appendChild(novoOption);
+                    
+                    document.getElementById('ambiente_id').value = data.ambiente_id;
+                    salvarSelecoesFormulario();
+                    
+                    Swal.fire('Sucesso', 'Ambiente adicionado com sucesso!', 'success');
+                } else {
+                    Swal.fire('Erro', data.message, 'error');
+                }
+            })
+            .catch(error => {
+                Swal.fire('Erro', 'Erro ao adicionar ambiente.', 'error');
+            });
+        });
+
+        document.getElementById('deleteAmbienteBtn').addEventListener('click', function() {
+            const ambienteSelect = document.getElementById('ambiente_id');
+            const ambienteId = ambienteSelect.value;
+            const ambienteNome = ambienteSelect.options[ambienteSelect.selectedIndex].text;
+            
+            if (!ambienteId) {
+                Swal.fire('Erro', 'Selecione um ambiente para excluir.', 'error');
+                return;
+            }
+            
+            Swal.fire({
+                title: 'Tem certeza?',
+                text: `Deseja excluir o ambiente "${ambienteNome}"?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sim, excluir!',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('/deletar_ambiente', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ ambiente_id: ambienteId })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            ambienteSelect.remove(ambienteSelect.selectedIndex);
+                            
+                            if (localStorage.getItem('ambiente_id') === ambienteId) {
+                                localStorage.removeItem('ambiente_id');
+                            }
+                            
+                            Swal.fire('Sucesso', 'Ambiente excluído com sucesso!', 'success');
+                        } else {
+                            Swal.fire('Erro', data.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire('Erro', 'Erro ao excluir ambiente.', 'error');
+                    });
+                }
+            });
+        });	
+    }
 </script>
 </body>
 </html>
