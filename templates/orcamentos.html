@@ -521,32 +521,51 @@
     // =============================================
 
     // Função para aplicar filtros sem recarregar a página
-    function aplicarFiltrosClientSide() {
-        const filtroCliente = document.getElementById('filtro_cliente').value;
-        const filtroDataInicio = document.getElementById('filtro_data_inicio').value;
-        const filtroDataFim = document.getElementById('filtro_data_fim').value;
-        const limite = document.getElementById('filtro_quantidade').value;
+function aplicarFiltrosClientSide() {
+    const filtroCliente = document.getElementById('filtro_cliente').value;
+    const filtroDataInicio = document.getElementById('filtro_data_inicio').value;
+    const filtroDataFim = document.getElementById('filtro_data_fim').value;
+    const limite = document.getElementById('filtro_quantidade').value;
+    
+    // 🔥 DETECTAR SE O LIMITE FOI ALTERADO - SE SIM, RECARREGAR
+    const limiteAnterior = filtrosAtivos.limite;
+    const limiteMudou = limite !== limiteAnterior;
+    
+    // Atualizar filtros ativos
+    filtrosAtivos = {
+        cliente: filtroCliente,
+        dataInicio: filtroDataInicio,
+        dataFim: filtroDataFim,
+        limite: limite
+    };
+    
+    // Salvar no localStorage
+    localStorage.setItem('filtroCliente', filtroCliente);
+    localStorage.setItem('filtroDataInicio', filtroDataInicio);
+    localStorage.setItem('filtroDataFim', filtroDataFim);
+    localStorage.setItem('filtroQuantidade', limite);
+    
+    // 🔥 SE O LIMITE MUDOU, RECARREGAR A PÁGINA (server-side)
+    if (limiteMudou) {
+        console.log('Limite alterado de', limiteAnterior, 'para', limite, '- recarregando dados do servidor...');
+        const params = new URLSearchParams();
         
-        // Atualizar filtros ativos
-        filtrosAtivos = {
-            cliente: filtroCliente,
-            dataInicio: filtroDataInicio,
-            dataFim: filtroDataFim,
-            limite: limite
-        };
+        if (filtroCliente && filtroCliente !== 'Todos') params.append('filtro_cliente', filtroCliente);
+        if (filtroDataInicio) params.append('filtro_data_inicio', filtroDataInicio);
+        if (filtroDataFim) params.append('filtro_data_fim', filtroDataFim);
+        if (limite && limite !== '15') params.append('limite', limite);
         
-        // Salvar no localStorage
-        localStorage.setItem('filtroCliente', filtroCliente);
-        localStorage.setItem('filtroDataInicio', filtroDataInicio);
-        localStorage.setItem('filtroDataFim', filtroDataFim);
-        localStorage.setItem('filtroQuantidade', limite);
+        const urlBase = window.location.origin + window.location.pathname;
+        const novaUrl = params.toString() ? `${urlBase}?${params.toString()}` : urlBase;
         
-        // Aplicar filtros na tabela
-        filtrarETabelaClientSide();
-        
-        // Atualizar URL sem recarregar (apenas para histórico)
-        atualizarUrlSemRecarregar();
+        window.location.href = novaUrl;
+        return; // Parar execução aqui, a página será recarregada
     }
+    
+    // Se apenas outros filtros mudaram, aplicar client-side
+    filtrarETabelaClientSide();
+    atualizarUrlSemRecarregar();
+}
 
     // Função para filtrar e atualizar a tabela no cliente
     function filtrarETabelaClientSide() {
