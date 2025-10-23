@@ -1610,6 +1610,8 @@ def duplicar_selecionados():
         return jsonify({'success': False, 'error': 'Nenhum orçamento selecionado.'}), 400
 
     try:
+        novos_ids = []  # 🔥 ARMazenar os IDs dos novos orçamentos
+        
         for id in orcamento_ids:
             original = Orcamento.query.get(id)
             if original:
@@ -1641,19 +1643,28 @@ def duplicar_selecionados():
                     tem_alisar = original.tem_alisar,
                     largura_alisar = original.largura_alisar,
                     valor_total = original.valor_total,
-                    dono = original.dono,  # <<<< NOVO, ESSENCIAL
+                    dono = original.dono,
                     data = datetime.now(br_tz)
                 )
 
                 db.session.add(novo_orcamento)
+                db.session.flush()  # 🔥 Para obter o ID do novo orçamento
+                novos_ids.append(novo_orcamento.id)
 
         db.session.commit()
-        return jsonify({'success': True})
+        
+        # 🔥 RETORNAR OS NOVOS IDs PARA SELEÇÃO AUTOMÁTICA
+        return jsonify({
+            'success': True, 
+            'novos_ids': novos_ids,
+            'quantidade': len(novos_ids)
+        })
 
     except Exception as e:
+        db.session.rollback()
         import traceback
-        print(traceback.format_exc())
         return jsonify({'success': False, 'error': traceback.format_exc()}), 500
+
 
 @app.route('/salvar_rodape_orcamento/<codigo>', methods=['POST'])
 def salvar_rodape_orcamento(codigo):
