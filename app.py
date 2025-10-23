@@ -586,24 +586,28 @@ def editar_orcamento(id):
 
     # Obtendo CPF do usuário logado
     usuario_cpf = session.get('user_cpf')  
+    usuario = Usuario.query.filter_by(cpf=usuario_cpf).first()
 
     # Filtrar apenas os clientes cujo dono é o usuário logado
     clientes = Cliente.query.filter_by(dono=usuario_cpf).all()
     ambientes = Ambiente.query.filter_by(dono=usuario_cpf).order_by(Ambiente.nome).all()
     materiais = Material.query.all()
 
-    # 🔥 CORREÇÃO: Filtrar orçamentos salvos apenas do usuário logado e ordenar por código decrescente
-    orcamentos_salvos = (
-        db.session.query(OrcamentoSalvo)
-        .join(Orcamento, db.func.instr(OrcamentoSalvo.orcamentos_ids, db.cast(Orcamento.id, db.String())) > 0)
-        .join(Cliente, Cliente.id == Orcamento.cliente_id)
-        .filter(Cliente.dono == usuario_cpf)  # Filtra apenas se o usuário for dono do cliente
-        .order_by(OrcamentoSalvo.codigo.desc())  # 🔥 ORDENAR POR CÓDIGO DECRESCENTE
-        .distinct()
-        .all()
-    )
-    
-    
+    # 🔥 CORREÇÃO DEFINITIVA: Filtrar orçamentos salvos
+    if session.get('admin'):
+        # Admin vê todos os orçamentos salvos
+        orcamentos_salvos = OrcamentoSalvo.query.order_by(OrcamentoSalvo.codigo.desc()).all()
+    else:
+        # Usuário comum vê apenas os orçamentos salvos onde ele é o criador
+        # Primeiro, vamos obter o nome do usuário logado
+        nome_usuario_logado = usuario.nome if usuario else ""
+        
+        # Filtrar por criado_por (que armazena o nome do usuário)
+        orcamentos_salvos = OrcamentoSalvo.query.filter_by(criado_por=nome_usuario_logado).order_by(OrcamentoSalvo.codigo.desc()).all()
+
+        # 🔥 ALTERNATIVA: Se ainda estiver mostrando de outros usuários, use esta query mais restritiva
+        if not orcamentos_salvos:
+            orcamentos_salvos = []
 
     if request.method == 'POST':
         # Atualizando os dados do orçamento com as informações do formulário
@@ -635,10 +639,6 @@ def editar_orcamento(id):
         orcamento.tem_alisar = request.form.get('tem_alisar', orcamento.tem_alisar)
         orcamento.largura_alisar = float(request.form.get('largura_alisar', orcamento.largura_alisar or 0) or 0)
         orcamento.modelo_cuba = request.form.get('modelo_cuba', 'Normal')
-        
-
-
-        
 
         # Obtendo o material
         material = Material.query.get(orcamento.material_id)
@@ -649,7 +649,6 @@ def editar_orcamento(id):
         orcamento.largura_cal = max(orcamento.largura, 10)  # Garante mínimo de 10 cm   
         # Cálculo do valor base do material
         valor_base = material.valor * (orcamento.comprimento_cal * orcamento.largura_cal / 10000)
-
 
         # Ajuste de preço para Bancada e Lavatorio
         if orcamento.tipo_produto in ['Bancada', 'Lavatorio']:
@@ -740,7 +739,7 @@ def editar_orcamento(id):
                 valor_cuba_esculpida = m2_cuba * material.valor * orcamento.quantidade_cubas
                 valor_total_criar += valor_cuba_esculpida
 
-                # **Definindo o valor fixo do cooktop**
+        # **Definindo o valor fixo do cooktop**
         cooktop_valor = 50  # Valor fixo para o cooktop
 
         # **Adicionando o valor do cooktop**
@@ -749,7 +748,6 @@ def editar_orcamento(id):
         else:
             orcamento.tem_cooktop = 'Não'  # Define explicitamente como "Não" se não for "Sim"
         print(f"Valor do campo tem_cooktop: {orcamento.tem_cooktop}")
-
 
         if orcamento.instalacao == 'Sim':
             valor_total_criar += orcamento.instalacao_valor
@@ -779,21 +777,20 @@ def editar_orcamento(id):
             except ValueError:
                 orcamento_salvo_id = None  # Se der erro, mantém como None para evitar crash        
 
+        if orcamento_salvo_id:
+            orcamento_salvo_novo = OrcamentoSalvo.query.get(orcamento_salvo_id)
+
+            if orcamento_salvo_novo:
+                ids_atualizados = orcamento_salvo_novo.orcamentos_ids.split(',') if orcamento_salvo_novo.orcamentos_ids else []
+                if str(orcamento.id) not in ids_atualizados:
+                    ids_atualizados.append(str(orcamento.id))
+                    orcamento_salvo_novo.orcamentos_ids = ','.join(ids_atualizados)
+
+                    # **Somente atualiza se o orçamento salvo existir**
+                    if orcamento_salvo_novo.id:
+                        atualizar_valor_orcamento_salvo(orcamento_salvo_novo.id)
+                        flash("Orçamento vinculado com sucesso!", "success")
         
-
-            if orcamento_salvo_id:
-                orcamento_salvo_novo = OrcamentoSalvo.query.get(orcamento_salvo_id)
-
-                if orcamento_salvo_novo:
-                    ids_atualizados = orcamento_salvo_novo.orcamentos_ids.split(',') if orcamento_salvo_novo.orcamentos_ids else []
-                    if str(orcamento.id) not in ids_atualizados:
-                        ids_atualizados.append(str(orcamento.id))
-                        orcamento_salvo_novo.orcamentos_ids = ','.join(ids_atualizados)
-
-                        # **Somente atualiza se o orçamento salvo existir**
-                        if orcamento_salvo_novo.id:
-                            atualizar_valor_orcamento_salvo(orcamento_salvo_novo.id)
-                            flash("Orçamento vinculado com sucesso!", "success")
         db.session.commit()
         return redirect(url_for('listar_orcamentos'))
 
@@ -805,7 +802,6 @@ def editar_orcamento(id):
         materiais=materiais,
         orcamentos_salvos=orcamentos_salvos
     )
-
 
 @app.route('/clientes/delete/<int:id>', methods=['POST'])
 def deletar_cliente(id):
