@@ -1736,6 +1736,36 @@ def deletar_ambiente():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
+@app.route('/orcamentos/verificar_mesmo_cliente', methods=['POST'])
+def verificar_mesmo_cliente():
+    try:
+        data = request.get_json()
+        orcamento_ids = data.get('orcamento_ids', [])
+        
+        if not orcamento_ids:
+            return jsonify({'success': True, 'mesmo_cliente': True, 'cliente_nome': ''})
+        
+        # Buscar os orçamentos
+        orcamentos = Orcamento.query.filter(Orcamento.id.in_(orcamento_ids)).all()
+        
+        if not orcamentos:
+            return jsonify({'success': True, 'mesmo_cliente': True, 'cliente_nome': ''})
+        
+        # Verificar se todos têm o mesmo cliente
+        primeiro_cliente_id = orcamentos[0].cliente_id
+        mesmo_cliente = all(orc.cliente_id == primeiro_cliente_id for orc in orcamentos)
+        
+        cliente_nome = orcamentos[0].cliente.nome if mesmo_cliente else ''
+        
+        return jsonify({
+            'success': True, 
+            'mesmo_cliente': mesmo_cliente, 
+            'cliente_nome': cliente_nome
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     criar_banco()
