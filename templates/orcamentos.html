@@ -504,116 +504,167 @@
 
    <script>
     // =============================================
-    // FUNÇÕES PRINCIPAIS - FILTROS E PERSISTÊNCIA
+    // VARIÁVEIS GLOBAIS - CONTROLE DE ESTADO
     // =============================================
 
-    // Variável para controlar se é o primeiro carregamento
-    let primeiroCarregamento = true;
+    let filtrosAtivos = {
+        cliente: 'Todos',
+        dataInicio: '',
+        dataFim: '',
+        limite: '15'
+    };
 
-    // Função para recarregar mantendo filtros
-    function recarregarComFiltros() {
-        window.location.reload();
-    }
+    let timeoutFiltro = null;
 
-    // Função para salvar filtros no localStorage
-    function salvarFiltrosNoLocalStorage() {
+    // =============================================
+    // FUNÇÕES PRINCIPAIS - FILTRAGEM CLIENT-SIDE
+    // =============================================
+
+    // Função para aplicar filtros sem recarregar a página
+    function aplicarFiltrosClientSide() {
         const filtroCliente = document.getElementById('filtro_cliente').value;
         const filtroDataInicio = document.getElementById('filtro_data_inicio').value;
         const filtroDataFim = document.getElementById('filtro_data_fim').value;
         const limite = document.getElementById('filtro_quantidade').value;
         
+        // Atualizar filtros ativos
+        filtrosAtivos = {
+            cliente: filtroCliente,
+            dataInicio: filtroDataInicio,
+            dataFim: filtroDataFim,
+            limite: limite
+        };
+        
+        // Salvar no localStorage
         localStorage.setItem('filtroCliente', filtroCliente);
         localStorage.setItem('filtroDataInicio', filtroDataInicio);
         localStorage.setItem('filtroDataFim', filtroDataFim);
         localStorage.setItem('filtroQuantidade', limite);
+        
+        // Aplicar filtros na tabela
+        filtrarETabelaClientSide();
+        
+        // Atualizar URL sem recarregar (apenas para histórico)
+        atualizarUrlSemRecarregar();
     }
 
-    // Função para salvar seleções do formulário no localStorage
-    function salvarSelecoesFormulario() {
-        const clienteId = document.getElementById('cliente_id').value;
-        const tipoProduto = document.getElementById('tipo_produto').value;
-        const materialId = document.getElementById('material_id').value;
-        const ambienteId = document.getElementById('ambiente_id').value;
+    // Função para filtrar e atualizar a tabela no cliente
+    function filtrarETabelaClientSide() {
+        const linhas = document.querySelectorAll('#orcamento_table tr');
+        let visibleCount = 0;
+        let valorTotalSelecionados = 0;
         
-        localStorage.setItem('cliente_id', clienteId);
-        localStorage.setItem('tipo_produto', tipoProduto);
-        localStorage.setItem('material_id', materialId);
-        localStorage.setItem('ambiente_id', ambienteId);
+        linhas.forEach(linha => {
+            const cliente = linha.getAttribute('data-cliente');
+            const dataOrcamento = linha.getAttribute('data-data');
+            const valor = parseFloat(linha.querySelector('.selecionar-orcamento')?.dataset.valor || 0);
+            
+            let mostrar = true;
+            
+            // Filtro por cliente
+            if (filtrosAtivos.cliente !== 'Todos' && cliente !== filtrosAtivos.cliente) {
+                mostrar = false;
+            }
+            
+            // Filtro por data início
+            if (filtrosAtivos.dataInicio && dataOrcamento < filtrosAtivos.dataInicio) {
+                mostrar = false;
+            }
+            
+            // Filtro por data fim
+            if (filtrosAtivos.dataFim && dataOrcamento > filtrosAtivos.dataFim) {
+                mostrar = false;
+            }
+            
+            // Filtro por limite
+            if (filtrosAtivos.limite !== '0' && visibleCount >= parseInt(filtrosAtivos.limite)) {
+                mostrar = false;
+            }
+            
+            if (mostrar) {
+                linha.style.display = '';
+                visibleCount++;
+                
+                // Atualizar valor total se checkbox estiver marcado
+                const checkbox = linha.querySelector('.selecionar-orcamento');
+                if (checkbox && checkbox.checked) {
+                    valorTotalSelecionados += valor;
+                }
+            } else {
+                linha.style.display = 'none';
+            }
+        });
+        
+        // Atualizar contador e valor total
+        document.getElementById('valor-final').textContent = 
+            "R$ " + valorTotalSelecionados.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
     }
 
-    // Função para aplicar filtros automaticamente - CORRIGIDA
-    function aplicarFiltrosAuto() {
-        const filtroCliente = document.getElementById('filtro_cliente').value;
-        const filtroDataInicio = document.getElementById('filtro_data_inicio').value;
-        const filtroDataFim = document.getElementById('filtro_data_fim').value;
-        const limite = document.getElementById('filtro_quantidade').value;
-        
-        // Salvar filtros
-        salvarFiltrosNoLocalStorage();
-        
-        // Construir URL com parâmetros
+    // Função para atualizar URL sem recarregar a página
+    function atualizarUrlSemRecarregar() {
         const params = new URLSearchParams();
-        if (filtroCliente && filtroCliente !== 'Todos') params.append('filtro_cliente', filtroCliente);
-        if (filtroDataInicio) params.append('filtro_data_inicio', filtroDataInicio);
-        if (filtroDataFim) params.append('filtro_data_fim', filtroDataFim);
-        if (limite && limite !== '15') params.append('limite', limite);
         
-        const urlBase = window.location.origin + window.location.pathname;
-        const novaUrl = params.toString() ? `${urlBase}?${params.toString()}` : urlBase;
-        
-        // Só redirecionar se a URL for diferente da atual
-        if (novaUrl !== window.location.href) {
-            window.location.href = novaUrl;
+        if (filtrosAtivos.cliente && filtrosAtivos.cliente !== 'Todos') {
+            params.append('filtro_cliente', filtrosAtivos.cliente);
         }
+        if (filtrosAtivos.dataInicio) {
+            params.append('filtro_data_inicio', filtrosAtivos.dataInicio);
+        }
+        if (filtrosAtivos.dataFim) {
+            params.append('filtro_data_fim', filtrosAtivos.dataFim);
+        }
+        if (filtrosAtivos.limite && filtrosAtivos.limite !== '15') {
+            params.append('limite', filtrosAtivos.limite);
+        }
+        
+        const novaUrl = params.toString() 
+            ? `${window.location.pathname}?${params.toString()}`
+            : window.location.pathname;
+        
+        // Atualizar URL sem recarregar (apenas para histórico/compartment)
+        window.history.replaceState({}, '', novaUrl);
     }
 
-    // Função para carregar seleções salvas - CORRIGIDA DEFINITIVAMENTE
+    // =============================================
+    // CARREGAMENTO INICIAL - SINCRONIZADO
+    // =============================================
+
+    // Função para carregar seleções salvas (CORRIGIDA - SEM RECARREGAMENTO)
     function carregarSelecoesSalvas() {
-        // Primeiro carregue os filtros da URL (prioridade máxima)
         const urlParams = new URLSearchParams(window.location.search);
         
-        // Se não há parâmetros na URL E é o primeiro carregamento, carregue do localStorage E APLIQUE
-        if (urlParams.toString() === '' && primeiroCarregamento) {
-            let temFiltrosSalvos = false;
-            
-            // Carregar filtros do localStorage
-            if (localStorage.getItem('filtroCliente')) {
-                const filtroCliente = localStorage.getItem('filtroCliente');
-                $('#filtro_cliente').val(filtroCliente).trigger('change');
-                temFiltrosSalvos = true;
-            }
-            if (localStorage.getItem('filtroDataInicio')) {
-                document.getElementById('filtro_data_inicio').value = localStorage.getItem('filtroDataInicio');
-                temFiltrosSalvos = true;
-            }
-            if (localStorage.getItem('filtroDataFim')) {
-                document.getElementById('filtro_data_fim').value = localStorage.getItem('filtroDataFim');
-                temFiltrosSalvos = true;
-            }
-            if (localStorage.getItem('filtroQuantidade')) {
-                document.getElementById('filtro_quantidade').value = localStorage.getItem('filtroQuantidade');
-                temFiltrosSalvos = true;
-            }
-            
-            // Se há filtros salvos, aplicar automaticamente após um delay
-            if (temFiltrosSalvos) {
-                console.log('Filtros salvos detectados, aplicando automaticamente...');
-                setTimeout(() => {
-                    aplicarFiltrosAuto();
-                }, 800);
-            }
-            
-            // Marcar que o primeiro carregamento já foi feito
-            primeiroCarregamento = false;
-        }
-        
-        // Sempre carregar seleções do formulário do localStorage
+        // ESTRATÉGIA: Prioridade para URL, depois localStorage, depois padrão
+        const filtroCliente = urlParams.get('filtro_cliente') || localStorage.getItem('filtroCliente') || 'Todos';
+        const filtroDataInicio = urlParams.get('filtro_data_inicio') || localStorage.getItem('filtroDataInicio') || '';
+        const filtroDataFim = urlParams.get('filtro_data_fim') || localStorage.getItem('filtroDataFim') || '';
+        const limite = urlParams.get('limite') || localStorage.getItem('filtroQuantidade') || '15';
+
+        // Aplicar valores aos campos
+        $('#filtro_cliente').val(filtroCliente).trigger('change');
+        document.getElementById('filtro_data_inicio').value = filtroDataInicio;
+        document.getElementById('filtro_data_fim').value = filtroDataFim;
+        document.getElementById('filtro_quantidade').value = limite;
+
+        // Atualizar filtros ativos
+        filtrosAtivos = {
+            cliente: filtroCliente,
+            dataInicio: filtroDataInicio,
+            dataFim: filtroDataFim,
+            limite: limite
+        };
+
+        // Salvar no localStorage para consistência
+        localStorage.setItem('filtroCliente', filtroCliente);
+        localStorage.setItem('filtroDataInicio', filtroDataInicio);
+        localStorage.setItem('filtroDataFim', filtroDataFim);
+        localStorage.setItem('filtroQuantidade', limite);
+
+        // Carregar seleções do formulário do localStorage
         if (localStorage.getItem('cliente_id')) {
             $('#cliente_id').val(localStorage.getItem('cliente_id')).trigger('change');
         }
         if (localStorage.getItem('tipo_produto')) {
             $('#tipo_produto').val(localStorage.getItem('tipo_produto')).trigger('change');
-            // Aguardar um pouco para garantir que o DOM esteja pronto
             setTimeout(toggleFields, 100);
         }
         if (localStorage.getItem('material_id')) {
@@ -622,31 +673,16 @@
         if (localStorage.getItem('ambiente_id')) {
             $('#ambiente_id').val(localStorage.getItem('ambiente_id')).trigger('change');
         }
-    }
 
-    // Função para resetar os filtros - CORRIGIDA
-    function resetFilters() {
-        // Limpar Select2 do filtro cliente
-        $('#filtro_cliente').val('Todos').trigger('change');
-        
-        // Limpar outros filtros
-        document.getElementById('filtro_data_inicio').value = '';
-        document.getElementById('filtro_data_fim').value = '';
-        document.getElementById('filtro_quantidade').value = '15';
-        
-        // Limpar localStorage
-        localStorage.removeItem('filtroCliente');
-        localStorage.removeItem('filtroDataInicio');
-        localStorage.removeItem('filtroDataFim');
-        localStorage.removeItem('filtroQuantidade');
-        
-        // Redirecionar para URL base sem parâmetros
-        const urlBase = window.location.origin + window.location.pathname;
-        window.location.href = urlBase;
+        // APLICAR FILTROS IMEDIATAMENTE (client-side) - SEM RECARREGAR
+        setTimeout(() => {
+            filtrarETabelaClientSide();
+            atualizarUrlSemRecarregar();
+        }, 100);
     }
 
     // =============================================
-    // FUNÇÕES DE CAMPOS DINÂMICOS
+    // FUNÇÕES DE CAMPOS DINÂMICOS (MANTIDAS IGUAIS)
     // =============================================
 
     function toggleFields() {
@@ -882,7 +918,7 @@
     }
 
     // =============================================
-    // FUNÇÕES DE INTERAÇÃO E CONFIRMAÇÕES
+    // FUNÇÕES DE INTERAÇÃO (MANTIDAS)
     // =============================================
 
     function confirmarExclusao(event, form) {
@@ -924,13 +960,48 @@
             return;
         }
         
-        // Redirecionar para a página de detalhes com filtros preservados
-        const params = new URLSearchParams(window.location.search);
+        // Usar os filtros atuais na URL de detalhes
+        const params = new URLSearchParams();
+        if (filtrosAtivos.cliente && filtrosAtivos.cliente !== 'Todos') params.append('filtro_cliente', filtrosAtivos.cliente);
+        if (filtrosAtivos.dataInicio) params.append('filtro_data_inicio', filtrosAtivos.dataInicio);
+        if (filtrosAtivos.dataFim) params.append('filtro_data_fim', filtrosAtivos.dataFim);
+        if (filtrosAtivos.limite && filtrosAtivos.limite !== '15') params.append('limite', filtrosAtivos.limite);
+        
         window.location.href = `/detalhes_orcamento?ids=${selecionados.join(",")}&${params.toString()}`;
     }
 
+    function resetFilters() {
+        $('#filtro_cliente').val('Todos').trigger('change');
+        document.getElementById('filtro_data_inicio').value = '';
+        document.getElementById('filtro_data_fim').value = '';
+        document.getElementById('filtro_quantidade').value = '15';
+        
+        localStorage.removeItem('filtroCliente');
+        localStorage.removeItem('filtroDataInicio');
+        localStorage.removeItem('filtroDataFim');
+        localStorage.removeItem('filtroQuantidade');
+        
+        // Aplicar reset client-side
+        aplicarFiltrosClientSide();
+        
+        // Atualizar URL para limpar parâmetros
+        window.history.replaceState({}, '', window.location.pathname);
+    }
+
+    function salvarSelecoesFormulario() {
+        const clienteId = document.getElementById('cliente_id').value;
+        const tipoProduto = document.getElementById('tipo_produto').value;
+        const materialId = document.getElementById('material_id').value;
+        const ambienteId = document.getElementById('ambiente_id').value;
+        
+        localStorage.setItem('cliente_id', clienteId);
+        localStorage.setItem('tipo_produto', tipoProduto);
+        localStorage.setItem('material_id', materialId);
+        localStorage.setItem('ambiente_id', ambienteId);
+    }
+
     // =============================================
-    // CONFIGURAÇÃO DE EVENT LISTENERS - CORRIGIDA
+    // CONFIGURAÇÃO DE EVENT LISTENERS
     // =============================================
 
     document.addEventListener('DOMContentLoaded', function() {
@@ -941,7 +1012,8 @@
             allowClear: true
         });
 
-        // Carregar seleções salvas
+        // CARREGAMENTO INICIAL - CORRIGIDO (SEM RECARREGAMENTO)
+        console.log('Iniciando carregamento de seleções...');
         carregarSelecoesSalvas();
         
         // Event listeners para salvar seleções do formulário
@@ -952,14 +1024,13 @@
             }
         });
         
-        // Event listeners para filtros
-        let timeoutFiltro;
+        // Event listeners para filtros - AGORA COM FILTRAGEM CLIENT-SIDE
         document.querySelectorAll('.filtro-auto').forEach(element => {
             element.addEventListener('change', function() {
                 clearTimeout(timeoutFiltro);
                 timeoutFiltro = setTimeout(() => {
-                    aplicarFiltrosAuto();
-                }, 800);
+                    aplicarFiltrosClientSide();
+                }, 300);
             });
         });
         
@@ -967,54 +1038,15 @@
         $('#filtro_cliente').on('select2:select select2:clear', function() {
             clearTimeout(timeoutFiltro);
             timeoutFiltro = setTimeout(() => {
-                aplicarFiltrosAuto();
-            }, 800);
+                aplicarFiltrosClientSide();
+            }, 300);
         });
         
         // Event listeners para checkboxes
         document.querySelectorAll('.selecionar-orcamento').forEach(checkbox => {
-            checkbox.addEventListener('change', atualizarValorFinal);
-        });
-        
-        // Inicializar o valor total
-        atualizarValorFinal();
-        
-        // Configurar eventos de clique nas linhas
-        setupRowClickEvents();
-        
-        // Configurar botões de ação
-        setupActionButtons();
-    });
-
-    function setupRowClickEvents() {
-        document.querySelectorAll('#orcamento_table tr').forEach(row => {
-            row.addEventListener('click', function(e) {
-                if (e.target.closest('.actions-cell') || e.target.closest('.action-buttons')) {
-                    return;
-                }
-                
-                if (e.target.type === 'checkbox') {
-                    return;
-                }
-                
-                const checkbox = this.querySelector('.selecionar-orcamento');
-                if (checkbox) {
-                    checkbox.checked = !checkbox.checked;
-                    
-                    if (checkbox.checked) {
-                        this.classList.add('selected');
-                    } else {
-                        this.classList.remove('selected');
-                    }
-                    
-                    const event = new Event('change');
-                    checkbox.dispatchEvent(event);
-                }
-            });
-        });
-        
-        document.querySelectorAll('.selecionar-orcamento').forEach(checkbox => {
             checkbox.addEventListener('change', function() {
+                atualizarValorFinal();
+                // Atualizar estado visual da linha
                 const row = this.closest('tr');
                 if (this.checked) {
                     row.classList.add('selected');
@@ -1023,11 +1055,39 @@
                 }
             });
         });
-    }
+        
+        // Configurar eventos de clique nas linhas
+        setupRowClickEvents();
+        
+        // Configurar botões de ação
+        setupActionButtons();
+
+        console.log('Carregamento inicial concluído - Modo Client-Side');
+    });
 
     // =============================================
-    // CONFIGURAÇÃO DOS BOTÕES DE AÇÃO EM LOTE
+    // FUNÇÕES DE INTERAÇÃO EM LOTE (MANTIDAS)
     // =============================================
+
+    function setupRowClickEvents() {
+        document.querySelectorAll('#orcamento_table tr').forEach(row => {
+            row.addEventListener('click', function(e) {
+                // Não propagar clique em ações ou checkboxes
+                if (e.target.closest('.actions-cell') || 
+                    e.target.closest('.action-buttons') || 
+                    e.target.type === 'checkbox') {
+                    return;
+                }
+                
+                const checkbox = this.querySelector('.selecionar-orcamento');
+                if (checkbox) {
+                    checkbox.checked = !checkbox.checked;
+                    const event = new Event('change');
+                    checkbox.dispatchEvent(event);
+                }
+            });
+        });
+    }
 
     function setupActionButtons() {
         // Botão Deletar Selecionados
@@ -1062,7 +1122,7 @@
                     .then(data => {
                         if (data.success) {
                             Swal.fire("Deletado!", data.success, "success").then(() => {
-                                recarregarComFiltros();
+                                window.location.reload();
                             });
                         } else {
                             Swal.fire("Erro!", data.error, "error");
@@ -1107,7 +1167,7 @@
                     .then(data => {
                         if (data.success) {
                             Swal.fire("Sucesso!", "Orçamentos duplicados com sucesso!", "success").then(() => {
-                                recarregarComFiltros();
+                                window.location.reload();
                             });
                         } else {
                             Swal.fire("Erro!", data.error, "error");
@@ -1216,7 +1276,7 @@
                     .then(data => {
                         if (data.success) {
                             Swal.fire("Sucesso!", "Materiais e RT atualizados com sucesso!", "success").then(() => {
-                                recarregarComFiltros();
+                                window.location.reload();
                             });
                         } else {
                             Swal.fire("Erro!", data.error || "Erro ao atualizar materiais e RT", "error");
@@ -1314,15 +1374,6 @@
             });
         });	
     }
-
-    // =============================================
-    // SALVAR FILTROS AO SAIR DA PÁGINA
-    // =============================================
-
-    // Salvar filtros quando a página for descarregada (usuário sair)
-    window.addEventListener('beforeunload', function() {
-        salvarFiltrosNoLocalStorage();
-    });
 </script>
 </body>
 </html>
