@@ -1238,9 +1238,18 @@ function setupActionButtons() {
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
+                            // 🔥 SALVAR OS NOVOS IDs NO LOCALSTORAGE PARA SELEÇÃO APÓS RECARREGAR
+                            if (data.novos_ids && data.novos_ids.length > 0) {
+                                localStorage.setItem('orcamentos_duplicados_selecionar', JSON.stringify(data.novos_ids));
+                                localStorage.setItem('quantidade_duplicados', data.novos_ids.length);
+                            } else {
+                                // Fallback: usar a quantidade de orçamentos duplicados
+                                localStorage.setItem('quantidade_duplicados', selecionados.length);
+                            }
+                            
                             Swal.fire({
                                 title: "Sucesso!",
-                                text: "Orçamentos duplicados com sucesso!",
+                                text: `Orçamentos duplicados com sucesso! ${data.novos_ids ? data.novos_ids.length : selecionados.length} novo(s) item(ns) serão selecionados automaticamente.`,
                                 icon: "success",
                                 confirmButtonText: "OK"
                             }).then(() => {
@@ -1260,6 +1269,7 @@ function setupActionButtons() {
             Swal.fire("Erro!", "Erro ao verificar clientes: " + error.message, "error");
         });
     });
+
 
     // Botão Editar Material/RT - BLOQUEIA CLIENTES DIFERENTES
     document.getElementById('edit-selected').addEventListener('click', function() {
