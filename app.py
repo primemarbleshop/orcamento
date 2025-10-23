@@ -1777,6 +1777,94 @@ def verificar_mesmo_cliente():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/orcamentos/json', methods=['GET'])
+def orcamentos_json():
+    try:
+        user_cpf = session.get('user_cpf')
+        is_admin = session.get('admin')
+        
+        # Obter parâmetros de filtro
+        filtro_cliente = request.args.get('filtro_cliente', 'Todos')
+        filtro_data_inicio = request.args.get('filtro_data_inicio', '')
+        filtro_data_fim = request.args.get('filtro_data_fim', '')
+        limite = request.args.get('limite', '15')
+        
+        # Converter limite para inteiro
+        try:
+            if limite == '0' or limite.lower() == 'all':
+                limite_int = 0
+            else:
+                limite_int = int(limite)
+        except (ValueError, TypeError):
+            limite_int = 15
+
+        # Construir query base (mesma lógica da rota original)
+        if is_admin:
+            query = db.session.query(
+                Orcamento,
+                Usuario.nome.label('nome_usuario')
+            ).join(Usuario, Orcamento.dono == Usuario.cpf)
+        else:
+            query = db.session.query(
+                Orcamento,
+                Usuario.nome.label('nome_usuario')
+            ).join(Usuario, Orcamento.dono == Usuario.cpf).filter(Orcamento.dono == user_cpf)
+
+        # Aplicar filtros (mesma lógica da rota original)
+        if filtro_cliente != 'Todos':
+            query = query.join(Cliente).filter(Cliente.nome == filtro_cliente)
+        
+        if filtro_data_inicio:
+            try:
+                data_inicio = datetime.strptime(filtro_data_inicio, '%Y-%m-%d')
+                query = query.filter(Orcamento.data >= data_inicio)
+            except ValueError:
+                pass
+        
+        if filtro_data_fim:
+            try:
+                data_fim = datetime.strptime(filtro_data_fim, '%Y-%m-%d')
+                data_fim = data_fim.replace(hour=23, minute=59, second=59)
+                query = query.filter(Orcamento.data <= data_fim)
+            except ValueError:
+                pass
+
+        # Ordenar e limitar
+        query = query.order_by(Orcamento.data.desc())
+        
+        if limite_int > 0:
+            query = query.limit(limite_int)
+
+        orcamentos_data = query.all()
+
+        # Formatar dados para JSON
+        orcamentos_json = []
+        for orcamento, nome_usuario in orcamentos_data:
+            orcamentos_json.append({
+                'id': orcamento.id,
+                'cliente_nome': orcamento.cliente.nome,
+                'ambiente_nome': orcamento.ambiente.nome if orcamento.ambiente else 'Não definido',
+                'tipo_produto': orcamento.tipo_produto,
+                'material_nome': orcamento.material.nome,
+                'quantidade': orcamento.quantidade,
+                'comprimento': orcamento.comprimento,
+                'largura': orcamento.largura,
+                'instalacao': orcamento.instalacao,
+                'valor_total': orcamento.valor_total,
+                'data': orcamento.data.strftime('%d-%m-%y'),
+                'nome_usuario': nome_usuario,
+                'data_attr': orcamento.data.strftime('%Y-%m-%d %H:%M:%S')
+            })
+
+        return jsonify({
+            'success': True,
+            'orcamentos': orcamentos_json,
+            'total': len(orcamentos_json)
+        })
+
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 
 if __name__ == '__main__':
     criar_banco()
