@@ -6,6 +6,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from pytz import timezone
 from weasyprint import HTML
+from sqlalchemy import or_
 import io
 import fitz  # PyMuPDF
 import requests
@@ -165,6 +166,13 @@ class Orcamento(db.Model):
     tem_fundo = db.Column(db.String(50), default="Sim")
     tem_alisar = db.Column(db.String(50), default="Não")
     largura_alisar = db.Column(db.Float, default=0.0)
+
+class DesenhoOrdemServico(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    orcamento_salvo_codigo = db.Column(db.String, db.ForeignKey('orcamento_salvo.codigo', ondelete='CASCADE'), nullable=False)
+    desenho_data = db.Column(db.Text, nullable=False)
+    data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
+
 
 # Função para inicializar o banco de dados
 def criar_banco():
@@ -1290,6 +1298,10 @@ def deletar_orcamento_salvo(orcamento_id):
         if not orcamento:
             return jsonify({"error": "Orçamento não encontrado."}), 404
 
+        # 🔥 CORREÇÃO: Primeiro exclui os desenhos associados
+        DesenhoOrdemServico.query.filter_by(orcamento_salvo_codigo=orcamento.codigo).delete()
+        
+        # Depois exclui o orçamento salvo
         db.session.delete(orcamento)
         db.session.commit()
         
@@ -1860,7 +1872,155 @@ def orcamentos_json():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/ordens_servico')
+def ordens_servico():
+    user_cpf = session.get("user_cpf")
+    is_admin = session.get("admin")
+
+    orcamentos_salvos = OrcamentoSalvo.query.order_by(OrcamentoSalvo.codigo.desc()).all()
+
+    resultado = []
+
+    for orc_salvo in orcamentos_salvos:
+        primeiro_orcamento_id = int(orc_salvo.orcamentos_ids.split(",")[0])
+        primeiro_orcamento = Orcamento.query.get(primeiro_orcamento_id)
+
+        if not primeiro_orcamento:
+            continue
+
+        cliente = Cliente.query.get(primeiro_orcamento.cliente_id)
+        if not cliente:
+            continue
+
+        if is_admin or cliente.dono == user_cpf:
+            resultado.append({
+                'id': orc_salvo.id,
+                'codigo': orc_salvo.codigo,
+                'data_salvo': orc_salvo.data_salvo,
+                'valor_total': orc_salvo.valor_total,
+                'criado_por': orc_salvo.criado_por,
+                'status': orc_salvo.status,
+                'tipo_cliente': orc_salvo.tipo_cliente,
+                'cliente_nome': cliente.nome,
+                'cliente_dono': cliente.dono
+            })
+
+    if is_admin:
+        clientes = Cliente.query.all()
+    else:
+        clientes = Cliente.query.filter_by(dono=user_cpf).all()
+
+    usuarios = Usuario.query.all()
+
+    return render_template("ordens_servico.html",
+                           clientes=clientes,
+                           usuarios=usuarios,
+                           orcamentos=resultado)
+
+
+
+@app.route('/salvar_desenho_ordem_servico/<codigo>', methods=['POST'])
+def salvar_desenho_ordem_servico(codigo):
+    try:
+        # Obter dados JSON da requisição
+        data = request.get_json()
+        if not data:
+            return jsonify({"success": False, "error": "Nenhum dado JSON recebido"}), 400
+        
+        desenho_data = data.get('drawingAreaHTML')
+        
+        if not desenho_data:
+            return jsonify({"success": False, "error": "Dados do desenho não fornecidos"}), 400
+        
+        print(f"💾 Salvando desenho para orçamento: {codigo}")
+        
+        # Verificar se o orçamento salvo existe
+        orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
+        if not orcamento_salvo:
+            return jsonify({"success": False, "error": "Orçamento salvo não encontrado"}), 404
+        
+        # Salvar na tabela DesenhoOrdemServico
+        desenho_existente = DesenhoOrdemServico.query.filter_by(orcamento_salvo_codigo=codigo).first()
+        
+        if desenho_existente:
+            # Atualizar desenho existente
+            desenho_existente.desenho_data = desenho_data
+            desenho_existente.data_criacao = datetime.utcnow()
+            print("📝 Desenho existente atualizado na tabela DesenhoOrdemServico")
+        else:
+            # Criar novo registro de desenho
+            novo_desenho = DesenhoOrdemServico(
+                orcamento_salvo_codigo=codigo,
+                desenho_data=desenho_data
+            )
+            db.session.add(novo_desenho)
+            print("🆕 Novo desenho criado na tabela DesenhoOrdemServico")
+        
+        # Também salvar no campo desenho_ordem_servico do OrcamentoSalvo
+        orcamento_salvo.desenho_ordem_servico = desenho_data
+        print("📝 Desenho salvo no campo desenho_ordem_servico do OrcamentoSalvo")
+        
+        db.session.commit()
+        print("✅ Desenho salvo com sucesso no banco de dados")
+        
+        return jsonify({"success": True, "message": "Desenho salvo com sucesso"})
+        
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Erro ao salvar desenho: {str(e)}")
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/detalhes_ordem_servico/<codigo>')
+def detalhes_ordem_servico(codigo):
+    orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
+
+    if not orcamento_salvo:
+        flash("Ordem de serviço não encontrada!", "danger")
+        return redirect(url_for('ordens_servico'))
+
+    ids = [int(id) for id in orcamento_salvo.orcamentos_ids.split(",")]
+    orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
+    
+    # Agrupar por material
+    materiais_agrupados = {}
+    for orcamento in orcamentos:
+        material_nome = orcamento.material.nome
+        
+        if material_nome not in materiais_agrupados:
+            materiais_agrupados[material_nome] = []
+        
+        materiais_agrupados[material_nome].append(orcamento)
+
+    logo_url = "https://orcamento-t9w2.onrender.com/static/logo.jpg"
+    
+    usuario = Usuario.query.filter_by(cpf=session.get('user_cpf')).first()
+    telefone_usuario = usuario.telefone if usuario else ""
+
+    # 🔥 CORREÇÃO: Carregar o desenho salvo corretamente
+    desenho_salvo = None
+    desenho_registro = DesenhoOrdemServico.query.filter_by(
+        orcamento_salvo_codigo=codigo
+    ).order_by(DesenhoOrdemServico.data_criacao.desc()).first()
+    
+    if desenho_registro:
+        desenho_salvo = desenho_registro.desenho_data
+    elif orcamento_salvo.desenho_ordem_servico:
+        desenho_salvo = orcamento_salvo.desenho_ordem_servico
+
+    return render_template(
+        "detalhes_ordem_servico.html",
+        logo_url=logo_url,
+        codigo_orcamento=orcamento_salvo.codigo,
+        data_salvo=orcamento_salvo.data_salvo,
+        cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
+        orcamentos=orcamentos,
+        materiais_agrupados=materiais_agrupados,
+        telefone_usuario=telefone_usuario,
+        desenho_salvo=desenho_salvo  # 🔥 Passar o desenho salvo para o template
+    )
 
 if __name__ == '__main__':
     criar_banco()
     app.run(debug=True)
+
+
