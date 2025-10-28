@@ -109,6 +109,7 @@ class OrcamentoSalvo(db.Model):
     observacoes = db.Column(db.Text, default="Medidas sujeitas a confirmação no local. Valores válidos por 7 dias.", nullable=False)
     exclude_payments = db.Column(db.String(50), default='')
     desenhos_ordem_servico = db.relationship('DesenhoOrdemServico', backref='orcamento', lazy=True)
+    desenho_ordem_servico = db.Column(db.Text, nullable=True)
 
     @property
     def cliente_nome(self):
