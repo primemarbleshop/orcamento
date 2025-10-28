@@ -1,0 +1,2369 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1400, initial-scale=1.0">
+    <title>Ordem de Serviço - {{ codigo_orcamento }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .main-container { 
+            width: 1400px; 
+            margin: 0 auto; 
+            padding: 0 15px; 
+            box-sizing: border-box; 
+        }
+        
+        body { 
+            font-size: 15px; 
+            font-family: Arial, sans-serif; 
+            line-height: 1.3; 
+            background-color: #f8f9fa; 
+            padding: 20px 0;
+            min-width: 1400px;
+            overflow-x: auto;
+        }
+        
+        .header-container { 
+            display: flex; 
+            justify-content: flex-start; 
+            align-items: center; 
+            position: relative; 
+            width: 100%; 
+        }
+        
+        .logo-empresa { 
+            position: absolute; 
+            right: -70px; 
+            top: 10px; 
+            height: 120px; 
+            width: 280px; 
+            max-width: 280px; 
+            object-fit: contain; 
+        }
+        
+        .cliente-header h2, .cliente-header p { 
+            display: block !important; 
+            margin: 2px 0 !important; 
+        }
+        
+        .cliente-header strong { 
+            display: inline !important; 
+            white-space: nowrap !important; 
+        }
+        
+        .wrap-text { 
+            display: inline-block !important; 
+            max-width: 60% !important; 
+            word-wrap: break-word !important; 
+            vertical-align: top !important; 
+        }
+        
+        .info-normal { 
+            font-weight: normal; 
+        }
+        
+        .drawing-area { 
+            position: relative; 
+            width: 100%; 
+            min-height: 1200px; 
+            border: 2px solid #ccc; 
+            background-color: white; 
+            margin: 20px 0; 
+            overflow: auto; 
+            cursor: default; 
+            touch-action: manipulation; 
+        }
+        
+        .peca { 
+            position: absolute; 
+            background-color: rgba(255, 255, 255, 0.9); 
+            border: 2px solid #000; 
+            cursor: move; 
+            box-sizing: border-box; 
+            user-select: none; 
+            touch-action: none; 
+        }
+        
+        .dimensoes { 
+            position: absolute; 
+            font-size: 12px; 
+            background: white; 
+            padding: 2px 4px; 
+            border: 1px solid #ccc; 
+            border-radius: 3px; 
+            z-index: 5; 
+            cursor: move; 
+            touch-action: none; 
+            user-select: none; 
+        }
+        
+        .dimensoes-top { 
+            top: -35px; 
+            left: 50%; 
+            transform: translateX(-50%); 
+        }
+        
+        .dimensoes-right { 
+            right: -35px; 
+            top: 50%; 
+            transform: translateY(-50%); 
+            writing-mode: vertical-rl; 
+            text-orientation: mixed; 
+        }
+        
+        .quantidade-peca { 
+            position: absolute; 
+            left: -35px; 
+            top: 50%; 
+            transform: translateY(-50%); 
+            background: white; 
+            padding: 2px 6px; 
+            border: 1px solid #ccc; 
+            border-radius: 3px; 
+            font-size: 12px; 
+            font-weight: bold; 
+            z-index: 5; 
+            cursor: move; 
+            touch-action: none; 
+        }
+        
+        .btn-custom-primary { 
+            background-color: #4e73df; 
+            border-color: #4e73df; 
+            color: white; 
+        }
+        
+        .btn-custom-primary:hover { 
+            background-color: #2e59d9; 
+            border-color: #2e59d9; 
+            color: white; 
+        }
+        
+        .btn-custom-success { 
+            background-color: #1cc88a; 
+            border-color: #1cc88a; 
+            color: white; 
+        }
+        
+        .btn-custom-success:hover { 
+            background-color: #17a673; 
+            border-color: #17a673; 
+            color: white; 
+        }
+        
+        .btn-custom-danger { 
+            background-color: #e74a3b; 
+            border-color: #e74a3b; 
+            color: white; 
+        }
+        
+        .btn-custom-danger:hover { 
+            background-color: #be2617; 
+            border-color: #be2617; 
+            color: white; 
+        }
+        
+        .btn-warning { 
+            background-color: #f6c23e; 
+            border-color: #f6c23e; 
+            color: #000; 
+        }
+        
+        .btn-warning:hover { 
+            background-color: #dda20a; 
+            border-color: #dda20a; 
+            color: #000; 
+        }
+        
+        /* BOTÕES PRINCIPAIS - AGORA ENTRE DATA E ÁREA DE DESENHO */
+        .action-buttons-container { 
+            margin: 25px 0; 
+            display: flex; 
+            gap: 12px; 
+            justify-content: flex-start; 
+            flex-wrap: wrap; 
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        
+        /* BOTÃO VOLTAR NO TOPO */
+        .top-buttons-container { 
+            margin-bottom: 20px; 
+            display: flex; 
+            gap: 10px; 
+            justify-content: flex-start; 
+            flex-wrap: wrap; 
+        }
+        
+        /* ESTILOS PARA TÍTULO DO GRUPO INTERATIVO */
+        .titulo-grupo {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2e59d9;
+            padding: 10px 15px;
+            border-radius: 5px;
+            position: absolute;
+            z-index: 10;
+            cursor: move;
+            background-color: rgba(255, 255, 255, 0.95);
+            border: 2px solid #4e73df;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            min-width: 200px;
+            min-height: 40px;
+            resize: none;
+            overflow: hidden;
+            white-space: nowrap;
+            user-select: none;
+            touch-action: none;
+        }
+
+        .titulo-grupo:focus {
+            background: white;
+            border: 2px solid #4e73df;
+            outline: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        /* REMOVER CARDS DE AGRUPAMENTO */
+        .grupo-material {
+            all: unset;
+            display: block;
+            position: relative;
+            margin-bottom: 40px;
+        }
+
+        .area-pecas {
+            position: relative;
+            margin-top: 10px;
+            display: block;
+            min-height: 200px;
+        }
+        
+        .linha-peca { 
+            position: absolute; 
+            background-color: transparent; 
+            z-index: 6; 
+            cursor: pointer; 
+            transition: all 0.2s ease; 
+            border: none !important; 
+        }
+        
+        .linha-peca:hover { 
+            background-color: #4e73df !important; 
+            opacity: 0.7; 
+        }
+        
+        .simbolo-linha { 
+            position: absolute; 
+            font-size: 16px; 
+            font-weight: bold; 
+            color: #000; 
+            background-color: transparent !important; 
+            cursor: move; 
+            z-index: 7; 
+            user-select: none; 
+            text-align: center; 
+        }
+        
+        .cuba { 
+            position: absolute; 
+            background-color: rgba(255, 255, 255, 0.9); 
+            border: 2px solid #333; 
+            cursor: move; 
+            box-sizing: border-box; 
+            user-select: none; 
+            touch-action: none; 
+            z-index: 8; 
+        }
+        
+        .cuba.retangulo { 
+            border-radius: 0; 
+        }
+        
+        .cuba.circulo { 
+            border-radius: 50%; 
+        }
+        
+        .cuba.oval { 
+            border-radius: 50%; 
+        }
+        
+        .cuba.elipse { 
+            border-radius: 40%; 
+        }
+        
+        .cuba-texto { 
+            position: absolute; 
+            top: 50%; 
+            left: 50%; 
+            transform: translate(-50%, -50%); 
+            font-size: 12px; 
+            font-weight: bold; 
+            text-align: center; 
+            pointer-events: none; 
+        }
+        
+        .texto-legenda { 
+            position: absolute; 
+            background: transparent; 
+            border: none; 
+            outline: none; 
+            resize: none; 
+            font-size: 14px; 
+            text-align: center; 
+            z-index: 10; 
+            cursor: move; 
+            min-width: 80px; 
+            min-height: 20px; 
+            font-weight: bold; 
+            touch-action: none; 
+            padding: 2px; 
+        }
+        
+        .texto-legenda:focus { 
+            background: white; 
+            border: 1px solid #ccc; 
+            border-radius: 4px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+            padding: 5px; 
+        }
+        
+        .legenda-simplificada { 
+            position: absolute; 
+            background: transparent; 
+            border: none; 
+            padding: 2px; 
+            z-index: 10; 
+            cursor: move; 
+            min-width: 120px; 
+            font-size: 14px; 
+            font-weight: bold; 
+            display: flex; 
+            align-items: center; 
+            gap: 5px; 
+        }
+        
+        .legenda-simplificada:focus-within { 
+            background: white; 
+            border: 1px solid #ccc; 
+            border-radius: 4px; 
+            padding: 5px 8px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+        }
+        
+        .legenda-simbolo-inline { 
+            font-weight: bold; 
+        }
+
+        /* NOVOS ESTILOS PARA SELEÇÃO E CONTROLES */
+        .elemento-selecionado { 
+            outline: 3px solid #4e73df !important; 
+            outline-offset: 2px; 
+            z-index: 1000 !important; 
+        }
+        
+        .handles-container {
+            position: absolute;
+            pointer-events: none;
+            z-index: 1001;
+        }
+        
+        .handle {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background-color: #4e73df;
+            border: 2px solid white;
+            border-radius: 50%;
+            pointer-events: all;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            transform: translate(-50%, -50%);
+        }
+        
+        .handle-rotacao {
+            position: absolute;
+            width: 14px;
+            height: 14px;
+            background-color: #f6c23e;
+            border: 2px solid white;
+            border-radius: 50%;
+            pointer-events: all;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            transform: translate(-50%, -50%);
+            cursor: grab;
+        }
+        
+        .handle-n {
+            cursor: n-resize;
+        }
+        
+        .handle-s {
+            cursor: s-resize;
+        }
+        
+        .handle-e {
+            cursor: e-resize;
+        }
+        
+        .handle-w {
+            cursor: w-resize;
+        }
+        
+        .handle-ne {
+            cursor: ne-resize;
+        }
+        
+        .handle-nw {
+            cursor: nw-resize;
+        }
+        
+        .handle-se {
+            cursor: se-resize;
+        }
+        
+        .handle-sw {
+            cursor: sw-resize;
+        }
+        
+        .modal-controles {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            z-index: 2000;
+            min-width: 200px;
+        }
+        
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1999;
+        }
+        
+        .btn-controle {
+            margin: 5px;
+            padding: 8px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+        
+        .btn-excluir {
+            background-color: #e74a3b;
+            color: white;
+        }
+        
+        .btn-excluir:hover {
+            background-color: #be2617;
+        }
+        
+        .btn-duplicar {
+            background-color: #1cc88a;
+            color: white;
+        }
+        
+        .btn-duplicar:hover {
+            background-color: #17a673;
+        }
+        
+        .btn-fechar {
+            background-color: #6c757d;
+            color: white;
+        }
+        
+        .btn-fechar:hover {
+            background-color: #5a6268;
+        }
+
+        /* ======================== MOBILE - APENAS ÍCONES ======================== */
+        @media (max-width: 1400px) {
+            .action-buttons-container .btn-text {
+                display: none;
+            }
+            
+            .action-buttons-container .btn {
+                width: 50px;
+                height: 50px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                padding: 0;
+            }
+            
+            .action-buttons-container .btn i {
+                margin-right: 0 !important;
+                font-size: 1.2rem;
+            }
+            
+            .action-buttons-container {
+                justify-content: flex-start;
+                gap: 8px;
+                padding: 10px;
+            }
+        }
+
+        /* ======================== AJUSTE DE LAYOUT RESPONSIVO ======================== */
+        .drawing-container {
+          width: 100%;
+          overflow-x: auto;
+          overflow-y: hidden;
+        }
+
+        .drawing-area {
+          display: flex;
+          flex-wrap: wrap;
+          justify-content: flex-start;
+          align-items: flex-start;
+          gap: 10px;
+          width: max-content;
+          min-width: 100%;
+          margin: 0 auto;
+          box-sizing: border-box;
+        }
+
+        .drawing-area .peca,
+        .drawing-area .cuba,
+        .drawing-area .texto-legenda,
+        .drawing-area .legenda-simplificada {
+          flex: 0 0 auto; /* impede empilhamento vertical */
+        }
+
+
+
+
+         /* ======================== IMPRESSÃO ======================== */
+        @media print {
+
+	@page {
+    size: A4 portrait;
+    margin: 10mm; /* cria margens reais na folha */
+  }
+            /* CORREÇÃO: Fundo branco na impressão */
+            body {
+                background: white !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                font-size: 15px !important;
+                line-height: 1.2 !important;
+            }
+            
+            body * {
+                visibility: hidden;
+            }
+            
+            .main-container, .main-container * {
+                visibility: visible;
+            }
+            
+            .main-container {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 10px !important;
+                font-size: 18px !important;
+                background: white !important;
+                box-shadow: none !important;
+            }
+
+            .top-buttons-container,
+            .action-buttons-container,
+	    .mobile-buttons-container,
+            .zoom-controls,
+            .handles-container,
+            .handle,
+            .handle-rotacao,
+            .elemento-selecionado,
+            .modal-controles,
+            .modal-backdrop { 
+                display: none !important; 
+            }
+
+.drawing-area {
+    width: calc(100% - 60px) !important;  /* margem extra de segurança */
+    padding: 20px !important;
+    margin: 0 auto !important;
+    overflow: visible !important;
+    background: white !important;
+    transform: scale(0.96); /* ligeiro recuo opcional */
+    transform-origin: top left;
+  }
+            .drawing-area {
+                width: calc(100% - 30px) !important;
+                height: auto !important;
+                min-height: auto !important;
+                max-height: none !important;
+                border: 1px solid #ccc !important;
+                background: white !important;
+                margin: 0 !important;
+                padding: 0px !important; /* adiciona espaço interno */
+                overflow: visible !important;
+                box-shadow: none !important;
+                position: relative !important;
+                page-break-inside: avoid;
+            }
+ .dimensoes-right {
+    right: -35px !important; /* força afastamento maior */
+  }
+
+           
+
+            .peca, .cuba, .texto-legenda, .legenda-simplificada, 
+            .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
+                position: absolute !important;
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
+
+            .logo-empresa {
+                position: absolute !important;
+                right: 10px !important;
+                top: 10px !important;
+                max-width: 200px !important;
+                height: auto !important;
+            }
+
+           
+            
+            /* Garantir que textos editáveis apareçam corretamente */
+            .texto-legenda, .legenda-simplificada {
+                background: transparent !important;
+            
+            }
+            
+           
+            
+            /* 🔥 CORREÇÃO: Garantir que as peças sejam visíveis */
+            .peca {
+                border: 2px solid #000 !important;
+                background: white !important;
+            }
+            
+            /* 🔥 CORREÇÃO: Cuba visível na impressão */
+            .cuba {
+                border: 2px solid #333 !important;
+                background: white !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <!-- Botão Voltar no topo -->
+        <div class="top-buttons-container">
+            <a href="/ordens_servico" class="btn btn-custom-primary">
+                <i class="fas fa-arrow-left me-1"></i> Voltar
+            </a>
+        </div>
+
+        <div class="header-container">
+            <img src="{{ logo_url }}" alt="Logo da Empresa" class="logo-empresa">
+        </div>
+
+        <div class="cliente-header">
+            <h1>Prime Marble Shop</h1>
+            <p><strong>Endereço:</strong> Estrada do Engenho, 1800 - Bangu</p>
+            <p><strong>CNPJ:</strong> 39.903.780/0001-15</p>
+        </div>
+
+        <div class="cliente-header">
+            <h2>
+                <strong>Cliente:</strong>
+                <span class="wrap-text">{{ cliente_nome }}</span>
+            </h2>
+            <p>
+                <strong>Endereço:</strong>
+                <span class="wrap-text info-normal">{{ orcamentos[0].cliente.endereco }}</span>
+            </p>
+            <p>
+                <strong>Telefone:</strong>
+                <span class="info-normal">{{ orcamentos[0].cliente.telefone }}</span>
+            </p>
+        </div>
+
+        <h2>Ordem de Serviço - {{ codigo_orcamento }}</h2>
+        <p class="orcamento-info">
+            <strong>Data:</strong> {{ data_salvo.strftime('%d/%m/%Y') }}
+        </p>
+
+        <!-- NOVO: Container para botões de ação entre data e área de desenho -->
+        <div class="action-buttons-container">
+            <button id="btnDesfazer" class="btn btn-custom-primary" title="Desfazer (Ctrl+Z)">
+                <i class="fas fa-undo me-1"></i> <span class="btn-text">Desfazer</span>
+            </button>
+            <button id="btnRefazer" class="btn btn-custom-primary" title="Refazer (Ctrl+Y)">
+                <i class="fas fa-redo me-1"></i> <span class="btn-text">Refazer</span>
+            </button>
+            <button id="btnAdicionarTexto" class="btn btn-custom-primary">
+                <i class="fas fa-font me-1"></i> <span class="btn-text">Texto</span>
+            </button>
+            <button id="btnAdicionarCuba" class="btn btn-custom-primary">
+                <i class="fas fa-sink me-1"></i> <span class="btn-text">Cuba</span>
+            </button>
+            <button id="btnLegendaSimplificada" class="btn btn-custom-primary">
+                <i class="fas fa-tag me-1"></i> <span class="btn-text">Legenda</span>
+            </button>
+            <button id="btnSalvar" class="btn btn-custom-success">
+                <i class="fas fa-save me-1"></i> <span class="btn-text">Salvar Desenho</span>
+            </button>
+            <button id="btnImprimir" class="btn btn-custom-success">
+                <i class="fas fa-print me-1"></i> <span class="btn-text">Imprimir</span>
+            </button>
+        </div>
+
+        <!-- Área de desenho -->
+        <div id="drawingArea" class="drawing-area">
+            <!-- Os grupos e peças serão gerados aqui via JavaScript -->
+        </div>
+    </div>
+
+    <!-- Modal para controles do objeto selecionado -->
+    <div id="modalControles" class="modal-controles" style="display: none;">
+        <h5>Controles do Objeto</h5>
+        <div class="d-flex flex-column gap-2 mt-3">
+            <button class="btn-controle btn-duplicar" onclick="gerenciadorDesenho.duplicarElemento()">
+                <i class="fas fa-copy me-1"></i> Duplicar
+            </button>
+            <button class="btn-controle btn-excluir" onclick="gerenciadorDesenho.excluirElemento()">
+                <i class="fas fa-trash me-1"></i> Excluir
+            </button>
+            <button class="btn-controle btn-fechar" onclick="gerenciadorDesenho.fecharModal()">
+                <i class="fas fa-times me-1"></i> Fechar
+            </button>
+        </div>
+    </div>
+    <div id="modalBackdrop" class="modal-backdrop" style="display: none;"></div>
+
+
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.11/dist/interact.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+
+<script>
+    // =============================================
+    // CONFIGURAÇÕES E CONSTANTES
+    // =============================================
+    const CONFIG = {
+        ESCALA_PADRAO: 0.15,
+        TIPOS_CUBA: [
+            { tipo: "retangulo", nome: "Retângulo" },
+            { tipo: "circulo", nome: "Círculo" },
+            { tipo: "oval", nome: "Oval" },
+            { tipo: "elipse", nome: "Elipse" }
+        ],
+        LEGENDA_SIMPLIFICADA: [
+            { simbolo: "C", descricao: "Acabamento" },
+            { simbolo: "//", descricao: "Saia" },
+            { simbolo: "///", descricao: "Fronte" },
+            { simbolo: "Cp", descricao: "Acabamento/Pingadeira" },
+            { simbolo: "//*", descricao: "Editável" },
+            { simbolo: "///*", descricao: "Editável" },
+            { simbolo: "V", descricao: "Meia Esquadria" }
+        ]
+    };
+
+    // =============================================
+    // CLASSE PRINCIPAL - GERENCIADOR DE DESENHO
+    // =============================================
+    class GerenciadorDesenho {
+        constructor() {
+            this.drawingArea = document.getElementById('drawingArea');
+            this.gruposPecas = this.carregarDadosPecas();
+            this.modoInsercaoAtivo = null;
+            this.pecasCriadas = false;
+            this.elementoSelecionado = null;
+            this.handles = [];
+            this.modalControles = document.getElementById('modalControles');
+            this.modalBackdrop = document.getElementById('modalBackdrop');
+            
+            this.ultimoElementoClicado = null;
+            
+            this.historico = [];
+            this.indiceHistorico = -1;
+            this.maximoHistorico = 50;
+
+            // 🔥 CORREÇÃO CRÍTICA: Carregar desenho salvo se existir
+            this.desenhoSalvo = {{ desenho_salvo | tojson | safe }};
+            
+            this.inicializar();
+        }
+
+        carregarDadosPecas() {
+            const grupos = {};
+            {% for material_nome, produtos in materiais_agrupados.items() %}
+                grupos["{{ material_nome }}"] = [
+                    {% for produto in produtos %}
+                    {
+                        id: {{ produto.id }},
+                        tipo: "{{ produto.tipo_produto }}",
+                        comprimento: {{ produto.comprimento }},
+                        largura: {{ produto.largura }},
+                        material: "{{ produto.material.nome }}",
+                        quantidade: {{ produto.quantidade }},
+                        comprimento_saia: {{ produto.comprimento_saia or 0 }},
+                        largura_saia: {{ produto.largura_saia or 0 }},
+                        comprimento_fronte: {{ produto.comprimento_fronte or 0 }},
+                        largura_fronte: {{ produto.largura_fronte or 0 }},
+                        profundidade_nicho: {{ produto.profundidade_nicho or 0 }}
+                    },
+                    {% endfor %}
+                ];
+            {% endfor %}
+            return grupos;
+        }
+
+        // 🔥 CORREÇÃO CRÍTICA: Método de inicialização modificado
+        inicializar() {
+            console.log('🚀 Inicializando Gerenciador de Desenho...');
+            
+            // Verificar se há desenho salvo
+            if (this.desenhoSalvo && this.desenhoSalvo !== 'None' && this.desenhoSalvo !== '') {
+                console.log('📁 Carregando desenho salvo...');
+                this.carregarDesenhoSalvo();
+            } else {
+                console.log('📝 Criando novo desenho...');
+                this.criarPecasBase();
+            }
+            
+            this.configurarEventos();
+            this.salvarEstadoHistorico('Estado Inicial');
+            console.log('✅ Gerenciador de Desenho inicializado com sucesso!');
+        }
+
+        // 🔥 NOVO MÉTODO: Carregar desenho salvo
+        carregarDesenhoSalvo() {
+            try {
+                // Limpar área de desenho
+                this.drawingArea.innerHTML = this.desenhoSalvo;
+                
+                // Reconfigurar a interatividade de todos os elementos
+                this.reconfigurarElementosAposHistorico();
+                
+                console.log('✅ Desenho salvo carregado com sucesso!');
+            } catch (error) {
+                console.error('❌ Erro ao carregar desenho salvo:', error);
+                // Se houver erro, criar peças base
+                this.criarPecasBase();
+            }
+        }
+
+        // =============================================
+        // SISTEMA DE HISTÓRICO DESFAZER/REFAZER
+        // =============================================
+
+        salvarEstadoHistorico(descricao) {
+            if (this.indiceHistorico < this.historico.length - 1) {
+                this.historico = this.historico.slice(0, this.indiceHistorico + 1);
+            }
+
+            const snapshot = {
+                descricao: descricao,
+                timestamp: new Date(),
+                data: this.obterEstadoAtual()
+            };
+
+            this.historico.push(snapshot);
+            this.indiceHistorico++;
+
+            if (this.historico.length > this.maximoHistorico) {
+                this.historico.shift();
+                this.indiceHistorico--;
+            }
+
+            this.atualizarBotoesHistorico();
+        }
+
+        obterEstadoAtual() {
+            return {
+                drawingAreaHTML: this.drawingArea.innerHTML,
+                gruposPecas: JSON.parse(JSON.stringify(this.gruposPecas))
+            };
+        }
+
+        restaurarEstadoHistorico(estado) {
+            this.drawingArea.innerHTML = estado.drawingAreaHTML;
+            this.gruposPecas = JSON.parse(JSON.stringify(estado.gruposPecas));
+            this.reconfigurarElementosAposHistorico();
+        }
+
+        // 🔥 CORREÇÃO: Método melhorado para reconfigurar elementos
+        reconfigurarElementosAposHistorico() {
+            this.desselecionarElemento();
+            
+            const elementosInterativos = this.drawingArea.querySelectorAll(
+                '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca'
+            );
+            
+            elementosInterativos.forEach(elemento => {
+                this.configurarInteratividade(elemento);
+                
+                if (elemento.classList.contains('simbolo-linha')) {
+                    this.configurarInteratividadeSimbolo(elemento);
+                }
+                
+                elemento.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    this.selecionarElemento(elemento, e);
+                });
+                
+                elemento.addEventListener('contextmenu', (e) => {
+                    this.manipularCliqueDireito(elemento, e);
+                });
+		
+		// ✅ Reconfigurar eventos das linhas das peças após recarregar
+        const linhas = this.drawingArea.querySelectorAll('.linha-peca');
+        linhas.forEach(linha => {
+            linha.addEventListener('mouseenter', () => linha.style.backgroundColor = '#4e73df');
+            linha.addEventListener('mouseleave', () => linha.style.backgroundColor = 'transparent');
+            linha.addEventListener('click', (e) => this.manipularCliqueLinha(e, linha));
+        });
+
+                // Eventos para elementos editáveis
+                if (elemento.classList.contains('titulo-grupo')) {
+                    elemento.addEventListener('blur', () => {
+                        this.salvarEstadoHistorico('Editar Título do Grupo');
+                    });
+                }
+
+                if (elemento.classList.contains('texto-legenda')) {
+                    elemento.addEventListener('blur', () => {
+                        this.salvarEstadoHistorico('Editar Texto');
+                    });
+                }
+
+                if (elemento.classList.contains('legenda-simplificada')) {
+                    const spanDescricao = elemento.querySelector('.legenda-descricao-inline');
+                    if (spanDescricao) {
+                        spanDescricao.addEventListener('blur', () => {
+                            this.salvarEstadoHistorico('Editar Legenda');
+                        });
+                    }
+                }
+            });
+        }
+
+        desfazer() {
+            if (this.indiceHistorico > 0) {
+                this.indiceHistorico--;
+                const estadoAnterior = this.historico[this.indiceHistorico];
+                this.restaurarEstadoHistorico(estadoAnterior.data);
+            }
+        }
+
+        refazer() {
+            if (this.indiceHistorico < this.historico.length - 1) {
+                this.indiceHistorico++;
+                const estadoFuturo = this.historico[this.indiceHistorico];
+                this.restaurarEstadoHistorico(estadoFuturo.data);
+            }
+        }
+
+        atualizarBotoesHistorico() {
+            const btnDesfazer = document.getElementById('btnDesfazer');
+            const btnRefazer = document.getElementById('btnRefazer');
+            
+            if (btnDesfazer) {
+                btnDesfazer.disabled = this.indiceHistorico <= 0;
+            }
+            if (btnRefazer) {
+                btnRefazer.disabled = this.indiceHistorico >= this.historico.length - 1;
+            }
+        }
+
+        // =============================================
+        // MÉTODO SALVAR DESENHO - FUNCIONANDO
+        // =============================================
+
+        salvarDesenho() {
+            console.log('💾 Iniciando salvamento do desenho...');
+            
+            // Obter o HTML atual da área de desenho
+            const drawingAreaHTML = this.drawingArea.innerHTML;
+            
+            const dadosDesenho = {
+                drawingAreaHTML: drawingAreaHTML,
+                timestamp: new Date().toISOString()
+            };
+
+            console.log('📤 Enviando dados para servidor...');
+
+            // Mostrar loading
+            Swal.fire({
+                title: 'Salvando...',
+                text: 'Por favor, aguarde enquanto o desenho é salvo.',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Enviar para o servidor
+            fetch('/salvar_desenho_ordem_servico/{{ codigo_orcamento }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(dadosDesenho)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Erro HTTP: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                Swal.close();
+                if (data.success) {
+                    Swal.fire({
+                        title: 'Sucesso!',
+                        text: 'Desenho salvo com sucesso!',
+                        icon: 'success',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                    console.log('✅ Desenho salvo com sucesso!', data);
+                } else {
+                    throw new Error(data.error || 'Erro desconhecido ao salvar');
+                }
+            })
+            .catch(error => {
+                console.error('❌ Erro ao salvar desenho:', error);
+                Swal.fire({
+                    title: 'Erro!',
+                    text: 'Não foi possível salvar o desenho: ' + error.message,
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            });
+        }
+
+        // =============================================
+        // MÉTODO IMPRIMIR
+        // =============================================
+
+        imprimirDesenho() {
+            console.log('🖨️ Preparando impressão do estado atual...');
+            
+            this.salvarEstadoHistorico('Antes da Impressão');
+            
+            this.desselecionarElemento();
+            
+            setTimeout(() => {
+                window.print();
+            }, 500);
+        }
+
+        // =============================================
+        // CONFIGURAÇÃO DE EVENTOS - CORRIGIDA
+        // =============================================
+
+        configurarEventos() {
+            console.log('🔧 Configurando eventos...');
+            
+            document.getElementById('btnAdicionarTexto').addEventListener('click', () => this.ativarModoInsercao('texto'));
+            document.getElementById('btnAdicionarCuba').addEventListener('click', () => this.ativarModoInsercao('cuba'));
+            document.getElementById('btnLegendaSimplificada').addEventListener('click', () => this.ativarModoInsercao('legenda'));
+
+            // 🔥 CORREÇÃO: Evento para salvar desenho com log
+            document.getElementById('btnSalvar').addEventListener('click', () => {
+                console.log('🖱️ Botão salvar clicado');
+                this.salvarDesenho();
+            });
+            
+            // Evento para impressão
+            document.getElementById('btnImprimir').addEventListener('click', () => this.imprimirDesenho());
+
+            document.getElementById('btnDesfazer').addEventListener('click', () => this.desfazer());
+            document.getElementById('btnRefazer').addEventListener('click', () => this.refazer());
+
+            this.configurarEventosAreaDesenho();
+            
+            console.log('✅ Eventos configurados com sucesso!');
+        }
+
+        // =============================================
+        // MÉTODOS DE SELEÇÃO E CONTROLES
+        // =============================================
+
+        selecionarElemento(elemento, event) {
+            this.desselecionarElemento();
+            
+            this.elementoSelecionado = elemento;
+            elemento.classList.add('elemento-selecionado');
+            
+            if (!elemento.classList.contains('simbolo-linha')) {
+                this.criarHandles(elemento);
+            }
+        }
+
+        desselecionarElemento() {
+            if (this.elementoSelecionado) {
+                this.elementoSelecionado.classList.remove('elemento-selecionado');
+                this.removerHandles();
+                this.fecharModal();
+                this.elementoSelecionado = null;
+            }
+            this.ultimoElementoClicado = null;
+        }
+
+        manipularCliqueDireito(elemento, event) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            this.ultimoElementoClicado = elemento;
+            
+            if (elemento.classList.contains('simbolo-linha')) {
+                this.desselecionarElemento();
+                this.elementoSelecionado = elemento;
+                elemento.classList.add('elemento-selecionado');
+            }
+            
+            this.mostrarModalControles(event);
+        }
+
+        criarHandles(elemento) {
+            if (elemento.classList.contains('simbolo-linha')) {
+                return;
+            }
+            
+            const pos = this.obterPosicaoComScroll(elemento);
+            const left = pos.left;
+            const top = pos.top;
+            const width = pos.width;
+            const height = pos.height;
+
+            const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+            const rad = rotation * Math.PI / 180;
+            
+            const centerX = left + width / 2;
+            const centerY = top + height / 2;
+
+            const relativeHandles = [
+                { class: 'handle-n', relX: 0, relY: -height / 2 },
+                { class: 'handle-s', relX: 0, relY: height / 2 },
+                { class: 'handle-e', relX: width / 2, relY: 0 },
+                { class: 'handle-w', relX: -width / 2, relY: 0 },
+                { class: 'handle-ne', relX: width / 2, relY: -height / 2 },
+                { class: 'handle-nw', relX: -width / 2, relY: -height / 2 },
+                { class: 'handle-se', relX: width / 2, relY: height / 2 },
+                { class: 'handle-sw', relX: -width / 2, relY: height / 2 }
+            ];
+
+            const handles = relativeHandles.map(handle => {
+                const rotatedX = handle.relX * Math.cos(rad) - handle.relY * Math.sin(rad);
+                const rotatedY = handle.relX * Math.sin(rad) + handle.relY * Math.cos(rad);
+                
+                return {
+                    class: handle.class,
+                    x: centerX + rotatedX,
+                    y: centerY + rotatedY
+                };
+            });
+
+            handles.forEach(handle => {
+                const handleElement = document.createElement('div');
+                handleElement.className = `handle ${handle.class}`;
+                handleElement.style.left = `${handle.x}px`;
+                handleElement.style.top = `${handle.y}px`;
+                this.drawingArea.appendChild(handleElement);
+                this.handles.push(handleElement);
+                
+                this.configurarHandle(handleElement, elemento, handle.class);
+            });
+
+            const handleRotacaoRelY = -height / 2 - 40;
+            const handleRotacaoX = 0 * Math.cos(rad) - handleRotacaoRelY * Math.sin(rad);
+            const handleRotacaoY = 0 * Math.sin(rad) + handleRotacaoRelY * Math.cos(rad);
+
+            const handleRotacao = document.createElement('div');
+            handleRotacao.className = 'handle handle-rotacao';
+            handleRotacao.style.left = `${centerX + handleRotacaoX}px`;
+            handleRotacao.style.top = `${centerY + handleRotacaoY}px`;
+            this.drawingArea.appendChild(handleRotacao);
+            this.handles.push(handleRotacao);
+            
+            this.configurarHandleRotacao(handleRotacao, elemento);
+        }
+
+        configurarHandle(handle, elemento) {
+            let initialX, initialY;
+            let initialWidth, initialHeight;
+            let initialLeft, initialTop;
+
+            interact(handle).draggable({
+                listeners: {
+                    start: (event) => {
+                        const style = window.getComputedStyle(elemento);
+                        initialWidth = parseFloat(style.width);
+                        initialHeight = parseFloat(style.height);
+                        initialLeft = parseFloat(style.left);
+                        initialTop = parseFloat(style.top);
+                        initialX = event.clientX;
+                        initialY = event.clientY;
+
+                        handle.style.cursor = 'grabbing';
+                    },
+                    move: (event) => {
+                        const deltaX = event.clientX - initialX;
+                        const deltaY = event.clientY - initialY;
+
+                        const handleClasses = handle.classList;
+                        let isEast = handleClasses.contains('handle-e');
+                        let isWest = handleClasses.contains('handle-w');
+                        let isNorth = handleClasses.contains('handle-n');
+                        let isSouth = handleClasses.contains('handle-s');
+                        let isNorthEast = handleClasses.contains('handle-ne');
+                        let isNorthWest = handleClasses.contains('handle-nw');
+                        let isSouthEast = handleClasses.contains('handle-se');
+                        let isSouthWest = handleClasses.contains('handle-sw');
+
+                        let newWidth = initialWidth;
+                        let newHeight = initialHeight;
+                        let newLeft = initialLeft;
+                        let newTop = initialTop;
+
+                        if (isEast) {
+                            newWidth = initialWidth + deltaX;
+                        }
+                        else if (isWest) {
+                            newWidth = initialWidth - deltaX;
+                            newLeft = initialLeft + deltaX;
+                        }
+                        else if (isNorth) {
+                            newHeight = initialHeight - deltaY;
+                            newTop = initialTop + deltaY;
+                        }
+                        else if (isSouth) {
+                            newHeight = initialHeight + deltaY;
+                        }
+                        else if (isNorthEast) {
+                            newWidth = initialWidth + deltaX;
+                            newHeight = initialHeight - deltaY;
+                            newTop = initialTop + deltaY;
+                        }
+                        else if (isNorthWest) {
+                            newWidth = initialWidth - deltaX;
+                            newHeight = initialHeight - deltaY;
+                            newLeft = initialLeft + deltaX;
+                            newTop = initialTop + deltaY;
+                        }
+                        else if (isSouthEast) {
+                            newWidth = initialWidth + deltaX;
+                            newHeight = initialHeight + deltaY;
+                        }
+                        else if (isSouthWest) {
+                            newWidth = initialWidth - deltaX;
+                            newHeight = initialHeight + deltaY;
+                            newLeft = initialLeft + deltaX;
+                        }
+
+                        if (newWidth >= 50) {
+                            elemento.style.width = newWidth + 'px';
+                            if (isWest || isNorthWest || isSouthWest) {
+                                elemento.style.left = newLeft + 'px';
+                            }
+                        }
+
+                        if (newHeight >= 50) {
+                            elemento.style.height = newHeight + 'px';
+                            if (isNorth || isNorthEast || isNorthWest) {
+                                elemento.style.top = newTop + 'px';
+                            }
+                        }
+
+                        this.atualizarLinhasESimbolos(elemento);
+                        this.atualizarHandles();
+                    },
+                    end: () => {
+                        handle.style.cursor = 'grab';
+                        this.salvarEstadoHistorico('Redimensionar Elemento');
+                    }
+                }
+            });
+        }
+
+        configurarHandleRotacao(handle, elemento) {
+            let initialAngle = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+            let initialX, initialY;
+            
+            const angulosFixos = [0, 90, 180, 270];
+            const SNAP_THRESHOLD = 15;
+
+            interact(handle).draggable({
+                listeners: {
+                    start: (event) => {
+                        const rect = elemento.getBoundingClientRect();
+                        const centerX = rect.left + rect.width / 2;
+                        const centerY = rect.top + rect.height / 2;
+                        initialX = event.clientX;
+                        initialY = event.clientY;
+                        handle.style.cursor = 'grabbing';
+                    },
+                    move: (event) => {
+                        const rect = elemento.getBoundingClientRect();
+                        const centerX = rect.left + rect.width / 2;
+                        const centerY = rect.top + rect.height / 2;
+                        
+                        const deltaX = event.clientX - centerX;
+                        const deltaY = event.clientY - centerY;
+                        let angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI) + 90;
+                        
+                        if (angle < 0) angle += 360;
+                        if (angle >= 360) angle -= 360;
+                        
+                        let snappedAngle = angle;
+                        for (const fixedAngle of angulosFixos) {
+                            if (Math.abs(angle - fixedAngle) < SNAP_THRESHOLD) {
+                                snappedAngle = fixedAngle;
+                                break;
+                            }
+                        }
+                        
+                        elemento.style.transform = `rotate(${snappedAngle}deg)`;
+                        elemento.setAttribute('data-rotate', snappedAngle);
+                        
+                        this.atualizarLinhasESimbolos(elemento);
+                        this.atualizarHandles();
+                    },
+                    end: () => {
+                        handle.style.cursor = 'grab';
+                        this.salvarEstadoHistorico('Rotacionar Elemento');
+                    }
+                }
+            });
+        }
+
+        removerHandles() {
+            this.handles.forEach(handle => {
+                if (handle.parentNode) {
+                    handle.parentNode.removeChild(handle);
+                }
+            });
+            this.handles = [];
+        }
+
+        atualizarHandles() {
+            if (!this.elementoSelecionado) return;
+
+            if (this.elementoSelecionado.classList.contains('simbolo-linha')) {
+                return;
+            }
+
+            this.removerHandles();
+            this.criarHandles(this.elementoSelecionado);
+        }
+
+        atualizarLinhasESimbolos(elemento) {
+            const width = parseFloat(elemento.style.width);
+            const height = parseFloat(elemento.style.height);
+            
+            const linhas = elemento.querySelectorAll('.linha-peca');
+            linhas.forEach(linha => {
+                const lado = linha.getAttribute('data-lado');
+                
+                switch(lado) {
+                    case 'top':
+                        linha.style.width = `${width}px`;
+                        linha.style.left = '0px';
+                        linha.style.top = '0px';
+                        break;
+                    case 'bottom':
+                        linha.style.width = `${width}px`;
+                        linha.style.left = '0px';
+                        linha.style.top = `${height}px`;
+                        break;
+                    case 'left':
+                        linha.style.height = `${height}px`;
+                        linha.style.left = '0px';
+                        linha.style.top = '0px';
+                        break;
+                    case 'right':
+                        linha.style.height = `${height}px`;
+                        linha.style.left = `${width}px`;
+                        linha.style.top = '0px';
+                        break;
+                }
+            });
+
+            this.atualizarPosicaoSimbolos(elemento);
+        }
+
+        atualizarPosicaoSimbolos(elemento) {
+            const pecaId = elemento.getAttribute('data-peca-id');
+            if (!pecaId) return;
+
+            const simbolos = this.drawingArea.querySelectorAll(`.simbolo-linha[data-peca-id="${pecaId}"]`);
+            
+            const pos = this.obterPosicaoComScroll(elemento);
+            const pecaLeft = pos.left;
+            const pecaTop = pos.top;
+            const pecaWidth = pos.width;
+            const pecaHeight = pos.height;
+            
+            simbolos.forEach(simbolo => {
+                const lado = simbolo.getAttribute('data-lado');
+                
+                let centerX, centerY;
+                
+                switch(lado) {
+                    case 'top':
+                        centerX = pecaLeft + (pecaWidth / 2);
+                        centerY = pecaTop;
+                        break;
+                    case 'bottom':
+                        centerX = pecaLeft + (pecaWidth / 2);
+                        centerY = pecaTop + pecaHeight;
+                        break;
+                    case 'left':
+                        centerX = pecaLeft;
+                        centerY = pecaTop + (pecaHeight / 2);
+                        break;
+                    case 'right':
+                        centerX = pecaLeft + pecaWidth;
+                        centerY = pecaTop + (pecaHeight / 2);
+                        break;
+                }
+                
+                simbolo.style.left = `${centerX}px`;
+                simbolo.style.top = `${centerY}px`;
+            });
+        }
+
+        mostrarModalControles(event) {
+            if (!this.elementoSelecionado && this.ultimoElementoClicado) {
+                this.selecionarElemento(this.ultimoElementoClicado, event);
+            }
+            
+            if (!this.elementoSelecionado) return;
+
+            const modal = this.modalControles;
+            const backdrop = this.modalBackdrop;
+            
+            const scrollX = window.pageXOffset || document.documentElement.scrollLeft;
+            const scrollY = window.pageYOffset || document.documentElement.scrollTop;
+            
+            modal.style.left = `${event.clientX + scrollX}px`;
+            modal.style.top = `${event.clientY + scrollY}px`;
+            
+            modal.style.display = 'block';
+            backdrop.style.display = 'block';
+            
+            backdrop.onclick = () => this.fecharModal();
+        }
+
+        fecharModal() {
+            this.modalControles.style.display = 'none';
+            this.modalBackdrop.style.display = 'none';
+        }
+
+        duplicarElemento() {
+            const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
+            if (!elementoAlvo) return;
+            
+            const clone = elementoAlvo.cloneNode(true);
+            clone.style.left = `${parseFloat(elementoAlvo.style.left) + 20}px`;
+            clone.style.top = `${parseFloat(elementoAlvo.style.top) + 20}px`;
+            clone.classList.remove('elemento-selecionado');
+            
+            this.drawingArea.appendChild(clone);
+            
+            this.configurarInteratividade(clone);
+            
+            if (clone.classList.contains('simbolo-linha')) {
+                this.configurarInteratividadeSimbolo(clone);
+            }
+            
+            clone.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                this.selecionarElemento(clone, e);
+            });
+            
+            clone.addEventListener('contextmenu', (e) => {
+                this.manipularCliqueDireito(clone, e);
+            });
+            
+            this.salvarEstadoHistorico('Duplicar Elemento');
+            
+            this.fecharModal();
+        }
+
+        excluirElemento() {
+            const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
+            if (!elementoAlvo) return;
+            
+            this.salvarEstadoHistorico('Excluir Elemento');
+            
+            elementoAlvo.remove();
+            this.desselecionarElemento();
+        }
+
+        // =============================================
+        // MÉTODOS AUXILIARES
+        // =============================================
+
+        obterPosicaoComScroll(elemento) {
+            const rect = elemento.getBoundingClientRect();
+            const drawingAreaRect = this.drawingArea.getBoundingClientRect();
+            
+            return {
+                left: rect.left - drawingAreaRect.left + this.drawingArea.scrollLeft,
+                top: rect.top - drawingAreaRect.top + this.drawingArea.scrollTop,
+                width: rect.width,
+                height: rect.height
+            };
+        }
+
+        // =============================================
+        // MÉTODOS DE CRIAÇÃO DE ELEMENTOS
+        // =============================================
+
+       criarPecasBase() {
+    if (this.pecasCriadas) return;
+
+    const escala = this.calcularEscalaAutomatica();
+    let posY = 100;
+
+    // Parâmetros ajustáveis
+    const inicioPosX = 50;
+    const gapHorizontal = 100; // espaço entre peças na mesma linha
+    const gapVertical = 120;   // espaço entre linhas dentro do mesmo grupo
+    const espacamentoEntreAgrupamentos = 30; // 3 cm ≈ 30px
+
+    const maxLineWidth = this.drawingArea.offsetWidth - 200;
+
+    Object.keys(this.gruposPecas).forEach((materialNome, grupoIndex) => {
+        const pecasGrupo = this.gruposPecas[materialNome];
+
+        // Cria o container do grupo (título + area)
+        const grupoInfo = this.criarGrupoMaterial(materialNome, grupoIndex, posY);
+
+        // Primeiro: montar as linhas (wrap) sem alterar posY
+        const lines = [[]]; // cada linha é lista de objetos {peca, width, height}
+        let currentLineWidth = 0;
+
+        pecasGrupo.forEach((peca) => {
+            const { width, height } = this.calcularDimensoesPeca(peca, escala);
+
+            // se a peça não cabe na linha atual (e já tem algo nela), cria nova linha
+            if (currentLineWidth > 0 && (currentLineWidth + width) > maxLineWidth) {
+                lines.push([]);
+                currentLineWidth = 0;
+            }
+
+            lines[lines.length - 1].push({
+                pecaData: peca,
+                width: Math.round(width),
+                height: Math.round(height)
+            });
+
+            // atualiza largura acumulada da linha (inclui gap horizontal entre peças)
+            currentLineWidth += width + gapHorizontal;
+        });
+
+        // Segundo: para cada linha, calcular altura máxima e posicionar as peças
+        let cumulativeY = 0; // posição vertical dentro da areaPecas
+        lines.forEach((line) => {
+            if (line.length === 0) return;
+
+            const lineMaxHeight = Math.max(...line.map(p => p.height));
+
+            // posiciona as peças da linha
+            let posX = inicioPosX;
+            line.forEach((pObj) => {
+                const peca = pObj.pecaData;
+                const w = pObj.width;
+                const h = pObj.height;
+
+                // Criar a peça com valores de left e top relativos à area do grupo
+                const pecaElement = document.createElement('div');
+                pecaElement.className = 'peca';
+                pecaElement.id = `peca-${peca.id}`;
+                pecaElement.style.width = `${w}px`;
+                pecaElement.style.height = `${h}px`;
+                pecaElement.style.left = `${posX}px`;
+                // top relativo à areaPecas (cumulativeY)
+                pecaElement.style.top = `${cumulativeY}px`;
+                pecaElement.setAttribute('data-peca-id', peca.id);
+                pecaElement.setAttribute('data-tipo', peca.tipo);
+                pecaElement.setAttribute('data-rotate', '0');
+
+                // criar dimensões/quantidade/linhas e interatividade
+                this.criarDimensoes(pecaElement, peca, w, h);
+
+                if (peca.quantidade > 1) {
+                    this.criarQuantidade(pecaElement, peca.quantidade);
+                }
+
+                this.configurarInteratividade(pecaElement);
+                this.criarLinhasPeca(pecaElement, peca.id, w, h);
+
+                pecaElement.addEventListener('dblclick', (e) => {
+                    e.stopPropagation();
+                    this.selecionarElemento(pecaElement, e);
+                });
+
+                pecaElement.addEventListener('contextmenu', (e) => {
+                    this.manipularCliqueDireito(pecaElement, e);
+                });
+
+                grupoInfo.areaPecas.appendChild(pecaElement);
+
+                // avança posX para próxima peça da linha
+                posX += w + gapHorizontal;
+            });
+
+            // após posicionar a linha, avança cumulativeY pela altura desta linha + gapVertical
+            cumulativeY += lineMaxHeight + gapVertical;
+        });
+
+        // Agora que posicionamos todas as linhas do grupo, atualizamos posY para o próximo grupo:
+        // altura utilizada dentro da areaPecas é cumulativeY (já inclui gaps entre linhas)
+        const alturaUtilizada = cumulativeY > 0 ? cumulativeY : 200; // fallback mínimo
+        posY += alturaUtilizada + espacamentoEntreAgrupamentos;
+    });
+
+    this.pecasCriadas = true;
+    console.log('✅ Peças base criadas com sucesso!');
+}
+
+
+        criarPeca(peca, width, height, posX, linhaAtual, maiorAlturaLinha) {
+            const pecaElement = document.createElement('div');
+            pecaElement.className = 'peca';
+            pecaElement.id = `peca-${peca.id}`;
+            pecaElement.style.width = `${width}px`;
+            pecaElement.style.height = `${height}px`;
+            pecaElement.style.left = `${posX}px`;
+            pecaElement.style.top = `${linhaAtual * (maiorAlturaLinha + 120) + 80}px`;
+            pecaElement.setAttribute('data-peca-id', peca.id);
+            pecaElement.setAttribute('data-tipo', peca.tipo);
+            pecaElement.setAttribute('data-rotate', '0');
+
+            this.criarDimensoes(pecaElement, peca, width, height);
+
+            if (peca.quantidade > 1) {
+                this.criarQuantidade(pecaElement, peca.quantidade);
+            }
+
+            return pecaElement;
+        }
+
+        criarGrupoMaterial(materialNome, grupoIndex, posY) {
+    const tituloGrupo = document.createElement('div');
+    tituloGrupo.className = 'titulo-grupo';
+    tituloGrupo.textContent = materialNome;
+    tituloGrupo.innerHTML += ` <small style="color: #666;">(${this.gruposPecas[materialNome].length} peça${this.gruposPecas[materialNome].length !== 1 ? 's' : ''})</small>`;
+
+    // 📍 Ajuste de posição inicial dos títulos
+    const deslocamentoEsquerdaTitulo = -10; // = 1 cm (aprox)
+    const deslocamentoCimaTitulo = -20;     // = 2 cm (aprox)
+
+    tituloGrupo.style.left = `${20 + deslocamentoEsquerdaTitulo}px`;
+    tituloGrupo.style.top = `${posY + deslocamentoCimaTitulo}px`;
+            tituloGrupo.setAttribute('contenteditable', 'true');
+            tituloGrupo.setAttribute('data-rotate', '0');
+
+            const areaPecas = document.createElement('div');
+    areaPecas.className = 'area-pecas';
+    areaPecas.style.position = 'absolute';
+
+    // 📍 Subir os desenhos e mover 1 cm à esquerda
+    const deslocamentoEsquerdaPecas = -25;  // 1 cm
+    const deslocamentoCimaPecas = -10;      // 3 cm
+    areaPecas.style.top = `${posY + 80 + deslocamentoCimaPecas}px`;
+    areaPecas.style.left = `${20 + deslocamentoEsquerdaPecas}px`;
+
+    // 📏 Ajuste largura total (para alinhar com borda direita)
+    areaPecas.style.width = 'calc(100% - 30px)';
+
+            this.drawingArea.appendChild(tituloGrupo);
+            this.drawingArea.appendChild(areaPecas);
+
+            this.configurarInteratividade(tituloGrupo);
+
+            tituloGrupo.addEventListener('blur', () => {
+                this.salvarEstadoHistorico('Editar Título do Grupo');
+            });
+
+            tituloGrupo.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                this.selecionarElemento(tituloGrupo, e);
+            });
+
+            tituloGrupo.addEventListener('contextmenu', (e) => {
+                this.manipularCliqueDireito(tituloGrupo, e);
+            });
+
+            return {
+                titulo: tituloGrupo,
+                areaPecas: areaPecas
+            };
+        }
+
+        criarCuba(x, y, tipo, largura = 100, altura = 60) {
+            const cubaElement = document.createElement('div');
+            cubaElement.className = `cuba ${tipo}`;
+            cubaElement.style.left = `${x}px`;
+            cubaElement.style.top = `${y}px`;
+            
+            if (tipo === 'circulo') {
+                const tamanho = Math.max(largura, altura);
+                cubaElement.style.width = `${tamanho}px`;
+                cubaElement.style.height = `${tamanho}px`;
+                cubaElement.style.borderRadius = '50%';
+            } else {
+                cubaElement.style.width = `${largura}px`;
+                cubaElement.style.height = `${altura}px`;
+                if (tipo === 'oval') cubaElement.style.borderRadius = '50%';
+                else if (tipo === 'elipse') cubaElement.style.borderRadius = '40%';
+                else cubaElement.style.borderRadius = '0';
+            }
+            
+            const textoElement = document.createElement('div');
+            textoElement.className = 'cuba-texto';
+            textoElement.textContent = 'Cuba';
+            cubaElement.appendChild(textoElement);
+            
+            const grupo = this.encontrarGrupoNaPosicao(x, y);
+            if (grupo) {
+                grupo.appendChild(cubaElement);
+            } else {
+                this.drawingArea.appendChild(cubaElement);
+            }
+            
+            this.configurarInteratividade(cubaElement);
+            
+            cubaElement.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                this.selecionarElemento(cubaElement, e);
+            });
+            
+            cubaElement.addEventListener('contextmenu', (e) => {
+                this.manipularCliqueDireito(cubaElement, e);
+            });
+            
+            this.salvarEstadoHistorico('Adicionar Cuba');
+            
+            return cubaElement;
+        }
+
+        criarTexto(x, y, textoInicial = "") {
+            const textoElement = document.createElement('textarea');
+            textoElement.className = 'texto-legenda';
+            textoElement.style.left = `${x}px`;
+            textoElement.style.top = `${y}px`;
+            textoElement.value = textoInicial;
+            textoElement.rows = 1;
+            textoElement.placeholder = "Digite seu texto";
+            
+            const grupo = this.encontrarGrupoNaPosicao(x, y);
+            if (grupo) {
+                grupo.appendChild(textoElement);
+            } else {
+                this.drawingArea.appendChild(textoElement);
+            }
+            
+            textoElement.focus();
+            
+            textoElement.addEventListener('input', () => {
+                textoElement.style.height = 'auto';
+                textoElement.style.height = (textoElement.scrollHeight) + 'px';
+            });
+            
+            textoElement.addEventListener('blur', () => {
+                if (textoElement.value.trim() === '') {
+                    textoElement.remove();
+                } else {
+                    this.salvarEstadoHistorico('Editar Texto');
+                }
+            });
+            
+            this.configurarInteratividade(textoElement);
+            
+            textoElement.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                this.selecionarElemento(textoElement, e);
+            });
+            
+            textoElement.addEventListener('contextmenu', (e) => {
+                this.manipularCliqueDireito(textoElement, e);
+            });
+            
+            this.salvarEstadoHistorico('Adicionar Texto');
+            
+            return textoElement;
+        }
+
+        criarLegendaSimplificada(x, y, simbolo = "C", descricao = "Acabamento") {
+            const legendaElement = document.createElement('div');
+            legendaElement.className = 'legenda-simplificada';
+            legendaElement.style.left = `${x}px`;
+            legendaElement.style.top = `${y}px`;
+            legendaElement.innerHTML = `
+                <span class="legenda-simbolo-inline">${simbolo}</span> = <span class="legenda-descricao-inline" contenteditable="true">${descricao}</span>
+            `;
+            
+            legendaElement.addEventListener('dblclick', () => {
+                const spanDescricao = legendaElement.querySelector('.legenda-descricao-inline');
+                spanDescricao.focus();
+            });
+            
+            const grupo = this.encontrarGrupoNaPosicao(x, y);
+            if (grupo) {
+                grupo.appendChild(legendaElement);
+            } else {
+                this.drawingArea.appendChild(legendaElement);
+            }
+            
+            this.configurarInteratividade(legendaElement);
+            
+            legendaElement.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                this.selecionarElemento(legendaElement, e);
+            });
+            
+            legendaElement.addEventListener('contextmenu', (e) => {
+                this.manipularCliqueDireito(legendaElement, e);
+            });
+            
+            this.salvarEstadoHistorico('Adicionar Legenda');
+            
+            return legendaElement;
+        }
+
+        encontrarGrupoNaPosicao(x, y) {
+            const grupos = this.drawingArea.querySelectorAll('.area-pecas');
+            for (const grupo of grupos) {
+                const rect = grupo.getBoundingClientRect();
+                const drawingAreaRect = this.drawingArea.getBoundingClientRect();
+                
+                const grupoLeft = rect.left - drawingAreaRect.left;
+                const grupoTop = rect.top - drawingAreaRect.top;
+                const grupoRight = grupoLeft + rect.width;
+                const grupoBottom = grupoTop + rect.height;
+                
+                if (x >= grupoLeft && x <= grupoRight && y >= grupoTop && y <= grupoBottom) {
+                    return grupo;
+                }
+            }
+            return null;
+        }
+
+        criarDimensoes(pecaElement, peca, width, height) {
+            const dimensoesTop = document.createElement('div');
+            dimensoesTop.className = 'dimensoes dimensoes-top';
+            dimensoesTop.textContent = `${peca.comprimento}cm`;
+            dimensoesTop.style.top = `${-35}px`;
+            dimensoesTop.style.left = `${width / 2}px`;
+            pecaElement.appendChild(dimensoesTop);
+            // Ajustar dimensões/top se estiverem saindo pela direita da drawingArea
+setTimeout(() => {
+    const drawingRect = this.drawingArea.getBoundingClientRect();
+
+    // Ajustar dimensoesTop (horizontal)
+    const topRect = dimensoesTop.getBoundingClientRect();
+    if (topRect.right > drawingRect.right - 10) {
+        // mover para a esquerda o suficiente
+        const excesso = topRect.right - (drawingRect.right - 10);
+        const atualLeft = parseFloat(dimensoesTop.style.left || (width/2)) || (width/2);
+        dimensoesTop.style.left = `${atualLeft - excesso}px`;
+    }
+
+    // Ajustar dimensoesRight (vertical text at right)
+    const rightRect = dimensoesRight.getBoundingClientRect();
+    if (rightRect.right > drawingRect.right - 10) {
+        const excesso = rightRect.right - (drawingRect.right - 10);
+        // dimensoesRight usa right: -35px; vamos convertê-la para left ajustado
+        const pecaRect = pecaElement.getBoundingClientRect();
+        const baseLeft = pecaRect.left - drawingRect.left;
+        const novaLeft = baseLeft + (parseFloat(dimensoesRight.style.right || -35) * -1) - excesso - dimensoesRight.offsetWidth;
+        dimensoesRight.style.right = 'auto';
+        dimensoesRight.style.left = `${novaLeft}px`;
+    }
+}, 0);
+
+this.configurarInteratividade(dimensoesTop);
+
+            const dimensoesRight = document.createElement('div');
+            dimensoesRight.className = 'dimensoes dimensoes-right';
+            dimensoesRight.textContent = `${peca.largura}cm`;
+            dimensoesRight.style.right = `${-35}px`;
+            dimensoesRight.style.top = `${height / 2}px`;
+            pecaElement.appendChild(dimensoesRight);
+            // Ajustar dimensões/top se estiverem saindo pela direita da drawingArea
+setTimeout(() => {
+    const drawingRect = this.drawingArea.getBoundingClientRect();
+
+    // Ajustar dimensoesTop (horizontal)
+    const topRect = dimensoesTop.getBoundingClientRect();
+    if (topRect.right > drawingRect.right - 10) {
+        // mover para a esquerda o suficiente
+        const excesso = topRect.right - (drawingRect.right - 10);
+        const atualLeft = parseFloat(dimensoesTop.style.left || (width/2)) || (width/2);
+        dimensoesTop.style.left = `${atualLeft - excesso}px`;
+    }
+
+    // Ajustar dimensoesRight (vertical text at right)
+    const rightRect = dimensoesRight.getBoundingClientRect();
+    if (rightRect.right > drawingRect.right - 10) {
+        const excesso = rightRect.right - (drawingRect.right - 10);
+        // dimensoesRight usa right: -35px; vamos convertê-la para left ajustado
+        const pecaRect = pecaElement.getBoundingClientRect();
+        const baseLeft = pecaRect.left - drawingRect.left;
+        const novaLeft = baseLeft + (parseFloat(dimensoesRight.style.right || -35) * -1) - excesso - dimensoesRight.offsetWidth;
+        dimensoesRight.style.right = 'auto';
+        dimensoesRight.style.left = `${novaLeft}px`;
+    }
+}, 0);
+
+this.configurarInteratividade(dimensoesRight);
+        }
+
+        criarQuantidade(pecaElement, quantidade) {
+    const quantidadeElement = document.createElement('div');
+    quantidadeElement.className = 'quantidade-peca';
+    quantidadeElement.textContent = `${quantidade}x`;
+
+    // 📍 Mover 0,5 cm à esquerda
+    quantidadeElement.style.left = '-45px'; // padrão era -35px → -45px = -10px ≈ 0,5 cm
+
+    pecaElement.appendChild(quantidadeElement);
+    this.configurarInteratividade(quantidadeElement);
+}
+
+        criarLinhasPeca(pecaElement, pecaId, width, height) {
+            const lados = [
+                { tipo: 'top', estilo: { top: '0px', left: '0px', width: width + 'px', height: '8px', transform: 'translateY(-4px)' }, rotacao: 0 },
+                { tipo: 'bottom', estilo: { top: height + 'px', left: '0px', width: width + 'px', height: '8px', transform: 'translateY(-4px)' }, rotacao: 0 },
+                { tipo: 'left', estilo: { top: '0px', left: '0px', width: '8px', height: height + 'px', transform: 'translateX(-4px)' }, rotacao: 90 },
+                { tipo: 'right', estilo: { top: '0px', left: width + 'px', width: '8px', height: height + 'px', transform: 'translateX(-4px)' }, rotacao: 90 }
+            ];
+
+            lados.forEach(lado => {
+                const linhaElement = document.createElement('div');
+                linhaElement.className = `linha-peca linha-${lado.tipo}`;
+                linhaElement.setAttribute('data-peca-id', pecaId);
+                linhaElement.setAttribute('data-lado', lado.tipo);
+                linhaElement.setAttribute('data-rotacao', lado.rotacao);
+                
+                Object.assign(linhaElement.style, {
+                    position: 'absolute',
+                    backgroundColor: 'transparent',
+                    cursor: 'pointer',
+                    zIndex: '6',
+                    transition: 'background-color 0.2s ease'
+                }, lado.estilo);
+
+                linhaElement.addEventListener('mouseenter', () => linhaElement.style.backgroundColor = '#4e73df');
+                linhaElement.addEventListener('mouseleave', () => linhaElement.style.backgroundColor = 'transparent');
+                linhaElement.addEventListener('click', (e) => this.manipularCliqueLinha(e, linhaElement));
+
+                pecaElement.appendChild(linhaElement);
+            });
+        }
+
+        criarSimboloLinha(linhaElement, simboloData, simboloExistente = null) {
+            const simboloElement = document.createElement('div');
+            simboloElement.className = 'simbolo-linha';
+            simboloElement.textContent = simboloData.texto;
+            simboloElement.setAttribute('data-rotacao', simboloData.rotacao);
+            simboloElement.setAttribute('data-peca-id', linhaElement.getAttribute('data-peca-id'));
+            simboloElement.setAttribute('data-lado', linhaElement.getAttribute('data-lado'));
+            simboloElement.setAttribute('data-rotate', '0');
+            
+            const pecaId = linhaElement.getAttribute('data-peca-id');
+            const pecaElement = this.drawingArea.querySelector(`#peca-${pecaId}`);
+            
+            if (pecaElement) {
+                const pos = this.obterPosicaoComScroll(pecaElement);
+                const pecaLeft = pos.left;
+                const pecaTop = pos.top;
+                const pecaWidth = pos.width;
+                const pecaHeight = pos.height;
+                
+                let centerX, centerY;
+                const lado = linhaElement.getAttribute('data-lado');
+                
+                switch(lado) {
+                    case 'top':
+                        centerX = pecaLeft + (pecaWidth / 2);
+                        centerY = pecaTop;
+                        break;
+                    case 'bottom':
+                        centerX = pecaLeft + (pecaWidth / 2);
+                        centerY = pecaTop + pecaHeight;
+                        break;
+                    case 'left':
+                        centerX = pecaLeft;
+                        centerY = pecaTop + (pecaHeight / 2);
+                        break;
+                    case 'right':
+                        centerX = pecaLeft + pecaWidth;
+                        centerY = pecaTop + (pecaHeight / 2);
+                        break;
+                }
+                
+                if (simboloExistente && simboloExistente.style.left && simboloExistente.style.top) {
+                    simboloElement.style.left = simboloExistente.style.left;
+                    simboloElement.style.top = simboloExistente.style.top;
+                } else {
+                    simboloElement.style.left = `${centerX}px`;
+                    simboloElement.style.top = `${centerY}px`;
+                }
+                
+                simboloElement.style.transform = `translate(-50%, -50%) rotate(${simboloData.rotacao}deg)`;
+                simboloElement.style.zIndex = '1000';
+                
+                this.drawingArea.appendChild(simboloElement);
+                
+                this.configurarInteratividadeSimbolo(simboloElement);
+                
+                if (simboloExistente && simboloExistente !== simboloElement) {
+                    simboloExistente.remove();
+                }
+                
+                if (simboloExistente) {
+                    this.salvarEstadoHistorico('Editar Símbolo');
+                } else {
+                    this.salvarEstadoHistorico('Adicionar Símbolo');
+                }
+                
+                return simboloElement;
+            }
+        }
+
+        configurarInteratividadeSimbolo(elemento) {
+            interact(elemento).draggable({
+                listeners: {
+                    start: () => {
+                        elemento.style.zIndex = '1000';
+                    },
+                    move: (event) => {
+    let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+    let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+    const rotate = elemento.getAttribute('data-rotate') || 0;
+
+    const drawingRect = this.drawingArea.getBoundingClientRect();
+    const elementRect = elemento.getBoundingClientRect();
+
+    // símbolo normalmente é posicionado sobre a peça, pegamos leftBase do elemento
+    let leftBase = 0;
+    if (elemento.style.left && elemento.style.left.endsWith('px')) {
+        leftBase = parseFloat(elemento.style.left) || 0;
+    } else {
+        leftBase = elementRect.left - drawingRect.left;
+    }
+
+    const absLeftProposto = leftBase + x;
+    const margemDireita = 60;
+    const maxLeftAllowed = drawingRect.width - elementRect.width - margemDireita;
+    const minLeftAllowed = 0;
+
+    let leftCorrigido = absLeftProposto;
+    if (leftCorrigido > maxLeftAllowed) leftCorrigido = maxLeftAllowed;
+    if (leftCorrigido < minLeftAllowed) leftCorrigido = minLeftAllowed;
+
+    const xCorrigido = leftCorrigido - leftBase;
+
+    elemento.style.transform = `translate(${xCorrigido}px, ${y}px) rotate(${rotate}deg)`;
+    elemento.setAttribute('data-x', xCorrigido);
+    elemento.setAttribute('data-y', y);
+},
+                    end: () => {
+                        elemento.style.zIndex = '';
+                        this.salvarEstadoHistorico('Mover Símbolo');
+                    }
+                }
+            });
+            
+            elemento.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                const pecaId = elemento.getAttribute('data-peca-id');
+                const lado = elemento.getAttribute('data-lado');
+                const linhaElement = this.drawingArea.querySelector(`.linha-peca[data-peca-id="${pecaId}"][data-lado="${lado}"]`);
+                
+                if (linhaElement) {
+                    this.mostrarSeletorSimbolos(linhaElement, elemento);
+                }
+            });
+            
+            elemento.addEventListener('contextmenu', (e) => {
+                e.stopPropagation();
+                this.desselecionarElemento();
+                this.elementoSelecionado = elemento;
+                elemento.classList.add('elemento-selecionado');
+                
+                this.manipularCliqueDireito(elemento, e);
+            });
+        }
+
+        configurarInteratividade(elemento) {
+            interact(elemento).draggable({
+                listeners: {
+                    start: () => {
+                        elemento.style.zIndex = '1000';
+                    },
+                    move: (event) => {
+    // posição proposta (relativa ao left/top base via data-x/data-y)
+    let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+    let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+    const rotate = elemento.getAttribute('data-rotate') || 0;
+
+    // Calcular posição absoluta prevista (left base + translate)
+    // baseLeft = element.style.left (px) se existir, senão calc via getBoundingClientRect
+    const drawingRect = this.drawingArea.getBoundingClientRect();
+    const elementRect = elemento.getBoundingClientRect();
+
+    // Determinar leftBase: valor numérico em px relativo à drawingArea
+    let leftBase = 0;
+    if (elemento.style.left && elemento.style.left.endsWith('px')) {
+        // estilo left relativo ao container (quando criado)
+        leftBase = parseFloat(elemento.style.left) || 0;
+    } else {
+        // fallback: posição atual do elemento em relação ao drawingArea
+        leftBase = elementRect.left - drawingRect.left;
+    }
+
+    // posição absoluta prevista (em px dentro da drawingArea)
+    const absLeftProposto = leftBase + x;
+    const margemDireita = 60; // ajuste se quiser mais/menos espaço
+
+    const maxLeftAllowed = drawingRect.width - elementRect.width - margemDireita;
+    const minLeftAllowed = 0;
+
+    // corrige se necessário
+    let leftCorrigido = absLeftProposto;
+    if (leftCorrigido > maxLeftAllowed) leftCorrigido = maxLeftAllowed;
+    if (leftCorrigido < minLeftAllowed) leftCorrigido = minLeftAllowed;
+
+    // novo x relativo = leftCorrigido - leftBase
+    const xCorrigido = leftCorrigido - leftBase;
+
+    // Aplicar transform usando o x/y corrigidos
+    elemento.style.transform = `translate(${xCorrigido}px, ${y}px) rotate(${rotate}deg)`;
+    elemento.setAttribute('data-x', xCorrigido);
+    elemento.setAttribute('data-y', y);
+
+    this.atualizarLinhasESimbolos(elemento);
+    this.atualizarHandles();
+},
+                    end: () => {
+                        elemento.style.zIndex = '';
+                        this.salvarEstadoHistorico('Mover Elemento');
+                    }
+                }
+            });
+        }
+
+        calcularEscalaAutomatica() {
+            let maiorDimensao = 0;
+            Object.values(this.gruposPecas).forEach(grupo => {
+                grupo.forEach(peca => {
+                    const maior = Math.max(peca.comprimento, peca.largura);
+                    if (maior > maiorDimensao) maiorDimensao = maior;
+                });
+            });
+            
+            const larguraArea = this.drawingArea.offsetWidth;
+            const escalaCalculada = (larguraArea * 0.7) / maiorDimensao;
+            
+            return Math.min(escalaCalculada, 0.8);
+        }
+
+        calcularDimensoesPeca(peca, escala) {
+            return {
+                width: peca.comprimento * escala,
+                height: peca.largura * escala
+            };
+        }
+
+        manipularCliqueLinha(e, linhaElement, simboloExistente = null) {
+            e.stopPropagation();
+            
+            const simboloAtual = this.drawingArea.querySelector(`.simbolo-linha[data-peca-id="${linhaElement.getAttribute('data-peca-id')}"][data-lado="${linhaElement.getAttribute('data-lado')}"]`);
+            
+            if (simboloAtual) {
+                this.mostrarSeletorSimbolos(linhaElement, simboloAtual);
+            } else {
+                this.mostrarSeletorSimbolos(linhaElement);
+            }
+        }
+
+        mostrarSeletorSimbolos(linhaElement, simboloExistente = null) {
+            const simboloAtual = simboloExistente ? simboloExistente.textContent : '//';
+            const lado = linhaElement.getAttribute('data-lado');
+            const rotacao = parseInt(linhaElement.getAttribute('data-rotacao'));
+            
+            const botoesSimbolos = CONFIG.LEGENDA_SIMPLIFICADA.map(item => 
+                `<button type="button" class="btn btn-outline-primary m-1" onclick="window.selecionarSimbolo('${item.simbolo}', ${rotacao})">
+                    <strong style="transform: rotate(${rotacao}deg); display: inline-block;">${item.simbolo}</strong>
+                    <br><small>${item.descricao}</small>
+                </button>`
+            ).join('');
+
+            const botaoRemover = 
+                `<button type="button" class="btn btn-outline-danger m-1" onclick="window.removerSimbolo()">
+                    <i class="fas fa-trash me-1"></i> Remover Símbolo
+                </button>`;
+
+            Swal.fire({
+                title: simboloExistente ? 'Editar Símbolo' : 'Escolha um Símbolo',
+                html: `
+                    <div class="mb-3">
+                        <label class="form-label">Símbolo Personalizado:</label>
+                        <input type="text" id="simboloPersonalizado" class="form-control" value="${simboloAtual}" placeholder="Digite seu símbolo">
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 15px 0;">
+                        ${botoesSimbolos}
+                        ${botaoRemover}
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: simboloExistente ? 'Atualizar' : 'Adicionar',
+                cancelButtonText: 'Cancelar',
+                preConfirm: () => {
+                    const simboloPersonalizado = document.getElementById('simboloPersonalizado').value;
+                    if (!simboloPersonalizado) {
+                        Swal.showValidationMessage('O símbolo não pode estar vazio!');
+                        return false;
+                    }
+                    return simboloPersonalizado;
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    const novoSímbolo = result.value;
+                    
+                    this.criarSimboloLinha(linhaElement, {
+                        texto: novoSímbolo,
+                        x: 0,
+                        y: 0,
+                        rotacao: rotacao
+                    }, simboloExistente);
+                }
+            });
+
+            window.selecionarSimbolo = (simbolo, rotacao) => {
+                this.criarSimboloLinha(linhaElement, {
+                    texto: simbolo,
+                    x: 0,
+                    y: 0,
+                    rotacao: rotacao
+                }, simboloExistente);
+                Swal.close();
+            };
+
+            window.removerSimbolo = () => {
+                if (simboloExistente) {
+                    simboloExistente.remove();
+                    gerenciadorDesenho.salvarEstadoHistorico('Remover Símbolo');
+                }
+                Swal.close();
+            };
+        }
+
+        manipularCliqueInsercao(e) {
+            const rect = this.drawingArea.getBoundingClientRect();
+            const x = e.clientX - rect.left;
+            const y = e.clientY - rect.top;
+
+            switch (this.modoInsercaoAtivo) {
+                case 'texto':
+                    this.criarTexto(x, y, '');
+                    break;
+                case 'cuba':
+                    this.mostrarSeletorCuba(x, y);
+                    break;
+                case 'legenda':
+                    this.mostrarSeletorLegenda(x, y);
+                    break;
+            }
+            
+            this.modoInsercaoAtivo = null;
+            this.drawingArea.style.cursor = 'crosshair';
+        }
+
+        ativarModoInsercao(tipo) {
+            this.modoInsercaoAtivo = tipo;
+            this.drawingArea.style.cursor = tipo === 'texto' ? 'text' : 'crosshair';
+        }
+
+        mostrarSeletorCuba(x, y) {
+            const botoesCuba = CONFIG.TIPOS_CUBA.map(cuba => 
+                `<button type="button" class="btn btn-outline-primary m-1" onclick="window.selecionarCuba('${cuba.tipo}')">
+                    ${cuba.nome}
+                </button>`
+            ).join('');
+
+            Swal.fire({
+                title: 'Selecione o tipo de cuba',
+                html: `<div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 15px 0;">${botoesCuba}</div>`,
+                showConfirmButton: false,
+                showCancelButton: true,
+                cancelButtonText: 'Cancelar'
+            });
+
+            window.selecionarCuba = (tipo) => {
+                this.criarCuba(x, y, tipo);
+                Swal.close();
+            };
+        }
+
+        mostrarSeletorLegenda(x, y) {
+            const botoesLegenda = CONFIG.LEGENDA_SIMPLIFICADA.map(item => 
+                `<button type="button" class="btn btn-outline-primary m-1" onclick="window.selecionarLegenda('${item.simbolo}', '${item.descricao}')">
+                    <strong>${item.simbolo}</strong> = ${item.descricao}
+                </button>`
+            ).join('');
+
+            Swal.fire({
+                title: 'Selecione uma legenda',
+                html: `<div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 15px 0;">${botoesLegenda}</div>`,
+                showConfirmButton: false,
+                showCancelButton: true,
+                cancelButtonText: 'Cancelar'
+            });
+
+            window.selecionarLegenda = (simbolo, descricao) => {
+                this.criarLegendaSimplificada(x, y, simbolo, descricao);
+                Swal.close();
+            };
+        }
+    }
+
+    // =============================================
+    // INICIALIZAÇÃO DA APLICAÇÃO
+    // =============================================
+    let gerenciadorDesenho;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 Iniciando aplicação...');
+        gerenciadorDesenho = new GerenciadorDesenho();
+        
+        document.addEventListener('contextmenu', (e) => {
+            if (e.target.closest('#drawingArea')) {
+                e.preventDefault();
+            }
+        });
+    });
+</script>
+
+</body>
+</html>
