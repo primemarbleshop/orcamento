@@ -79,10 +79,14 @@
             position: absolute; 
             background-color: rgba(255, 255, 255, 0.9); 
             border: 2px solid #000; 
-            cursor: move; 
+            cursor: default; 
             box-sizing: border-box; 
             user-select: none; 
             touch-action: none; 
+        }
+        
+        .peca.selecionavel {
+            cursor: pointer;
         }
         
         .dimensoes { 
@@ -93,7 +97,7 @@
             border: 1px solid #ccc; 
             border-radius: 3px; 
             z-index: 5; 
-            cursor: move; 
+            cursor: default; 
             touch-action: none; 
             user-select: none; 
         }
@@ -124,7 +128,7 @@
             font-size: 12px; 
             font-weight: bold; 
             z-index: 5; 
-            cursor: move; 
+            cursor: default; 
             touch-action: none; 
         }
         
@@ -207,7 +211,7 @@
             border-radius: 5px;
             position: absolute;
             z-index: 10;
-            cursor: move;
+            cursor: default;
             background-color: rgba(255, 255, 255, 0.95);
             border: 2px solid #4e73df;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
@@ -218,6 +222,10 @@
             white-space: nowrap;
             user-select: none;
             touch-action: none;
+        }
+
+        .titulo-grupo.selecionavel {
+            cursor: pointer;
         }
 
         .titulo-grupo:focus {
@@ -262,21 +270,29 @@
             font-weight: bold; 
             color: #000; 
             background-color: transparent !important; 
-            cursor: move; 
+            cursor: default; 
             z-index: 7; 
             user-select: none; 
             text-align: center; 
+        }
+        
+        .simbolo-linha.selecionavel {
+            cursor: pointer;
         }
         
         .cuba { 
             position: absolute; 
             background-color: rgba(255, 255, 255, 0.9); 
             border: 2px solid #333; 
-            cursor: move; 
+            cursor: default; 
             box-sizing: border-box; 
             user-select: none; 
             touch-action: none; 
             z-index: 8; 
+        }
+        
+        .cuba.selecionavel {
+            cursor: pointer;
         }
         
         .cuba.retangulo { 
@@ -304,12 +320,16 @@
             font-size: 14px; 
             text-align: center; 
             z-index: 10; 
-            cursor: move; 
+            cursor: default; 
             min-width: 80px; 
             min-height: 20px; 
             font-weight: bold; 
             touch-action: none; 
             padding: 2px; 
+        }
+        
+        .texto-legenda.selecionavel {
+            cursor: pointer;
         }
         
         .texto-legenda:focus { 
@@ -326,13 +346,17 @@
             border: none; 
             padding: 2px; 
             z-index: 10; 
-            cursor: move; 
+            cursor: default; 
             min-width: 120px; 
             font-size: 14px; 
             font-weight: bold; 
             display: flex; 
             align-items: center; 
             gap: 5px; 
+        }
+        
+        .legenda-simplificada.selecionavel {
+            cursor: pointer;
         }
         
         .legenda-simplificada:focus-within { 
@@ -419,76 +443,17 @@
             cursor: sw-resize;
         }
         
-        /* Modal controls: ajustes para evitar problemas com transforms/zoom */
-        .modal-controles {
-            position: fixed;
-            left: 0;                /* inicial — JS sobrescreve */
-            top: 0;                 /* inicial — JS sobrescreve */
-            transform: none !important;   /* garantir que nenhum translate atrapalhe */
-            transform-origin: top left;
-            background: white;
-            padding: 14px;          /* leve redução para caber melhor */
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            z-index: 99999;         /* bem alto para evitar ser coberto */
-            min-width: 200px;
-            max-width: 90vw;        /* nunca maior que a tela */
-            box-sizing: border-box;
-            max-height: calc(100vh - 20px);
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            will-change: left, top;
+        /* NOVO: Estilo para botão ativo de seleção */
+        .btn-selecao-ativo {
+            background-color: #2e59d9 !important;
+            border-color: #2e59d9 !important;
+            color: white !important;
+            box-shadow: 0 0 0 0.2rem rgba(46, 89, 217, 0.25);
         }
         
-      .modal-backdrop {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0,0,0,0.5);
-    z-index: 1999;
-    pointer-events: none; /* 🔥 Permite gestos de zoom e pan */
-    touch-action: none;   /* 🔥 Evita interferência com rolagem do modal */
-}
-
-
-        
-        .btn-controle {
-            margin: 5px;
-            padding: 8px 15px;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.2s ease;
-        }
-        
-        .btn-excluir {
-            background-color: #e74a3b;
-            color: white;
-        }
-        
-        .btn-excluir:hover {
-            background-color: #be2617;
-        }
-        
-        .btn-duplicar {
-            background-color: #1cc88a;
-            color: white;
-        }
-        
-        .btn-duplicar:hover {
-            background-color: #17a673;
-        }
-        
-        .btn-fechar {
-            background-color: #6c757d;
-            color: white;
-        }
-        
-        .btn-fechar:hover {
-            background-color: #5a6268;
+        /* Ajuste para os novos botões na barra de ação */
+        .action-buttons-container {
+            gap: 8px;
         }
 
         /* ======================== MOBILE - APENAS ÍCONES ======================== */
@@ -599,17 +564,17 @@
             }
         }
 
-        /* 🔥 CORREÇÃO: Melhorar backdrop para mobile */
         .modal-backdrop {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1999;
-            touch-action: pan-y; /* 🔥 Permite scroll vertical no backdrop se necessário */
-        }
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 1999;
+    pointer-events: none; /* 🔥 Permite gestos de zoom e pan */
+    touch-action: none;   /* 🔥 Evita interferência com rolagem do modal */
+}
 
         /* ======================== IMPRESSÃO ======================== */
         @media print {
@@ -764,8 +729,11 @@
             <strong>Data:</strong> {{ data_salvo.strftime('%d/%m/%Y') }}
         </p>
 
-        <!-- NOVO: Container para botões de ação entre data e área de desenho -->
+        <!-- MODIFICADO: Container para botões de ação com os novos botões -->
         <div class="action-buttons-container">
+            <button id="btnSelecionar" class="btn btn-custom-primary" title="Selecionar Objeto">
+                <i class="fas fa-mouse-pointer me-1"></i> <span class="btn-text">Selecionar</span>
+            </button>
             <button id="btnDesfazer" class="btn btn-custom-primary" title="Desfazer (Ctrl+Z)">
                 <i class="fas fa-undo me-1"></i> <span class="btn-text">Desfazer</span>
             </button>
@@ -781,6 +749,13 @@
             <button id="btnLegendaSimplificada" class="btn btn-custom-primary">
                 <i class="fas fa-tag me-1"></i> <span class="btn-text">Legenda</span>
             </button>
+            <!-- NOVOS BOTÕES: Duplicar e Excluir -->
+            <button id="btnDuplicar" class="btn btn-custom-primary" disabled title="Duplicar Elemento Selecionado">
+                <i class="fas fa-copy me-1"></i> <span class="btn-text">Duplicar</span>
+            </button>
+            <button id="btnExcluir" class="btn btn-custom-danger" disabled title="Excluir Elemento Selecionado">
+                <i class="fas fa-trash me-1"></i> <span class="btn-text">Excluir</span>
+            </button>
             <button id="btnSalvar" class="btn btn-custom-success">
                 <i class="fas fa-save me-1"></i> <span class="btn-text">Salvar Desenho</span>
             </button>
@@ -795,23 +770,6 @@
         </div>
     </div>
 
-    <!-- Modal para controles do objeto selecionado -->
-    <div id="modalControles" class="modal-controles" style="display: none;">
-        <h5>Controles do Objeto</h5>
-        <div class="d-flex flex-column gap-2 mt-3">
-            <button class="btn-controle btn-duplicar" onclick="gerenciadorDesenho.duplicarElemento()">
-                <i class="fas fa-copy me-1"></i> Duplicar
-            </button>
-            <button class="btn-controle btn-excluir" onclick="gerenciadorDesenho.excluirElemento()">
-                <i class="fas fa-trash me-1"></i> Excluir
-            </button>
-            <button class="btn-controle btn-fechar" onclick="gerenciadorDesenho.fecharModal()">
-                <i class="fas fa-times me-1"></i> Fechar
-            </button>
-        </div>
-    </div>
-    <div id="modalBackdrop" class="modal-backdrop" style="display: none;"></div>
-
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.11/dist/interact.min.js"></script>
@@ -819,11 +777,11 @@
 
     <script>
         // =============================================
-        // CONFIGURAÇÕES E CONSTANTES - ATUALIZADO
+        // CONFIGURAÇÕES E CONSTANTES
         // =============================================
         const CONFIG = {
             ESCALA_PADRAO: 0.15,
-            TAMANHO_MINIMO_CM: 15, // 🔥 NOVO: Tamanho mínimo de 15 cm no desenho
+            TAMANHO_MINIMO_CM: 15,
             TIPOS_CUBA: [
                 { tipo: "retangulo", nome: "Retângulo" },
                 { tipo: "circulo", nome: "Círculo" },
@@ -845,31 +803,14 @@
         // CLASSE PRINCIPAL - GERENCIADOR DE DESENHO
         // =============================================
         class GerenciadorDesenho {
-            registrarToqueDuplo(elemento, callback) {
-    let ultimoToque = 0;
-
-    elemento.addEventListener('touchend', (e) => {
-        const agora = new Date().getTime();
-        const tempoDesdeUltimo = agora - ultimoToque;
-
-        if (tempoDesdeUltimo < 300 && tempoDesdeUltimo > 30) { // 300ms é a janela do duplo toque
-            e.preventDefault();
-            e.stopPropagation();
-            callback(e);
-        }
-
-        ultimoToque = agora;
-    });
-}
             constructor() {
                 this.drawingArea = document.getElementById('drawingArea');
                 this.gruposPecas = this.carregarDadosPecas();
                 this.modoInsercaoAtivo = null;
+                this.modoSelecaoAtivo = false; // NOVO: Modo de seleção
                 this.pecasCriadas = false;
                 this.elementoSelecionado = null;
                 this.handles = [];
-                this.modalControles = document.getElementById('modalControles');
-                this.modalBackdrop = document.getElementById('modalBackdrop');
                 
                 this.ultimoElementoClicado = null;
                 
@@ -877,10 +818,10 @@
                 this.indiceHistorico = -1;
                 this.maximoHistorico = 50;
 
-                // 🔥 CORREÇÃO CRÍTICA: Carregar desenho salvo se existir
+                // Carregar desenho salvo se existir
                 this.desenhoSalvo = {{ desenho_salvo | tojson | safe }};
                 
-                // 🔥 CORREÇÃO: Variáveis para controle do modal de símbolos
+                // Variáveis para controle do modal de símbolos
                 this.modalSimbolosAtual = null;
                 this.backdropAtual = null;
                 this.linhaElementAtual = null;
@@ -914,11 +855,10 @@
                 return grupos;
             }
 
-            // 🔥 CORREÇÃO: Método de inicialização modificado
             inicializar() {
                 console.log('🚀 Inicializando Gerenciador de Desenho...');
                 
-                // 🔥 CORREÇÃO: Configurar eventos ANTES de carregar/criar desenho
+                // Configurar eventos ANTES de carregar/criar desenho
                 this.configurarEventos();
                 
                 // Verificar se há desenho salvo
@@ -934,7 +874,6 @@
                 console.log('✅ Gerenciador de Desenho inicializado com sucesso!');
             }
 
-            // 🔥 CORREÇÃO: Método para carregar desenho salvo
             carregarDesenhoSalvo() {
                 try {
                     // Limpar área de desenho
@@ -952,11 +891,11 @@
             }
 
             // =============================================
-            // SISTEMA DE HISTÓRICO DESFAZER/REFAZER - CORRIGIDO
+            // SISTEMA DE HISTÓRICO DESFAZER/REFAZER
             // =============================================
 
             salvarEstadoHistorico(descricao) {
-                // 🔥 CORREÇÃO: Cortar o histórico se não estivermos no final
+                // Cortar o histórico se não estivermos no final
                 if (this.indiceHistorico < this.historico.length - 1) {
                     this.historico = this.historico.slice(0, this.indiceHistorico + 1);
                 }
@@ -992,7 +931,6 @@
                 this.reconfigurarElementosAposHistorico();
             }
 
-            // 🔥 CORREÇÃO: Método melhorado para reconfigurar elementos
             reconfigurarElementosAposHistorico() {
                 this.desselecionarElemento();
                 
@@ -1001,29 +939,15 @@
                 );
                 
                 elementosInterativos.forEach(elemento => {
-                    this.configurarInteratividade(elemento);
+                    // Remover classe selecionavel se existir
+                    elemento.classList.remove('selecionavel');
                     
                     if (elemento.classList.contains('simbolo-linha')) {
                         this.configurarInteratividadeSimbolo(elemento);
                     }
-                    
-                    elemento.addEventListener('dblclick', (e) => {
-                        e.stopPropagation();
-                        this.selecionarElemento(elemento, e);
-                    });
-                    
-                    this.registrarToqueDuplo(elemento, (e) => {
-    e.stopPropagation();
-    this.selecionarElemento(elemento, e);
-});
-
-                    
-                    elemento.addEventListener('contextmenu', (e) => {
-                        this.manipularCliqueDireito(elemento, e);
-                    });
                 });
 
-                // 🔥 CORREÇÃO CRÍTICA: Reconfigurar eventos das linhas das peças
+                // Reconfigurar eventos das linhas das peças
                 const linhas = this.drawingArea.querySelectorAll('.linha-peca');
                 linhas.forEach(linha => {
                     linha.addEventListener('mouseenter', () => linha.style.backgroundColor = '#4e73df');
@@ -1055,6 +979,9 @@
                         });
                     }
                 });
+                
+                // Atualizar estado dos botões
+                this.atualizarEstadoBotoes();
             }
 
             desfazer() {
@@ -1096,7 +1023,7 @@
             }
 
             // =============================================
-            // MÉTODO SALVAR DESENHO - FUNCIONANDO
+            // MÉTODO SALVAR DESENHO
             // =============================================
 
             salvarDesenho() {
@@ -1179,18 +1106,25 @@
             }
 
             // =============================================
-            // CONFIGURAÇÃO DE EVENTOS - CORRIGIDA
+            // CONFIGURAÇÃO DE EVENTOS - MODIFICADA
             // =============================================
 
             configurarEventos() {
                 console.log('🔧 Configurando eventos...');
                 
-                // 🔥 CORREÇÃO: Eventos dos botões principais
+                // NOVO: Evento para o botão de seleção (agora é toggle)
+                document.getElementById('btnSelecionar').addEventListener('click', () => this.toggleModoSelecao());
+                
+                // Eventos dos botões principais
                 document.getElementById('btnAdicionarTexto').addEventListener('click', () => this.ativarModoInsercao('texto'));
                 document.getElementById('btnAdicionarCuba').addEventListener('click', () => this.ativarModoInsercao('cuba'));
                 document.getElementById('btnLegendaSimplificada').addEventListener('click', () => this.ativarModoInsercao('legenda'));
 
-                // 🔥 CORREÇÃO: Evento para salvar desenho com log
+                // NOVOS: Eventos para os botões duplicar e excluir
+                document.getElementById('btnDuplicar').addEventListener('click', () => this.duplicarElemento());
+                document.getElementById('btnExcluir').addEventListener('click', () => this.excluirElemento());
+
+                // Evento para salvar desenho
                 document.getElementById('btnSalvar').addEventListener('click', () => {
                     console.log('🖱️ Botão salvar clicado');
                     this.salvarDesenho();
@@ -1199,23 +1133,24 @@
                 // Evento para impressão
                 document.getElementById('btnImprimir').addEventListener('click', () => this.imprimirDesenho());
 
-                // 🔥 CORREÇÃO: Eventos desfazer/refazer
+                // Eventos desfazer/refazer
                 document.getElementById('btnDesfazer').addEventListener('click', () => this.desfazer());
                 document.getElementById('btnRefazer').addEventListener('click', () => this.refazer());
 
-                // 🔥 CORREÇÃO CRÍTICA: Evento de clique na área de desenho para modos de inserção
+                // Evento de clique na área de desenho para modos de inserção e seleção
                 this.drawingArea.addEventListener('click', (e) => {
                     if (this.modoInsercaoAtivo) {
                         this.manipularCliqueInsercao(e);
+                    } else if (this.modoSelecaoAtivo) {
+                        // NOVO: Selecionar elemento quando no modo seleção
+                        this.manipularCliqueSelecao(e);
                     }
                 });
                 
-                // 🔥 CORREÇÃO: Evento global para desselecionar ao clicar fora
+                // Evento global para desselecionar ao clicar fora
                 document.addEventListener('click', (e) => {
-                    // Se clicar fora da área de desenho E fora do modal de controles
-                    if (!e.target.closest('#drawingArea') && 
-                        !e.target.closest('.modal-controles') && 
-                        !e.target.closest('.handle')) {
+                    // Se clicar fora da área de desenho E não for handle
+                    if (!e.target.closest('#drawingArea') && !e.target.closest('.handle')) {
                         this.desselecionarElemento();
                     }
                 });
@@ -1231,6 +1166,11 @@
                             this.refazer();
                         }
                     }
+                    
+                    // NOVO: Tecla Escape para desselecionar
+                    if (e.key === 'Escape') {
+                        this.desselecionarElemento();
+                    }
                 });
                 
                 this.configurarEventosAreaDesenho();
@@ -1241,14 +1181,84 @@
             configurarEventosAreaDesenho() {
                 // Evento para desselecionar ao clicar na área vazia
                 this.drawingArea.addEventListener('click', (e) => {
-                    if (e.target === this.drawingArea) {
+                    if (e.target === this.drawingArea && this.modoSelecaoAtivo) {
                         this.desselecionarElemento();
                     }
                 });
             }
 
+            // NOVO: Método para alternar modo de seleção (toggle)
+            toggleModoSelecao() {
+                if (this.modoSelecaoAtivo) {
+                    this.desativarModoSelecao();
+                } else {
+                    this.ativarModoSelecao();
+                }
+            }
+
+            // NOVO: Método para ativar modo de seleção
+            ativarModoSelecao() {
+                this.modoSelecaoAtivo = true;
+                this.desselecionarElemento();
+                this.drawingArea.style.cursor = 'pointer';
+                
+                // Destacar o botão de seleção
+                const btnSelecionar = document.getElementById('btnSelecionar');
+                btnSelecionar.classList.add('btn-selecao-ativo');
+                
+                // Tornar todos os elementos selecionáveis
+                this.tornarElementosSelecionaveis(true);
+                
+                console.log('🔧 Modo seleção ativado');
+            }
+
+            // NOVO: Método para desativar modo de seleção
+            desativarModoSelecao() {
+                this.modoSelecaoAtivo = false;
+                this.desselecionarElemento();
+                this.drawingArea.style.cursor = 'default';
+                
+                // Remover destaque do botão de seleção
+                const btnSelecionar = document.getElementById('btnSelecionar');
+                btnSelecionar.classList.remove('btn-selecao-ativo');
+                
+                // Remover selecionabilidade de todos os elementos
+                this.tornarElementosSelecionaveis(false);
+                
+                console.log('🔧 Modo seleção desativado');
+            }
+
+            // NOVO: Método para tornar elementos selecionáveis ou não
+            tornarElementosSelecionaveis(selecionavel) {
+                const elementos = this.drawingArea.querySelectorAll(
+                    '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca'
+                );
+                
+                elementos.forEach(elemento => {
+                    if (selecionavel) {
+                        elemento.classList.add('selecionavel');
+                    } else {
+                        elemento.classList.remove('selecionavel');
+                    }
+                });
+            }
+
+            // NOVO: Método para manipular clique durante modo de seleção
+            manipularCliqueSelecao(e) {
+                // Encontrar o elemento clicado (ignorar handles)
+                if (e.target.classList.contains('handle')) return;
+                
+                const elemento = e.target.closest('.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca');
+                
+                if (elemento && elemento.classList.contains('selecionavel')) {
+                    this.selecionarElemento(elemento, e);
+                } else {
+                    this.desselecionarElemento();
+                }
+            }
+
             // =============================================
-            // MÉTODOS DE SELEÇÃO E CONTROLES - CORRIGIDOS
+            // MÉTODOS DE SELEÇÃO E CONTROLES - MODIFICADOS
             // =============================================
 
             selecionarElemento(elemento, event) {
@@ -1257,29 +1267,49 @@
                 this.elementoSelecionado = elemento;
                 elemento.classList.add('elemento-selecionado');
                 
-                // 🔥 CORREÇÃO: Desabilitar cliques nas linhas quando handle está selecionado
+                // Desabilitar cliques nas linhas quando handle está selecionado
                 this.desabilitarLinhasPecas();
                 
                 if (!elemento.classList.contains('simbolo-linha')) {
                     this.criarHandles(elemento);
                 }
+                
+                // Configurar interatividade para o elemento selecionado
+                this.configurarInteratividade(elemento);
+                
+                // Atualizar estado dos botões
+                this.atualizarEstadoBotoes();
             }
 
             desselecionarElemento() {
                 if (this.elementoSelecionado) {
+                    // Remover interatividade do elemento
+                    this.removerInteratividade(this.elementoSelecionado);
+                    
                     this.elementoSelecionado.classList.remove('elemento-selecionado');
                     
-                    // 🔥 CORREÇÃO: Reabilitar linhas quando desselecionar
+                    // Reabilitar linhas quando desselecionar
                     this.reabilitarLinhasPecas();
                     
                     this.removerHandles();
-                    this.fecharModal();
                     this.elementoSelecionado = null;
                 }
+                
+                // Atualizar estado dos botões
+                this.atualizarEstadoBotoes();
+                
                 this.ultimoElementoClicado = null;
             }
 
-            // 🔥 NOVO MÉTODO: Desabilitar linhas das peças quando handle está ativo
+            // NOVO: Método para atualizar estado dos botões
+            atualizarEstadoBotoes() {
+                const temElementoSelecionado = this.elementoSelecionado !== null;
+                
+                document.getElementById('btnDuplicar').disabled = !temElementoSelecionado;
+                document.getElementById('btnExcluir').disabled = !temElementoSelecionado;
+            }
+
+            // NOVO MÉTODO: Desabilitar linhas das peças quando handle está ativo
             desabilitarLinhasPecas() {
                 const linhas = this.drawingArea.querySelectorAll('.linha-peca');
                 linhas.forEach(linha => {
@@ -1287,27 +1317,12 @@
                 });
             }
 
-            // 🔥 NOVO MÉTODO: Reabilitar linhas das peças
+            // NOVO MÉTODO: Reabilitar linhas das peças
             reabilitarLinhasPecas() {
                 const linhas = this.drawingArea.querySelectorAll('.linha-peca');
                 linhas.forEach(linha => {
                     linha.style.pointerEvents = 'auto';
                 });
-            }
-
-            manipularCliqueDireito(elemento, event) {
-                event.preventDefault();
-                event.stopPropagation();
-                
-                this.ultimoElementoClicado = elemento;
-                
-                if (elemento.classList.contains('simbolo-linha')) {
-                    this.desselecionarElemento();
-                    this.elementoSelecionado = elemento;
-                    elemento.classList.add('elemento-selecionado');
-                }
-                
-                this.mostrarModalControles(event);
             }
 
             criarHandles(elemento) {
@@ -1354,7 +1369,7 @@
                     handleElement.className = `handle ${handle.class}`;
                     handleElement.style.left = `${handle.x}px`;
                     handleElement.style.top = `${handle.y}px`;
-                    handleElement.style.zIndex = '1002'; // 🔥 CORREÇÃO: Z-index maior para ficar na frente
+                    handleElement.style.zIndex = '1002';
                     this.drawingArea.appendChild(handleElement);
                     this.handles.push(handleElement);
                     
@@ -1369,7 +1384,7 @@
                 handleRotacao.className = 'handle handle-rotacao';
                 handleRotacao.style.left = `${centerX + handleRotacaoX}px`;
                 handleRotacao.style.top = `${centerY + handleRotacaoY}px`;
-                handleRotacao.style.zIndex = '1002'; // 🔥 CORREÇÃO: Z-index maior
+                handleRotacao.style.zIndex = '1002';
                 this.drawingArea.appendChild(handleRotacao);
                 this.handles.push(handleRotacao);
                 
@@ -1620,85 +1635,6 @@
                 });
             }
 
-        mostrarModalControles(event) {
-    if (!this.elementoSelecionado && this.ultimoElementoClicado) {
-        this.selecionarElemento(this.ultimoElementoClicado, event);
-    }
-    if (!this.elementoSelecionado) return;
-
-    const modal = this.modalControles;
-    const backdrop = this.modalBackdrop;
-
-    // Garantir que modal e backdrop estejam no body (evita problemas com ancestors transform)
-    if (modal.parentNode !== document.body) document.body.appendChild(modal);
-    if (backdrop.parentNode !== document.body) document.body.appendChild(backdrop);
-
-    // Preparar visualização
-    modal.style.transform = 'none';
-    modal.style.display = 'block';
-    backdrop.style.display = 'block';
-
-    // Obter coordenadas do ponteiro (suporta touch e mouse)
-    let clientX = 0, clientY = 0;
-    if (event.touches && event.touches[0]) {
-        clientX = event.touches[0].clientX;
-        clientY = event.touches[0].clientY;
-    } else if (event.changedTouches && event.changedTouches[0]) {
-        clientX = event.changedTouches[0].clientX;
-        clientY = event.changedTouches[0].clientY;
-    } else {
-        clientX = typeof event.clientX === 'number' ? event.clientX : (event.pageX - (window.scrollX || window.pageXOffset || 0));
-        clientY = typeof event.clientY === 'number' ? event.clientY : (event.pageY - (window.scrollY || window.pageYOffset || 0));
-    }
-
-    // Medir modal depois de exibido
-    const modalRect = modal.getBoundingClientRect();
-
-    // Usar visualViewport quando disponível (melhor para pinch-zoom / pan)
-    const vv = window.visualViewport;
-    const viewportWidth = vv ? vv.width : window.innerWidth;
-    const viewportHeight = vv ? vv.height : window.innerHeight;
-    const viewportOffsetLeft = vv ? vv.offsetLeft : 0;
-    const viewportOffsetTop = vv ? vv.offsetTop : 0;
-
-    // Coordenadas iniciais (clientX/Y já são relativas à viewport)
-    let left = clientX;
-    let top = clientY;
-    const margin = 10;
-
-    // Ajustes para não sair da tela visível
-    if (left + modalRect.width > viewportWidth - margin) {
-        left = Math.max(margin, viewportWidth - modalRect.width - margin);
-    }
-    if (top + modalRect.height > viewportHeight - margin) {
-        top = Math.max(margin, viewportHeight - modalRect.height - margin);
-    }
-    if (left < margin) left = margin;
-    if (top < margin) top = margin;
-
-    // Compensar offsets/scroll para posição final (position: fixed usa viewport coordinates + offsets)
-    const scrollX = window.scrollX || window.pageXOffset || 0;
-    const scrollY = window.scrollY || window.pageYOffset || 0;
-
-    modal.style.left = `${left + (viewportOffsetLeft || 0) + scrollX}px`;
-    modal.style.top = `${top + (viewportOffsetTop || 0) + scrollY}px`;
-
-    // --- IMPORTANT: NÃO fechar o modal ao clicar no backdrop automaticamente ---
-    // Se quiser que clicar no backdrop NÃO feche, simplesmente *não* atribua onclick.
-    // Se precisar bloquear interação com a página, mantenha o backdrop visível (já está).
-    backdrop.onclick = null;
-}
-
-fecharModal() {
-                    if (this.modalControles) {
-                        this.modalControles.style.display = 'none';
-                    }
-                    if (this.modalBackdrop) {
-                        this.modalBackdrop.style.display = 'none';
-                    }
-                }
-
-
             duplicarElemento() {
                 const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
                 if (!elementoAlvo) return;
@@ -1708,6 +1644,11 @@ fecharModal() {
                 clone.style.top = `${parseFloat(elementoAlvo.style.top) + 20}px`;
                 clone.classList.remove('elemento-selecionado');
                 
+                // Remover classe selecionavel se o modo de seleção não estiver ativo
+                if (!this.modoSelecaoAtivo) {
+                    clone.classList.remove('selecionavel');
+                }
+                
                 this.drawingArea.appendChild(clone);
                 
                 this.configurarInteratividade(clone);
@@ -1716,18 +1657,10 @@ fecharModal() {
                     this.configurarInteratividadeSimbolo(clone);
                 }
                 
-                clone.addEventListener('dblclick', (e) => {
-                    e.stopPropagation();
-                    this.selecionarElemento(clone, e);
-                });
-                
-                clone.addEventListener('contextmenu', (e) => {
-                    this.manipularCliqueDireito(clone, e);
-                });
-                
                 this.salvarEstadoHistorico('Duplicar Elemento');
                 
-                this.fecharModal();
+                // Selecionar o elemento duplicado
+                this.selecionarElemento(clone, null);
             }
 
             excluirElemento() {
@@ -1757,7 +1690,7 @@ fecharModal() {
             }
 
             // =============================================
-            // MÉTODOS DE CRIAÇÃO DE ELEMENTOS - CORRIGIDOS
+            // MÉTODOS DE CRIAÇÃO DE ELEMENTOS
             // =============================================
 
             criarPecasBase() {
@@ -1768,9 +1701,9 @@ fecharModal() {
 
                 // Parâmetros ajustáveis
                 const inicioPosX = 50;
-                const gapHorizontal = 100; // espaço entre peças na mesma linha
-                const gapVertical = 120;   // espaço entre linhas dentro do mesmo grupo
-                const espacamentoEntreAgrupamentos = 30; // 3 cm ≈ 30px
+                const gapHorizontal = 100;
+                const gapVertical = 120;
+                const espacamentoEntreAgrupamentos = 30;
 
                 const maxLineWidth = this.drawingArea.offsetWidth - 200;
 
@@ -1781,13 +1714,12 @@ fecharModal() {
                     const grupoInfo = this.criarGrupoMaterial(materialNome, grupoIndex, posY);
 
                     // Primeiro: montar as linhas (wrap) sem alterar posY
-                    const lines = [[]]; // cada linha é lista de objetos {peca, width, height}
+                    const lines = [[]];
                     let currentLineWidth = 0;
 
                     pecasGrupo.forEach((peca) => {
                         const { width, height } = this.calcularDimensoesPeca(peca, escala);
 
-                        // se a peça não cabe na linha atual (e já tem algo nela), cria nova linha
                         if (currentLineWidth > 0 && (currentLineWidth + width) > maxLineWidth) {
                             lines.push([]);
                             currentLineWidth = 0;
@@ -1799,69 +1731,50 @@ fecharModal() {
                             height: Math.round(height)
                         });
 
-                        // atualiza largura acumulada da linha (inclui gap horizontal entre peças)
                         currentLineWidth += width + gapHorizontal;
                     });
 
                     // Segundo: para cada linha, calcular altura máxima e posicionar as peças
-                    let cumulativeY = 0; // posição vertical dentro da areaPecas
+                    let cumulativeY = 0;
                     lines.forEach((line) => {
                         if (line.length === 0) return;
 
                         const lineMaxHeight = Math.max(...line.map(p => p.height));
 
-                        // posiciona as peças da linha
                         let posX = inicioPosX;
                         line.forEach((pObj) => {
                             const peca = pObj.pecaData;
                             const w = pObj.width;
                             const h = pObj.height;
 
-                            // Criar a peça com valores de left e top relativos à area do grupo
                             const pecaElement = document.createElement('div');
                             pecaElement.className = 'peca';
                             pecaElement.id = `peca-${peca.id}`;
                             pecaElement.style.width = `${w}px`;
                             pecaElement.style.height = `${h}px`;
                             pecaElement.style.left = `${posX}px`;
-                            // top relativo à areaPecas (cumulativeY)
                             pecaElement.style.top = `${cumulativeY}px`;
                             pecaElement.setAttribute('data-peca-id', peca.id);
                             pecaElement.setAttribute('data-tipo', peca.tipo);
                             pecaElement.setAttribute('data-rotate', '0');
 
-                            // criar dimensões/quantidade/linhas e interatividade
                             this.criarDimensoes(pecaElement, peca, w, h);
 
                             if (peca.quantidade > 1) {
                                 this.criarQuantidade(pecaElement, peca.quantidade);
                             }
 
-                            this.configurarInteratividade(pecaElement);
                             this.criarLinhasPeca(pecaElement, peca.id, w, h);
-
-                            pecaElement.addEventListener('dblclick', (e) => {
-                                e.stopPropagation();
-                                this.selecionarElemento(pecaElement, e);
-                            });
-
-                            pecaElement.addEventListener('contextmenu', (e) => {
-                                this.manipularCliqueDireito(pecaElement, e);
-                            });
 
                             grupoInfo.areaPecas.appendChild(pecaElement);
 
-                            // avança posX para próxima peça da linha
                             posX += w + gapHorizontal;
                         });
 
-                        // após posicionar a linha, avança cumulativeY pela altura desta linha + gapVertical
                         cumulativeY += lineMaxHeight + gapVertical;
                     });
 
-                    // Agora que posicionamos todas as linhas do grupo, atualizamos posY para o próximo grupo:
-                    // altura utilizada dentro da areaPecas é cumulativeY (já inclui gaps entre linhas)
-                    const alturaUtilizada = cumulativeY > 0 ? cumulativeY : 200; // fallback mínimo
+                    const alturaUtilizada = cumulativeY > 0 ? cumulativeY : 200;
                     posY += alturaUtilizada + espacamentoEntreAgrupamentos;
                 });
 
@@ -1869,35 +1782,13 @@ fecharModal() {
                 console.log('✅ Peças base criadas com sucesso!');
             }
 
-            criarPeca(peca, width, height, posX, linhaAtual, maiorAlturaLinha) {
-                const pecaElement = document.createElement('div');
-                pecaElement.className = 'peca';
-                pecaElement.id = `peca-${peca.id}`;
-                pecaElement.style.width = `${width}px`;
-                pecaElement.style.height = `${height}px`;
-                pecaElement.style.left = `${posX}px`;
-                pecaElement.style.top = `${linhaAtual * (maiorAlturaLinha + 120) + 80}px`;
-                pecaElement.setAttribute('data-peca-id', peca.id);
-                pecaElement.setAttribute('data-tipo', peca.tipo);
-                pecaElement.setAttribute('data-rotate', '0');
-
-                this.criarDimensoes(pecaElement, peca, width, height);
-
-                if (peca.quantidade > 1) {
-                    this.criarQuantidade(pecaElement, peca.quantidade);
-                }
-
-                return pecaElement;
-            }
-
             criarGrupoMaterial(materialNome, grupoIndex, posY) {
                 const tituloGrupo = document.createElement('div');
                 tituloGrupo.className = 'titulo-grupo';
                 tituloGrupo.textContent = materialNome;
 
-                // 📍 Ajuste de posição inicial dos títulos
-                const deslocamentoEsquerdaTitulo = -10; // = 1 cm (aprox)
-                const deslocamentoCimaTitulo = -20;     // = 2 cm (aprox)
+                const deslocamentoEsquerdaTitulo = -10;
+                const deslocamentoCimaTitulo = -20;
 
                 tituloGrupo.style.left = `${20 + deslocamentoEsquerdaTitulo}px`;
                 tituloGrupo.style.top = `${posY + deslocamentoCimaTitulo}px`;
@@ -1908,31 +1799,18 @@ fecharModal() {
                 areaPecas.className = 'area-pecas';
                 areaPecas.style.position = 'absolute';
 
-                // 📍 Subir os desenhos e mover 1 cm à esquerda
-                const deslocamentoEsquerdaPecas = -25;  // 1 cm
-                const deslocamentoCimaPecas = -10;      // 3 cm
+                const deslocamentoEsquerdaPecas = -25;
+                const deslocamentoCimaPecas = -10;
                 areaPecas.style.top = `${posY + 80 + deslocamentoCimaPecas}px`;
                 areaPecas.style.left = `${20 + deslocamentoEsquerdaPecas}px`;
 
-                // 📏 Ajuste largura total (para alinhar com borda direita)
                 areaPecas.style.width = 'calc(100% - 30px)';
 
                 this.drawingArea.appendChild(tituloGrupo);
                 this.drawingArea.appendChild(areaPecas);
 
-                this.configurarInteratividade(tituloGrupo);
-
                 tituloGrupo.addEventListener('blur', () => {
                     this.salvarEstadoHistorico('Editar Título do Grupo');
-                });
-
-                tituloGrupo.addEventListener('dblclick', (e) => {
-                    e.stopPropagation();
-                    this.selecionarElemento(tituloGrupo, e);
-                });
-
-                tituloGrupo.addEventListener('contextmenu', (e) => {
-                    this.manipularCliqueDireito(tituloGrupo, e);
                 });
 
                 return {
@@ -1960,23 +1838,17 @@ fecharModal() {
                     else cubaElement.style.borderRadius = '0';
                 }
                 
+                // Adicionar classe selecionavel se o modo de seleção estiver ativo
+                if (this.modoSelecaoAtivo) {
+                    cubaElement.classList.add('selecionavel');
+                }
+                
                 const grupo = this.encontrarGrupoNaPosicao(x, y);
                 if (grupo) {
                     grupo.appendChild(cubaElement);
                 } else {
                     this.drawingArea.appendChild(cubaElement);
                 }
-                
-                this.configurarInteratividade(cubaElement);
-                
-                cubaElement.addEventListener('dblclick', (e) => {
-                    e.stopPropagation();
-                    this.selecionarElemento(cubaElement, e);
-                });
-                
-                cubaElement.addEventListener('contextmenu', (e) => {
-                    this.manipularCliqueDireito(cubaElement, e);
-                });
                 
                 this.salvarEstadoHistorico('Adicionar Cuba');
                 
@@ -1991,6 +1863,11 @@ fecharModal() {
                 textoElement.value = textoInicial;
                 textoElement.rows = 1;
                 textoElement.placeholder = "Digite seu texto";
+                
+                // Adicionar classe selecionavel se o modo de seleção estiver ativo
+                if (this.modoSelecaoAtivo) {
+                    textoElement.classList.add('selecionavel');
+                }
                 
                 const grupo = this.encontrarGrupoNaPosicao(x, y);
                 if (grupo) {
@@ -2014,17 +1891,6 @@ fecharModal() {
                     }
                 });
                 
-                this.configurarInteratividade(textoElement);
-                
-                textoElement.addEventListener('dblclick', (e) => {
-                    e.stopPropagation();
-                    this.selecionarElemento(textoElement, e);
-                });
-                
-                textoElement.addEventListener('contextmenu', (e) => {
-                    this.manipularCliqueDireito(textoElement, e);
-                });
-                
                 this.salvarEstadoHistorico('Adicionar Texto');
                 
                 return textoElement;
@@ -2039,6 +1905,11 @@ fecharModal() {
                     <span class="legenda-simbolo-inline">${simbolo}</span> = <span class="legenda-descricao-inline" contenteditable="true">${descricao}</span>
                 `;
                 
+                // Adicionar classe selecionavel se o modo de seleção estiver ativo
+                if (this.modoSelecaoAtivo) {
+                    legendaElement.classList.add('selecionavel');
+                }
+                
                 legendaElement.addEventListener('dblclick', () => {
                     const spanDescricao = legendaElement.querySelector('.legenda-descricao-inline');
                     spanDescricao.focus();
@@ -2050,17 +1921,6 @@ fecharModal() {
                 } else {
                     this.drawingArea.appendChild(legendaElement);
                 }
-                
-                this.configurarInteratividade(legendaElement);
-                
-                legendaElement.addEventListener('dblclick', (e) => {
-                    e.stopPropagation();
-                    this.selecionarElemento(legendaElement, e);
-                });
-                
-                legendaElement.addEventListener('contextmenu', (e) => {
-                    this.manipularCliqueDireito(legendaElement, e);
-                });
                 
                 this.salvarEstadoHistorico('Adicionar Legenda');
                 
@@ -2096,7 +1956,6 @@ fecharModal() {
                 setTimeout(() => {
                     const drawingRect = this.drawingArea.getBoundingClientRect();
 
-                    // Ajustar dimensoesTop (horizontal)
                     const topRect = dimensoesTop.getBoundingClientRect();
                     if (topRect.right > drawingRect.right - 10) {
                         const excesso = topRect.right - (drawingRect.right - 10);
@@ -2105,16 +1964,12 @@ fecharModal() {
                     }
                 }, 0);
 
-                this.configurarInteratividade(dimensoesTop);
-
                 const dimensoesRight = document.createElement('div');
                 dimensoesRight.className = 'dimensoes dimensoes-right';
                 dimensoesRight.textContent = `${peca.largura}cm`;
                 dimensoesRight.style.right = `${-35}px`;
                 dimensoesRight.style.top = `${height / 2}px`;
                 pecaElement.appendChild(dimensoesRight);
-                
-                this.configurarInteratividade(dimensoesRight);
             }
 
             criarQuantidade(pecaElement, quantidade) {
@@ -2123,7 +1978,6 @@ fecharModal() {
                 quantidadeElement.textContent = `${quantidade}x`;
                 quantidadeElement.style.left = '-45px';
                 pecaElement.appendChild(quantidadeElement);
-                this.configurarInteratividade(quantidadeElement);
             }
 
             criarLinhasPeca(pecaElement, pecaId, width, height) {
@@ -2165,6 +2019,11 @@ fecharModal() {
                 simboloElement.setAttribute('data-peca-id', linhaElement.getAttribute('data-peca-id'));
                 simboloElement.setAttribute('data-lado', linhaElement.getAttribute('data-lado'));
                 simboloElement.setAttribute('data-rotate', '0');
+                
+                // Adicionar classe selecionavel se o modo de seleção estiver ativo
+                if (this.modoSelecaoAtivo) {
+                    simboloElement.classList.add('selecionavel');
+                }
                 
                 const pecaId = linhaElement.getAttribute('data-peca-id');
                 const pecaElement = this.drawingArea.querySelector(`#peca-${pecaId}`);
@@ -2227,119 +2086,117 @@ fecharModal() {
                 }
             }
 
-            configurarInteratividadeSimbolo(elemento) {
-                interact(elemento).draggable({
-                    listeners: {
-                        start: () => {
-                            elemento.style.zIndex = '1000';
-                        },
-                        move: (event) => {
-                            let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                            let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-                            const rotate = elemento.getAttribute('data-rotate') || 0;
-
-                            const drawingRect = this.drawingArea.getBoundingClientRect();
-                            const elementRect = elemento.getBoundingClientRect();
-
-                            let leftBase = 0;
-                            if (elemento.style.left && elemento.style.left.endsWith('px')) {
-                                leftBase = parseFloat(elemento.style.left) || 0;
-                            } else {
-                                leftBase = elementRect.left - drawingRect.left;
-                            }
-
-                            const absLeftProposto = leftBase + x;
-                            const margemDireita = 60;
-                            const maxLeftAllowed = drawingRect.width - elementRect.width - margemDireita;
-                            const minLeftAllowed = 0;
-
-                            let leftCorrigido = absLeftProposto;
-                            if (leftCorrigido > maxLeftAllowed) leftCorrigido = maxLeftAllowed;
-                            if (leftCorrigido < minLeftAllowed) leftCorrigido = minLeftAllowed;
-
-                            const xCorrigido = leftCorrigido - leftBase;
-
-                            elemento.style.transform = `translate(${xCorrigido}px, ${y}px) rotate(${rotate}deg)`;
-                            elemento.setAttribute('data-x', xCorrigido);
-                            elemento.setAttribute('data-y', y);
-                        },
-                        end: () => {
-                            elemento.style.zIndex = '';
-                            this.salvarEstadoHistorico('Mover Símbolo');
-                        }
-                    }
-                });
-                
-                elemento.addEventListener('dblclick', (e) => {
-                    e.stopPropagation();
-                    const pecaId = elemento.getAttribute('data-peca-id');
-                    const lado = elemento.getAttribute('data-lado');
-                    const linhaElement = this.drawingArea.querySelector(`.linha-peca[data-peca-id="${pecaId}"][data-lado="${lado}"]`);
-                    
-                    if (linhaElement) {
-                        this.mostrarSeletorSimbolos(e, linhaElement, elemento);
-                    }
-                });
-                
-                elemento.addEventListener('contextmenu', (e) => {
-                    e.stopPropagation();
-                    this.desselecionarElemento();
-                    this.elementoSelecionado = elemento;
-                    elemento.classList.add('elemento-selecionado');
-                    
-                    this.manipularCliqueDireito(elemento, e);
-                });
-            }
-
+            // MODIFICADO: Configurar interatividade apenas quando elemento está selecionado
             configurarInteratividade(elemento) {
-                interact(elemento).draggable({
-                    listeners: {
-                        start: () => {
-                            elemento.style.zIndex = '1000';
-                        },
-                        move: (event) => {
-                            let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                            let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-                            const rotate = elemento.getAttribute('data-rotate') || 0;
+                // Remover interações anteriores
+                this.removerInteratividade(elemento);
+                
+                // Configurar nova interação apenas se o elemento estiver selecionado
+                if (elemento.classList.contains('elemento-selecionado')) {
+                    interact(elemento).draggable({
+                        listeners: {
+                            start: () => {
+                                elemento.style.zIndex = '1000';
+                            },
+                            move: (event) => {
+                                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                                const rotate = elemento.getAttribute('data-rotate') || 0;
 
-                            const drawingRect = this.drawingArea.getBoundingClientRect();
-                            const elementRect = elemento.getBoundingClientRect();
+                                const drawingRect = this.drawingArea.getBoundingClientRect();
+                                const elementRect = elemento.getBoundingClientRect();
 
-                            let leftBase = 0;
-                            if (elemento.style.left && elemento.style.left.endsWith('px')) {
-                                leftBase = parseFloat(elemento.style.left) || 0;
-                            } else {
-                                leftBase = elementRect.left - drawingRect.left;
+                                let leftBase = 0;
+                                if (elemento.style.left && elemento.style.left.endsWith('px')) {
+                                    leftBase = parseFloat(elemento.style.left) || 0;
+                                } else {
+                                    leftBase = elementRect.left - drawingRect.left;
+                                }
+
+                                const absLeftProposto = leftBase + x;
+                                const margemDireita = 60;
+
+                                const maxLeftAllowed = drawingRect.width - elementRect.width - margemDireita;
+                                const minLeftAllowed = 0;
+
+                                let leftCorrigido = absLeftProposto;
+                                if (leftCorrigido > maxLeftAllowed) leftCorrigido = maxLeftAllowed;
+                                if (leftCorrigido < minLeftAllowed) leftCorrigido = minLeftAllowed;
+
+                                const xCorrigido = leftCorrigido - leftBase;
+
+                                elemento.style.transform = `translate(${xCorrigido}px, ${y}px) rotate(${rotate}deg)`;
+                                elemento.setAttribute('data-x', xCorrigido);
+                                elemento.setAttribute('data-y', y);
+
+                                this.atualizarLinhasESimbolos(elemento);
+                                this.atualizarHandles();
+                            },
+                            end: () => {
+                                elemento.style.zIndex = '';
+                                this.salvarEstadoHistorico('Mover Elemento');
                             }
-
-                            const absLeftProposto = leftBase + x;
-                            const margemDireita = 60;
-
-                            const maxLeftAllowed = drawingRect.width - elementRect.width - margemDireita;
-                            const minLeftAllowed = 0;
-
-                            let leftCorrigido = absLeftProposto;
-                            if (leftCorrigido > maxLeftAllowed) leftCorrigido = maxLeftAllowed;
-                            if (leftCorrigido < minLeftAllowed) leftCorrigido = minLeftAllowed;
-
-                            const xCorrigido = leftCorrigido - leftBase;
-
-                            elemento.style.transform = `translate(${xCorrigido}px, ${y}px) rotate(${rotate}deg)`;
-                            elemento.setAttribute('data-x', xCorrigido);
-                            elemento.setAttribute('data-y', y);
-
-                            this.atualizarLinhasESimbolos(elemento);
-                            this.atualizarHandles();
-                        },
-                        end: () => {
-                            elemento.style.zIndex = '';
-                            this.salvarEstadoHistorico('Mover Elemento');
                         }
-                    }
-                });
+                    });
+                }
             }
 
-            // 🔥 CORREÇÃO: Método melhorado para calcular dimensões com tamanho mínimo
+            // MODIFICADO: Configurar interatividade de símbolos apenas quando selecionados
+            configurarInteratividadeSimbolo(elemento) {
+                // Remover interações anteriores
+                this.removerInteratividade(elemento);
+                
+                // Configurar nova interação apenas se o elemento estiver selecionado
+                if (elemento.classList.contains('elemento-selecionado')) {
+                    interact(elemento).draggable({
+                        listeners: {
+                            start: () => {
+                                elemento.style.zIndex = '1000';
+                            },
+                            move: (event) => {
+                                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                                const rotate = elemento.getAttribute('data-rotate') || 0;
+
+                                const drawingRect = this.drawingArea.getBoundingClientRect();
+                                const elementRect = elemento.getBoundingClientRect();
+
+                                let leftBase = 0;
+                                if (elemento.style.left && elemento.style.left.endsWith('px')) {
+                                    leftBase = parseFloat(elemento.style.left) || 0;
+                                } else {
+                                    leftBase = elementRect.left - drawingRect.left;
+                                }
+
+                                const absLeftProposto = leftBase + x;
+                                const margemDireita = 60;
+                                const maxLeftAllowed = drawingRect.width - elementRect.width - margemDireita;
+                                const minLeftAllowed = 0;
+
+                                let leftCorrigido = absLeftProposto;
+                                if (leftCorrigido > maxLeftAllowed) leftCorrigido = maxLeftAllowed;
+                                if (leftCorrigido < minLeftAllowed) leftCorrigido = minLeftAllowed;
+
+                                const xCorrigido = leftCorrigido - leftBase;
+
+                                elemento.style.transform = `translate(${xCorrigido}px, ${y}px) rotate(${rotate}deg)`;
+                                elemento.setAttribute('data-x', xCorrigido);
+                                elemento.setAttribute('data-y', y);
+                            },
+                            end: () => {
+                                elemento.style.zIndex = '';
+                                this.salvarEstadoHistorico('Mover Símbolo');
+                            }
+                        }
+                    });
+                }
+            }
+
+            // NOVO: Método para remover interatividade de um elemento
+            removerInteratividade(elemento) {
+                interact(elemento).unset();
+            }
+
             calcularDimensoesPeca(peca, escala) {
                 let width = peca.comprimento * escala;
                 let height = peca.largura * escala;
@@ -2374,7 +2231,6 @@ fecharModal() {
                 return Math.min(escalaCalculada, 0.8);
             }
 
-            // 🔥 CORREÇÃO: Modal de símbolos agora abre onde o usuário clica
             manipularCliqueLinha(e, linhaElement, simboloExistente = null) {
                 e.stopPropagation();
                 
@@ -2387,7 +2243,6 @@ fecharModal() {
                 }
             }
 
-            // 🔥 CORREÇÃO COMPLETA PARA MOBILE - Modal sempre visível
             mostrarSeletorSimbolos(event, linhaElement, simboloExistente = null) {
                 const simboloAtual = simboloExistente ? simboloExistente.textContent : '//';
                 const lado = linhaElement.getAttribute('data-lado');
@@ -2417,11 +2272,9 @@ fecharModal() {
                 modalSimbolos.style.wordWrap = 'break-word';
                 modalSimbolos.style.overflowY = 'auto';
 
-                // 🔥 CORREÇÃO CRÍTICA: Para mobile, SEMPRE centralizar e usar largura responsiva
                 const viewportWidth = window.innerWidth;
                 const viewportHeight = window.innerHeight;
                 
-                // Em mobile, usar abordagem diferente - sempre centralizar
                 if (viewportWidth <= 768) {
                     modalSimbolos.style.width = '95vw';
                     modalSimbolos.style.maxWidth = '95vw';
@@ -2430,14 +2283,12 @@ fecharModal() {
                     modalSimbolos.style.transform = 'translate(-50%, -50%)';
                     modalSimbolos.style.maxHeight = '90vh';
                 } else {
-                    // Para desktop, manter o comportamento original mas com ajustes
                     modalSimbolos.style.minWidth = '280px';
                     modalSimbolos.style.maxWidth = '320px';
                     
                     let left = event.clientX;
                     let top = event.clientY;
 
-                    // Ajustar horizontalmente
                     if (left + 320 > viewportWidth) {
                         left = viewportWidth - 320 - 20;
                     }
@@ -2445,7 +2296,6 @@ fecharModal() {
                         left = 20;
                     }
 
-                    // Ajustar verticalmente  
                     if (top + 400 > viewportHeight) {
                         top = viewportHeight - 400 - 20;
                     }
@@ -2477,7 +2327,6 @@ fecharModal() {
                     </div>
                 `;
 
-                // 🔥 CORREÇÃO: Armazenar referências
                 this.modalSimbolosAtual = modalSimbolos;
                 this.linhaElementAtual = linhaElement;
                 this.simboloExistenteAtual = simboloExistente;
@@ -2485,20 +2334,17 @@ fecharModal() {
 
                 document.body.appendChild(modalSimbolos);
 
-                // Backdrop
                 const backdrop = document.createElement('div');
                 backdrop.className = 'modal-backdrop';
                 backdrop.style.display = 'block';
                 document.body.appendChild(backdrop);
                 this.backdropAtual = backdrop;
 
-                // 🔥 CORREÇÃO: Eventos para mobile
                 const inputSimbolo = document.getElementById('simboloPersonalizado');
                 if (inputSimbolo) {
                     setTimeout(() => {
                         inputSimbolo.focus();
                         
-                        // 🔥 CORREÇÃO: Para mobile, ajustar posição quando o teclado aparece
                         if (viewportWidth <= 768) {
                             setTimeout(() => {
                                 modalSimbolos.style.top = '30%';
@@ -2506,14 +2352,12 @@ fecharModal() {
                         }
                     }, 100);
                     
-                    // Confirmar ao pressionar Enter
                     inputSimbolo.addEventListener('keypress', (e) => {
                         if (e.key === 'Enter') {
                             this.confirmarSimboloModal(linhaElement.getAttribute('data-peca-id'), lado, rotacao);
                         }
                     });
                     
-                    // Confirmar ao perder o foco (blur)
                     inputSimbolo.addEventListener('blur', () => {
                         setTimeout(() => {
                             this.confirmarSimboloModal(linhaElement.getAttribute('data-peca-id'), lado, rotacao);
@@ -2521,7 +2365,6 @@ fecharModal() {
                     });
                 }
 
-                // 🔥 CORREÇÃO: Prevenir eventos de toque
                 modalSimbolos.addEventListener('touchstart', (e) => {
                     e.stopPropagation();
                 });
@@ -2529,11 +2372,10 @@ fecharModal() {
                 modalSimbolos.addEventListener('touchend', (e) => {
                     e.stopPropagation();
                 });
-        }
-               
-                
 
-            // 🔥 NOVOS MÉTODOS PARA GERENCIAR O MODAL DE SÍMBOLOS
+               
+            }
+
             selecionarSimboloModal(simbolo, rotacao, pecaId, lado) {
                 const linhaElement = this.drawingArea.querySelector(`.linha-peca[data-peca-id="${pecaId}"][data-lado="${lado}"]`);
                 if (linhaElement) {
@@ -2590,18 +2432,15 @@ fecharModal() {
                 this.linhaElementAtual = null;
                 this.simboloExistenteAtual = null;
                 
-                // 🔥 CORREÇÃO: Restaurar scroll do body
                 document.body.style.overflow = '';
             }
 
-            // 🔥 CORREÇÃO: Método para ativar modo de inserção
             ativarModoInsercao(tipo) {
                 this.modoInsercaoAtivo = tipo;
                 this.drawingArea.style.cursor = tipo === 'texto' ? 'text' : 'crosshair';
                 console.log(`🔧 Modo inserção ativado: ${tipo}`);
             }
 
-            // 🔥 CORREÇÃO: Método para manipular clique durante inserção
             manipularCliqueInsercao(e) {
                 if (!this.modoInsercaoAtivo) return;
                 
@@ -2678,12 +2517,6 @@ fecharModal() {
         document.addEventListener('DOMContentLoaded', function() {
             console.log('🚀 Iniciando aplicação...');
             gerenciadorDesenho = new GerenciadorDesenho();
-            
-            document.addEventListener('contextmenu', (e) => {
-                if (e.target.closest('#drawingArea')) {
-                    e.preventDefault();
-                }
-            });
         });
     </script>
 </body>
