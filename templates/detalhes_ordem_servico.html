@@ -1616,7 +1616,7 @@
                 });
             }
 
-          mostrarModalControles(event) {
+        mostrarModalControles(event) {
     if (!this.elementoSelecionado && this.ultimoElementoClicado) {
         this.selecionarElemento(this.ultimoElementoClicado, event);
     }
@@ -1625,45 +1625,58 @@
     const modal = this.modalControles;
     const backdrop = this.modalBackdrop;
 
+    // --- garantir que ambos estejam no body ---
+    if (modal.parentNode !== document.body) document.body.appendChild(modal);
+    if (backdrop.parentNode !== document.body) document.body.appendChild(backdrop);
+
+    // --- preparar estilos para medir ---
     modal.style.transform = 'none';
     modal.style.maxHeight = 'calc(100vh - 20px)';
     modal.style.overflowY = 'auto';
     modal.style.display = 'block';
     backdrop.style.display = 'block';
 
-    // 🧭 Posição real do toque/clique na página
-    const pageX = event.pageX || (event.touches && event.touches[0].pageX) || 0;
-    const pageY = event.pageY || (event.touches && event.touches[0].pageY) || 0;
+    // --- coordenadas compatíveis com mouse e toque ---
+    let clientX = 0, clientY = 0;
+    if (event.touches && event.touches[0]) {
+        clientX = event.touches[0].clientX;
+        clientY = event.touches[0].clientY;
+    } else if (event.changedTouches && event.changedTouches[0]) {
+        clientX = event.changedTouches[0].clientX;
+        clientY = event.changedTouches[0].clientY;
+    } else {
+        clientX = event.clientX || 0;
+        clientY = event.clientY || 0;
+    }
 
-    // 🪟 Dimensões da tela e deslocamento atual
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    const scrollX = window.scrollX || window.pageXOffset;
-    const scrollY = window.scrollY || window.pageYOffset;
+    // --- dimensões e offsets ---
+    const vv = window.visualViewport;
+    const viewportWidth = vv ? vv.width : window.innerWidth;
+    const viewportHeight = vv ? vv.height : window.innerHeight;
+    const viewportOffsetLeft = vv ? vv.offsetLeft : 0;
+    const viewportOffsetTop = vv ? vv.offsetTop : 0;
+    const scrollX = window.scrollX || window.pageXOffset || 0;
+    const scrollY = window.scrollY || window.pageYOffset || 0;
 
-    // 🔍 Medir o tamanho real do modal
     const modalRect = modal.getBoundingClientRect();
+    let left = clientX;
+    let top = clientY;
+    const margin = 10;
 
-    // Calcular posição relativa à viewport visível
-    let left = pageX - scrollX;
-    let top = pageY - scrollY;
+    if (left + modalRect.width > viewportWidth - margin)
+        left = Math.max(margin, viewportWidth - modalRect.width - margin);
+    if (top + modalRect.height > viewportHeight - margin)
+        top = Math.max(margin, viewportHeight - modalRect.height - margin);
+    if (left < margin) left = margin;
+    if (top < margin) top = margin;
 
-    // 🔒 Evitar que saia da tela
-    if (left + modalRect.width > viewportWidth - 10) {
-        left = viewportWidth - modalRect.width - 10;
-    }
-    if (top + modalRect.height > viewportHeight - 10) {
-        top = viewportHeight - modalRect.height - 10;
-    }
-    if (left < 10) left = 10;
-    if (top < 10) top = 10;
-
-    // Aplicar posição final (position: fixed)
-    modal.style.left = `${left}px`;
-    modal.style.top = `${top}px`;
+    // --- aplicar posição final corrigida ---
+    modal.style.left = `${left + (viewportOffsetLeft || 0) + scrollX}px`;
+    modal.style.top = `${top + (viewportOffsetTop || 0) + scrollY}px`;
 
     backdrop.onclick = () => this.fecharModal();
 }
+
 
 
 
