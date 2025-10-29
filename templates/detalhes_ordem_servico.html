@@ -415,10 +415,9 @@
     user-select: none;
 }
 
-/* NOVO: Prevenir zoom e scroll na área de desenho */
 .drawing-area {
     /* ... outros estilos ... */
-    touch-action: pan-x pan-y pinch-zoom; /* ADICIONADO pinch-zoom */
+    touch-action: auto; /* PERMITE TUDO: pan, pinch-zoom, etc */
     -webkit-user-select: none;
     user-select: none;
 }
@@ -1211,14 +1210,18 @@ configurarEventos() {
         }
     });
     
-    this.drawingArea.addEventListener('touchstart', (e) => {
-    // Só prevenir se for um toque único durante modos ativos
-    if ((this.modoInsercaoAtivo || this.modoSelecaoAtivo) && e.touches && e.touches.length === 1) {
-        e.preventDefault();
-        e.stopPropagation();
+    // CORREÇÃO: Permitir zoom e movimentação livre na área de desenho
+this.drawingArea.addEventListener('touchstart', (e) => {
+    // NÃO prevenir eventos de touch - permitir zoom e scroll livre
+    // Apenas adicionar lógica de seleção se necessário
+    if (this.modoSelecaoAtivo && e.touches && e.touches.length === 1) {
+        // Lógica de seleção pode ser adicionada aqui se necessário
     }
-    // Permitir zoom de pinça (2 dedos) sempre
-}, { passive: false });
+}, { passive: true }); // MUDADO para passive: true
+
+this.drawingArea.addEventListener('touchmove', (e) => {
+    // NÃO prevenir movimento - permitir zoom e scroll livre
+}, { passive: true }); // MUDADO para passive: true
 
     // CORREÇÃO: Evento global para desselecionar ao clicar fora, mas ignorar botões de ação
 document.addEventListener('click', (e) => {
