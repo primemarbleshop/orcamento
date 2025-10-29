@@ -789,8 +789,8 @@
         // CONFIGURAÇÕES E CONSTANTES - MODIFICADO
         // =============================================
         const CONFIG = {
-            ESCALA_PADRAO: 0.6, // AUMENTADO: de 0.35 para 0.6
-            TAMANHO_MINIMO_CM: 15,
+            ESCALA_PADRAO: 1.5, 
+            TAMANHO_MINIMO_CM: 20,
             TIPOS_CUBA: [
                 { tipo: "retangulo", nome: "Retângulo" },
                 { tipo: "circulo", nome: "Círculo" },
@@ -1439,101 +1439,99 @@ reabilitarLinhasPecas() {
             }
 
             configurarHandle(handle, elemento) {
-                let initialX, initialY;
-                let initialWidth, initialHeight;
-                let initialLeft, initialTop;
+    let initialX, initialY;
+    let initialWidth, initialHeight;
+    let initialLeft, initialTop;
 
-                interact(handle).draggable({
-                    listeners: {
-                        start: (event) => {
-                            const style = window.getComputedStyle(elemento);
-                            initialWidth = parseFloat(style.width);
-                            initialHeight = parseFloat(style.height);
-                            initialLeft = parseFloat(style.left);
-                            initialTop = parseFloat(style.top);
-                            initialX = event.clientX;
-                            initialY = event.clientY;
+    interact(handle).draggable({
+        listeners: {
+            start: (event) => {
+                const style = window.getComputedStyle(elemento);
+                initialWidth = parseFloat(style.width);
+                initialHeight = parseFloat(style.height);
+                initialLeft = parseFloat(style.left);
+                initialTop = parseFloat(style.top);
+                initialX = event.clientX;
+                initialY = event.clientY;
 
-                            handle.style.cursor = 'grabbing';
-                        },
-                        move: (event) => {
-                            const deltaX = event.clientX - initialX;
-                            const deltaY = event.clientY - initialY;
+                handle.style.cursor = 'grabbing';
+            },
+            move: (event) => {
+                const deltaX = event.clientX - initialX;
+                const deltaY = event.clientY - initialY;
 
-                            const handleClasses = handle.classList;
-                            let isEast = handleClasses.contains('handle-e');
-                            let isWest = handleClasses.contains('handle-w');
-                            let isNorth = handleClasses.contains('handle-n');
-                            let isSouth = handleClasses.contains('handle-s');
-                            let isNorthEast = handleClasses.contains('handle-ne');
-                            let isNorthWest = handleClasses.contains('handle-nw');
-                            let isSouthEast = handleClasses.contains('handle-se');
-                            let isSouthWest = handleClasses.contains('handle-sw');
+                const handleClasses = handle.classList;
+                let isEast = handleClasses.contains('handle-e');
+                let isWest = handleClasses.contains('handle-w');
+                let isNorth = handleClasses.contains('handle-n');
+                let isSouth = handleClasses.contains('handle-s');
+                let isNorthEast = handleClasses.contains('handle-ne');
+                let isNorthWest = handleClasses.contains('handle-nw');
+                let isSouthEast = handleClasses.contains('handle-se');
+                let isSouthWest = handleClasses.contains('handle-sw');
 
-                            let newWidth = initialWidth;
-                            let newHeight = initialHeight;
-                            let newLeft = initialLeft;
-                            let newTop = initialTop;
+                let newWidth = initialWidth;
+                let newHeight = initialHeight;
+                let newLeft = initialLeft;
+                let newTop = initialTop;
 
-                            if (isEast) {
-                                newWidth = initialWidth + deltaX;
-                            }
-                            else if (isWest) {
-                                newWidth = initialWidth - deltaX;
-                                newLeft = initialLeft + deltaX;
-                            }
-                            else if (isNorth) {
-                                newHeight = initialHeight - deltaY;
-                                newTop = initialTop + deltaY;
-                            }
-                            else if (isSouth) {
-                                newHeight = initialHeight + deltaY;
-                            }
-                            else if (isNorthEast) {
-                                newWidth = initialWidth + deltaX;
-                                newHeight = initialHeight - deltaY;
-                                newTop = initialTop + deltaY;
-                            }
-                            else if (isNorthWest) {
-                                newWidth = initialWidth - deltaX;
-                                newHeight = initialHeight - deltaY;
-                                newLeft = initialLeft + deltaX;
-                                newTop = initialTop + deltaY;
-                            }
-                            else if (isSouthEast) {
-                                newWidth = initialWidth + deltaX;
-                                newHeight = initialHeight + deltaY;
-                            }
-                            else if (isSouthWest) {
-                                newWidth = initialWidth - deltaX;
-                                newHeight = initialHeight + deltaY;
-                                newLeft = initialLeft + deltaX;
-                            }
+                if (isEast) {
+                    newWidth = initialWidth + deltaX;
+                }
+                else if (isWest) {
+                    newWidth = initialWidth - deltaX;
+                    newLeft = initialLeft + deltaX;
+                }
+                else if (isNorth) {
+                    newHeight = initialHeight - deltaY;
+                    newTop = initialTop + deltaY;
+                }
+                else if (isSouth) {
+                    newHeight = initialHeight + deltaY;
+                }
+                else if (isNorthEast) {
+                    newWidth = initialWidth + deltaX;
+                    newHeight = initialHeight - deltaY;
+                    newTop = initialTop + deltaY;
+                }
+                else if (isNorthWest) {
+                    newWidth = initialWidth - deltaX;
+                    newHeight = initialHeight - deltaY;
+                    newLeft = initialLeft + deltaX;
+                    newTop = initialTop + deltaY;
+                }
+                else if (isSouthEast) {
+                    newWidth = initialWidth + deltaX;
+                    newHeight = initialHeight + deltaY;
+                }
+                else if (isSouthWest) {
+                    newWidth = initialWidth - deltaX;
+                    newHeight = initialHeight + deltaY;
+                    newLeft = initialLeft + deltaX;
+                }
 
-                            if (newWidth >= 50) {
-                                elemento.style.width = newWidth + 'px';
-                                if (isWest || isNorthWest || isSouthWest) {
-                                    elemento.style.left = newLeft + 'px';
-                                }
-                            }
+                // DEPOIS: SEM limite mínimo - pode redimensionar livremente
+                elemento.style.width = newWidth + 'px';
+                elemento.style.height = newHeight + 'px';
+                
+                if (isWest || isNorthWest || isSouthWest) {
+                    elemento.style.left = newLeft + 'px';
+                }
+                
+                if (isNorth || isNorthEast || isNorthWest) {
+                    elemento.style.top = newTop + 'px';
+                }
 
-                            if (newHeight >= 50) {
-                                elemento.style.height = newHeight + 'px';
-                                if (isNorth || isNorthEast || isNorthWest) {
-                                    elemento.style.top = newTop + 'px';
-                                }
-                            }
-
-                            this.atualizarLinhasESimbolos(elemento);
-                            this.atualizarHandles();
-                        },
-                        end: () => {
-                            handle.style.cursor = 'grab';
-                            this.salvarEstadoHistorico('Redimensionar Elemento');
-                        }
-                    }
-                });
+                this.atualizarLinhasESimbolos(elemento);
+                this.atualizarHandles();
+            },
+            end: () => {
+                handle.style.cursor = 'grab';
+                this.salvarEstadoHistorico('Redimensionar Elemento');
             }
+        }
+    });
+}
 
             configurarHandleRotacao(handle, elemento) {
                 let initialAngle = parseFloat(elemento.getAttribute('data-rotate')) || 0;
@@ -1921,54 +1919,51 @@ reabilitarLinhasPecas() {
                 return cubaElement;
             }
 
-            // NOVO: Configurar interatividade da cuba sem limite mínimo
-            configurarInteratividadeCuba(elemento) {
-                interact(elemento).draggable({
-                    listeners: {
-                        start: () => {
-                            elemento.style.zIndex = '1000';
-                        },
-                        move: (event) => {
-                            let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                            let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-                            const rotate = elemento.getAttribute('data-rotate') || 0;
+           configurarInteratividadeCuba(elemento) {
+    interact(elemento).draggable({
+        listeners: {
+            start: () => {
+                elemento.style.zIndex = '1000';
+            },
+            move: (event) => {
+                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                const rotate = elemento.getAttribute('data-rotate') || 0;
 
-                            elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
-                            elemento.setAttribute('data-x', x);
-                            elemento.setAttribute('data-y', y);
-                        },
-                        end: () => {
-                            elemento.style.zIndex = '';
-                            this.salvarEstadoHistorico('Mover Cuba');
-                        }
-                    }
-                });
-
-                // MODIFICADO: Remover limite mínimo para redimensionamento
-                interact(elemento).resizable({
-                    edges: { left: true, right: true, bottom: true, top: true },
-                    listeners: {
-                        move: function (event) {
-                            let { x, y } = event.deltaRect;
-
-                            Object.assign(event.target.style, {
-                                width: `${event.rect.width}px`,
-                                height: `${event.rect.height}px`
-                            });
-
-                            Object.assign(event.target.style, {
-                                transform: `translate(${(parseFloat(event.target.getAttribute('data-x')) || 0) + x}px, ${(parseFloat(event.target.getAttribute('data-y')) || 0) + y}px)`
-                            });
-
-                            event.target.setAttribute('data-x', (parseFloat(event.target.getAttribute('data-x')) || 0) + x);
-                            event.target.setAttribute('data-y', (parseFloat(event.target.getAttribute('data-y')) || 0) + y);
-                        }
-                    },
-                    modifiers: [
-                        // MODIFICADO: Remover o modificador de limite mínimo
-                    ]
-                });
+                elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
+                elemento.setAttribute('data-x', x);
+                elemento.setAttribute('data-y', y);
+            },
+            end: () => {
+                elemento.style.zIndex = '';
+                this.salvarEstadoHistorico('Mover Cuba');
             }
+        }
+    });
+
+    // MODIFICADO: Remover completamente os limites mínimos do redimensionamento
+    interact(elemento).resizable({
+        edges: { left: true, right: true, bottom: true, top: true },
+        listeners: {
+            move: function (event) {
+                let { x, y } = event.deltaRect;
+
+                Object.assign(event.target.style, {
+                    width: `${event.rect.width}px`,
+                    height: `${event.rect.height}px`
+                });
+
+                Object.assign(event.target.style, {
+                    transform: `translate(${(parseFloat(event.target.getAttribute('data-x')) || 0) + x}px, ${(parseFloat(event.target.getAttribute('data-y')) || 0) + y}px)`
+                });
+
+                event.target.setAttribute('data-x', (parseFloat(event.target.getAttribute('data-x')) || 0) + x);
+                event.target.setAttribute('data-y', (parseFloat(event.target.getAttribute('data-y')) || 0) + y);
+            }
+        }
+        // REMOVIDO: Modificadores de limite mínimo
+    });
+}
 
             // MODIFICADO: Criar texto com largura reduzida e transparente ao mover
             criarTexto(x, y, textoInicial = "") {
