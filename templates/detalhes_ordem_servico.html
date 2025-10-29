@@ -1217,41 +1217,41 @@
 
             // MODIFICADO: Ativar modo de seleção - desabilita linhas azuis
             ativarModoSelecao() {
-                this.modoSelecaoAtivo = true;
-                this.desselecionarElemento();
-                this.drawingArea.style.cursor = 'pointer';
-                
-                // Destacar o botão de seleção
-                const btnSelecionar = document.getElementById('btnSelecionar');
-                btnSelecionar.classList.add('btn-selecao-ativo');
-                
-                // Tornar todos os elementos selecionáveis
-                this.tornarElementosSelecionaveis(true);
-                
-                // NOVO: Desabilitar linhas azuis clicáveis
-                this.desabilitarLinhasPecas();
-                
-                console.log('🔧 Modo seleção ativado - linhas desabilitadas');
-            }
+    this.modoSelecaoAtivo = true;
+    this.desselecionarElemento();
+    this.drawingArea.style.cursor = 'pointer';
+    
+    // Destacar o botão de seleção
+    const btnSelecionar = document.getElementById('btnSelecionar');
+    btnSelecionar.classList.add('btn-selecao-ativo');
+    
+    // Tornar todos os elementos selecionáveis
+    this.tornarElementosSelecionaveis(true);
+    
+    // NOVO: Desabilitar linhas azuis clicáveis
+    this.desabilitarLinhasPecas();
+    
+    console.log('🔧 Modo seleção ativado - linhas desabilitadas');
+}
 
             // MODIFICADO: Desativar modo de seleção - reabilita linhas azuis
             desativarModoSelecao() {
-                this.modoSelecaoAtivo = false;
-                this.desselecionarElemento();
-                this.drawingArea.style.cursor = 'default';
-                
-                // Remover destaque do botão de seleção
-                const btnSelecionar = document.getElementById('btnSelecionar');
-                btnSelecionar.classList.remove('btn-selecao-ativo');
-                
-                // Remover selecionabilidade de todos os elementos
-                this.tornarElementosSelecionaveis(false);
-                
-                // NOVO: Reabilitar linhas azuis
-                this.reabilitarLinhasPecas();
-                
-                console.log('🔧 Modo seleção desativado - linhas reabilitadas');
-            }
+    this.modoSelecaoAtivo = false;
+    this.desselecionarElemento();
+    this.drawingArea.style.cursor = 'default';
+    
+    // Remover destaque do botão de seleção
+    const btnSelecionar = document.getElementById('btnSelecionar');
+    btnSelecionar.classList.remove('btn-selecao-ativo');
+    
+    // Remover selecionabilidade de todos os elementos
+    this.tornarElementosSelecionaveis(false);
+    
+    // NOVO: Reabilitar linhas azuis
+    this.reabilitarLinhasPecas();
+    
+    console.log('🔧 Modo seleção desativado - linhas reabilitadas');
+}
 
             // NOVO: Método para tornar elementos selecionáveis ou não
             tornarElementosSelecionaveis(selecionavel) {
@@ -1307,24 +1307,46 @@
             }
 
             desselecionarElemento() {
-                if (this.elementoSelecionado) {
-                    // Remover interatividade do elemento
-                    this.removerInteratividade(this.elementoSelecionado);
-                    
-                    this.elementoSelecionado.classList.remove('elemento-selecionado');
-                    
-                    // Reabilitar linhas quando desselecionar
-                    this.reabilitarLinhasPecas();
-                    
-                    this.removerHandles();
-                    this.elementoSelecionado = null;
-                }
-                
-                // Atualizar estado dos botões
-                this.atualizarEstadoBotoes();
-                
-                this.ultimoElementoClicado = null;
-            }
+    if (this.elementoSelecionado) {
+        // Remover interatividade do elemento
+        this.removerInteratividade(this.elementoSelecionado);
+        
+        this.elementoSelecionado.classList.remove('elemento-selecionado');
+        
+        // Reabilitar linhas quando desselecionar (se não estiver no modo seleção)
+        if (!this.modoSelecaoAtivo) {
+            this.reabilitarLinhasPecas();
+        }
+        
+        this.removerHandles();
+        this.elementoSelecionado = null;
+    }
+    
+    // Atualizar estado dos botões
+    this.atualizarEstadoBotoes();
+    
+    this.ultimoElementoClicado = null;
+}
+
+// NOVO MÉTODO: Desabilitar linhas das peças quando modo seleção está ativo
+desabilitarLinhasPecas() {
+    const linhas = this.drawingArea.querySelectorAll('.linha-peca');
+    linhas.forEach(linha => {
+        linha.style.pointerEvents = 'none';
+        linha.style.cursor = 'default';
+        linha.style.opacity = '0.5'; // Visual feedback de que estão desabilitadas
+    });
+}
+
+// NOVO MÉTODO: Reabilitar linhas das peças
+reabilitarLinhasPecas() {
+    const linhas = this.drawingArea.querySelectorAll('.linha-peca');
+    linhas.forEach(linha => {
+        linha.style.pointerEvents = 'auto';
+        linha.style.cursor = 'pointer';
+        linha.style.opacity = '1';
+    });
+}
 
             // NOVO: Método para atualizar estado dos botões
             atualizarEstadoBotoes() {
