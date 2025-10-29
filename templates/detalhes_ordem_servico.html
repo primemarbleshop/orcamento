@@ -533,23 +533,48 @@
           flex: 0 0 auto; /* impede empilhamento vertical */
         }
 
-        /* 🔥 CORREÇÃO: Melhorias para mobile */
+        /* 🔥 CORREÇÃO: Melhorias específicas para mobile */
         @media (max-width: 768px) {
             .modal-controles {
                 max-width: 95vw !important;
                 min-width: 95vw !important;
-                left: 2.5vw !important;
+                left: 50% !important;
                 top: 50% !important;
-                transform: translateY(-50%) !important;
+                transform: translate(-50%, -50%) !important;
+                max-height: 90vh !important;
+                overflow-y: auto !important;
             }
             
             .modal-controles .btn {
-                padding: 10px 8px;
-                font-size: 0.9rem;
+                padding: 10px 6px !important;
+                font-size: 0.85rem !important;
+                min-width: 70px !important;
             }
             
             .modal-controles .btn small {
-                font-size: 0.65rem;
+                font-size: 0.65rem !important;
+                line-height: 1.1 !important;
+            }
+            
+            .modal-controles h6 {
+                font-size: 1rem !important;
+            }
+            
+            /* 🔥 CORREÇÃO: Container dos botões com scroll interno */
+            .modal-controles > div:nth-child(4) {
+                max-height: 40vh !important;
+                overflow-y: auto !important;
+                padding-right: 5px;
+            }
+            
+            /* Scrollbar customizada para mobile */
+            .modal-controles > div:nth-child(4)::-webkit-scrollbar {
+                width: 4px;
+            }
+            
+            .modal-controles > div:nth-child(4)::-webkit-scrollbar-thumb {
+                background: #ccc;
+                border-radius: 2px;
             }
         }
 
@@ -557,8 +582,21 @@
         @media (max-width: 768px) {
             .modal-controles input, 
             .modal-controles textarea {
-                font-size: 16px; /* Previne zoom no iOS */
+                font-size: 16px !important; /* Previne zoom no iOS */
+                padding: 8px 10px !important;
             }
+        }
+
+        /* 🔥 CORREÇÃO: Melhorar backdrop para mobile */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1999;
+            touch-action: pan-y; /* 🔥 Permite scroll vertical no backdrop se necessário */
         }
 
         /* ======================== IMPRESSÃO ======================== */
@@ -1770,8 +1808,6 @@
                 const tituloGrupo = document.createElement('div');
                 tituloGrupo.className = 'titulo-grupo';
                 tituloGrupo.textContent = materialNome;
-                // 🔥 CORREÇÃO: REMOVIDO a quantidade de peças do título
-                // tituloGrupo.innerHTML += ` <small style="color: #666;">(${this.gruposPecas[materialNome].length} peça${this.gruposPecas[materialNome].length !== 1 ? 's' : ''})</small>`;
 
                 // 📍 Ajuste de posição inicial dos títulos
                 const deslocamentoEsquerdaTitulo = -10; // = 1 cm (aprox)
@@ -1837,12 +1873,6 @@
                     else if (tipo === 'elipse') cubaElement.style.borderRadius = '40%';
                     else cubaElement.style.borderRadius = '0';
                 }
-                
-                // 🔥 CORREÇÃO: REMOVIDO o texto "Cuba" do centro
-                // const textoElement = document.createElement('div');
-                // textoElement.className = 'cuba-texto';
-                // textoElement.textContent = 'Cuba';
-                // cubaElement.appendChild(textoElement);
                 
                 const grupo = this.encontrarGrupoNaPosicao(x, y);
                 if (grupo) {
@@ -1976,29 +2006,16 @@
                 dimensoesTop.style.top = `${-35}px`;
                 dimensoesTop.style.left = `${width / 2}px`;
                 pecaElement.appendChild(dimensoesTop);
-                // Ajustar dimensões/top se estiverem saindo pela direita da drawingArea
+                
                 setTimeout(() => {
                     const drawingRect = this.drawingArea.getBoundingClientRect();
 
                     // Ajustar dimensoesTop (horizontal)
                     const topRect = dimensoesTop.getBoundingClientRect();
                     if (topRect.right > drawingRect.right - 10) {
-                        // mover para a esquerda o suficiente
                         const excesso = topRect.right - (drawingRect.right - 10);
                         const atualLeft = parseFloat(dimensoesTop.style.left || (width/2)) || (width/2);
                         dimensoesTop.style.left = `${atualLeft - excesso}px`;
-                    }
-
-                    // Ajustar dimensoesRight (vertical text at right)
-                    const rightRect = dimensoesRight.getBoundingClientRect();
-                    if (rightRect.right > drawingRect.right - 10) {
-                        const excesso = rightRect.right - (drawingRect.right - 10);
-                        // dimensoesRight usa right: -35px; vamos convertê-la para left ajustado
-                        const pecaRect = pecaElement.getBoundingClientRect();
-                        const baseLeft = pecaRect.left - drawingRect.left;
-                        const novaLeft = baseLeft + (parseFloat(dimensoesRight.style.right || -35) * -1) - excesso - dimensoesRight.offsetWidth;
-                        dimensoesRight.style.right = 'auto';
-                        dimensoesRight.style.left = `${novaLeft}px`;
                     }
                 }, 0);
 
@@ -2018,10 +2035,7 @@
                 const quantidadeElement = document.createElement('div');
                 quantidadeElement.className = 'quantidade-peca';
                 quantidadeElement.textContent = `${quantidade}x`;
-
-                // 📍 Mover 0,5 cm à esquerda
-                quantidadeElement.style.left = '-45px'; // padrão era -35px → -45px = -10px ≈ 0,5 cm
-
+                quantidadeElement.style.left = '-45px';
                 pecaElement.appendChild(quantidadeElement);
                 this.configurarInteratividade(quantidadeElement);
             }
@@ -2141,7 +2155,6 @@
                             const drawingRect = this.drawingArea.getBoundingClientRect();
                             const elementRect = elemento.getBoundingClientRect();
 
-                            // símbolo normalmente é posicionado sobre a peça, pegamos leftBase do elemento
                             let leftBase = 0;
                             if (elemento.style.left && elemento.style.left.endsWith('px')) {
                                 leftBase = parseFloat(elemento.style.left) || 0;
@@ -2199,42 +2212,32 @@
                             elemento.style.zIndex = '1000';
                         },
                         move: (event) => {
-                            // posição proposta (relativa ao left/top base via data-x/data-y)
                             let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
                             let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
                             const rotate = elemento.getAttribute('data-rotate') || 0;
 
-                            // Calcular posição absoluta prevista (left base + translate)
-                            // baseLeft = element.style.left (px) se existir, senão calc via getBoundingClientRect
                             const drawingRect = this.drawingArea.getBoundingClientRect();
                             const elementRect = elemento.getBoundingClientRect();
 
-                            // Determinar leftBase: valor numérico em px relativo à drawingArea
                             let leftBase = 0;
                             if (elemento.style.left && elemento.style.left.endsWith('px')) {
-                                // estilo left relativo ao container (quando criado)
                                 leftBase = parseFloat(elemento.style.left) || 0;
                             } else {
-                                // fallback: posição atual do elemento em relação ao drawingArea
                                 leftBase = elementRect.left - drawingRect.left;
                             }
 
-                            // posição absoluta prevista (em px dentro da drawingArea)
                             const absLeftProposto = leftBase + x;
-                            const margemDireita = 60; // ajuste se quiser mais/menos espaço
+                            const margemDireita = 60;
 
                             const maxLeftAllowed = drawingRect.width - elementRect.width - margemDireita;
                             const minLeftAllowed = 0;
 
-                            // corrige se necessário
                             let leftCorrigido = absLeftProposto;
                             if (leftCorrigido > maxLeftAllowed) leftCorrigido = maxLeftAllowed;
                             if (leftCorrigido < minLeftAllowed) leftCorrigido = minLeftAllowed;
 
-                            // novo x relativo = leftCorrigido - leftBase
                             const xCorrigido = leftCorrigido - leftBase;
 
-                            // Aplicar transform usando o x/y corrigidos
                             elemento.style.transform = `translate(${xCorrigido}px, ${y}px) rotate(${rotate}deg)`;
                             elemento.setAttribute('data-x', xCorrigido);
                             elemento.setAttribute('data-y', y);
@@ -2255,7 +2258,6 @@
                 let width = peca.comprimento * escala;
                 let height = peca.largura * escala;
                 
-                // 🔥 APLICA TAMANHO MÍNIMO DE 15 CM NO DESENHO
                 const tamanhoMinimo = CONFIG.TAMANHO_MINIMO_CM * escala;
                 
                 if (width < tamanhoMinimo) {
@@ -2299,89 +2301,88 @@
                 }
             }
 
-            // 🔥 CORREÇÃO COMPLETA: Modal de símbolos com posicionamento inteligente e correções
+            // 🔥 CORREÇÃO COMPLETA PARA MOBILE - Modal sempre visível
             mostrarSeletorSimbolos(event, linhaElement, simboloExistente = null) {
                 const simboloAtual = simboloExistente ? simboloExistente.textContent : '//';
                 const lado = linhaElement.getAttribute('data-lado');
                 const rotacao = parseInt(linhaElement.getAttribute('data-rotacao'));
                 
                 const botoesSimbolos = CONFIG.LEGENDA_SIMPLIFICADA.map(item => 
-                    `<button type="button" class="btn btn-outline-primary m-1" onclick="gerenciadorDesenho.selecionarSimboloModal('${item.simbolo}', ${rotacao}, '${linhaElement.getAttribute('data-peca-id')}', '${lado}')" style="min-width: 80px; text-align: center;">
+                    `<button type="button" class="btn btn-outline-primary m-1" onclick="gerenciadorDesenho.selecionarSimboloModal('${item.simbolo}', ${rotacao}, '${linhaElement.getAttribute('data-peca-id')}', '${lado}')" style="min-width: 80px; text-align: center; padding: 8px 4px;">
                         <strong style="transform: rotate(${rotacao}deg); display: inline-block;">${item.simbolo}</strong>
                         <br><small style="font-size: 0.7rem; white-space: normal; line-height: 1.2;">${item.descricao}</small>
                     </button>`
                 ).join('');
 
                 const botaoRemover = 
-                    `<button type="button" class="btn btn-outline-danger m-1" onclick="gerenciadorDesenho.removerSimboloModal('${linhaElement.getAttribute('data-peca-id')}', '${lado}')" style="min-width: 120px;">
+                    `<button type="button" class="btn btn-outline-danger m-1" onclick="gerenciadorDesenho.removerSimboloModal('${linhaElement.getAttribute('data-peca-id')}', '${lado}')" style="min-width: 120px; padding: 8px 4px;">
                         <i class="fas fa-trash me-1"></i> Remover
                     </button>`;
 
-                // Criar modal com posicionamento inteligente
+                // Criar modal
                 const modalSimbolos = document.createElement('div');
                 modalSimbolos.className = 'modal-controles';
-                modalSimbolos.style.position = 'fixed'; // 🔥 MUDANÇA: fixed em vez de absolute
+                modalSimbolos.style.position = 'fixed';
                 modalSimbolos.style.zIndex = '2000';
                 modalSimbolos.style.background = 'white';
                 modalSimbolos.style.padding = '15px';
                 modalSimbolos.style.borderRadius = '10px';
                 modalSimbolos.style.boxShadow = '0 10px 30px rgba(0,0,0,0.3)';
-                modalSimbolos.style.minWidth = '280px';
-                modalSimbolos.style.maxWidth = '320px';
                 modalSimbolos.style.wordWrap = 'break-word';
-                modalSimbolos.style.overflow = 'hidden';
+                modalSimbolos.style.overflowY = 'auto';
 
-                // 🔥 CORREÇÃO PARA MOBILE: Usar viewport em vez de página
-                const modalWidth = 300;
-                const modalHeight = 400;
-                
-                // 🔥 CORREÇÃO: Obter coordenadas relativas à viewport
-                let left = event.clientX;
-                let top = event.clientY;
-
-                // 🔥 CORREÇÃO: Ajustar para viewport em dispositivos móveis
+                // 🔥 CORREÇÃO CRÍTICA: Para mobile, SEMPRE centralizar e usar largura responsiva
                 const viewportWidth = window.innerWidth;
                 const viewportHeight = window.innerHeight;
+                
+                // Em mobile, usar abordagem diferente - sempre centralizar
+                if (viewportWidth <= 768) {
+                    modalSimbolos.style.width = '95vw';
+                    modalSimbolos.style.maxWidth = '95vw';
+                    modalSimbolos.style.left = '50%';
+                    modalSimbolos.style.top = '50%';
+                    modalSimbolos.style.transform = 'translate(-50%, -50%)';
+                    modalSimbolos.style.maxHeight = '90vh';
+                } else {
+                    // Para desktop, manter o comportamento original mas com ajustes
+                    modalSimbolos.style.minWidth = '280px';
+                    modalSimbolos.style.maxWidth = '320px';
+                    
+                    let left = event.clientX;
+                    let top = event.clientY;
 
-                // Ajustar horizontalmente - considerar viewport
-                if (left + modalWidth > viewportWidth) {
-                    left = viewportWidth - modalWidth - 10;
-                }
-                if (left < 10) {
-                    left = 10;
-                }
+                    // Ajustar horizontalmente
+                    if (left + 320 > viewportWidth) {
+                        left = viewportWidth - 320 - 20;
+                    }
+                    if (left < 20) {
+                        left = 20;
+                    }
 
-                // Ajustar verticalmente - considerar viewport  
-                if (top + modalHeight > viewportHeight) {
-                    top = viewportHeight - modalHeight - 10;
-                }
-                if (top < 10) {
-                    top = 10;
-                }
+                    // Ajustar verticalmente  
+                    if (top + 400 > viewportHeight) {
+                        top = viewportHeight - 400 - 20;
+                    }
+                    if (top < 20) {
+                        top = 20;
+                    }
 
-                // 🔥 CORREÇÃO: Para mobile, centralizar se for muito pequeno
-                if (viewportWidth < 400) {
-                    modalSimbolos.style.minWidth = '90vw';
-                    modalSimbolos.style.maxWidth = '90vw';
-                    left = (viewportWidth - (viewportWidth * 0.9)) / 2;
-                    top = Math.max(10, (viewportHeight - modalHeight) / 2);
+                    modalSimbolos.style.left = `${left}px`;
+                    modalSimbolos.style.top = `${top}px`;
                 }
-
-                modalSimbolos.style.left = `${left}px`;
-                modalSimbolos.style.top = `${top}px`;
 
                 modalSimbolos.innerHTML = `
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h6 style="margin: 0; font-weight: bold;">${simboloExistente ? 'Editar Símbolo' : 'Escolher Símbolo'}</h6>
-                        <button type="button" class="btn-close btn-sm" onclick="gerenciadorDesenho.fecharModalSimbolos()"></button>
+                        <h6 style="margin: 0; font-weight: bold; font-size: ${viewportWidth <= 768 ? '1rem' : '1.1rem'};">${simboloExistente ? 'Editar Símbolo' : 'Escolher Símbolo'}</h6>
+                        <button type="button" class="btn-close btn-sm" onclick="gerenciadorDesenho.fecharModalSimbolos()" style="font-size: 0.8rem;"></button>
                     </div>
                     
                     <div class="mb-2">
                         <label class="form-label small">Símbolo Personalizado:</label>
-                        <input type="text" id="simboloPersonalizado" class="form-control form-control-sm" value="${simboloAtual}" placeholder="Digite seu símbolo">
+                        <input type="text" id="simboloPersonalizado" class="form-control form-control-sm" value="${simboloAtual}" placeholder="Digite seu símbolo" style="font-size: 16px;">
                     </div>
                     
-                    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 10px 0; max-height: 200px; overflow-y: auto;">
+                    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 10px 0; max-height: 50vh; overflow-y: auto;">
                         ${botoesSimbolos}
                     </div>
                     
@@ -2390,7 +2391,7 @@
                     </div>
                 `;
 
-                // 🔥 CORREÇÃO: Armazenar referências no gerenciador
+                // 🔥 CORREÇÃO: Armazenar referências
                 this.modalSimbolosAtual = modalSimbolos;
                 this.linhaElementAtual = linhaElement;
                 this.simboloExistenteAtual = simboloExistente;
@@ -2405,13 +2406,19 @@
                 document.body.appendChild(backdrop);
                 this.backdropAtual = backdrop;
 
-                // 🔥 CORREÇÃO: Adicionar eventos para o input de símbolo personalizado
+                // 🔥 CORREÇÃO: Eventos para mobile
                 const inputSimbolo = document.getElementById('simboloPersonalizado');
                 if (inputSimbolo) {
-                    // 🔥 CORREÇÃO: Timeout para evitar conflitos com a abertura do modal
                     setTimeout(() => {
                         inputSimbolo.focus();
-                    }, 300);
+                        
+                        // 🔥 CORREÇÃO: Para mobile, ajustar posição quando o teclado aparece
+                        if (viewportWidth <= 768) {
+                            setTimeout(() => {
+                                modalSimbolos.style.top = '30%';
+                            }, 300);
+                        }
+                    }, 100);
                     
                     // Confirmar ao pressionar Enter
                     inputSimbolo.addEventListener('keypress', (e) => {
@@ -2422,14 +2429,13 @@
                     
                     // Confirmar ao perder o foco (blur)
                     inputSimbolo.addEventListener('blur', () => {
-                        // Usar setTimeout para evitar conflito com clique nos botões
                         setTimeout(() => {
                             this.confirmarSimboloModal(linhaElement.getAttribute('data-peca-id'), lado, rotacao);
                         }, 200);
                     });
                 }
 
-                // 🔥 CORREÇÃO: Prevenir eventos de toque no modal de se propagarem
+                // 🔥 CORREÇÃO: Prevenir eventos de toque
                 modalSimbolos.addEventListener('touchstart', (e) => {
                     e.stopPropagation();
                 });
@@ -2444,11 +2450,13 @@
                     this.fecharModalSimbolos();
                 };
 
-                // 🔥 CORREÇÃO: Prevenir eventos de toque no backdrop
                 backdrop.addEventListener('touchstart', (e) => {
                     e.stopPropagation();
                     this.fecharModalSimbolos();
                 });
+
+                // 🔥 CORREÇÃO: Prevenir scroll do body quando modal está aberto
+                document.body.style.overflow = 'hidden';
             }
 
             // 🔥 NOVOS MÉTODOS PARA GERENCIAR O MODAL DE SÍMBOLOS
@@ -2471,7 +2479,7 @@
                     simboloExistente.remove();
                     this.salvarEstadoHistorico('Remover Símbolo');
                 }
-                this.fecharModalSimbolos(); // 🔥 CORREÇÃO: Fechar modal ao remover
+                this.fecharModalSimbolos();
             }
 
             confirmarSimboloModal(pecaId, lado, rotacao) {
@@ -2507,6 +2515,9 @@
                 }
                 this.linhaElementAtual = null;
                 this.simboloExistenteAtual = null;
+                
+                // 🔥 CORREÇÃO: Restaurar scroll do body
+                document.body.style.overflow = '';
             }
 
             // 🔥 CORREÇÃO: Método para ativar modo de inserção
