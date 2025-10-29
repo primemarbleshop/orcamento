@@ -1219,19 +1219,27 @@ configurarEventos() {
         }
     }, { passive: false });
 
-    // Evento global para desselecionar ao clicar fora
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('#drawingArea') && !e.target.closest('.handle')) {
-            this.desselecionarElemento();
-        }
-    });
+    // CORREÇÃO: Evento global para desselecionar ao clicar fora, mas ignorar botões de ação
+document.addEventListener('click', (e) => {
+    // Não desselecionar se clicar em botões de ação ou handles
+    if (!e.target.closest('#drawingArea') && 
+        !e.target.closest('.handle') &&
+        !e.target.closest('.action-buttons-container') &&
+        !e.target.closest('.top-buttons-container')) {
+        this.desselecionarElemento();
+    }
+});
 
-    // CORREÇÃO: Adicionar evento de touch para desselecionar no mobile
-    document.addEventListener('touchstart', (e) => {
-        if (!e.target.closest('#drawingArea') && !e.target.closest('.handle')) {
-            this.desselecionarElemento();
-        }
-    });
+// CORREÇÃO: Evento de touch para desselecionar no mobile, ignorando botões
+document.addEventListener('touchstart', (e) => {
+    // Não desselecionar se tocar em botões de ação ou handles
+    if (!e.target.closest('#drawingArea') && 
+        !e.target.closest('.handle') &&
+        !e.target.closest('.action-buttons-container') &&
+        !e.target.closest('.top-buttons-container')) {
+        this.desselecionarElemento();
+    }
+});
 
     // Eventos de teclado para desfazer/refazer
     document.addEventListener('keydown', (e) => {
