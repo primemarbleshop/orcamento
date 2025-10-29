@@ -841,6 +841,22 @@
         // CLASSE PRINCIPAL - GERENCIADOR DE DESENHO
         // =============================================
         class GerenciadorDesenho {
+            registrarToqueDuplo(elemento, callback) {
+    let ultimoToque = 0;
+
+    elemento.addEventListener('touchend', (e) => {
+        const agora = new Date().getTime();
+        const tempoDesdeUltimo = agora - ultimoToque;
+
+        if (tempoDesdeUltimo < 300 && tempoDesdeUltimo > 30) { // 300ms é a janela do duplo toque
+            e.preventDefault();
+            e.stopPropagation();
+            callback(e);
+        }
+
+        ultimoToque = agora;
+    });
+}
             constructor() {
                 this.drawingArea = document.getElementById('drawingArea');
                 this.gruposPecas = this.carregarDadosPecas();
@@ -991,6 +1007,12 @@
                         e.stopPropagation();
                         this.selecionarElemento(elemento, e);
                     });
+                    
+                    this.registrarToqueDuplo(elemento, (e) => {
+    e.stopPropagation();
+    this.selecionarElemento(elemento, e);
+});
+
                     
                     elemento.addEventListener('contextmenu', (e) => {
                         this.manipularCliqueDireito(elemento, e);
