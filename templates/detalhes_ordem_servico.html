@@ -484,34 +484,6 @@
             }
         }
 
-        /* ======================== MOBILE - APENAS ÍCONES ======================== */
-        @media (max-width: 1400px) {
-            .action-buttons-container .btn-text {
-                display: none;
-            }
-            
-            .action-buttons-container .btn {
-                width: 50px;
-                height: 50px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 0;
-            }
-            
-            .action-buttons-container .btn i {
-                margin-right: 0 !important;
-                font-size: 1.2rem;
-            }
-            
-            .action-buttons-container {
-                justify-content: center;
-                gap: 8px;
-                padding: 10px;
-            }
-        }
-
         /* ======================== AJUSTE DE LAYOUT RESPONSIVO ======================== */
         .drawing-container {
           width: 100%;
@@ -814,10 +786,10 @@
 
     <script>
         // =============================================
-        // CONFIGURAÇÕES E CONSTANTES
+        // CONFIGURAÇÕES E CONSTANTES - MODIFICADO
         // =============================================
         const CONFIG = {
-            ESCALA_PADRAO: 0.35,
+            ESCALA_PADRAO: 0.6, // AUMENTADO: de 0.35 para 0.6
             TAMANHO_MINIMO_CM: 15,
             TIPOS_CUBA: [
                 { tipo: "retangulo", nome: "Retângulo" },
@@ -864,6 +836,12 @@
                 this.linhaElementAtual = null;
                 this.simboloExistenteAtual = null;
                 this.rotacaoAtual = 0;
+                
+                // Variáveis para controle do modal de legenda
+                this.modalLegendaAtual = null;
+                this.backdropLegendaAtual = null;
+                this.legendaX = 0;
+                this.legendaY = 0;
                 
                 this.inicializar();
             }
@@ -981,6 +959,10 @@
                     
                     if (elemento.classList.contains('simbolo-linha')) {
                         this.configurarInteratividadeSimbolo(elemento);
+                    } else if (elemento.classList.contains('cuba')) {
+                        this.configurarInteratividadeCuba(elemento);
+                    } else if (elemento.classList.contains('texto-legenda')) {
+                        this.configurarInteratividadeTexto(elemento);
                     }
                 });
 
@@ -1003,7 +985,7 @@
                 const textosEditaveis = this.drawingArea.querySelectorAll('.texto-legenda');
                 textosEditaveis.forEach(texto => {
                     texto.addEventListener('blur', () => {
-                        this.salvarEstadoHistorico('Editar Texto');
+                        this.salvarEstadoHistorico('Editar Texto: ' + texto.value.substring(0, 20));
                     });
                 });
 
@@ -1233,7 +1215,7 @@
                 }
             }
 
-            // NOVO: Método para ativar modo de seleção
+            // MODIFICADO: Ativar modo de seleção - desabilita linhas azuis
             ativarModoSelecao() {
                 this.modoSelecaoAtivo = true;
                 this.desselecionarElemento();
@@ -1246,10 +1228,13 @@
                 // Tornar todos os elementos selecionáveis
                 this.tornarElementosSelecionaveis(true);
                 
-                console.log('🔧 Modo seleção ativado');
+                // NOVO: Desabilitar linhas azuis clicáveis
+                this.desabilitarLinhasPecas();
+                
+                console.log('🔧 Modo seleção ativado - linhas desabilitadas');
             }
 
-            // NOVO: Método para desativar modo de seleção
+            // MODIFICADO: Desativar modo de seleção - reabilita linhas azuis
             desativarModoSelecao() {
                 this.modoSelecaoAtivo = false;
                 this.desselecionarElemento();
@@ -1262,7 +1247,10 @@
                 // Remover selecionabilidade de todos os elementos
                 this.tornarElementosSelecionaveis(false);
                 
-                console.log('🔧 Modo seleção desativado');
+                // NOVO: Reabilitar linhas azuis
+                this.reabilitarLinhasPecas();
+                
+                console.log('🔧 Modo seleção desativado - linhas reabilitadas');
             }
 
             // NOVO: Método para tornar elementos selecionáveis ou não
@@ -1672,13 +1660,18 @@
                 });
             }
 
+            // MODIFICADO: Duplicar elemento criando um novo objeto com todos os dados
             duplicarElemento() {
                 const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
                 if (!elementoAlvo) return;
                 
+                // Criar novo elemento com todos os atributos e estilos
                 const clone = elementoAlvo.cloneNode(true);
-                clone.style.left = `${parseFloat(elementoAlvo.style.left) + 20}px`;
-                clone.style.top = `${parseFloat(elementoAlvo.style.top) + 20}px`;
+                
+                // MODIFICADO: Posicionar com offset maior para ficar visível
+                const offset = 30;
+                clone.style.left = `${parseFloat(elementoAlvo.style.left) + offset}px`;
+                clone.style.top = `${parseFloat(elementoAlvo.style.top) + offset}px`;
                 clone.classList.remove('elemento-selecionado');
                 
                 // Remover classe selecionavel se o modo de seleção não estiver ativo
@@ -1686,15 +1679,25 @@
                     clone.classList.remove('selecionavel');
                 }
                 
+                // MODIFICADO: Gerar novo ID único para evitar conflitos
+                if (clone.id) {
+                    clone.id = clone.id + '-copy-' + Date.now();
+                }
+                
                 this.drawingArea.appendChild(clone);
                 
+                // MODIFICADO: Reconfigurar completamente a interatividade
                 this.configurarInteratividade(clone);
                 
                 if (clone.classList.contains('simbolo-linha')) {
                     this.configurarInteratividadeSimbolo(clone);
+                } else if (clone.classList.contains('cuba')) {
+                    this.configurarInteratividadeCuba(clone);
+                } else if (clone.classList.contains('texto-legenda')) {
+                    this.configurarInteratividadeTexto(clone);
                 }
                 
-                this.salvarEstadoHistorico('Duplicar Elemento');
+                this.salvarEstadoHistorico('Duplicar Elemento: ' + (elementoAlvo.className || 'Elemento'));
                 
                 // Selecionar o elemento duplicado
                 this.selecionarElemento(clone, null);
@@ -1856,7 +1859,8 @@
                 };
             }
 
-            criarCuba(x, y, tipo, largura = 100, altura = 60) {
+            // MODIFICADO: Criar Cuba - sem limite mínimo de tamanho
+            criarCuba(x, y, tipo, largura = 80, altura = 50) { // REDUZIDO tamanho padrão
                 const cubaElement = document.createElement('div');
                 cubaElement.className = `cuba ${tipo}`;
                 cubaElement.style.left = `${x}px`;
@@ -1887,11 +1891,64 @@
                     this.drawingArea.appendChild(cubaElement);
                 }
                 
+                // MODIFICADO: Configurar interatividade sem limite mínimo
+                this.configurarInteratividadeCuba(cubaElement);
+                
                 this.salvarEstadoHistorico('Adicionar Cuba');
                 
                 return cubaElement;
             }
 
+            // NOVO: Configurar interatividade da cuba sem limite mínimo
+            configurarInteratividadeCuba(elemento) {
+                interact(elemento).draggable({
+                    listeners: {
+                        start: () => {
+                            elemento.style.zIndex = '1000';
+                        },
+                        move: (event) => {
+                            let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                            let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                            const rotate = elemento.getAttribute('data-rotate') || 0;
+
+                            elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
+                            elemento.setAttribute('data-x', x);
+                            elemento.setAttribute('data-y', y);
+                        },
+                        end: () => {
+                            elemento.style.zIndex = '';
+                            this.salvarEstadoHistorico('Mover Cuba');
+                        }
+                    }
+                });
+
+                // MODIFICADO: Remover limite mínimo para redimensionamento
+                interact(elemento).resizable({
+                    edges: { left: true, right: true, bottom: true, top: true },
+                    listeners: {
+                        move: function (event) {
+                            let { x, y } = event.deltaRect;
+
+                            Object.assign(event.target.style, {
+                                width: `${event.rect.width}px`,
+                                height: `${event.rect.height}px`
+                            });
+
+                            Object.assign(event.target.style, {
+                                transform: `translate(${(parseFloat(event.target.getAttribute('data-x')) || 0) + x}px, ${(parseFloat(event.target.getAttribute('data-y')) || 0) + y}px)`
+                            });
+
+                            event.target.setAttribute('data-x', (parseFloat(event.target.getAttribute('data-x')) || 0) + x);
+                            event.target.setAttribute('data-y', (parseFloat(event.target.getAttribute('data-y')) || 0) + y);
+                        }
+                    },
+                    modifiers: [
+                        // MODIFICADO: Remover o modificador de limite mínimo
+                    ]
+                });
+            }
+
+            // MODIFICADO: Criar texto com largura reduzida e transparente ao mover
             criarTexto(x, y, textoInicial = "") {
                 const textoElement = document.createElement('textarea');
                 textoElement.className = 'texto-legenda';
@@ -1900,6 +1957,11 @@
                 textoElement.value = textoInicial;
                 textoElement.rows = 1;
                 textoElement.placeholder = "Digite seu texto";
+                
+                // MODIFICADO: Largura reduzida
+                textoElement.style.width = '120px';
+                textoElement.style.minWidth = '120px';
+                textoElement.style.maxWidth = '300px';
                 
                 // Adicionar classe selecionavel se o modo de seleção estiver ativo
                 if (this.modoSelecaoAtivo) {
@@ -1920,17 +1982,49 @@
                     textoElement.style.height = (textoElement.scrollHeight) + 'px';
                 });
                 
+                // MODIFICADO: Salvar histórico individualmente para cada texto
                 textoElement.addEventListener('blur', () => {
                     if (textoElement.value.trim() === '') {
                         textoElement.remove();
+                        this.salvarEstadoHistorico('Remover Texto Vazio');
                     } else {
-                        this.salvarEstadoHistorico('Editar Texto');
+                        this.salvarEstadoHistorico('Editar Texto: ' + textoElement.value.substring(0, 20));
                     }
                 });
+
+                // MODIFICADO: Configurar interatividade com transparência ao mover
+                this.configurarInteratividadeTexto(textoElement);
                 
                 this.salvarEstadoHistorico('Adicionar Texto');
                 
                 return textoElement;
+            }
+
+            // NOVO: Configurar interatividade do texto com transparência ao mover
+            configurarInteratividadeTexto(elemento) {
+                let originalBackground = elemento.style.backgroundColor;
+                
+                interact(elemento).draggable({
+                    listeners: {
+                        start: () => {
+                            elemento.style.zIndex = '1000';
+                            elemento.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'; // Transparente ao mover
+                        },
+                        move: (event) => {
+                            let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                            let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+
+                            elemento.style.transform = `translate(${x}px, ${y}px)`;
+                            elemento.setAttribute('data-x', x);
+                            elemento.setAttribute('data-y', y);
+                        },
+                        end: () => {
+                            elemento.style.zIndex = '';
+                            elemento.style.backgroundColor = originalBackground; // Restaura cor original
+                            this.salvarEstadoHistorico('Mover Texto');
+                        }
+                    }
+                });
             }
 
             criarLegendaSimplificada(x, y, simbolo = "C", descricao = "Acabamento") {
@@ -2234,7 +2328,7 @@
                 interact(elemento).unset();
             }
 
-             calcularDimensoesPeca(peca, escala) {
+            calcularDimensoesPeca(peca, escala) {
                 let width = peca.comprimento * escala;
                 let height = peca.largura * escala;
                 
@@ -2253,6 +2347,7 @@
                 };
             }
 
+            // MODIFICADO: Calcular escala automática - aumentada
             calcularEscalaAutomatica() {
                 let maiorDimensao = 0;
                 Object.values(this.gruposPecas).forEach(grupo => {
@@ -2263,10 +2358,10 @@
                 });
                 
                 const larguraArea = this.drawingArea.offsetWidth;
-                // AUMENTADO o fator de escala de 0.7 para 0.9 e limite máximo de 1.0
-                const escalaCalculada = (larguraArea * 0.9) / maiorDimensao;
+                // AUMENTADO: fator de escala de 0.9 para 1.2 e limite máximo de 1.5
+                const escalaCalculada = (larguraArea * 1.2) / maiorDimensao;
                 
-                return Math.min(escalaCalculada, 1.0); // AUMENTADO limite máximo
+                return Math.min(escalaCalculada, 1.5); // AUMENTADO limite máximo
             }
 
             manipularCliqueLinha(e, linhaElement, simboloExistente = null) {
@@ -2473,12 +2568,21 @@
                 document.body.style.overflow = '';
             }
 
+            // MODIFICADO: Atualizar método de ativação de modo inserção para legenda
             ativarModoInsercao(tipo) {
                 this.modoInsercaoAtivo = tipo;
-                this.drawingArea.style.cursor = tipo === 'texto' ? 'text' : 'crosshair';
+                
+                if (tipo === 'legenda') {
+                    // Para legenda, não mudamos o cursor - o modal será aberto no clique
+                    this.drawingArea.style.cursor = 'crosshair';
+                } else {
+                    this.drawingArea.style.cursor = tipo === 'texto' ? 'text' : 'crosshair';
+                }
+                
                 console.log(`🔧 Modo inserção ativado: ${tipo}`);
             }
 
+            // MODIFICADO: Manipular clique de inserção para legenda
             manipularCliqueInsercao(e) {
                 if (!this.modoInsercaoAtivo) return;
                 
@@ -2490,18 +2594,131 @@
 
                 switch (this.modoInsercaoAtivo) {
                     case 'texto':
-                        this.criarTexto(x, y, 'Novo Texto');
+                        this.criarTexto(x, y, ''); // MODIFICADO: Texto vazio por padrão
                         break;
                     case 'cuba':
                         this.mostrarSeletorCuba(x, y);
                         break;
                     case 'legenda':
-                        this.mostrarSeletorLegenda(x, y);
+                        this.mostrarSeletorLegenda(x, y); // MODIFICADO: Usar novo modal
                         break;
                 }
                 
                 this.modoInsercaoAtivo = null;
                 this.drawingArea.style.cursor = 'default';
+            }
+
+            // MODIFICADO: Mostrar seletor de legenda com as mesmas configurações do modal de símbolos
+            mostrarSeletorLegenda(x, y) {
+                const botoesLegenda = CONFIG.LEGENDA_SIMPLIFICADA.map(item => 
+                    `<button type="button" class="btn btn-outline-primary m-1" onclick="gerenciadorDesenho.selecionarLegendaModal('${item.simbolo}', '${item.descricao}', ${x}, ${y})" style="min-width: 80px; text-align: center; padding: 8px 4px;">
+                        <strong>${item.simbolo}</strong>
+                        <br><small style="font-size: 0.7rem; white-space: normal; line-height: 1.2;">${item.descricao}</small>
+                    </button>`
+                ).join('');
+
+                // Criar modal igual ao de símbolos
+                const modalLegenda = document.createElement('div');
+                modalLegenda.className = 'modal-controles';
+                modalLegenda.style.position = 'fixed';
+                modalLegenda.style.zIndex = '2000';
+                modalLegenda.style.background = 'white';
+                modalLegenda.style.padding = '15px';
+                modalLegenda.style.borderRadius = '10px';
+                modalLegenda.style.boxShadow = '0 10px 30px rgba(0,0,0,0.3)';
+                modalLegenda.style.wordWrap = 'break-word';
+                modalLegenda.style.overflowY = 'auto';
+
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                
+                if (viewportWidth <= 768) {
+                    modalLegenda.style.width = '95vw';
+                    modalLegenda.style.maxWidth = '95vw';
+                    modalLegenda.style.left = '50%';
+                    modalLegenda.style.top = '50%';
+                    modalLegenda.style.transform = 'translate(-50%, -50%)';
+                    modalLegenda.style.maxHeight = '90vh';
+                } else {
+                    modalLegenda.style.minWidth = '280px';
+                    modalLegenda.style.maxWidth = '320px';
+                    
+                    let left = x + 50; // Offset para não cobrir o ponto de clique
+                    let top = y + 50;
+                    
+                    if (left + 320 > viewportWidth) {
+                        left = viewportWidth - 320 - 20;
+                    }
+                    if (left < 20) {
+                        left = 20;
+                    }
+
+                    if (top + 400 > viewportHeight) {
+                        top = viewportHeight - 400 - 20;
+                    }
+                    if (top < 20) {
+                        top = 20;
+                    }
+
+                    modalLegenda.style.left = `${left}px`;
+                    modalLegenda.style.top = `${top}px`;
+                }
+
+                modalLegenda.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 style="margin: 0; font-weight: bold; font-size: ${viewportWidth <= 768 ? '1rem' : '1.1rem'};">Escolher Legenda</h6>
+                        <button type="button" class="btn-close btn-sm" onclick="gerenciadorDesenho.fecharModalLegenda()" style="font-size: 0.8rem;"></button>
+                    </div>
+                    
+                    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 10px 0; max-height: 50vh; overflow-y: auto;">
+                        ${botoesLegenda}
+                    </div>
+                `;
+
+                this.modalLegendaAtual = modalLegenda;
+                this.legendaX = x;
+                this.legendaY = y;
+
+                document.body.appendChild(modalLegenda);
+
+                const backdrop = document.createElement('div');
+                backdrop.className = 'modal-backdrop';
+                backdrop.style.display = 'block';
+                document.body.appendChild(backdrop);
+                this.backdropLegendaAtual = backdrop;
+
+                // MODIFICADO: Mesmo comportamento do modal de símbolos - fechar ao clicar fora
+                backdrop.addEventListener('click', () => {
+                    this.fecharModalLegenda();
+                });
+
+                modalLegenda.addEventListener('touchstart', (e) => {
+                    e.stopPropagation();
+                });
+                
+                modalLegenda.addEventListener('touchend', (e) => {
+                    e.stopPropagation();
+                });
+            }
+
+            // NOVO: Método para selecionar legenda no modal
+            selecionarLegendaModal(simbolo, descricao, x, y) {
+                this.criarLegendaSimplificada(x, y, simbolo, descricao);
+                this.fecharModalLegenda();
+            }
+
+            // NOVO: Método para fechar modal de legenda
+            fecharModalLegenda() {
+                if (this.modalLegendaAtual && this.modalLegendaAtual.parentNode) {
+                    this.modalLegendaAtual.parentNode.removeChild(this.modalLegendaAtual);
+                    this.modalLegendaAtual = null;
+                }
+                if (this.backdropLegendaAtual && this.backdropLegendaAtual.parentNode) {
+                    this.backdropLegendaAtual.parentNode.removeChild(this.backdropLegendaAtual);
+                    this.backdropLegendaAtual = null;
+                }
+                
+                document.body.style.overflow = '';
             }
 
             mostrarSeletorCuba(x, y) {
@@ -2521,27 +2738,6 @@
 
                 window.selecionarCuba = (tipo) => {
                     this.criarCuba(x, y, tipo);
-                    Swal.close();
-                };
-            }
-
-            mostrarSeletorLegenda(x, y) {
-                const botoesLegenda = CONFIG.LEGENDA_SIMPLIFICADA.map(item => 
-                    `<button type="button" class="btn btn-outline-primary m-1" onclick="window.selecionarLegenda('${item.simbolo}', '${item.descricao}')">
-                        <strong>${item.simbolo}</strong> = ${item.descricao}
-                    </button>`
-                ).join('');
-
-                Swal.fire({
-                    title: 'Selecione uma legenda',
-                    html: `<div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 15px 0;">${botoesLegenda}</div>`,
-                    showConfirmButton: false,
-                    showCancelButton: true,
-                    cancelButtonText: 'Cancelar'
-                });
-
-                window.selecionarLegenda = (simbolo, descricao) => {
-                    this.criarLegendaSimplificada(x, y, simbolo, descricao);
                     Swal.close();
                 };
             }
