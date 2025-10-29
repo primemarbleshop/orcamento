@@ -420,6 +420,8 @@
         }
         
         .modal-controles {
+            transform-origin: top left;
+            zoom: 1 !important;
             position: fixed;
             /* remova ou comente o transform original se quiser (você já remove no JS) */
             /* transform: translate(-50%, -50%); */
@@ -435,6 +437,8 @@
             overflow-y: auto;
             box-sizing: border-box;
         }
+       
+
         
         .modal-backdrop {
             position: fixed;
@@ -1590,7 +1594,7 @@
                 });
             }
 
-           mostrarModalControles(event) {
+          mostrarModalControles(event) {
     if (!this.elementoSelecionado && this.ultimoElementoClicado) {
         this.selecionarElemento(this.ultimoElementoClicado, event);
     }
@@ -1599,44 +1603,46 @@
     const modal = this.modalControles;
     const backdrop = this.modalBackdrop;
 
-    // Remover transform temporário
     modal.style.transform = 'none';
     modal.style.maxHeight = 'calc(100vh - 20px)';
     modal.style.overflowY = 'auto';
     modal.style.display = 'block';
     backdrop.style.display = 'block';
 
-    // 🔥 Detectar zoom atual (escala da viewport)
-    const scale = window.visualViewport ? window.visualViewport.scale : 1;
+    // 🧭 Posição real do toque/clique na página
+    const pageX = event.pageX || (event.touches && event.touches[0].pageX) || 0;
+    const pageY = event.pageY || (event.touches && event.touches[0].pageY) || 0;
 
-    // Obter dimensões da viewport visível mesmo com zoom
-    const viewportWidth = window.visualViewport ? window.visualViewport.width : window.innerWidth;
-    const viewportHeight = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-    const offsetLeft = window.visualViewport ? window.visualViewport.offsetLeft : 0;
-    const offsetTop = window.visualViewport ? window.visualViewport.offsetTop : 0;
+    // 🪟 Dimensões da tela e deslocamento atual
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const scrollX = window.scrollX || window.pageXOffset;
+    const scrollY = window.scrollY || window.pageYOffset;
 
+    // 🔍 Medir o tamanho real do modal
     const modalRect = modal.getBoundingClientRect();
 
-    // Calcular posição considerando zoom e deslocamento da viewport
-    let left = (event.clientX - offsetLeft) / scale + offsetLeft;
-    let top = (event.clientY - offsetTop) / scale + offsetTop;
+    // Calcular posição relativa à viewport visível
+    let left = pageX - scrollX;
+    let top = pageY - scrollY;
 
-    // 🔒 Impedir que o modal saia da tela visível
-    if (left + modalRect.width > viewportWidth - 10 + offsetLeft) {
-        left = viewportWidth - modalRect.width - 10 + offsetLeft;
+    // 🔒 Evitar que saia da tela
+    if (left + modalRect.width > viewportWidth - 10) {
+        left = viewportWidth - modalRect.width - 10;
     }
-    if (top + modalRect.height > viewportHeight - 10 + offsetTop) {
-        top = viewportHeight - modalRect.height - 10 + offsetTop;
+    if (top + modalRect.height > viewportHeight - 10) {
+        top = viewportHeight - modalRect.height - 10;
     }
-    if (left < 10 + offsetLeft) left = 10 + offsetLeft;
-    if (top < 10 + offsetTop) top = 10 + offsetTop;
+    if (left < 10) left = 10;
+    if (top < 10) top = 10;
 
-    // Aplicar posição final (position: fixed → usa coordenadas da viewport)
+    // Aplicar posição final (position: fixed)
     modal.style.left = `${left}px`;
     modal.style.top = `${top}px`;
 
     backdrop.onclick = () => this.fecharModal();
 }
+
 
 
             duplicarElemento() {
