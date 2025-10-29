@@ -491,16 +491,28 @@
           overflow-y: hidden;
         }
 
-        .drawing-area {
+                .drawing-area {
           display: flex;
           flex-wrap: wrap;
           justify-content: flex-start;
           align-items: flex-start;
           gap: 10px;
-          width: max-content;
-          min-width: 100%;
+          width: 100%; /* MUDADO: era max-content */
+          min-width: auto; /* MUDADO: era 100% */
+          max-width: 1400px; /* NOVO: limite máximo */
           margin: 0 auto;
           box-sizing: border-box;
+        }
+
+        /* 🔥 CORREÇÃO: Largura da área de desenho para mobile */
+        @media (max-width: 768px) {
+            .drawing-area {
+                width: 95% !important;
+                max-width: 400px !important; /* NOVO: limite máximo no mobile */
+                min-width: auto !important;
+                transform: none !important; /* REMOVIDO: scale */
+                margin: 0 auto !important;
+            }
         }
 
         .drawing-area .peca,
@@ -510,16 +522,7 @@
           flex: 0 0 auto; /* impede empilhamento vertical */
         }
 
-          /* 🔥 CORREÇÃO: Largura da área de desenho para mobile */
-        @media (max-width: 768px) {
-            .drawing-area {
-                width: 80% !important; /* ALTERE ESTE VALOR */
-                min-width: 300px !important; /* ALTERE ESTE VALOR */
-                transform: scale(0.80) !important; /* ALTERE ESTE VALOR */
-                transform-origin: top left !important;
-                margin: 0 auto !important;
-            }
-        }
+        
 
         /* 🔥 CORREÇÃO: Melhorias específicas para mobile */
         @media (max-width: 768px) {
