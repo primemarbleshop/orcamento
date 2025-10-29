@@ -966,62 +966,12 @@
             }
 
             restaurarEstadoHistorico(estado) {
+    // CORREÇÃO: Desselecionar elemento e remover handles antes de restaurar
     this.desselecionarElemento();
     
-    // CORREÇÃO: Verificar se é um estado específico de texto
-    if (estado.tipo === 'texto') {
-        this.restaurarEstadoTexto(estado.data);
-    } else {
-        // Estado geral (fallback)
-        this.drawingArea.innerHTML = estado.drawingAreaHTML;
-        this.gruposPecas = JSON.parse(JSON.stringify(estado.gruposPecas));
-        this.reconfigurarElementosAposHistorico();
-    }
-}
-
-// CORREÇÃO: NOVO MÉTODO para restaurar estado específico de texto
-restaurarEstadoTexto(dadosTexto) {
-    const { acao, textoId, valorAntigo, valorNovo } = dadosTexto;
-    const textoElement = this.drawingArea.querySelector(`[data-texto-id="${textoId}"]`);
-    
-    switch(acao) {
-        case 'Adicionar Texto':
-            if (!textoElement && valorNovo !== '') {
-                // Recriar o texto se foi removido
-                this.criarTexto(50, 50, valorNovo);
-            }
-            break;
-            
-        case 'Editar Texto':
-            if (textoElement) {
-                textoElement.value = valorAntigo; // Volta para o valor anterior
-                textoElement.dispatchEvent(new Event('input')); // Atualiza altura
-            }
-            break;
-            
-        case 'Remover Texto':
-            if (textoElement) {
-                textoElement.remove();
-            }
-            break;
-            
-        case 'Mover Texto':
-            if (textoElement) {
-                const posAntiga = JSON.parse(valorAntigo);
-                textoElement.style.left = posAntiga.x + 'px';
-                textoElement.style.top = posAntiga.y + 'px';
-                textoElement.setAttribute('data-x', 0);
-                textoElement.setAttribute('data-y', 0);
-                textoElement.style.transform = 'translate(0px, 0px)';
-            }
-            break;
-            
-        default:
-            // Fallback para o método geral
-            this.drawingArea.innerHTML = dadosTexto.drawingAreaHTML;
-            this.reconfigurarElementosAposHistorico();
-            break;
-    }
+    this.drawingArea.innerHTML = estado.drawingAreaHTML;
+    this.gruposPecas = JSON.parse(JSON.stringify(estado.gruposPecas));
+    this.reconfigurarElementosAposHistorico();
 }
 
             reconfigurarElementosAposHistorico() {
@@ -1911,22 +1861,15 @@ reabilitarLinhasPecas() {
             }
 
             excluirElemento() {
-    const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
-    if (!elementoAlvo) return;
-    
-    // CORREÇÃO: Tratamento específico para textos
-    if (elementoAlvo.classList.contains('texto-legenda')) {
-        const textoId = elementoAlvo.getAttribute('data-texto-id');
-        const valor = elementoAlvo.value.trim();
-        this.salvarEstadoHistoricoTexto(textoId, 'Remover Texto', valor, '');
-        elementoAlvo.remove();
-    } else {
-        this.salvarEstadoHistorico(`Excluir ${elementoAlvo.className}`);
-        elementoAlvo.remove();
-    }
-    
-    this.desselecionarElemento();
-}
+                const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
+                if (!elementoAlvo) return;
+                
+                this.salvarEstadoHistorico('Excluir Elemento');
+                
+                elementoAlvo.remove();
+                this.desselecionarElemento();
+            }
+
             // =============================================
             // MÉTODOS AUXILIARES
             // =============================================
@@ -2161,159 +2104,82 @@ reabilitarLinhasPecas() {
 
             // MODIFICADO: Criar texto com largura reduzida e transparente ao mover
             criarTexto(x, y, textoInicial = "") {
-    const textoElement = document.createElement('textarea');
-    textoElement.className = 'texto-legenda';
-    textoElement.style.left = `${x}px`;
-    textoElement.style.top = `${y}px`;
-    textoElement.value = textoInicial;
-    textoElement.rows = 1;
-    textoElement.placeholder = "Digite seu texto";
-    
-    // Largura reduzida
-    textoElement.style.width = '120px';
-    textoElement.style.minWidth = '120px';
-    textoElement.style.maxWidth = '300px';
-    
-    // Adicionar classe selecionavel se o modo de seleção estiver ativo
-    if (this.modoSelecaoAtivo) {
-        textoElement.classList.add('selecionavel');
-    }
-    
-    const grupo = this.encontrarGrupoNaPosicao(x, y);
-    if (grupo) {
-        grupo.appendChild(textoElement);
-    } else {
-        this.drawingArea.appendChild(textoElement);
-    }
-    
-    textoElement.focus();
-    
-    // CORREÇÃO: Sistema de histórico individual para cada texto
-    let valorAnterior = textoInicial;
-    let timeoutId = null;
-    let textoId = 'texto-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-    textoElement.setAttribute('data-texto-id', textoId);
-    
-    textoElement.addEventListener('input', () => {
-        textoElement.style.height = 'auto';
-        textoElement.style.height = (textoElement.scrollHeight) + 'px';
-        
-        // CORREÇÃO: Salvar histórico após um pequeno delay (para não salvar a cada tecla)
-        clearTimeout(timeoutId);
-        timeoutId = setTimeout(() => {
-            const novoValor = textoElement.value;
-            if (novoValor !== valorAnterior) {
-                this.salvarEstadoHistoricoTexto(textoId, `Editar Texto`, valorAnterior, novoValor);
-                valorAnterior = novoValor;
-            }
-        }, 800); // Salva após 0.8 segundos sem digitar
-    });
-    
-    // CORREÇÃO: Salvar histórico ao perder o foco
-    textoElement.addEventListener('blur', () => {
-        const valorAtual = textoElement.value.trim();
-        
-        if (valorAtual === '' && valorAnterior === '') {
-            // Texto vazio desde o início - remover sem salvar histórico
-            textoElement.remove();
-        } else if (valorAtual === '' && valorAnterior !== '') {
-            // Texto foi esvaziado - salvar histórico antes de remover
-            this.salvarEstadoHistoricoTexto(textoId, `Remover Texto`, valorAnterior, '');
-            textoElement.remove();
-        } else if (valorAtual !== valorAnterior) {
-            // Texto foi modificado - salvar histórico
-            this.salvarEstadoHistoricoTexto(textoId, `Editar Texto`, valorAnterior, valorAtual);
-            valorAnterior = valorAtual;
-        }
-    });
-
-    // Configurar interatividade com transparência ao mover
-    this.configurarInteratividadeTexto(textoElement, textoId);
-    
-    // CORREÇÃO: Salvar histórico quando o texto é criado
-    this.salvarEstadoHistoricoTexto(textoId, 'Adicionar Texto', '', textoInicial);
-    
-    return textoElement;
-}
-
-// CORREÇÃO: Método específico para salvar histórico de textos
-salvarEstadoHistoricoTexto(textoId, acao, valorAntigo, valorNovo) {
-    // Criar snapshot específico para este texto
-    const snapshot = {
-        tipo: 'texto',
-        textoId: textoId,
-        descricao: acao,
-        timestamp: new Date(),
-        data: {
-            acao: acao,
-            textoId: textoId,
-            valorAntigo: valorAntigo,
-            valorNovo: valorNovo,
-            // Salvar também o estado completo para fallback
-            drawingAreaHTML: this.drawingArea.innerHTML
-        }
-    };
-
-    // Cortar o histórico se não estivermos no final
-    if (this.indiceHistorico < this.historico.length - 1) {
-        this.historico = this.historico.slice(0, this.indiceHistorico + 1);
-    }
-
-    this.historico.push(snapshot);
-    this.indiceHistorico++;
-
-    if (this.historico.length > this.maximoHistorico) {
-        this.historico.shift();
-        this.indiceHistorico--;
-    }
-
-    this.atualizarBotoesHistorico();
-    console.log(`💾 Histórico de Texto: ${acao} (ID: ${textoId})`);
-}
-
-            configurarInteratividadeTexto(elemento, textoId) {
-    let originalBackground = elemento.style.backgroundColor;
-    let posicaoAnterior = {
-        x: parseFloat(elemento.style.left) || 0,
-        y: parseFloat(elemento.style.top) || 0
-    };
-    
-    interact(elemento).draggable({
-        listeners: {
-            start: () => {
-                elemento.style.zIndex = '1000';
-                elemento.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
-                // Salvar posição inicial
-                posicaoAnterior = {
-                    x: parseFloat(elemento.style.left) || 0,
-                    y: parseFloat(elemento.style.top) || 0
-                };
-            },
-            move: (event) => {
-                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-
-                elemento.style.transform = `translate(${x}px, ${y}px)`;
-                elemento.setAttribute('data-x', x);
-                elemento.setAttribute('data-y', y);
-            },
-            end: () => {
-                elemento.style.zIndex = '';
-                elemento.style.backgroundColor = originalBackground;
+                const textoElement = document.createElement('textarea');
+                textoElement.className = 'texto-legenda';
+                textoElement.style.left = `${x}px`;
+                textoElement.style.top = `${y}px`;
+                textoElement.value = textoInicial;
+                textoElement.rows = 1;
+                textoElement.placeholder = "Digite seu texto";
                 
-                // CORREÇÃO: Só salvar histórico se a posição realmente mudou
-                const novaPosicao = {
-                    x: (parseFloat(elemento.style.left) || 0) + (parseFloat(elemento.getAttribute('data-x')) || 0),
-                    y: (parseFloat(elemento.style.top) || 0) + (parseFloat(elemento.getAttribute('data-y')) || 0)
-                };
+                // MODIFICADO: Largura reduzida
+                textoElement.style.width = '120px';
+                textoElement.style.minWidth = '120px';
+                textoElement.style.maxWidth = '300px';
                 
-                if (novaPosicao.x !== posicaoAnterior.x || novaPosicao.y !== posicaoAnterior.y) {
-                    this.salvarEstadoHistoricoTexto(textoId, 'Mover Texto', JSON.stringify(posicaoAnterior), JSON.stringify(novaPosicao));
+                // Adicionar classe selecionavel se o modo de seleção estiver ativo
+                if (this.modoSelecaoAtivo) {
+                    textoElement.classList.add('selecionavel');
                 }
+                
+                const grupo = this.encontrarGrupoNaPosicao(x, y);
+                if (grupo) {
+                    grupo.appendChild(textoElement);
+                } else {
+                    this.drawingArea.appendChild(textoElement);
+                }
+                
+                textoElement.focus();
+                
+                textoElement.addEventListener('input', () => {
+                    textoElement.style.height = 'auto';
+                    textoElement.style.height = (textoElement.scrollHeight) + 'px';
+                });
+                
+                // MODIFICADO: Salvar histórico individualmente para cada texto
+                textoElement.addEventListener('blur', () => {
+                    if (textoElement.value.trim() === '') {
+                        textoElement.remove();
+                        this.salvarEstadoHistorico('Remover Texto Vazio');
+                    } else {
+                        this.salvarEstadoHistorico('Editar Texto: ' + textoElement.value.substring(0, 20));
+                    }
+                });
+
+                // MODIFICADO: Configurar interatividade com transparência ao mover
+                this.configurarInteratividadeTexto(textoElement);
+                
+                this.salvarEstadoHistorico('Adicionar Texto');
+                
+                return textoElement;
             }
-        }
-    });
-}
+
+            // NOVO: Configurar interatividade do texto com transparência ao mover
+            configurarInteratividadeTexto(elemento) {
+                let originalBackground = elemento.style.backgroundColor;
+                
+                interact(elemento).draggable({
+                    listeners: {
+                        start: () => {
+                            elemento.style.zIndex = '1000';
+                            elemento.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'; // Transparente ao mover
+                        },
+                        move: (event) => {
+                            let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                            let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+
+                            elemento.style.transform = `translate(${x}px, ${y}px)`;
+                            elemento.setAttribute('data-x', x);
+                            elemento.setAttribute('data-y', y);
+                        },
+                        end: () => {
+                            elemento.style.zIndex = '';
+                            elemento.style.backgroundColor = originalBackground; // Restaura cor original
+                            this.salvarEstadoHistorico('Mover Texto');
+                        }
+                    }
+                });
+            }
 
             criarLegendaSimplificada(x, y, simbolo = "C", descricao = "Acabamento") {
                 const legendaElement = document.createElement('div');
