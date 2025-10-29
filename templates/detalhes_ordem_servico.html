@@ -966,10 +966,13 @@
             }
 
             restaurarEstadoHistorico(estado) {
-                this.drawingArea.innerHTML = estado.drawingAreaHTML;
-                this.gruposPecas = JSON.parse(JSON.stringify(estado.gruposPecas));
-                this.reconfigurarElementosAposHistorico();
-            }
+    // CORREÇÃO: Desselecionar elemento e remover handles antes de restaurar
+    this.desselecionarElemento();
+    
+    this.drawingArea.innerHTML = estado.drawingAreaHTML;
+    this.gruposPecas = JSON.parse(JSON.stringify(estado.gruposPecas));
+    this.reconfigurarElementosAposHistorico();
+}
 
             reconfigurarElementosAposHistorico() {
                 this.desselecionarElemento();
@@ -1029,28 +1032,34 @@
             }
 
             desfazer() {
-                if (this.indiceHistorico > 0) {
-                    this.indiceHistorico--;
-                    const estadoAnterior = this.historico[this.indiceHistorico];
-                    this.restaurarEstadoHistorico(estadoAnterior.data);
-                    console.log('🔧 Desfazer executado - Estado:', this.indiceHistorico);
-                } else {
-                    console.log('🔧 Não há ações para desfazer');
-                }
-                this.atualizarBotoesHistorico();
-            }
+    if (this.indiceHistorico > 0) {
+        // CORREÇÃO: Desselecionar antes de desfazer
+        this.desselecionarElemento();
+        
+        this.indiceHistorico--;
+        const estadoAnterior = this.historico[this.indiceHistorico];
+        this.restaurarEstadoHistorico(estadoAnterior.data);
+        console.log('🔧 Desfazer executado - Estado:', this.indiceHistorico);
+    } else {
+        console.log('🔧 Não há ações para desfazer');
+    }
+    this.atualizarBotoesHistorico();
+}
 
-            refazer() {
-                if (this.indiceHistorico < this.historico.length - 1) {
-                    this.indiceHistorico++;
-                    const estadoFuturo = this.historico[this.indiceHistorico];
-                    this.restaurarEstadoHistorico(estadoFuturo.data);
-                    console.log('🔧 Refazer executado - Estado:', this.indiceHistorico);
-                } else {
-                    console.log('🔧 Não há ações para refazer');
-                }
-                this.atualizarBotoesHistorico();
-            }
+refazer() {
+    if (this.indiceHistorico < this.historico.length - 1) {
+        // CORREÇÃO: Desselecionar antes de refazer
+        this.desselecionarElemento();
+        
+        this.indiceHistorico++;
+        const estadoFuturo = this.historico[this.indiceHistorico];
+        this.restaurarEstadoHistorico(estadoFuturo.data);
+        console.log('🔧 Refazer executado - Estado:', this.indiceHistorico);
+    } else {
+        console.log('🔧 Não há ações para refazer');
+    }
+    this.atualizarBotoesHistorico();
+}
 
             atualizarBotoesHistorico() {
                 const btnDesfazer = document.getElementById('btnDesfazer');
@@ -1384,6 +1393,9 @@ toggleModoSelecao() {
             }
 
             desselecionarElemento() {
+    // CORREÇÃO: Sempre remover handles primeiro, independente de ter elemento selecionado
+    this.removerHandles();
+    
     if (this.elementoSelecionado) {
         // Remover interatividade do elemento
         this.removerInteratividade(this.elementoSelecionado);
@@ -1395,7 +1407,6 @@ toggleModoSelecao() {
             this.reabilitarLinhasPecas();
         }
         
-        this.removerHandles();
         this.elementoSelecionado = null;
     }
     
@@ -1403,6 +1414,24 @@ toggleModoSelecao() {
     this.atualizarEstadoBotoes();
     
     this.ultimoElementoClicado = null;
+}
+
+// CORREÇÃO: Método melhorado para remover handles
+removerHandles() {
+    this.handles.forEach(handle => {
+        if (handle && handle.parentNode) {
+            handle.parentNode.removeChild(handle);
+        }
+    });
+    this.handles = [];
+    
+    // CORREÇÃO: Remover também qualquer handle "órfão" que possa ter ficado
+    const handlesOrfaos = this.drawingArea.querySelectorAll('.handle, .handle-rotacao');
+    handlesOrfaos.forEach(handle => {
+        if (handle.parentNode) {
+            handle.parentNode.removeChild(handle);
+        }
+    });
 }
 
 // NOVO MÉTODO: Desabilitar linhas das peças quando modo seleção está ativo
