@@ -419,36 +419,41 @@
             cursor: sw-resize;
         }
         
+        /* Modal controls: ajustes para evitar problemas com transforms/zoom */
         .modal-controles {
-            transform-origin: top left;
-            zoom: 1 !important;
             position: fixed;
-            /* remova ou comente o transform original se quiser (você já remove no JS) */
-            /* transform: translate(-50%, -50%); */
+            left: 0;                /* inicial — JS sobrescreve */
+            top: 0;                 /* inicial — JS sobrescreve */
+            transform: none !important;   /* garantir que nenhum translate atrapalhe */
+            transform-origin: top left;
             background: white;
-            padding: 20px;
+            padding: 14px;          /* leve redução para caber melhor */
             border-radius: 10px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            z-index: 2000;
+            z-index: 99999;         /* bem alto para evitar ser coberto */
             min-width: 200px;
-        
-            /* novos */
+            max-width: 90vw;        /* nunca maior que a tela */
+            box-sizing: border-box;
             max-height: calc(100vh - 20px);
             overflow-y: auto;
-            box-sizing: border-box;
+            -webkit-overflow-scrolling: touch;
+            will-change: left, top;
         }
-       
-
         
+        /* Backdrop: manter visível, mas NÃO fecha o modal ao clicar */
         .modal-backdrop {
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1999;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.4);
+            z-index: 99998;
+            /* se você não quiser bloquear cliques fora do modal, use pointer-events: none;
+               mas neste caso deixamos pointer-events: auto para bloquear interação com a página. */
+            pointer-events: auto;
         }
+
         
         .btn-controle {
             margin: 5px;
@@ -1625,18 +1630,16 @@
     const modal = this.modalControles;
     const backdrop = this.modalBackdrop;
 
-    // --- garantir que ambos estejam no body ---
+    // Garantir que modal e backdrop estejam no body (evita problemas com ancestors transform)
     if (modal.parentNode !== document.body) document.body.appendChild(modal);
     if (backdrop.parentNode !== document.body) document.body.appendChild(backdrop);
 
-    // --- preparar estilos para medir ---
+    // Preparar visualização
     modal.style.transform = 'none';
-    modal.style.maxHeight = 'calc(100vh - 20px)';
-    modal.style.overflowY = 'auto';
     modal.style.display = 'block';
     backdrop.style.display = 'block';
 
-    // --- coordenadas compatíveis com mouse e toque ---
+    // Obter coordenadas do ponteiro (suporta touch e mouse)
     let clientX = 0, clientY = 0;
     if (event.touches && event.touches[0]) {
         clientX = event.touches[0].clientX;
@@ -1645,36 +1648,46 @@
         clientX = event.changedTouches[0].clientX;
         clientY = event.changedTouches[0].clientY;
     } else {
-        clientX = event.clientX || 0;
-        clientY = event.clientY || 0;
+        clientX = typeof event.clientX === 'number' ? event.clientX : (event.pageX - (window.scrollX || window.pageXOffset || 0));
+        clientY = typeof event.clientY === 'number' ? event.clientY : (event.pageY - (window.scrollY || window.pageYOffset || 0));
     }
 
-    // --- dimensões e offsets ---
+    // Medir modal depois de exibido
+    const modalRect = modal.getBoundingClientRect();
+
+    // Usar visualViewport quando disponível (melhor para pinch-zoom / pan)
     const vv = window.visualViewport;
     const viewportWidth = vv ? vv.width : window.innerWidth;
     const viewportHeight = vv ? vv.height : window.innerHeight;
     const viewportOffsetLeft = vv ? vv.offsetLeft : 0;
     const viewportOffsetTop = vv ? vv.offsetTop : 0;
-    const scrollX = window.scrollX || window.pageXOffset || 0;
-    const scrollY = window.scrollY || window.pageYOffset || 0;
 
-    const modalRect = modal.getBoundingClientRect();
+    // Coordenadas iniciais (clientX/Y já são relativas à viewport)
     let left = clientX;
     let top = clientY;
     const margin = 10;
 
-    if (left + modalRect.width > viewportWidth - margin)
+    // Ajustes para não sair da tela visível
+    if (left + modalRect.width > viewportWidth - margin) {
         left = Math.max(margin, viewportWidth - modalRect.width - margin);
-    if (top + modalRect.height > viewportHeight - margin)
+    }
+    if (top + modalRect.height > viewportHeight - margin) {
         top = Math.max(margin, viewportHeight - modalRect.height - margin);
+    }
     if (left < margin) left = margin;
     if (top < margin) top = margin;
 
-    // --- aplicar posição final corrigida ---
+    // Compensar offsets/scroll para posição final (position: fixed usa viewport coordinates + offsets)
+    const scrollX = window.scrollX || window.pageXOffset || 0;
+    const scrollY = window.scrollY || window.pageYOffset || 0;
+
     modal.style.left = `${left + (viewportOffsetLeft || 0) + scrollX}px`;
     modal.style.top = `${top + (viewportOffsetTop || 0) + scrollY}px`;
 
-    backdrop.onclick = () => this.fecharModal();
+    // --- IMPORTANT: NÃO fechar o modal ao clicar no backdrop automaticamente ---
+    // Se quiser que clicar no backdrop NÃO feche, simplesmente *não* atribua onclick.
+    // Se precisar bloquear interação com a página, mantenha o backdrop visível (já está).
+    backdrop.onclick = null;
 }
 
 
