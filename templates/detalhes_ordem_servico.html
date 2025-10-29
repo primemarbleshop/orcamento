@@ -385,17 +385,43 @@
         }
         
         .handle {
-            position: absolute;
-            width: 12px;
-            height: 12px;
-            background-color: #4e73df;
-            border: 2px solid white;
-            border-radius: 50%;
-            pointer-events: all;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            transform: translate(-50%, -50%);
-            z-index: 1002;
-        }
+    position: absolute;
+    width: 12px;
+    height: 12px;
+    background-color: #4e73df;
+    border: 2px solid white;
+    border-radius: 50%;
+    pointer-events: all;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    transform: translate(-50%, -50%);
+    z-index: 1002;
+    /* NOVO: Prevenir zoom e scroll no mobile */
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.handle-rotacao {
+    /* NOVO: Prevenir zoom e scroll no mobile */
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* NOVO: Prevenir zoom em botões no mobile */
+.action-buttons-container .btn {
+    touch-action: manipulation;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+/* NOVO: Prevenir zoom e scroll na área de desenho */
+.drawing-area {
+    /* ... outros estilos ... */
+    touch-action: pan-x pan-y;
+    -webkit-user-select: none;
+    user-select: none;
+}
         
         .handle-rotacao {
             position: absolute;
@@ -1129,73 +1155,99 @@
             // =============================================
 
             configurarEventos() {
-                console.log('🔧 Configurando eventos...');
-                
-                // NOVO: Evento para o botão de seleção (agora é toggle)
-                document.getElementById('btnSelecionar').addEventListener('click', () => this.toggleModoSelecao());
-                
-                // Eventos dos botões principais
-                document.getElementById('btnAdicionarTexto').addEventListener('click', () => this.ativarModoInsercao('texto'));
-                document.getElementById('btnAdicionarCuba').addEventListener('click', () => this.ativarModoInsercao('cuba'));
-                document.getElementById('btnLegendaSimplificada').addEventListener('click', () => this.ativarModoInsercao('legenda'));
+    console.log('🔧 Configurando eventos...');
+    
+    // NOVO: Prevenir zoom duplo toque nos botões
+    const prevenirZoomDuploToque = (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+    };
 
-                // NOVOS: Eventos para os botões duplicar e excluir
-                document.getElementById('btnDuplicar').addEventListener('click', () => this.duplicarElemento());
-                document.getElementById('btnExcluir').addEventListener('click', () => this.excluirElemento());
+    // NOVO: Configurar todos os botões com prevenção de touch
+    const botoes = [
+        'btnSelecionar', 'btnDesfazer', 'btnRefazer', 'btnAdicionarTexto',
+        'btnAdicionarCuba', 'btnLegendaSimplificada', 'btnDuplicar', 
+        'btnExcluir', 'btnSalvar', 'btnImprimir'
+    ];
 
-                // Evento para salvar desenho
-                document.getElementById('btnSalvar').addEventListener('click', () => {
-                    console.log('🖱️ Botão salvar clicado');
-                    this.salvarDesenho();
-                });
-                
-                // Evento para impressão
-                document.getElementById('btnImprimir').addEventListener('click', () => this.imprimirDesenho());
+    botoes.forEach(botaoId => {
+        const botao = document.getElementById(botaoId);
+        if (botao) {
+            // Evento de click normal
+            botao.addEventListener('click', (e) => {
+                // Chamar a função correspondente
+                switch(botaoId) {
+                    case 'btnSelecionar': this.toggleModoSelecao(); break;
+                    case 'btnAdicionarTexto': this.ativarModoInsercao('texto'); break;
+                    case 'btnAdicionarCuba': this.ativarModoInsercao('cuba'); break;
+                    case 'btnLegendaSimplificada': this.ativarModoInsercao('legenda'); break;
+                    case 'btnDuplicar': this.duplicarElemento(); break;
+                    case 'btnExcluir': this.excluirElemento(); break;
+                    case 'btnSalvar': 
+                        console.log('🖱️ Botão salvar clicado');
+                        this.salvarDesenho(); 
+                        break;
+                    case 'btnImprimir': this.imprimirDesenho(); break;
+                    case 'btnDesfazer': this.desfazer(); break;
+                    case 'btnRefazer': this.refazer(); break;
+                }
+            });
 
-                // Eventos desfazer/refazer
-                document.getElementById('btnDesfazer').addEventListener('click', () => this.desfazer());
-                document.getElementById('btnRefazer').addEventListener('click', () => this.refazer());
+            // NOVO: Prevenir eventos de touch que causam zoom
+            botao.addEventListener('touchstart', prevenirZoomDuploToque, { passive: false });
+            botao.addEventListener('touchend', prevenirZoomDuploToque, { passive: false });
+            botao.addEventListener('touchmove', prevenirZoomDuploToque, { passive: false });
+        }
+    });
 
-                // Evento de clique na área de desenho para modos de inserção e seleção
-                this.drawingArea.addEventListener('click', (e) => {
-                    if (this.modoInsercaoAtivo) {
-                        this.manipularCliqueInsercao(e);
-                    } else if (this.modoSelecaoAtivo) {
-                        // NOVO: Selecionar elemento quando no modo seleção
-                        this.manipularCliqueSelecao(e);
-                    }
-                });
-                
-                // Evento global para desselecionar ao clicar fora
-                document.addEventListener('click', (e) => {
-                    // Se clicar fora da área de desenho E não for handle
-                    if (!e.target.closest('#drawingArea') && !e.target.closest('.handle')) {
-                        this.desselecionarElemento();
-                    }
-                });
+    // Evento de clique na área de desenho para modos de inserção e seleção
+    this.drawingArea.addEventListener('click', (e) => {
+        if (this.modoInsercaoAtivo) {
+            this.manipularCliqueInsercao(e);
+        } else if (this.modoSelecaoAtivo) {
+            // NOVO: Selecionar elemento quando no modo seleção
+            this.manipularCliqueSelecao(e);
+        }
+    });
+    
+    // NOVO: Adicionar prevenção de touch na área de desenho
+    this.drawingArea.addEventListener('touchstart', (e) => {
+        if (this.modoInsercaoAtivo || this.modoSelecaoAtivo) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    }, { passive: false });
 
-                // Eventos de teclado para desfazer/refazer
-                document.addEventListener('keydown', (e) => {
-                    if (e.ctrlKey || e.metaKey) {
-                        if (e.key === 'z') {
-                            e.preventDefault();
-                            this.desfazer();
-                        } else if (e.key === 'y') {
-                            e.preventDefault();
-                            this.refazer();
-                        }
-                    }
-                    
-                    // NOVO: Tecla Escape para desselecionar
-                    if (e.key === 'Escape') {
-                        this.desselecionarElemento();
-                    }
-                });
-                
-                this.configurarEventosAreaDesenho();
-                
-                console.log('✅ Eventos configurados com sucesso!');
+    // Evento global para desselecionar ao clicar fora
+    document.addEventListener('click', (e) => {
+        // Se clicar fora da área de desenho E não for handle
+        if (!e.target.closest('#drawingArea') && !e.target.closest('.handle')) {
+            this.desselecionarElemento();
+        }
+    });
+
+    // Eventos de teclado para desfazer/refazer
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey || e.metaKey) {
+            if (e.key === 'z') {
+                e.preventDefault();
+                this.desfazer();
+            } else if (e.key === 'y') {
+                e.preventDefault();
+                this.refazer();
             }
+        }
+        
+        // NOVO: Tecla Escape para desselecionar
+        if (e.key === 'Escape') {
+            this.desselecionarElemento();
+        }
+    });
+    
+    this.configurarEventosAreaDesenho();
+    
+    console.log('✅ Eventos configurados com sucesso!');
+}
 
             configurarEventosAreaDesenho() {
                 // Evento para desselecionar ao clicar na área vazia
@@ -1443,22 +1495,53 @@ reabilitarLinhasPecas() {
     let initialWidth, initialHeight;
     let initialLeft, initialTop;
 
+    // NOVO: Prevenir eventos de touch nos handles
+    handle.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+    }, { passive: false });
+
+    handle.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+    }, { passive: false });
+
     interact(handle).draggable({
+        // NOVO: Prevenir comportamento padrão no interact
+        preventDefault: 'always',
+        
         listeners: {
             start: (event) => {
+                // NOVO: Prevenir comportamento padrão no touch
+                if (event.type.includes('touch')) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                
                 const style = window.getComputedStyle(elemento);
                 initialWidth = parseFloat(style.width);
                 initialHeight = parseFloat(style.height);
                 initialLeft = parseFloat(style.left);
                 initialTop = parseFloat(style.top);
-                initialX = event.clientX;
-                initialY = event.clientY;
+                // NOVO: Suporte para touch events
+                initialX = event.clientX || (event.touches && event.touches[0].clientX);
+                initialY = event.clientY || (event.touches && event.touches[0].clientY);
 
                 handle.style.cursor = 'grabbing';
             },
             move: (event) => {
-                const deltaX = event.clientX - initialX;
-                const deltaY = event.clientY - initialY;
+                // NOVO: Prevenir comportamento padrão no touch
+                if (event.type.includes('touch')) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+
+                // NOVO: Suporte para touch events
+                const currentX = event.clientX || (event.touches && event.touches[0].clientX);
+                const currentY = event.clientY || (event.touches && event.touches[0].clientY);
+                
+                const deltaX = currentX - initialX;
+                const deltaY = currentY - initialY;
 
                 const handleClasses = handle.classList;
                 let isEast = handleClasses.contains('handle-e');
@@ -1510,7 +1593,7 @@ reabilitarLinhasPecas() {
                     newLeft = initialLeft + deltaX;
                 }
 
-                // DEPOIS: SEM limite mínimo - pode redimensionar livremente
+                // SEM limite mínimo - pode redimensionar livremente
                 elemento.style.width = newWidth + 'px';
                 elemento.style.height = newHeight + 'px';
                 
