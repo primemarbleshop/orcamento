@@ -1153,17 +1153,19 @@
             // =============================================
             // CONFIGURAÇÃO DE EVENTOS - MODIFICADA
             // =============================================
-
-            configurarEventos() {
+configurarEventos() {
     console.log('🔧 Configurando eventos...');
     
-    // NOVO: Prevenir zoom duplo toque nos botões
+    // CORREÇÃO: Prevenir apenas zoom duplo toque, não clique único
     const prevenirZoomDuploToque = (e) => {
-        e.preventDefault();
-        e.stopPropagation();
+        // Só prevenir se for toque duplo ou múltiplo
+        if (e.touches && e.touches.length > 1) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
     };
 
-    // NOVO: Configurar todos os botões com prevenção de touch
+    // Configurar todos os botões
     const botoes = [
         'btnSelecionar', 'btnDesfazer', 'btnRefazer', 'btnAdicionarTexto',
         'btnAdicionarCuba', 'btnLegendaSimplificada', 'btnDuplicar', 
@@ -1173,8 +1175,10 @@
     botoes.forEach(botaoId => {
         const botao = document.getElementById(botaoId);
         if (botao) {
-            // Evento de click normal
+            // Evento de click normal (funciona em desktop e mobile)
             botao.addEventListener('click', (e) => {
+                console.log(`🖱️ Botão ${botaoId} clicado`);
+                
                 // Chamar a função correspondente
                 switch(botaoId) {
                     case 'btnSelecionar': this.toggleModoSelecao(); break;
@@ -1183,20 +1187,18 @@
                     case 'btnLegendaSimplificada': this.ativarModoInsercao('legenda'); break;
                     case 'btnDuplicar': this.duplicarElemento(); break;
                     case 'btnExcluir': this.excluirElemento(); break;
-                    case 'btnSalvar': 
-                        console.log('🖱️ Botão salvar clicado');
-                        this.salvarDesenho(); 
-                        break;
+                    case 'btnSalvar': this.salvarDesenho(); break;
                     case 'btnImprimir': this.imprimirDesenho(); break;
                     case 'btnDesfazer': this.desfazer(); break;
                     case 'btnRefazer': this.refazer(); break;
                 }
             });
 
-            // NOVO: Prevenir eventos de touch que causam zoom
+            // CORREÇÃO: Prevenir apenas eventos de touch que causam zoom duplo
             botao.addEventListener('touchstart', prevenirZoomDuploToque, { passive: false });
-            botao.addEventListener('touchend', prevenirZoomDuploToque, { passive: false });
             botao.addEventListener('touchmove', prevenirZoomDuploToque, { passive: false });
+            
+            // REMOVIDO: touchend com prevenção total (estava bloqueando os cliques)
         }
     });
 
@@ -1205,14 +1207,13 @@
         if (this.modoInsercaoAtivo) {
             this.manipularCliqueInsercao(e);
         } else if (this.modoSelecaoAtivo) {
-            // NOVO: Selecionar elemento quando no modo seleção
             this.manipularCliqueSelecao(e);
         }
     });
     
-    // NOVO: Adicionar prevenção de touch na área de desenho
+    // CORREÇÃO: Prevenção de touch na área de desenho apenas para toques múltiplos
     this.drawingArea.addEventListener('touchstart', (e) => {
-        if (this.modoInsercaoAtivo || this.modoSelecaoAtivo) {
+        if ((this.modoInsercaoAtivo || this.modoSelecaoAtivo) && e.touches && e.touches.length > 1) {
             e.preventDefault();
             e.stopPropagation();
         }
@@ -1220,7 +1221,13 @@
 
     // Evento global para desselecionar ao clicar fora
     document.addEventListener('click', (e) => {
-        // Se clicar fora da área de desenho E não for handle
+        if (!e.target.closest('#drawingArea') && !e.target.closest('.handle')) {
+            this.desselecionarElemento();
+        }
+    });
+
+    // CORREÇÃO: Adicionar evento de touch para desselecionar no mobile
+    document.addEventListener('touchstart', (e) => {
         if (!e.target.closest('#drawingArea') && !e.target.closest('.handle')) {
             this.desselecionarElemento();
         }
@@ -1238,7 +1245,6 @@
             }
         }
         
-        // NOVO: Tecla Escape para desselecionar
         if (e.key === 'Escape') {
             this.desselecionarElemento();
         }
@@ -1249,23 +1255,30 @@
     console.log('✅ Eventos configurados com sucesso!');
 }
 
-            configurarEventosAreaDesenho() {
-                // Evento para desselecionar ao clicar na área vazia
-                this.drawingArea.addEventListener('click', (e) => {
-                    if (e.target === this.drawingArea && this.modoSelecaoAtivo) {
-                        this.desselecionarElemento();
-                    }
-                });
-            }
+configurarEventosAreaDesenho() {
+    // Evento para desselecionar ao clicar na área vazia
+    this.drawingArea.addEventListener('click', (e) => {
+        if (e.target === this.drawingArea && this.modoSelecaoAtivo) {
+            this.desselecionarElemento();
+        }
+    });
 
-            // NOVO: Método para alternar modo de seleção (toggle)
-            toggleModoSelecao() {
-                if (this.modoSelecaoAtivo) {
-                    this.desativarModoSelecao();
-                } else {
-                    this.ativarModoSelecao();
-                }
-            }
+    // CORREÇÃO: Adicionar evento de touch para desselecionar no mobile
+    this.drawingArea.addEventListener('touchstart', (e) => {
+        if (e.target === this.drawingArea && this.modoSelecaoAtivo) {
+            this.desselecionarElemento();
+        }
+    });
+}
+
+// Método para alternar modo de seleção (toggle)
+toggleModoSelecao() {
+    if (this.modoSelecaoAtivo) {
+        this.desativarModoSelecao();
+    } else {
+        this.ativarModoSelecao();
+    }
+}
 
             // MODIFICADO: Ativar modo de seleção - desabilita linhas azuis
             ativarModoSelecao() {
