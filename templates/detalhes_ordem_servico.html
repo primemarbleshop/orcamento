@@ -440,19 +440,18 @@
             will-change: left, top;
         }
         
-        /* Backdrop: manter visível, mas NÃO fecha o modal ao clicar */
-        .modal-backdrop {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: rgba(0,0,0,0.4);
-            z-index: 99998;
-            /* se você não quiser bloquear cliques fora do modal, use pointer-events: none;
-               mas neste caso deixamos pointer-events: auto para bloquear interação com a página. */
-            pointer-events: auto;
-        }
+       .modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 1999;
+    pointer-events: none; /* 🔥 Permite gestos de zoom e pan */
+    touch-action: none;   /* 🔥 Evita interferência com rolagem do modal */
+}
+
 
         
         .btn-controle {
@@ -2532,9 +2531,7 @@ fecharModal() {
                 });
 
                
-                // 🔥 CORREÇÃO: Prevenir scroll do body quando modal está aberto
-                document.body.style.overflow = 'hidden';
-            }
+                
 
             // 🔥 NOVOS MÉTODOS PARA GERENCIAR O MODAL DE SÍMBOLOS
             selecionarSimboloModal(simbolo, rotacao, pecaId, lado) {
