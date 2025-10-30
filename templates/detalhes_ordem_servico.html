@@ -2483,42 +2483,23 @@ reabilitarLinhasPecas() {
             }
 
             calcularDimensoesPeca(peca, escala) {
-    const larguraArea = this.drawingArea.offsetWidth;
-    const larguraMaximaPermitida = larguraArea * 0.85; // 70% da largura da área (mais seguro)
-    const alturaMaximaPermitida = 600; // Altura máxima em pixels
-    
-    let width = peca.comprimento * escala;
-    let height = peca.largura * escala;
-    
-    const tamanhoMinimo = CONFIG.TAMANHO_MINIMO_CM * escala;
-    
-    // Garantir tamanho mínimo
-    if (width < tamanhoMinimo) {
-        width = tamanhoMinimo;
-    }
-    if (height < tamanhoMinimo) {
-        height = tamanhoMinimo;
-    }
-    
-    // 🔥 NOVO: Limitar tamanho máximo horizontal
-    if (width > larguraMaximaPermitida) {
-        const fatorReducao = larguraMaximaPermitida / width;
-        width = larguraMaximaPermitida;
-        height = height * fatorReducao; // Reduz proporcionalmente
-    }
-    
-    // 🔥 NOVO: Limitar tamanho máximo vertical
-    if (height > alturaMaximaPermitida) {
-        const fatorReducao = alturaMaximaPermitida / height;
-        height = alturaMaximaPermitida;
-        width = width * fatorReducao; // Reduz proporcionalmente
-    }
-    
-    return {
-        width: width,
-        height: height
-    };
-}
+                let width = peca.comprimento * escala;
+                let height = peca.largura * escala;
+                
+                const tamanhoMinimo = CONFIG.TAMANHO_MINIMO_CM * escala;
+                
+                if (width < tamanhoMinimo) {
+                    width = tamanhoMinimo;
+                }
+                if (height < tamanhoMinimo) {
+                    height = tamanhoMinimo;
+                }
+                
+                return {
+                    width: width,
+                    height: height
+                };
+            }
 
             // MODIFICADO: Calcular escala automática - aumentada
             calcularEscalaAutomatica() {
@@ -2532,7 +2513,7 @@ reabilitarLinhasPecas() {
                 
                 const larguraArea = this.drawingArea.offsetWidth;
                 // AUMENTADO: fator de escala de 0.9 para 1.2 e limite máximo de 1.5
-                const escalaCalculada = (larguraArea * 1.4) / maiorDimensao;
+                const escalaCalculada = (larguraArea * 1.2) / maiorDimensao;
                 
                 return Math.min(escalaCalculada, 1.5); // AUMENTADO limite máximo
             }
