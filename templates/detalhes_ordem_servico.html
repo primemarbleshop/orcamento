@@ -1891,93 +1891,121 @@ reabilitarLinhasPecas() {
             // =============================================
 
             criarPecasBase() {
-                if (this.pecasCriadas) return;
+    if (this.pecasCriadas) return;
 
-                const escala = this.calcularEscalaAutomatica();
-                let posY = 100;
+    const escala = this.calcularEscalaAutomatica();
+    let posY = 100;
 
-                // Parâmetros ajustáveis
-                const inicioPosX = 50;
-                const gapHorizontal = 100;
-                const gapVertical = 120;
-                const espacamentoEntreAgrupamentos = 30;
+    // Parâmetros ajustáveis
+    const inicioPosX = 50;
+    const gapHorizontal = 100;
+    const gapVertical = 120;
+    const espacamentoEntreAgrupamentos = 30;
 
-                const maxLineWidth = this.drawingArea.offsetWidth - 200;
+    // 🔥 CORREÇÃO: Usar a largura real da área de desenho com margem de segurança
+    const maxLineWidth = this.drawingArea.offsetWidth - 100; // Reduzido para margem
 
-                Object.keys(this.gruposPecas).forEach((materialNome, grupoIndex) => {
-                    const pecasGrupo = this.gruposPecas[materialNome];
+    Object.keys(this.gruposPecas).forEach((materialNome, grupoIndex) => {
+        const pecasGrupo = this.gruposPecas[materialNome];
 
-                    // Cria o container do grupo (título + area)
-                    const grupoInfo = this.criarGrupoMaterial(materialNome, grupoIndex, posY);
+        // Cria o container do grupo (título + area)
+        const grupoInfo = this.criarGrupoMaterial(materialNome, grupoIndex, posY);
 
-                    // Primeiro: montar as linhas (wrap) sem alterar posY
-                    const lines = [[]];
-                    let currentLineWidth = 0;
+        // Primeiro: montar as linhas (wrap) sem alterar posY
+        const lines = [[]];
+        let currentLineWidth = 0;
 
-                    pecasGrupo.forEach((peca) => {
-                        const { width, height } = this.calcularDimensoesPeca(peca, escala);
+        pecasGrupo.forEach((peca) => {
+            const { width, height } = this.calcularDimensoesPeca(peca, escala);
 
-                        if (currentLineWidth > 0 && (currentLineWidth + width) > maxLineWidth) {
-                            lines.push([]);
-                            currentLineWidth = 0;
-                        }
-
-                        lines[lines.length - 1].push({
-                            pecaData: peca,
-                            width: Math.round(width),
-                            height: Math.round(height)
-                        });
-
-                        currentLineWidth += width + gapHorizontal;
-                    });
-
-                    // Segundo: para cada linha, calcular altura máxima e posicionar as peças
-                    let cumulativeY = 0;
-                    lines.forEach((line) => {
-                        if (line.length === 0) return;
-
-                        const lineMaxHeight = Math.max(...line.map(p => p.height));
-
-                        let posX = inicioPosX;
-                        line.forEach((pObj) => {
-                            const peca = pObj.pecaData;
-                            const w = pObj.width;
-                            const h = pObj.height;
-
-                            const pecaElement = document.createElement('div');
-                            pecaElement.className = 'peca';
-                            pecaElement.id = `peca-${peca.id}`;
-                            pecaElement.style.width = `${w}px`;
-                            pecaElement.style.height = `${h}px`;
-                            pecaElement.style.left = `${posX}px`;
-                            pecaElement.style.top = `${cumulativeY}px`;
-                            pecaElement.setAttribute('data-peca-id', peca.id);
-                            pecaElement.setAttribute('data-tipo', peca.tipo);
-                            pecaElement.setAttribute('data-rotate', '0');
-
-                            this.criarDimensoes(pecaElement, peca, w, h);
-
-                            if (peca.quantidade > 1) {
-                                this.criarQuantidade(pecaElement, peca.quantidade);
-                            }
-
-                            this.criarLinhasPeca(pecaElement, peca.id, w, h);
-
-                            grupoInfo.areaPecas.appendChild(pecaElement);
-
-                            posX += w + gapHorizontal;
-                        });
-
-                        cumulativeY += lineMaxHeight + gapVertical;
-                    });
-
-                    const alturaUtilizada = cumulativeY > 0 ? cumulativeY : 200;
-                    posY += alturaUtilizada + espacamentoEntreAgrupamentos;
+            // 🔥 CORREÇÃO: Se a peça sozinha já é maior que a linha, força nova linha
+            if (width > maxLineWidth) {
+                // Peça muito grande - vai sozinha na linha
+                if (lines[lines.length - 1].length > 0) {
+                    lines.push([]);
+                }
+                lines[lines.length - 1].push({
+                    pecaData: peca,
+                    width: Math.round(width),
+                    height: Math.round(height)
                 });
-
-                this.pecasCriadas = true;
-                console.log('✅ Peças base criadas com sucesso!');
+                lines.push([]); // Nova linha vazia para próxima peça
+                currentLineWidth = 0;
+            } 
+            // 🔥 CORREÇÃO: Verificação mais rigorosa do espaço
+            else if (currentLineWidth > 0 && (currentLineWidth + width + gapHorizontal) > maxLineWidth) {
+                lines.push([]);
+                currentLineWidth = 0;
             }
+
+            lines[lines.length - 1].push({
+                pecaData: peca,
+                width: Math.round(width),
+                height: Math.round(height)
+            });
+
+            currentLineWidth += width + gapHorizontal;
+        });
+
+        // 🔥 CORREÇÃO: Remover última linha se estiver vazia
+        if (lines[lines.length - 1].length === 0) {
+            lines.pop();
+        }
+
+        // Segundo: para cada linha, calcular altura máxima e posicionar as peças
+        let cumulativeY = 0;
+        lines.forEach((line) => {
+            if (line.length === 0) return;
+
+            const lineMaxHeight = Math.max(...line.map(p => p.height));
+
+            let posX = inicioPosX;
+            line.forEach((pObj) => {
+                const peca = pObj.pecaData;
+                const w = pObj.width;
+                const h = pObj.height;
+
+                // 🔥 CORREÇÃO: Verificação final de limite
+                if (posX + w > maxLineWidth) {
+                    // Se ainda assim ultrapassar, força nova linha
+                    cumulativeY += lineMaxHeight + gapVertical;
+                    posX = inicioPosX;
+                }
+
+                const pecaElement = document.createElement('div');
+                pecaElement.className = 'peca';
+                pecaElement.id = `peca-${peca.id}`;
+                pecaElement.style.width = `${w}px`;
+                pecaElement.style.height = `${h}px`;
+                pecaElement.style.left = `${posX}px`;
+                pecaElement.style.top = `${cumulativeY}px`;
+                pecaElement.setAttribute('data-peca-id', peca.id);
+                pecaElement.setAttribute('data-tipo', peca.tipo);
+                pecaElement.setAttribute('data-rotate', '0');
+
+                this.criarDimensoes(pecaElement, peca, w, h);
+
+                if (peca.quantidade > 1) {
+                    this.criarQuantidade(pecaElement, peca.quantidade);
+                }
+
+                this.criarLinhasPeca(pecaElement, peca.id, w, h);
+
+                grupoInfo.areaPecas.appendChild(pecaElement);
+
+                posX += w + gapHorizontal;
+            });
+
+            cumulativeY += lineMaxHeight + gapVertical;
+        });
+
+        const alturaUtilizada = cumulativeY > 0 ? cumulativeY : 200;
+        posY += alturaUtilizada + espacamentoEntreAgrupamentos;
+    });
+
+    this.pecasCriadas = true;
+    console.log('✅ Peças base criadas com sucesso!');
+}
 
             criarGrupoMaterial(materialNome, grupoIndex, posY) {
                 const tituloGrupo = document.createElement('div');
