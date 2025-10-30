@@ -2982,28 +2982,34 @@ reabilitarLinhasPecas() {
         }
         
         // ==========================================
-// 🔧 Evitar que peças sejam cortadas entre páginas
+// 🔧 Evitar que peças sejam cortadas entre páginas (versão aprimorada)
 // ==========================================
 window.addEventListener("beforeprint", () => {
-  const pageHeight = 1122; // altura A4 em px (96 DPI)
-  let currentPageBottom = pageHeight;
-  
-  const pecas = [...document.querySelectorAll(".drawing-area .peca")];
+  const pageHeight = 1122; // altura da página A4 em px (96 DPI)
+  let currentBottom = pageHeight;
 
-  pecas.forEach(peca => {
-    const rect = peca.getBoundingClientRect();
-    const top = rect.top + window.scrollY;
-    const bottom = top + rect.height;
+  // Seleciona todas as peças dentro de todas as áreas de desenho
+  const pecas = document.querySelectorAll(".drawing-area .peca");
 
-    // Se a peça ultrapassar o limite da página, move-a para próxima
-    if (bottom > currentPageBottom) {
+  pecas.forEach((peca) => {
+    // usa offsetTop/offsetHeight para obter posição absoluta no fluxo do documento
+    const top = peca.offsetTop;
+    const bottom = top + peca.offsetHeight;
+
+    // Se a peça for cortada entre páginas
+    if (bottom > currentBottom) {
+      // força quebra de página antes dela
       peca.style.pageBreakBefore = "always";
-      currentPageBottom = top + pageHeight; // nova página
+      peca.style.breakBefore = "always";
+      // atualiza base da próxima página
+      currentBottom = top + pageHeight;
     } else {
       peca.style.pageBreakBefore = "auto";
+      peca.style.breakBefore = "auto";
     }
   });
 });
+
 
         // =============================================
         // INICIALIZAÇÃO DA APLICAÇÃO
