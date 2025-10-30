@@ -625,49 +625,7 @@
             size: A4 portrait;
             margin: 5mm; /* REDUZIDO: era 10mm - dá mais espaço útil */
         }
-
-         body {
-    background: white !important;
-  }
-
-  .drawing-area {
-    width: 1100px !important;
-    border: 1px solid #ccc !important;
-    margin: 0 auto !important;
-    overflow: visible !important;
-    page-break-inside: auto !important;
-    break-inside: auto !important;
-  }
-
-  /* 🔥 Cada peça deve ser tratada como bloco não quebrável */
-  .peca {
-    display: block !important;
-    position: relative !important;
-    page-break-inside: avoid !important;
-    break-inside: avoid !important;
-    overflow: visible !important;
-  }
-
-  /* Os demais continuam posicionados normalmente */
-  .cuba, .texto-legenda, .legenda-simplificada, .dimensoes, .quantidade-peca {
-    position: absolute !important;
-    page-break-inside: avoid !important;
-    overflow: visible !important;
-  }
-
-  .grupo-material, .area-pecas, .titulo-grupo {
-    page-break-inside: auto !important;
-  }
-
-  /* Remove botões e controles */
-  .action-buttons-container,
-  .top-buttons-container,
-  .handles-container,
-  .handle,
-  .handle-rotacao {
-    display: none !important;
-  }
-            
+        
         /* CORREÇÃO: Fundo branco na impressão */
         body {
             background: white !important;
@@ -698,6 +656,12 @@
             box-shadow: none !important;
         }
 
+              /* 🔥 CORREÇÃO: Garantir que elementos não quebrem */
+    .peca, .cuba, .texto-legenda, .legenda-simplificada, 
+    .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
             
         .top-buttons-container,
         .action-buttons-container,
@@ -729,7 +693,9 @@
             /* REMOVIDO transform scale - impressão fiel à tela */
         }
         
-        
+        .dimensoes-right {
+            right: -35px !important; /* força afastamento maior */
+        }
 
         .peca, .cuba, .texto-legenda, .legenda-simplificada, 
         .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
@@ -737,10 +703,6 @@
             page-break-inside: avoid;
             break-inside: avoid;
         }
-
-        .dimensoes-right {
-            right: -35px !important; /* força afastamento maior */
-        }    
 
         .logo-empresa {
             position: absolute !important;
@@ -2980,83 +2942,6 @@ reabilitarLinhasPecas() {
                 };
             }
         }
-        
-        // ========================================================
-// 🔧 AJUSTE DE IMPRESSÃO — Impede corte de peças, sem tela branca
-// ========================================================
-window.addEventListener("beforeprint", () => {
-  const pageHeight = 1122; // altura A4 em px (96 DPI)
-  let currentPageBottom = pageHeight;
-
-  // Todas as peças visíveis no desenho
-  const pecas = document.querySelectorAll(".drawing-area .peca");
-
-  pecas.forEach((peca) => {
-    // Posição vertical real da peça
-    const top = peca.offsetTop;
-    const bottom = top + peca.offsetHeight;
-
-    // Se a peça ultrapassa o limite da página, força quebra antes dela
-    if (bottom > currentPageBottom) {
-      peca.style.pageBreakBefore = "always";
-      peca.style.breakBefore = "always";
-      currentPageBottom = top + pageHeight;
-    } else {
-      peca.style.pageBreakBefore = "auto";
-      peca.style.breakBefore = "auto";
-    }
-  });
-});
-
-// 🔄 Após impressão, limpa estilos adicionados
-window.addEventListener("afterprint", () => {
-  document.querySelectorAll(".peca").forEach((peca) => {
-    peca.style.pageBreakBefore = "";
-    peca.style.breakBefore = "";
-  });
-});
-
-
-// ========================================================
-// 🔧 RECONSTRUIR LAYOUT PARA IMPRESSÃO (evita cortes)
-// ========================================================
-window.addEventListener("beforeprint", () => {
-  const originais = document.querySelectorAll(".drawing-area");
-  const container = document.createElement("div");
-  container.id = "print-layout";
-  container.style.display = "block";
-  container.style.pageBreakInside = "avoid";
-
-  originais.forEach(area => {
-    const clone = area.cloneNode(true);
-    clone.style.position = "relative";
-    clone.style.pageBreakInside = "avoid";
-    clone.style.breakInside = "avoid";
-    clone.style.marginBottom = "20px";
-    clone.style.border = "1px solid #ccc";
-    // remove posições absolutas das peças
-    clone.querySelectorAll(".peca, .cuba, .dimensoes, .texto-legenda").forEach(el => {
-      el.style.position = "relative";
-      el.style.left = "0";
-      el.style.top = "0";
-      el.style.display = "inline-block";
-      el.style.margin = "10px";
-    });
-    container.appendChild(clone);
-  });
-
-  // esconde o layout original e mostra o temporário
-  document.body.querySelector(".main-container").style.display = "none";
-  document.body.appendChild(container);
-});
-
-window.addEventListener("afterprint", () => {
-  // restaura o layout original após imprimir
-  document.querySelector("#print-layout")?.remove();
-  document.body.querySelector(".main-container").style.display = "";
-});
-
-
 
         // =============================================
         // INICIALIZAÇÃO DA APLICAÇÃO
