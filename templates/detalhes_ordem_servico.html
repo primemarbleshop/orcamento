@@ -1516,71 +1516,67 @@ reabilitarLinhasPecas() {
                 });
             }
 
-            criarHandles(elemento) {
-                if (elemento.classList.contains('simbolo-linha')) {
-                    return;
-                }
-                
-                const pos = this.obterPosicaoComScroll(elemento);
-                const left = pos.left;
-                const top = pos.top;
-                const width = pos.width;
-                const height = pos.height;
+            // NO MÉTODO criarHandles - ATUALIZADO
+criarHandles(elemento) {
+    if (elemento.classList.contains('simbolo-linha')) {
+        return;
+    }
+    
+    // Obter rotação atual do elemento
+    const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+    const rad = rotation * Math.PI / 180;
+    
+    const pos = this.obterPosicaoComScroll(elemento);
+    const centerX = pos.left + pos.width / 2;
+    const centerY = pos.top + pos.height / 2;
 
-                const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
-                const rad = rotation * Math.PI / 180;
-                
-                const centerX = left + width / 2;
-                const centerY = top + height / 2;
+    // Posições relativas considerando rotação
+    const relativeHandles = [
+        { class: 'handle-n', relX: 0, relY: -pos.height / 2 },
+        { class: 'handle-s', relX: 0, relY: pos.height / 2 },
+        { class: 'handle-e', relX: pos.width / 2, relY: 0 },
+        { class: 'handle-w', relX: -pos.width / 2, relY: 0 },
+        { class: 'handle-ne', relX: pos.width / 2, relY: -pos.height / 2 },
+        { class: 'handle-nw', relX: -pos.width / 2, relY: -pos.height / 2 },
+        { class: 'handle-se', relX: pos.width / 2, relY: pos.height / 2 },
+        { class: 'handle-sw', relX: -pos.width / 2, relY: pos.height / 2 }
+    ];
 
-                const relativeHandles = [
-                    { class: 'handle-n', relX: 0, relY: -height / 2 },
-                    { class: 'handle-s', relX: 0, relY: height / 2 },
-                    { class: 'handle-e', relX: width / 2, relY: 0 },
-                    { class: 'handle-w', relX: -width / 2, relY: 0 },
-                    { class: 'handle-ne', relX: width / 2, relY: -height / 2 },
-                    { class: 'handle-nw', relX: -width / 2, relY: -height / 2 },
-                    { class: 'handle-se', relX: width / 2, relY: height / 2 },
-                    { class: 'handle-sw', relX: -width / 2, relY: height / 2 }
-                ];
+    relativeHandles.forEach(handle => {
+        // Aplicar rotação às coordenadas
+        const rotatedX = handle.relX * Math.cos(rad) - handle.relY * Math.sin(rad);
+        const rotatedY = handle.relX * Math.sin(rad) + handle.relY * Math.cos(rad);
+        
+        const handleX = centerX + rotatedX;
+        const handleY = centerY + rotatedY;
+        
+        const handleElement = document.createElement('div');
+        handleElement.className = `handle ${handle.class}`;
+        handleElement.style.left = `${handleX}px`;
+        handleElement.style.top = `${handleY}px`;
+        handleElement.style.zIndex = '1002';
+        
+        this.drawingArea.appendChild(handleElement);
+        this.handles.push(handleElement);
+        
+        this.configurarHandle(handleElement, elemento, handle.class);
+    });
 
-                const handles = relativeHandles.map(handle => {
-                    const rotatedX = handle.relX * Math.cos(rad) - handle.relY * Math.sin(rad);
-                    const rotatedY = handle.relX * Math.sin(rad) + handle.relY * Math.cos(rad);
-                    
-                    return {
-                        class: handle.class,
-                        x: centerX + rotatedX,
-                        y: centerY + rotatedY
-                    };
-                });
+    // Handle de rotação (já funciona corretamente)
+    const handleRotacaoRelY = -pos.height / 2 - 40;
+    const handleRotacaoX = 0 * Math.cos(rad) - handleRotacaoRelY * Math.sin(rad);
+    const handleRotacaoY = 0 * Math.sin(rad) + handleRotacaoRelY * Math.cos(rad);
 
-                handles.forEach(handle => {
-                    const handleElement = document.createElement('div');
-                    handleElement.className = `handle ${handle.class}`;
-                    handleElement.style.left = `${handle.x}px`;
-                    handleElement.style.top = `${handle.y}px`;
-                    handleElement.style.zIndex = '1002';
-                    this.drawingArea.appendChild(handleElement);
-                    this.handles.push(handleElement);
-                    
-                    this.configurarHandle(handleElement, elemento, handle.class);
-                });
-
-                const handleRotacaoRelY = -height / 2 - 40;
-                const handleRotacaoX = 0 * Math.cos(rad) - handleRotacaoRelY * Math.sin(rad);
-                const handleRotacaoY = 0 * Math.sin(rad) + handleRotacaoRelY * Math.cos(rad);
-
-                const handleRotacao = document.createElement('div');
-                handleRotacao.className = 'handle handle-rotacao';
-                handleRotacao.style.left = `${centerX + handleRotacaoX}px`;
-                handleRotacao.style.top = `${centerY + handleRotacaoY}px`;
-                handleRotacao.style.zIndex = '1002';
-                this.drawingArea.appendChild(handleRotacao);
-                this.handles.push(handleRotacao);
-                
-                this.configurarHandleRotacao(handleRotacao, elemento);
-            }
+    const handleRotacao = document.createElement('div');
+    handleRotacao.className = 'handle handle-rotacao';
+    handleRotacao.style.left = `${centerX + handleRotacaoX}px`;
+    handleRotacao.style.top = `${centerY + handleRotacaoY}px`;
+    handleRotacao.style.zIndex = '1002';
+    this.drawingArea.appendChild(handleRotacao);
+    this.handles.push(handleRotacao);
+    
+    this.configurarHandleRotacao(handleRotacao, elemento);
+}
 
             configurarHandle(handle, elemento) {
     let initialX, initialY;
@@ -2510,56 +2506,62 @@ atualizarEstadoVisualBotoes(botaoAtivo = null, tipoAtivo = null) {
                 }
             }
 
-            // MODIFICADO: Configurar interatividade de símbolos apenas quando selecionados
-            configurarInteratividadeSimbolo(elemento) {
-                // Remover interações anteriores
-                this.removerInteratividade(elemento);
-                
-                // Configurar nova interação apenas se o elemento estiver selecionado
-                if (elemento.classList.contains('elemento-selecionado')) {
-                    interact(elemento).draggable({
-                        listeners: {
-                            start: () => {
-                                elemento.style.zIndex = '1000';
-                            },
-                            move: (event) => {
-                                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-                                const rotate = elemento.getAttribute('data-rotate') || 0;
+            // MÉTODO ATUALIZADO: Configurar interatividade de símbolos
+configurarInteratividadeSimbolo(elemento) {
+    this.removerInteratividade(elemento);
+    
+    if (elemento.classList.contains('elemento-selecionado')) {
+        let initialX, initialY;
+        let initialMouseX, initialMouseY;
+        
+        interact(elemento).draggable({
+            // 🔥 CORREÇÃO: Permitir comportamento padrão para gestos
+            preventDefault: 'auto',
+            
+            listeners: {
+                start: (event) => {
+                    elemento.style.zIndex = '1000';
+                    
+                    // 🔥 CORREÇÃO: Usar coordenadas absolutas
+                    const rect = elemento.getBoundingClientRect();
+                    initialX = rect.left;
+                    initialY = rect.top;
+                    
+                    initialMouseX = event.clientX || (event.touches && event.touches[0].clientX);
+                    initialMouseY = event.clientY || (event.touches && event.touches[0].clientY);
+                },
+                move: (event) => {
+                    // 🔥 CORREÇÃO: Calcular delta baseado nas coordenadas do mouse
+                    const currentMouseX = event.clientX || (event.touches && event.touches[0].clientX);
+                    const currentMouseY = event.clientY || (event.touches && event.touches[0].clientY);
+                    
+                    const deltaX = currentMouseX - initialMouseX;
+                    const deltaY = currentMouseY - initialMouseY;
+                    
+                    // 🔥 CORREÇÃO: Aplicar transformação de forma acumulativa
+                    const currentX = parseFloat(elemento.getAttribute('data-x')) || 0;
+                    const currentY = parseFloat(elemento.getAttribute('data-y')) || 0;
+                    
+                    const newX = currentX + deltaX;
+                    const newY = currentY + deltaY;
+                    const rotate = elemento.getAttribute('data-rotate') || 0;
 
-                                const drawingRect = this.drawingArea.getBoundingClientRect();
-                                const elementRect = elemento.getBoundingClientRect();
-
-                                let leftBase = 0;
-                                if (elemento.style.left && elemento.style.left.endsWith('px')) {
-                                    leftBase = parseFloat(elemento.style.left) || 0;
-                                } else {
-                                    leftBase = elementRect.left - drawingRect.left;
-                                }
-
-                                const absLeftProposto = leftBase + x;
-                                const margemDireita = 60;
-                                const maxLeftAllowed = drawingRect.width - elementRect.width - margemDireita;
-                                const minLeftAllowed = 0;
-
-                                let leftCorrigido = absLeftProposto;
-                                if (leftCorrigido > maxLeftAllowed) leftCorrigido = maxLeftAllowed;
-                                if (leftCorrigido < minLeftAllowed) leftCorrigido = minLeftAllowed;
-
-                                const xCorrigido = leftCorrigido - leftBase;
-
-                                elemento.style.transform = `translate(${xCorrigido}px, ${y}px) rotate(${rotate}deg)`;
-                                elemento.setAttribute('data-x', xCorrigido);
-                                elemento.setAttribute('data-y', y);
-                            },
-                            end: () => {
-                                elemento.style.zIndex = '';
-                                this.salvarEstadoHistorico('Mover Símbolo');
-                            }
-                        }
-                    });
+                    elemento.style.transform = `translate(${newX}px, ${newY}px) rotate(${rotate}deg)`;
+                    elemento.setAttribute('data-x', newX);
+                    elemento.setAttribute('data-y', newY);
+                    
+                    // Atualizar para próximo movimento
+                    initialMouseX = currentMouseX;
+                    initialMouseY = currentMouseY;
+                },
+                end: () => {
+                    elemento.style.zIndex = '';
+                    this.salvarEstadoHistorico('Mover Símbolo');
                 }
             }
+        });
+    }
+}
 
             // NOVO: Método para remover interatividade de um elemento
             removerInteratividade(elemento) {
@@ -2613,18 +2615,81 @@ atualizarEstadoVisualBotoes(botaoAtivo = null, tipoAtivo = null) {
                 return Math.min(escalaCalculada, 1.8); // AUMENTADO limite máximo
             }
 
-            manipularCliqueLinha(e, linhaElement, simboloExistente = null) {
-                e.stopPropagation();
-                
-                const simboloAtual = this.drawingArea.querySelector(`.simbolo-linha[data-peca-id="${linhaElement.getAttribute('data-peca-id')}"][data-lado="${linhaElement.getAttribute('data-lado')}"]`);
-                
-                if (simboloAtual) {
-                    this.mostrarSeletorSimbolos(e, linhaElement, simboloAtual);
-                } else {
-                    this.mostrarSeletorSimbolos(e, linhaElement);
-                }
-            }
+            // NOVO MÉTODO: Detectar linha considerando rotação
+detectarLinhaComRotacao(pecaElement, clickX, clickY) {
+    const rotation = parseFloat(pecaElement.getAttribute('data-rotate')) || 0;
+    const rad = -rotation * Math.PI / 180; // Inverter para coordenadas locais
+    
+    const pos = this.obterPosicaoComScroll(pecaElement);
+    const width = pos.width;
+    const height = pos.height;
+    
+    // Coordenadas relativas ao centro da peça
+    const relX = clickX - (pos.left + width/2);
+    const relY = clickY - (pos.top + height/2);
+    
+    // Aplicar rotação inversa para obter coordenadas locais
+    const localX = relX * Math.cos(rad) - relY * Math.sin(rad);
+    const localY = relX * Math.sin(rad) + relY * Math.cos(rad);
+    
+    // Determinar qual linha foi clicada baseado nas coordenadas locais
+    const threshold = 15; // Margem de 15px para detectar a linha
+    
+    // Verificar proximidade com cada borda
+    const distTop = Math.abs(localY + height/2);
+    const distBottom = Math.abs(localY - height/2);
+    const distLeft = Math.abs(localX + width/2);
+    const distRight = Math.abs(localX - width/2);
+    
+    // Encontrar a menor distância
+    const minDist = Math.min(distTop, distBottom, distLeft, distRight);
+    
+    if (minDist > threshold) return null;
+    
+    if (minDist === distTop) return 'top';
+    if (minDist === distBottom) return 'bottom';
+    if (minDist === distLeft) return 'left';
+    if (minDist === distRight) return 'right';
+    
+    return null;
+}
 
+// ATUALIZAR manipularCliqueLinha
+manipularCliqueLinha(e, linhaElement, simboloExistente = null) {
+    e.stopPropagation();
+    
+    const pecaId = linhaElement.getAttribute('data-peca-id');
+    const pecaElement = this.drawingArea.querySelector(`#peca-${pecaId}`);
+    
+    if (pecaElement) {
+        const pos = this.obterPosicaoComScroll(pecaElement);
+        const clickX = e.clientX - this.drawingArea.getBoundingClientRect().left;
+        const clickY = e.clientY - this.drawingArea.getBoundingClientRect().top;
+        
+        // Usar detecção com rotação
+        const ladoDetectado = this.detectarLinhaComRotacao(pecaElement, clickX, clickY);
+        
+        if (ladoDetectado && ladoDetectado !== linhaElement.getAttribute('data-lado')) {
+            // Encontrar a linha correta baseada na detecção
+            const linhaCorreta = this.drawingArea.querySelector(
+                `.linha-peca[data-peca-id="${pecaId}"][data-lado="${ladoDetectado}"]`
+            );
+            if (linhaCorreta) {
+                linhaElement = linhaCorreta;
+            }
+        }
+    }
+    
+    const simboloAtual = this.drawingArea.querySelector(
+        `.simbolo-linha[data-peca-id="${linhaElement.getAttribute('data-peca-id')}"][data-lado="${linhaElement.getAttribute('data-lado')}"]`
+    );
+    
+    if (simboloAtual) {
+        this.mostrarSeletorSimbolos(e, linhaElement, simboloAtual);
+    } else {
+        this.mostrarSeletorSimbolos(e, linhaElement);
+    }
+}
             mostrarSeletorSimbolos(event, linhaElement, simboloExistente = null) {
                 const simboloAtual = simboloExistente ? simboloExistente.textContent : '//';
                 const lado = linhaElement.getAttribute('data-lado');
