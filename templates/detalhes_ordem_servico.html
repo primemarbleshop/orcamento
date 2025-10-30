@@ -481,6 +481,38 @@
             gap: 8px;
         }
 
+/* 🔥 NOVO: Botões fixos e melhor feedback visual */
+.action-buttons-container { 
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: linear-gradient(to bottom, #f8f9fa 90%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 2px solid #dee2e6;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* 🔥 NOVO: Feedback visual melhorado */
+.btn-selecao-ativo {
+    box-shadow: 
+        0 0 0 0.2rem rgba(46, 89, 217, 0.25),
+        0 0 0 3px #ffffff,
+        0 0 0 5px #2e59d9 !important;
+    transform: translateY(-2px);
+}
+
+/* 🔥 NOVO: Estilo para botões de inserção ativos */
+.btn-modo-ativo {
+    background-color: #1cc88a !important;
+    border-color: #1cc88a !important;
+    color: white !important;
+    box-shadow: 
+        0 0 0 0.2rem rgba(28, 200, 138, 0.25),
+        0 0 0 3px #ffffff,
+        0 0 0 5px #1cc88a !important;
+    transform: translateY(-2px);
+}
+
         /* ======================== MOBILE - APENAS ÍCONES ======================== */
         @media (max-width: 1400px) {
             .action-buttons-container .btn-text {
@@ -1675,6 +1707,24 @@ reabilitarLinhasPecas() {
             }
         }
     });
+}
+
+// 🔥 NOVO: Método para gerenciar estados visuais dos botões
+atualizarEstadoVisualBotoes(botaoAtivo = null, tipoAtivo = null) {
+    // Remover estados ativos de todos os botões
+    const todosBotoes = document.querySelectorAll('.action-buttons-container .btn');
+    todosBotoes.forEach(botao => {
+        botao.classList.remove('btn-selecao-ativo', 'btn-modo-ativo');
+    });
+    
+    // Aplicar estado ativo ao botão específico
+    if (botaoAtivo) {
+        if (tipoAtivo === 'selecao') {
+            botaoAtivo.classList.add('btn-selecao-ativo');
+        } else if (tipoAtivo === 'modo') {
+            botaoAtivo.classList.add('btn-modo-ativo');
+        }
+    }
 }
 
             configurarHandleRotacao(handle, elemento) {
