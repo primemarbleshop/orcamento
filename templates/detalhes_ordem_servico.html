@@ -649,53 +649,6 @@
             touch-action: none;   /* 🔥 Evita interferência com rolagem do modal */
         }
 
-        /* 🔥 NOVO: Estilos para a borracha */
-        .borracha-cursor {
-            cursor: none !important;
-        }
-
-        .borracha-visual {
-            position: fixed;
-            width: 20px;
-            height: 20px;
-            background-color: rgba(255, 0, 0, 0.3);
-            border: 2px solid #ff0000;
-            border-radius: 2px;
-            pointer-events: none;
-            z-index: 9999;
-            transform: translate(-50%, -50%);
-            box-shadow: 0 0 5px rgba(0,0,0,0.5);
-        }
-
-        .borracha-visual.ativo {
-            background-color: rgba(255, 0, 0, 0.5);
-            border: 2px solid #ff0000;
-        }
-
-        /* 🔥 NOVO: Estilo para botão de borracha ativo */
-        .btn-borracha-ativo {
-            background-color: #f6c23e !important;
-            border-color: #f6c23e !important;
-            color: #000 !important;
-            box-shadow: 
-                0 0 0 0.2rem rgba(246, 194, 62, 0.25),
-                0 0 0 3px #ffffff,
-                0 0 0 5px #f6c23e !important;
-            transform: translateY(-2px);
-        }
-
-        .btn-custom-warning { 
-            background-color: #f6c23e; 
-            border-color: #f6c23e; 
-            color: #000; 
-        }
-
-        .btn-custom-warning:hover { 
-            background-color: #dda20a; 
-            border-color: #dda20a; 
-            color: #000; 
-        }
-
         /* ======================== IMPRESSÃO ======================== */
         @media print {
 
@@ -750,9 +703,7 @@
         .handle-rotacao,
         .elemento-selecionado,
         .modal-controles,
-        .modal-backdrop,
-        .borracha-visual,
-        .btn-borracha-ativo { 
+        .modal-backdrop { 
             display: none !important; 
         }
 
@@ -861,9 +812,6 @@
             <button id="btnRefazer" class="btn btn-custom-primary" title="Refazer (Ctrl+Y)">
                 <i class="fas fa-redo me-1"></i> <span class="btn-text">Refazer</span>
             </button>
-            <button id="btnBorracha" class="btn btn-custom-warning" title="Borracha (E)">
-                <i class="fas fa-eraser me-1"></i> <span class="btn-text">Borracha</span>
-            </button>
             <button id="btnAdicionarTexto" class="btn btn-custom-primary">
                 <i class="fas fa-font me-1"></i> <span class="btn-text">Texto</span>
             </button>
@@ -932,7 +880,6 @@
                 this.gruposPecas = this.carregarDadosPecas();
                 this.modoInsercaoAtivo = null;
                 this.modoSelecaoAtivo = false; // NOVO: Modo de seleção
-                this.modoBorrachaAtivo = false; // 🔥 NOVO: Modo borracha
                 this.pecasCriadas = false;
                 this.elementoSelecionado = null;
                 this.handles = [];
@@ -943,10 +890,6 @@
                 this.indiceHistorico = -1;
                 this.maximoHistorico = 50;
 
-                // 🔥 NOVO: Variáveis para borracha
-                this.borrachaVisual = null;
-                this.tamanhoBorracha = 20; // Tamanho em pixels
-                
                 // Carregar desenho salvo se existir
                 this.desenhoSalvo = {{ desenho_salvo | tojson | safe }};
                 
@@ -1270,7 +1213,7 @@ configurarEventos() {
 
     // Configurar todos os botões
     const botoes = [
-        'btnSelecionar', 'btnDesfazer', 'btnRefazer', 'btnBorracha', 'btnAdicionarTexto',
+        'btnSelecionar', 'btnDesfazer', 'btnRefazer', 'btnAdicionarTexto',
         'btnAdicionarCuba', 'btnLegendaSimplificada', 'btnDuplicar', 
         'btnExcluir', 'btnSalvar', 'btnImprimir'
     ];
@@ -1285,7 +1228,6 @@ configurarEventos() {
                 // Chamar a função correspondente
                 switch(botaoId) {
                     case 'btnSelecionar': this.toggleModoSelecao(); break;
-                    case 'btnBorracha': this.toggleModoBorracha(); break; // 🔥 NOVO
                     case 'btnAdicionarTexto': this.ativarModoInsercao('texto'); break;
                     case 'btnAdicionarCuba': this.ativarModoInsercao('cuba'); break;
                     case 'btnLegendaSimplificada': this.ativarModoInsercao('legenda'); break;
@@ -1305,14 +1247,6 @@ configurarEventos() {
             // REMOVIDO: touchend com prevenção total (estava bloqueando os cliques)
         }
     });
-
-    // 🔥 NOVO: Eventos para a borracha
-    this.drawingArea.addEventListener('mousemove', (e) => this.atualizarPosicaoBorracha(e));
-    this.drawingArea.addEventListener('touchmove', (e) => this.atualizarPosicaoBorracha(e));
-
-    // Eventos de clique/toque para apagar com borracha
-    this.drawingArea.addEventListener('mousedown', (e) => this.aplicarBorracha(e));
-    this.drawingArea.addEventListener('touchstart', (e) => this.aplicarBorracha(e));
 
     // Evento de clique na área de desenho para modos de inserção e seleção
     this.drawingArea.addEventListener('click', (e) => {
@@ -1376,23 +1310,8 @@ document.addEventListener('touchstart', (e) => {
     });
     
     this.configurarEventosAreaDesenho();
-    this.configurarEventosTeclado(); // 🔥 NOVO: Eventos de teclado para borracha
     
     console.log('✅ Eventos configurados com sucesso!');
-}
-
-// 🔥 NOVO: Configurar eventos de teclado para borracha
-configurarEventosTeclado() {
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'e' || e.key === 'E') {
-            e.preventDefault();
-            this.toggleModoBorracha();
-        }
-        
-        if (e.key === 'Escape' && this.modoBorrachaAtivo) {
-            this.desativarModoBorracha();
-        }
-    });
 }
 
 configurarEventosAreaDesenho() {
@@ -1409,135 +1328,6 @@ configurarEventosAreaDesenho() {
             this.desselecionarElemento();
         }
     });
-}
-
-// 🔥 NOVO: Métodos para a funcionalidade de borracha
-toggleModoBorracha() {
-    if (this.modoBorrachaAtivo) {
-        this.desativarModoBorracha();
-    } else {
-        this.ativarModoBorracha();
-    }
-}
-
-ativarModoBorracha() {
-    this.modoBorrachaAtivo = true;
-    this.desselecionarElemento();
-    this.desativarModoSelecao();
-    
-    // Criar visualização da borracha
-    this.borrachaVisual = document.createElement('div');
-    this.borrachaVisual.className = 'borracha-visual';
-    this.borrachaVisual.style.width = `${this.tamanhoBorracha}px`;
-    this.borrachaVisual.style.height = `${this.tamanhoBorracha}px`;
-    document.body.appendChild(this.borrachaVisual);
-    
-    // Aplicar cursor personalizado
-    this.drawingArea.classList.add('borracha-cursor');
-    
-    // Destacar botão
-    const btnBorracha = document.getElementById('btnBorracha');
-    btnBorracha.classList.add('btn-borracha-ativo');
-    
-    console.log('🔧 Modo borracha ativado');
-}
-
-desativarModoBorracha() {
-    this.modoBorrachaAtivo = false;
-    
-    // Remover visualização da borracha
-    if (this.borrachaVisual && this.borrachaVisual.parentNode) {
-        this.borrachaVisual.parentNode.removeChild(this.borrachaVisual);
-        this.borrachaVisual = null;
-    }
-    
-    // Restaurar cursor normal
-    this.drawingArea.classList.remove('borracha-cursor');
-    
-    // Remover destaque do botão
-    const btnBorracha = document.getElementById('btnBorracha');
-    btnBorracha.classList.remove('btn-borracha-ativo');
-    
-    console.log('🔧 Modo borracha desativado');
-}
-
-atualizarPosicaoBorracha(e) {
-    if (!this.modoBorrachaAtivo || !this.borrachaVisual) return;
-    
-    let clientX, clientY;
-    
-    if (e.type.includes('touch')) {
-        if (e.touches && e.touches.length > 0) {
-            clientX = e.touches[0].clientX;
-            clientY = e.touches[0].clientY;
-            e.preventDefault(); // Prevenir scroll durante o uso da borracha
-        }
-    } else {
-        clientX = e.clientX;
-        clientY = e.clientY;
-    }
-    
-    if (clientX !== undefined && clientY !== undefined) {
-        this.borrachaVisual.style.left = `${clientX}px`;
-        this.borrachaVisual.style.top = `${clientY}px`;
-    }
-}
-
-aplicarBorracha(e) {
-    if (!this.modoBorrachaAtivo) return;
-    
-    e.preventDefault();
-    e.stopPropagation();
-    
-    let clientX, clientY;
-    
-    if (e.type.includes('touch')) {
-        if (e.touches && e.touches.length > 0) {
-            clientX = e.touches[0].clientX;
-            clientY = e.touches[0].clientY;
-        }
-    } else {
-        clientX = e.clientX;
-        clientY = e.clientY;
-    }
-    
-    if (clientX === undefined || clientY === undefined) return;
-    
-    // Encontrar elementos sob a borracha
-    const elementos = this.drawingArea.querySelectorAll(
-        '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .linha-peca'
-    );
-    
-    let elementoApagado = false;
-    
-    elementos.forEach(elemento => {
-        const rect = elemento.getBoundingClientRect();
-        
-        // Verificar se a borracha está sobrepondo o elemento
-        if (clientX >= rect.left && clientX <= rect.right &&
-            clientY >= rect.top && clientY <= rect.bottom) {
-            
-            // Verificar se é uma linha de peça
-            if (elemento.classList.contains('linha-peca')) {
-                // Para linhas, também remover símbolos associados
-                const pecaId = elemento.getAttribute('data-peca-id');
-                const lado = elemento.getAttribute('data-lado');
-                const simbolo = this.drawingArea.querySelector(
-                    `.simbolo-linha[data-peca-id="${pecaId}"][data-lado="${lado}"]`
-                );
-                if (simbolo) {
-                    simbolo.remove();
-                }
-            }
-            
-            elemento.remove();
-            elementoApagado = true;
-        }
-    });
-    
-    if (elementoApagado) {
-        this.salvarEstadoHistorico('Apagar com Borracha');
-    }
 }
 
 // Método para alternar modo de seleção (toggle)
@@ -1643,11 +1433,6 @@ toggleModoSelecao() {
             desselecionarElemento() {
     // CORREÇÃO: Sempre remover handles primeiro, independente de ter elemento selecionado
     this.removerHandles();
-    
-    // 🔥 NOVO: Se a borracha estiver ativa, desativá-la também
-    if (this.modoBorrachaAtivo) {
-        this.desativarModoBorracha();
-    }
     
     if (this.elementoSelecionado) {
         // Remover interatividade do elemento
