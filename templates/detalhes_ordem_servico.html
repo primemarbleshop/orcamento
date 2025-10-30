@@ -1676,7 +1676,6 @@ removerHandles() {
 // MÉTODO ATUALIZADO - configurarHandleRotacao
 configurarHandleRotacao(handle, elemento) {
     let initialAngle = parseFloat(elemento.getAttribute('data-rotate')) || 0;
-    let initialX, initialY;
     
     const angulosFixos = [0, 90, 180, 270];
     const SNAP_THRESHOLD = 15;
@@ -1684,11 +1683,6 @@ configurarHandleRotacao(handle, elemento) {
     interact(handle).draggable({
         listeners: {
             start: (event) => {
-                const rect = elemento.getBoundingClientRect();
-                const centerX = rect.left + rect.width / 2;
-                const centerY = rect.top + rect.height / 2;
-                initialX = event.clientX;
-                initialY = event.clientY;
                 handle.style.cursor = 'grabbing';
             },
             move: (event) => {
@@ -1711,6 +1705,7 @@ configurarHandleRotacao(handle, elemento) {
                     }
                 }
                 
+                // Apenas aplicar rotação, manter left/top para posição
                 elemento.style.transform = `rotate(${snappedAngle}deg)`;
                 elemento.setAttribute('data-rotate', snappedAngle);
                 
@@ -1723,6 +1718,7 @@ configurarHandleRotacao(handle, elemento) {
         }
     });
 }
+
 
 // MÉTODO ATUALIZADO - desselecionarElemento
 desselecionarElemento() {
@@ -2616,60 +2612,34 @@ atualizarEstadoVisualBotoes(botaoAtivo = null, tipoAtivo = null) {
                 }
             }
 
-            // MODIFICADO: Configurar interatividade apenas quando elemento está selecionado
             configurarInteratividade(elemento) {
-                // Remover interações anteriores
-                this.removerInteratividade(elemento);
-                
-                // Configurar nova interação apenas se o elemento estiver selecionado
-                if (elemento.classList.contains('elemento-selecionado')) {
-                    interact(elemento).draggable({
-                        listeners: {
-                            start: () => {
-                                elemento.style.zIndex = '1000';
-                            },
-                            move: (event) => {
-                                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-                                const rotate = elemento.getAttribute('data-rotate') || 0;
-
-                                const drawingRect = this.drawingArea.getBoundingClientRect();
-                                const elementRect = elemento.getBoundingClientRect();
-
-                                let leftBase = 0;
-                                if (elemento.style.left && elemento.style.left.endsWith('px')) {
-                                    leftBase = parseFloat(elemento.style.left) || 0;
-                                } else {
-                                    leftBase = elementRect.left - drawingRect.left;
-                                }
-
-                                const absLeftProposto = leftBase + x;
-                                const margemDireita = 60;
-
-                                const maxLeftAllowed = drawingRect.width - elementRect.width - margemDireita;
-                                const minLeftAllowed = 0;
-
-                                let leftCorrigido = absLeftProposto;
-                                if (leftCorrigido > maxLeftAllowed) leftCorrigido = maxLeftAllowed;
-                                if (leftCorrigido < minLeftAllowed) leftCorrigido = minLeftAllowed;
-
-                                const xCorrigido = leftCorrigido - leftBase;
-
-                                elemento.style.transform = `translate(${xCorrigido}px, ${y}px) rotate(${rotate}deg)`;
-                                elemento.setAttribute('data-x', xCorrigido);
-                                elemento.setAttribute('data-y', y);
-
-                                this.atualizarLinhasESimbolos(elemento);
-                                this.atualizarHandles();
-                            },
-                            end: () => {
-                                elemento.style.zIndex = '';
-                                this.salvarEstadoHistorico('Mover Elemento');
-                            }
-                        }
-                    });
+    this.removerInteratividade(elemento);
+    
+    if (elemento.classList.contains('elemento-selecionado')) {
+        interact(elemento).draggable({
+            listeners: {
+                start: () => {
+                    elemento.style.zIndex = '1000';
+                },
+                move: (event) => {
+                    // Usar estilo left/top em vez de transform para movimento
+                    const currentLeft = parseFloat(elemento.style.left) || 0;
+                    const currentTop = parseFloat(elemento.style.top) || 0;
+                    
+                    elemento.style.left = `${currentLeft + event.dx}px`;
+                    elemento.style.top = `${currentTop + event.dy}px`;
+                    
+                    this.atualizarLinhasESimbolos(elemento);
+                    this.atualizarHandles();
+                },
+                end: () => {
+                    elemento.style.zIndex = '';
+                    this.salvarEstadoHistorico('Mover Elemento');
                 }
             }
+        });
+    }
+}
 
             // MÉTODO ATUALIZADO: Configurar interatividade de símbolos
 configurarInteratividadeSimbolo(elemento) {
