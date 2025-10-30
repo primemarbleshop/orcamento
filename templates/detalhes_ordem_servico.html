@@ -3010,6 +3010,46 @@ window.addEventListener("beforeprint", () => {
   });
 });
 
+// ========================================================
+// 🔧 RECONSTRUIR LAYOUT PARA IMPRESSÃO (evita cortes)
+// ========================================================
+window.addEventListener("beforeprint", () => {
+  const originais = document.querySelectorAll(".drawing-area");
+  const container = document.createElement("div");
+  container.id = "print-layout";
+  container.style.display = "block";
+  container.style.pageBreakInside = "avoid";
+
+  originais.forEach(area => {
+    const clone = area.cloneNode(true);
+    clone.style.position = "relative";
+    clone.style.pageBreakInside = "avoid";
+    clone.style.breakInside = "avoid";
+    clone.style.marginBottom = "20px";
+    clone.style.border = "1px solid #ccc";
+    // remove posições absolutas das peças
+    clone.querySelectorAll(".peca, .cuba, .dimensoes, .texto-legenda").forEach(el => {
+      el.style.position = "relative";
+      el.style.left = "0";
+      el.style.top = "0";
+      el.style.display = "inline-block";
+      el.style.margin = "10px";
+    });
+    container.appendChild(clone);
+  });
+
+  // esconde o layout original e mostra o temporário
+  document.body.querySelector(".main-container").style.display = "none";
+  document.body.appendChild(container);
+});
+
+window.addEventListener("afterprint", () => {
+  // restaura o layout original após imprimir
+  document.querySelector("#print-layout")?.remove();
+  document.body.querySelector(".main-container").style.display = "";
+});
+
+
 
         // =============================================
         // INICIALIZAÇÃO DA APLICAÇÃO
