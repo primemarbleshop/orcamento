@@ -2981,34 +2981,41 @@ reabilitarLinhasPecas() {
             }
         }
         
-        // ==========================================
-// 🔧 Evitar que peças sejam cortadas entre páginas (versão aprimorada)
-// ==========================================
+        // ========================================================
+// 🔧 AJUSTE DE IMPRESSÃO — Impede corte de peças, sem tela branca
+// ========================================================
 window.addEventListener("beforeprint", () => {
-  const pageHeight = 1122; // altura da página A4 em px (96 DPI)
-  let currentBottom = pageHeight;
+  const pageHeight = 1122; // altura A4 em px (96 DPI)
+  let currentPageBottom = pageHeight;
 
-  // Seleciona todas as peças dentro de todas as áreas de desenho
+  // Todas as peças visíveis no desenho
   const pecas = document.querySelectorAll(".drawing-area .peca");
 
   pecas.forEach((peca) => {
-    // usa offsetTop/offsetHeight para obter posição absoluta no fluxo do documento
+    // Posição vertical real da peça
     const top = peca.offsetTop;
     const bottom = top + peca.offsetHeight;
 
-    // Se a peça for cortada entre páginas
-    if (bottom > currentBottom) {
-      // força quebra de página antes dela
+    // Se a peça ultrapassa o limite da página, força quebra antes dela
+    if (bottom > currentPageBottom) {
       peca.style.pageBreakBefore = "always";
       peca.style.breakBefore = "always";
-      // atualiza base da próxima página
-      currentBottom = top + pageHeight;
+      currentPageBottom = top + pageHeight;
     } else {
       peca.style.pageBreakBefore = "auto";
       peca.style.breakBefore = "auto";
     }
   });
 });
+
+// 🔄 Após impressão, limpa estilos adicionados
+window.addEventListener("afterprint", () => {
+  document.querySelectorAll(".peca").forEach((peca) => {
+    peca.style.pageBreakBefore = "";
+    peca.style.breakBefore = "";
+  });
+});
+
 
 // ========================================================
 // 🔧 RECONSTRUIR LAYOUT PARA IMPRESSÃO (evita cortes)
