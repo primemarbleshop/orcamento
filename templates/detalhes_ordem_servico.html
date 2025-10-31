@@ -2096,7 +2096,7 @@ atualizarEstadoVisualBotoes(botaoAtivo = null, tipoAtivo = null) {
             // MÉTODOS DE CRIAÇÃO DE ELEMENTOS
             // =============================================
 
-            criarPecasBase() {
+           criarPecasBase() {
     if (this.pecasCriadas) return;
 
     const escala = this.calcularEscalaAutomatica();
@@ -2609,8 +2609,10 @@ atualizarEstadoVisualBotoes(botaoAtivo = null, tipoAtivo = null) {
 }
 
             configurarInteratividade(elemento) {
+    // Remover interações anteriores
     this.removerInteratividade(elemento);
     
+    // Configurar nova interação apenas se o elemento estiver selecionado
     if (elemento.classList.contains('elemento-selecionado')) {
         interact(elemento).draggable({
             listeners: {
@@ -2618,13 +2620,38 @@ atualizarEstadoVisualBotoes(botaoAtivo = null, tipoAtivo = null) {
                     elemento.style.zIndex = '1000';
                 },
                 move: (event) => {
-                    // Usar estilo left/top em vez de transform para movimento
-                    const currentLeft = parseFloat(elemento.style.left) || 0;
-                    const currentTop = parseFloat(elemento.style.top) || 0;
+                    let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                    let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                    const rotate = elemento.getAttribute('data-rotate') || 0;
+
+                    const drawingRect = this.drawingArea.getBoundingClientRect();
+                    const elementRect = elemento.getBoundingClientRect();
+
+                    let leftBase = 0;
+                    if (elemento.style.left && elemento.style.left.endsWith('px')) {
+                        leftBase = parseFloat(elemento.style.left) || 0;
+                    } else {
+                        leftBase = elementRect.left - drawingRect.left;
+                    }
+
+                    const absLeftProposto = leftBase + x;
                     
-                    elemento.style.left = `${currentLeft + event.dx}px`;
-                    elemento.style.top = `${currentTop + event.dy}px`;
-                    
+                    // 🔥 RESTAURAR A TRAVA - Limites de movimento
+                    const margemDireita = 50; // Reduzido para ser mais restritivo
+                    const margemEsquerda = 10;
+                    const maxLeftAllowed = drawingRect.width - elementRect.width - margemDireita;
+                    const minLeftAllowed = margemEsquerda;
+
+                    let leftCorrigido = absLeftProposto;
+                    if (leftCorrigido > maxLeftAllowed) leftCorrigido = maxLeftAllowed;
+                    if (leftCorrigido < minLeftAllowed) leftCorrigido = minLeftAllowed;
+
+                    const xCorrigido = leftCorrigido - leftBase;
+
+                    elemento.style.transform = `translate(${xCorrigido}px, ${y}px) rotate(${rotate}deg)`;
+                    elemento.setAttribute('data-x', xCorrigido);
+                    elemento.setAttribute('data-y', y);
+
                     this.atualizarLinhasESimbolos(elemento);
                     this.atualizarHandles();
                 },
@@ -2701,14 +2728,13 @@ configurarInteratividadeSimbolo(elemento) {
 
             calcularDimensoesPeca(peca, escala) {
     const larguraArea = this.drawingArea.offsetWidth;
-    const larguraMaximaPermitida = larguraArea * 0.85; // 80% da largura da área
+    const larguraMaximaPermitida = larguraArea * 0.6; // 🔥 REDUZIDO para 60%
     
     let width = peca.comprimento * escala;
     let height = peca.largura * escala;
     
     const tamanhoMinimo = CONFIG.TAMANHO_MINIMO_CM * escala;
     
-    // Garantir tamanho mínimo
     if (width < tamanhoMinimo) {
         width = tamanhoMinimo;
     }
@@ -2716,11 +2742,12 @@ configurarInteratividadeSimbolo(elemento) {
         height = tamanhoMinimo;
     }
     
-    // 🔥 NOVO: Limitar tamanho máximo para não ultrapassar a área
+    // 🔥 CORREÇÃO: Limite mais rigoroso
     if (width > larguraMaximaPermitida) {
         const fatorReducao = larguraMaximaPermitida / width;
         width = larguraMaximaPermitida;
-        height = height * fatorReducao; // Reduz proporcionalmente
+        height = height * fatorReducao;
+        console.log(`🔻 Peça reduzida: ${peca.comprimento}x${peca.largura} -> ${width.toFixed(0)}x${height.toFixed(0)}`);
     }
     
     return {
