@@ -1115,19 +1115,29 @@ removerTodosOsHandles() {
     this.elementoSelecionado = null;
 }
 
+// 🔥 CORREÇÃO: Método melhorado para desselecionar elemento
 desselecionarElemento() {
-    this.removerTodosOsHandles();
+    console.log('🔧 Desselecionando elemento...');
+    
+    // Sempre remover handles primeiro
+    this.removerHandles();
     
     if (this.elementoSelecionado) {
+        // Remover interatividade do elemento
         this.removerInteratividade(this.elementoSelecionado);
         
+        this.elementoSelecionado.classList.remove('elemento-selecionado');
+        
+        // Reabilitar linhas quando desselecionar (se não estiver no modo seleção)
         if (!this.modoSelecaoAtivo) {
             this.reabilitarLinhasPecas();
         }
         
+        console.log('✅ Elemento desselecionado:', this.elementoSelecionado.className);
         this.elementoSelecionado = null;
     }
     
+    // Atualizar estado dos botões
     this.atualizarEstadoBotoes();
     
     this.ultimoElementoClicado = null;
@@ -1159,6 +1169,17 @@ refazer() {
         console.log('🔧 Não há ações para refazer');
     }
     this.atualizarBotoesHistorico();
+}
+
+debugElementosSelecionaveis() {
+    const elementos = this.drawingArea.querySelectorAll(
+        '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo'
+    );
+    
+    console.log(`🔧 ${elementos.length} elementos selecionáveis encontrados:`);
+    elementos.forEach((elemento, index) => {
+        console.log(`  ${index + 1}. ${elemento.className} - selecionavel: ${elemento.classList.contains('selecionavel')}`);
+    });
 }
 
 atualizarBotoesHistorico() {
@@ -1467,56 +1488,281 @@ toggleModoSelecao() {
                 }
             }
 
-            // =============================================
-            // MÉTODOS DE SELEÇÃO E CONTROLES - MODIFICADOS
-            // =============================================
+           // =============================================
+// MÉTODOS AUXILIARES PARA HANDLES - ADICIONAR ESTES MÉTODOS
+// =============================================
 
-            selecionarElemento(elemento, event) {
-                this.desselecionarElemento();
-                
-                this.elementoSelecionado = elemento;
-                elemento.classList.add('elemento-selecionado');
-                
-                // Desabilitar cliques nas linhas quando handle está selecionado
-                this.desabilitarLinhasPecas();
-                
-                if (!elemento.classList.contains('simbolo-linha')) {
-                    this.criarHandles(elemento);
-                }
-                
-                // Configurar interatividade para o elemento selecionado
-                this.configurarInteratividade(elemento);
-                
-                // Atualizar estado dos botões
-                this.atualizarEstadoBotoes();
-            }
-
-            desselecionarElemento() {
-    // CORREÇÃO: Sempre remover handles primeiro, independente de ter elemento selecionado
-    this.removerHandles();
+// 🔥 CORREÇÃO: Adicionar método obterPosicaoComScroll que estava faltando
+obterPosicaoComScroll(elemento) {
+    const rect = elemento.getBoundingClientRect();
+    const drawingAreaRect = this.drawingArea.getBoundingClientRect();
     
-    if (this.elementoSelecionado) {
-        // Remover interatividade do elemento
-        this.removerInteratividade(this.elementoSelecionado);
-        
-        this.elementoSelecionado.classList.remove('elemento-selecionado');
-        
-        // Reabilitar linhas quando desselecionar (se não estiver no modo seleção)
-        if (!this.modoSelecaoAtivo) {
-            this.reabilitarLinhasPecas();
-        }
-        
-        this.elementoSelecionado = null;
+    return {
+        left: rect.left - drawingAreaRect.left + this.drawingArea.scrollLeft,
+        top: rect.top - drawingAreaRect.top + this.drawingArea.scrollTop,
+        width: rect.width,
+        height: rect.height
+    };
+}
+
+// 🔥 CORREÇÃO: Método melhorado para selecionar elemento
+selecionarElemento(elemento, event) {
+    // Desselecionar elemento atual primeiro
+    this.desselecionarElemento();
+    
+    this.elementoSelecionado = elemento;
+    elemento.classList.add('elemento-selecionado');
+    
+    console.log('🔧 Selecionando elemento:', elemento.className);
+    
+    // Desabilitar cliques nas linhas quando handle está selecionado
+    this.desabilitarLinhasPecas();
+    
+    // 🔥 CORREÇÃO: Criar handles para todos os elementos exceto símbolos de linha
+    if (!elemento.classList.contains('simbolo-linha')) {
+        this.criarHandles(elemento);
     }
+    
+    // Configurar interatividade para o elemento selecionado
+    this.configurarInteratividade(elemento);
     
     // Atualizar estado dos botões
     this.atualizarEstadoBotoes();
-    
-    this.ultimoElementoClicado = null;
 }
 
-// CORREÇÃO: Método melhorado para remover handles
+// 🔥 CORREÇÃO: Método melhorado para criar handles
+criarHandles(elemento) {
+    console.log('🔧 Criando handles para:', elemento.className);
+    
+    if (elemento.classList.contains('simbolo-linha')) {
+        console.log('⚠️ Símbolo de linha - sem handles');
+        return;
+    }
+    
+    // 🔥 CORREÇÃO: Usar método auxiliar para obter posição correta
+    const pos = this.obterPosicaoComScroll(elemento);
+    const left = pos.left;
+    const top = pos.top;
+    const width = pos.width;
+    const height = pos.height;
+
+    const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+    const rad = rotation * Math.PI / 180;
+    
+    const centerX = left + width / 2;
+    const centerY = top + height / 2;
+
+    console.log(`🔧 Posição: left=${left}, top=${top}, width=${width}, height=${height}, rotation=${rotation}`);
+
+    const relativeHandles = [
+        { class: 'handle-n', relX: 0, relY: -height / 2 },
+        { class: 'handle-s', relX: 0, relY: height / 2 },
+        { class: 'handle-e', relX: width / 2, relY: 0 },
+        { class: 'handle-w', relX: -width / 2, relY: 0 },
+        { class: 'handle-ne', relX: width / 2, relY: -height / 2 },
+        { class: 'handle-nw', relX: -width / 2, relY: -height / 2 },
+        { class: 'handle-se', relX: width / 2, relY: height / 2 },
+        { class: 'handle-sw', relX: -width / 2, relY: height / 2 }
+    ];
+
+    const handles = relativeHandles.map(handle => {
+        const rotatedX = handle.relX * Math.cos(rad) - handle.relY * Math.sin(rad);
+        const rotatedY = handle.relX * Math.sin(rad) + handle.relY * Math.cos(rad);
+        
+        return {
+            class: handle.class,
+            x: centerX + rotatedX,
+            y: centerY + rotatedY
+        };
+    });
+
+    // 🔥 CORREÇÃO: Limpar handles existentes antes de criar novos
+    this.removerHandles();
+
+    handles.forEach(handle => {
+        const handleElement = document.createElement('div');
+        handleElement.className = `handle ${handle.class}`;
+        handleElement.style.left = `${handle.x}px`;
+        handleElement.style.top = `${handle.y}px`;
+        handleElement.style.zIndex = '1002';
+        handleElement.style.position = 'absolute'; // 🔥 CORREÇÃO: Garantir posição absoluta
+        
+        console.log(`🔧 Criando handle ${handle.class} em x=${handle.x}, y=${handle.y}`);
+        
+        this.drawingArea.appendChild(handleElement);
+        this.handles.push(handleElement);
+        
+        this.configurarHandle(handleElement, elemento, handle.class);
+    });
+
+    // Handle de rotação
+    const handleRotacaoRelY = -height / 2 - 40;
+    const handleRotacaoX = 0 * Math.cos(rad) - handleRotacaoRelY * Math.sin(rad);
+    const handleRotacaoY = 0 * Math.sin(rad) + handleRotacaoRelY * Math.cos(rad);
+
+    const handleRotacao = document.createElement('div');
+    handleRotacao.className = 'handle handle-rotacao';
+    handleRotacao.style.left = `${centerX + handleRotacaoX}px`;
+    handleRotacao.style.top = `${centerY + handleRotacaoY}px`;
+    handleRotacao.style.zIndex = '1002';
+    handleRotacao.style.position = 'absolute'; // 🔥 CORREÇÃO: Garantir posição absoluta
+    
+    console.log(`🔧 Criando handle de rotação em x=${centerX + handleRotacaoX}, y=${centerY + handleRotacaoY}`);
+    
+    this.drawingArea.appendChild(handleRotacao);
+    this.handles.push(handleRotacao);
+    
+    this.configurarHandleRotacao(handleRotacao, elemento);
+    
+    console.log(`✅ ${this.handles.length} handles criados com sucesso`);
+}
+
+// 🔥 CORREÇÃO: Método melhorado para configurar handles
+configurarHandle(handle, elemento, handleClass) {
+    let initialX, initialY;
+    let initialWidth, initialHeight;
+    let initialLeft, initialTop;
+
+    // Prevenir eventos de touch nos handles
+    handle.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+    }, { passive: false });
+
+    handle.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+    }, { passive: false });
+
+    interact(handle).draggable({
+        preventDefault: 'always',
+        
+        listeners: {
+            start: (event) => {
+                if (event.type.includes('touch')) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                
+                const style = window.getComputedStyle(elemento);
+                initialWidth = parseFloat(style.width);
+                initialHeight = parseFloat(style.height);
+                initialLeft = parseFloat(style.left);
+                initialTop = parseFloat(style.top);
+                
+                initialX = event.clientX || (event.touches && event.touches[0].clientX);
+                initialY = event.clientY || (event.touches && event.touches[0].clientY);
+
+                handle.style.cursor = 'grabbing';
+                console.log('🔧 Iniciando redimensionamento');
+            },
+            move: (event) => {
+                if (event.type.includes('touch')) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+
+                const currentX = event.clientX || (event.touches && event.touches[0].clientX);
+                const currentY = event.clientY || (event.touches && event.touches[0].clientY);
+                
+                const deltaX = currentX - initialX;
+                const deltaY = currentY - initialY;
+
+                const handleClasses = handle.classList;
+                let isEast = handleClasses.contains('handle-e');
+                let isWest = handleClasses.contains('handle-w');
+                let isNorth = handleClasses.contains('handle-n');
+                let isSouth = handleClasses.contains('handle-s');
+                let isNorthEast = handleClasses.contains('handle-ne');
+                let isNorthWest = handleClasses.contains('handle-nw');
+                let isSouthEast = handleClasses.contains('handle-se');
+                let isSouthWest = handleClasses.contains('handle-sw');
+
+                let newWidth = initialWidth;
+                let newHeight = initialHeight;
+                let newLeft = initialLeft;
+                let newTop = initialTop;
+
+                if (isEast) {
+                    newWidth = initialWidth + deltaX;
+                }
+                else if (isWest) {
+                    newWidth = initialWidth - deltaX;
+                    newLeft = initialLeft + deltaX;
+                }
+                else if (isNorth) {
+                    newHeight = initialHeight - deltaY;
+                    newTop = initialTop + deltaY;
+                }
+                else if (isSouth) {
+                    newHeight = initialHeight + deltaY;
+                }
+                else if (isNorthEast) {
+                    newWidth = initialWidth + deltaX;
+                    newHeight = initialHeight - deltaY;
+                    newTop = initialTop + deltaY;
+                }
+                else if (isNorthWest) {
+                    newWidth = initialWidth - deltaX;
+                    newHeight = initialHeight - deltaY;
+                    newLeft = initialLeft + deltaX;
+                    newTop = initialTop + deltaY;
+                }
+                else if (isSouthEast) {
+                    newWidth = initialWidth + deltaX;
+                    newHeight = initialHeight + deltaY;
+                }
+                else if (isSouthWest) {
+                    newWidth = initialWidth - deltaX;
+                    newHeight = initialHeight + deltaY;
+                    newLeft = initialLeft + deltaX;
+                }
+
+                // Aplicar novas dimensões
+                elemento.style.width = Math.max(newWidth, 20) + 'px'; // Mínimo de 20px
+                elemento.style.height = Math.max(newHeight, 20) + 'px';
+                
+                if (isWest || isNorthWest || isSouthWest) {
+                    elemento.style.left = newLeft + 'px';
+                }
+                
+                if (isNorth || isNorthEast || isNorthWest) {
+                    elemento.style.top = newTop + 'px';
+                }
+
+                this.atualizarLinhasESimbolos(elemento);
+                this.atualizarHandles();
+            },
+            end: () => {
+                handle.style.cursor = 'grab';
+                this.salvarEstadoHistorico('Redimensionar Elemento');
+                console.log('🔧 Redimensionamento concluído');
+            }
+        }
+    });
+}
+
+// 🔥 CORREÇÃO: Método melhorado para atualizar handles
+atualizarHandles() {
+    if (!this.elementoSelecionado) {
+        console.log('⚠️ Nenhum elemento selecionado para atualizar handles');
+        return;
+    }
+
+    if (this.elementoSelecionado.classList.contains('simbolo-linha')) {
+        console.log('⚠️ Símbolo de linha - sem handles para atualizar');
+        return;
+    }
+
+    console.log('🔧 Atualizando handles...');
+    this.removerHandles();
+    this.criarHandles(this.elementoSelecionado);
+}
+
+// 🔥 CORREÇÃO: Método melhorado para remover handles
 removerHandles() {
+    console.log(`🔧 Removendo ${this.handles.length} handles...`);
+    
     this.handles.forEach(handle => {
         if (handle && handle.parentNode) {
             handle.parentNode.removeChild(handle);
@@ -1524,13 +1770,15 @@ removerHandles() {
     });
     this.handles = [];
     
-    // CORREÇÃO: Remover também qualquer handle "órfão" que possa ter ficado
+    // Remover também qualquer handle "órfão" que possa ter ficado
     const handlesOrfaos = this.drawingArea.querySelectorAll('.handle, .handle-rotacao');
     handlesOrfaos.forEach(handle => {
         if (handle.parentNode) {
             handle.parentNode.removeChild(handle);
         }
     });
+    
+    console.log('✅ Handles removidos');
 }
 
 // NOVO MÉTODO: Desabilitar linhas das peças quando modo seleção está ativo
