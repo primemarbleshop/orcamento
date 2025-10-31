@@ -1516,8 +1516,7 @@ reabilitarLinhasPecas() {
                 });
             }
 
-            // NO MÉTODO criarHandles - ATUALIZADO
-criarHandles(elemento) {
+           criarHandles(elemento) {
     if (elemento.classList.contains('simbolo-linha')) {
         return;
     }
@@ -1576,6 +1575,158 @@ criarHandles(elemento) {
     this.handles.push(handleRotacao);
     
     this.configurarHandleRotacao(handleRotacao, elemento);
+}
+
+
+// MÉTODO ATUALIZADO - configurarHandle
+configurarHandle(handle, elemento) {
+    let initialWidth, initialHeight, initialLeft, initialTop;
+
+    interact(handle).draggable({
+        listeners: {
+            start: (event) => {
+                const style = window.getComputedStyle(elemento);
+                initialWidth = parseFloat(style.width);
+                initialHeight = parseFloat(style.height);
+                initialLeft = parseFloat(style.left);
+                initialTop = parseFloat(style.top);
+                
+                handle.style.cursor = 'grabbing';
+            },
+            move: (event) => {
+                const deltaX = event.dx;
+                const deltaY = event.dy;
+
+                const handleClasses = handle.classList;
+                let isEast = handleClasses.contains('handle-e');
+                let isWest = handleClasses.contains('handle-w');
+                let isNorth = handleClasses.contains('handle-n');
+                let isSouth = handleClasses.contains('handle-s');
+                let isNorthEast = handleClasses.contains('handle-ne');
+                let isNorthWest = handleClasses.contains('handle-nw');
+                let isSouthEast = handleClasses.contains('handle-se');
+                let isSouthWest = handleClasses.contains('handle-sw');
+
+                let newWidth = initialWidth;
+                let newHeight = initialHeight;
+                let newLeft = initialLeft;
+                let newTop = initialTop;
+
+                if (isEast || isNorthEast || isSouthEast) {
+                    newWidth = initialWidth + deltaX;
+                }
+                else if (isWest || isNorthWest || isSouthWest) {
+                    newWidth = initialWidth - deltaX;
+                    newLeft = initialLeft + deltaX;
+                }
+
+                if (isSouth || isSouthEast || isSouthWest) {
+                    newHeight = initialHeight + deltaY;
+                }
+                else if (isNorth || isNorthEast || isNorthWest) {
+                    newHeight = initialHeight - deltaY;
+                    newTop = initialTop + deltaY;
+                }
+
+                // Aplicar limites mínimos
+                const minSize = 20;
+                if (newWidth < minSize) newWidth = minSize;
+                if (newHeight < minSize) newHeight = minSize;
+
+                elemento.style.width = newWidth + 'px';
+                elemento.style.height = newHeight + 'px';
+                elemento.style.left = newLeft + 'px';
+                elemento.style.top = newTop + 'px';
+
+                this.atualizarLinhasESimbolos(elemento);
+            },
+            end: () => {
+                handle.style.cursor = 'grab';
+                this.salvarEstadoHistorico('Redimensionar Elemento');
+            }
+        }
+    });
+}
+
+// MÉTODO ATUALIZADO - removerHandles
+removerHandles() {
+    if (this.handlesContainer && this.handlesContainer.parentNode) {
+        this.handlesContainer.parentNode.removeChild(this.handlesContainer);
+    }
+    
+    this.handles.forEach(handle => {
+        if (handle.parentNode) {
+            handle.parentNode.removeChild(handle);
+        }
+    });
+    this.handles = [];
+    this.handlesContainer = null;
+}
+
+// MÉTODO ATUALIZADO - configurarHandleRotacao
+configurarHandleRotacao(handle, elemento) {
+    let initialAngle = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+    
+    const angulosFixos = [0, 90, 180, 270];
+    const SNAP_THRESHOLD = 15;
+
+    interact(handle).draggable({
+        listeners: {
+            start: (event) => {
+                handle.style.cursor = 'grabbing';
+            },
+            move: (event) => {
+                const rect = elemento.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                
+                const deltaX = event.clientX - centerX;
+                const deltaY = event.clientY - centerY;
+                let angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI) + 90;
+                
+                if (angle < 0) angle += 360;
+                if (angle >= 360) angle -= 360;
+                
+                let snappedAngle = angle;
+                for (const fixedAngle of angulosFixos) {
+                    if (Math.abs(angle - fixedAngle) < SNAP_THRESHOLD) {
+                        snappedAngle = fixedAngle;
+                        break;
+                    }
+                }
+                
+                // Apenas aplicar rotação, manter left/top para posição
+                elemento.style.transform = `rotate(${snappedAngle}deg)`;
+                elemento.setAttribute('data-rotate', snappedAngle);
+                
+                this.atualizarLinhasESimbolos(elemento);
+            },
+            end: () => {
+                handle.style.cursor = 'grab';
+                this.salvarEstadoHistorico('Rotacionar Elemento');
+            }
+        }
+    });
+}
+
+
+// MÉTODO ATUALIZADO - desselecionarElemento
+desselecionarElemento() {
+    this.removerHandles();
+    
+    if (this.elementoSelecionado) {
+        this.removerInteratividade(this.elementoSelecionado);
+        this.elementoSelecionado.classList.remove('elemento-selecionado');
+        
+        if (!this.modoSelecaoAtivo) {
+            this.reabilitarLinhasPecas();
+        }
+        
+        this.elementoSelecionado = null;
+    }
+    
+    this.atualizarEstadoBotoes();
+    this.ultimoElementoClicado = null;
 }
 
             configurarHandle(handle, elemento) {
@@ -1829,45 +1980,48 @@ atualizarEstadoVisualBotoes(botaoAtivo = null, tipoAtivo = null) {
             }
 
             atualizarPosicaoSimbolos(elemento) {
-                const pecaId = elemento.getAttribute('data-peca-id');
-                if (!pecaId) return;
+    const pecaId = elemento.getAttribute('data-peca-id');
+    if (!pecaId) return;
 
-                const simbolos = this.drawingArea.querySelectorAll(`.simbolo-linha[data-peca-id="${pecaId}"]`);
-                
-                const pos = this.obterPosicaoComScroll(elemento);
-                const pecaLeft = pos.left;
-                const pecaTop = pos.top;
-                const pecaWidth = pos.width;
-                const pecaHeight = pos.height;
-                
-                simbolos.forEach(simbolo => {
-                    const lado = simbolo.getAttribute('data-lado');
-                    
-                    let centerX, centerY;
-                    
-                    switch(lado) {
-                        case 'top':
-                            centerX = pecaLeft + (pecaWidth / 2);
-                            centerY = pecaTop;
-                            break;
-                        case 'bottom':
-                            centerX = pecaLeft + (pecaWidth / 2);
-                            centerY = pecaTop + pecaHeight;
-                            break;
-                        case 'left':
-                            centerX = pecaLeft;
-                            centerY = pecaTop + (pecaHeight / 2);
-                            break;
-                        case 'right':
-                            centerX = pecaLeft + pecaWidth;
-                            centerY = pecaTop + (pecaHeight / 2);
-                            break;
-                    }
-                    
-                    simbolo.style.left = `${centerX}px`;
-                    simbolo.style.top = `${centerY}px`;
-                });
-            }
+    const simbolos = elemento.querySelectorAll(`.simbolo-linha[data-peca-id="${pecaId}"]`);
+    
+    const pecaWidth = parseFloat(elemento.style.width);
+    const pecaHeight = parseFloat(elemento.style.height);
+    
+    simbolos.forEach(simbolo => {
+        const lado = simbolo.getAttribute('data-lado');
+        const rotacaoSimbolo = simbolo.getAttribute('data-rotacao') || 0;
+        
+        let left, top;
+        const centerX = pecaWidth / 2;
+        const centerY = pecaHeight / 2;
+        
+        switch(lado) {
+            case 'top':
+                left = centerX;
+                top = 0;
+                break;
+            case 'bottom':
+                left = centerX;
+                top = pecaHeight;
+                break;
+            case 'left':
+                left = 0;
+                top = centerY;
+                break;
+            case 'right':
+                left = pecaWidth;
+                top = centerY;
+                break;
+        }
+        
+        simbolo.style.left = `${left}px`;
+        simbolo.style.top = `${top}px`;
+        // ✅ CORREÇÃO: Mantém a transformação do símbolo
+        simbolo.style.transform = `translate(-50%, -50%) rotate(${rotacaoSimbolo}deg)`;
+        simbolo.style.transformOrigin = 'center center';
+    });
+}
 
             // MODIFICADO: Duplicar elemento criando um novo objeto com todos os dados
             duplicarElemento() {
@@ -2377,134 +2531,111 @@ atualizarEstadoVisualBotoes(botaoAtivo = null, tipoAtivo = null) {
             }
 
             criarSimboloLinha(linhaElement, simboloData, simboloExistente = null) {
-                const simboloElement = document.createElement('div');
-                simboloElement.className = 'simbolo-linha';
-                simboloElement.textContent = simboloData.texto;
-                simboloElement.setAttribute('data-rotacao', simboloData.rotacao);
-                simboloElement.setAttribute('data-peca-id', linhaElement.getAttribute('data-peca-id'));
-                simboloElement.setAttribute('data-lado', linhaElement.getAttribute('data-lado'));
-                simboloElement.setAttribute('data-rotate', '0');
-                
-                // Adicionar classe selecionavel se o modo de seleção estiver ativo
-                if (this.modoSelecaoAtivo) {
-                    simboloElement.classList.add('selecionavel');
-                }
-                
-                const pecaId = linhaElement.getAttribute('data-peca-id');
-                const pecaElement = this.drawingArea.querySelector(`#peca-${pecaId}`);
-                
-                if (pecaElement) {
-                    const pos = this.obterPosicaoComScroll(pecaElement);
-                    const pecaLeft = pos.left;
-                    const pecaTop = pos.top;
-                    const pecaWidth = pos.width;
-                    const pecaHeight = pos.height;
-                    
-                    let centerX, centerY;
-                    const lado = linhaElement.getAttribute('data-lado');
-                    
-                    switch(lado) {
-                        case 'top':
-                            centerX = pecaLeft + (pecaWidth / 2);
-                            centerY = pecaTop;
-                            break;
-                        case 'bottom':
-                            centerX = pecaLeft + (pecaWidth / 2);
-                            centerY = pecaTop + pecaHeight;
-                            break;
-                        case 'left':
-                            centerX = pecaLeft;
-                            centerY = pecaTop + (pecaHeight / 2);
-                            break;
-                        case 'right':
-                            centerX = pecaLeft + pecaWidth;
-                            centerY = pecaTop + (pecaHeight / 2);
-                            break;
-                    }
-                    
-                    if (simboloExistente && simboloExistente.style.left && simboloExistente.style.top) {
-                        simboloElement.style.left = simboloExistente.style.left;
-                        simboloElement.style.top = simboloExistente.style.top;
-                    } else {
-                        simboloElement.style.left = `${centerX}px`;
-                        simboloElement.style.top = `${centerY}px`;
-                    }
-                    
-                    simboloElement.style.transform = `translate(-50%, -50%) rotate(${simboloData.rotacao}deg)`;
-                    simboloElement.style.zIndex = '1000';
-                    
-                    this.drawingArea.appendChild(simboloElement);
-                    
-                    this.configurarInteratividadeSimbolo(simboloElement);
-                    
-                    if (simboloExistente && simboloExistente !== simboloElement) {
-                        simboloExistente.remove();
-                    }
-                    
-                    if (simboloExistente) {
-                        this.salvarEstadoHistorico('Editar Símbolo');
-                    } else {
-                        this.salvarEstadoHistorico('Adicionar Símbolo');
-                    }
-                    
-                    return simboloElement;
-                }
-            }
+    const simboloElement = document.createElement('div');
+    simboloElement.className = 'simbolo-linha';
+    simboloElement.textContent = simboloData.texto;
+    simboloElement.setAttribute('data-rotacao', simboloData.rotacao);
+    simboloElement.setAttribute('data-peca-id', linhaElement.getAttribute('data-peca-id'));
+    simboloElement.setAttribute('data-lado', linhaElement.getAttribute('data-lado'));
+    simboloElement.setAttribute('data-rotate', '0');
+    
+    // Adicionar classe selecionavel se o modo de seleção estiver ativo
+    if (this.modoSelecaoAtivo) {
+        simboloElement.classList.add('selecionavel');
+    }
+    
+    const pecaId = linhaElement.getAttribute('data-peca-id');
+    const pecaElement = this.drawingArea.querySelector(`#peca-${pecaId}`);
+    
+    if (pecaElement) {
+        // ✅ CORREÇÃO: Considera a rotação atual da peça
+        const rotation = parseFloat(pecaElement.getAttribute('data-rotate')) || 0;
+        const pecaWidth = parseFloat(pecaElement.style.width);
+        const pecaHeight = parseFloat(pecaElement.style.height);
+        
+        let left, top;
+        const lado = linhaElement.getAttribute('data-lado');
+        
+        // ✅ CORREÇÃO: Posicionamento que considera rotação
+        // Usamos coordenadas do centro e aplicamos transformação
+        const centerX = pecaWidth / 2;
+        const centerY = pecaHeight / 2;
+        
+        switch(lado) {
+            case 'top':
+                left = centerX;
+                top = 0;
+                // Aplica rotação para manter símbolo no topo independente da rotação da peça
+                simboloElement.style.transform = `translate(-50%, -50%) rotate(${simboloData.rotacao}deg)`;
+                break;
+            case 'bottom':
+                left = centerX;
+                top = pecaHeight;
+                simboloElement.style.transform = `translate(-50%, -50%) rotate(${simboloData.rotacao}deg)`;
+                break;
+            case 'left':
+                left = 0;
+                top = centerY;
+                simboloElement.style.transform = `translate(-50%, -50%) rotate(${simboloData.rotacao}deg)`;
+                break;
+            case 'right':
+                left = pecaWidth;
+                top = centerY;
+                simboloElement.style.transform = `translate(-50%, -50%) rotate(${simboloData.rotacao}deg)`;
+                break;
+        }
+        
+        simboloElement.style.left = `${left}px`;
+        simboloElement.style.top = `${top}px`;
+        simboloElement.style.transformOrigin = 'center center';
+        
+        // ✅ Símbolo adicionado como filho da peça
+        pecaElement.appendChild(simboloElement);
+        
+        this.configurarInteratividadeSimbolo(simboloElement);
+        
+        if (simboloExistente && simboloExistente !== simboloElement) {
+            simboloExistente.remove();
+        }
+        
+        if (simboloExistente) {
+            this.salvarEstadoHistorico('Editar Símbolo');
+        } else {
+            this.salvarEstadoHistorico('Adicionar Símbolo');
+        }
+        
+        return simboloElement;
+    }
+}
 
-            // MODIFICADO: Configurar interatividade apenas quando elemento está selecionado
             configurarInteratividade(elemento) {
-                // Remover interações anteriores
-                this.removerInteratividade(elemento);
-                
-                // Configurar nova interação apenas se o elemento estiver selecionado
-                if (elemento.classList.contains('elemento-selecionado')) {
-                    interact(elemento).draggable({
-                        listeners: {
-                            start: () => {
-                                elemento.style.zIndex = '1000';
-                            },
-                            move: (event) => {
-                                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-                                const rotate = elemento.getAttribute('data-rotate') || 0;
-
-                                const drawingRect = this.drawingArea.getBoundingClientRect();
-                                const elementRect = elemento.getBoundingClientRect();
-
-                                let leftBase = 0;
-                                if (elemento.style.left && elemento.style.left.endsWith('px')) {
-                                    leftBase = parseFloat(elemento.style.left) || 0;
-                                } else {
-                                    leftBase = elementRect.left - drawingRect.left;
-                                }
-
-                                const absLeftProposto = leftBase + x;
-                                const margemDireita = 60;
-
-                                const maxLeftAllowed = drawingRect.width - elementRect.width - margemDireita;
-                                const minLeftAllowed = 0;
-
-                                let leftCorrigido = absLeftProposto;
-                                if (leftCorrigido > maxLeftAllowed) leftCorrigido = maxLeftAllowed;
-                                if (leftCorrigido < minLeftAllowed) leftCorrigido = minLeftAllowed;
-
-                                const xCorrigido = leftCorrigido - leftBase;
-
-                                elemento.style.transform = `translate(${xCorrigido}px, ${y}px) rotate(${rotate}deg)`;
-                                elemento.setAttribute('data-x', xCorrigido);
-                                elemento.setAttribute('data-y', y);
-
-                                this.atualizarLinhasESimbolos(elemento);
-                                this.atualizarHandles();
-                            },
-                            end: () => {
-                                elemento.style.zIndex = '';
-                                this.salvarEstadoHistorico('Mover Elemento');
-                            }
-                        }
-                    });
+    this.removerInteratividade(elemento);
+    
+    if (elemento.classList.contains('elemento-selecionado')) {
+        interact(elemento).draggable({
+            listeners: {
+                start: () => {
+                    elemento.style.zIndex = '1000';
+                },
+                move: (event) => {
+                    // Usar estilo left/top em vez de transform para movimento
+                    const currentLeft = parseFloat(elemento.style.left) || 0;
+                    const currentTop = parseFloat(elemento.style.top) || 0;
+                    
+                    elemento.style.left = `${currentLeft + event.dx}px`;
+                    elemento.style.top = `${currentTop + event.dy}px`;
+                    
+                    this.atualizarLinhasESimbolos(elemento);
+                    this.atualizarHandles();
+                },
+                end: () => {
+                    elemento.style.zIndex = '';
+                    this.salvarEstadoHistorico('Mover Elemento');
                 }
             }
+        });
+    }
+}
 
             // MÉTODO ATUALIZADO: Configurar interatividade de símbolos
 configurarInteratividadeSimbolo(elemento) {
