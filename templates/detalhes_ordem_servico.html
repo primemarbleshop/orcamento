@@ -1516,227 +1516,66 @@ reabilitarLinhasPecas() {
                 });
             }
 
-            // Substitua a função criarHandles existente por esta versão
-// MÉTODO COMPLETAMENTE REFEITO - criarHandles
+            // NO MÉTODO criarHandles - ATUALIZADO
 criarHandles(elemento) {
     if (elemento.classList.contains('simbolo-linha')) {
         return;
     }
     
-    this.removerHandles();
+    // Obter rotação atual do elemento
+    const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+    const rad = rotation * Math.PI / 180;
     
-    // Criar container de handles que será filho do elemento
-    const handlesContainer = document.createElement('div');
-    handlesContainer.className = 'handles-container';
-    handlesContainer.style.position = 'absolute';
-    handlesContainer.style.top = '0';
-    handlesContainer.style.left = '0';
-    handlesContainer.style.width = '100%';
-    handlesContainer.style.height = '100%';
-    handlesContainer.style.pointerEvents = 'none';
-    handlesContainer.style.zIndex = '1001';
-    
-    // Obter dimensões do elemento
-    const width = parseFloat(elemento.style.width);
-    const height = parseFloat(elemento.style.height);
-    
-    // Handles de redimensionamento (posições relativas)
-    const handles = [
-        { class: 'handle-n', left: '50%', top: '0%', cursor: 'n-resize' },
-        { class: 'handle-s', left: '50%', top: '100%', cursor: 's-resize' },
-        { class: 'handle-e', left: '100%', top: '50%', cursor: 'e-resize' },
-        { class: 'handle-w', left: '0%', top: '50%', cursor: 'w-resize' },
-        { class: 'handle-ne', left: '100%', top: '0%', cursor: 'ne-resize' },
-        { class: 'handle-nw', left: '0%', top: '0%', cursor: 'nw-resize' },
-        { class: 'handle-se', left: '100%', top: '100%', cursor: 'se-resize' },
-        { class: 'handle-sw', left: '0%', top: '100%', cursor: 'sw-resize' }
+    const pos = this.obterPosicaoComScroll(elemento);
+    const centerX = pos.left + pos.width / 2;
+    const centerY = pos.top + pos.height / 2;
+
+    // Posições relativas considerando rotação
+    const relativeHandles = [
+        { class: 'handle-n', relX: 0, relY: -pos.height / 2 },
+        { class: 'handle-s', relX: 0, relY: pos.height / 2 },
+        { class: 'handle-e', relX: pos.width / 2, relY: 0 },
+        { class: 'handle-w', relX: -pos.width / 2, relY: 0 },
+        { class: 'handle-ne', relX: pos.width / 2, relY: -pos.height / 2 },
+        { class: 'handle-nw', relX: -pos.width / 2, relY: -pos.height / 2 },
+        { class: 'handle-se', relX: pos.width / 2, relY: pos.height / 2 },
+        { class: 'handle-sw', relX: -pos.width / 2, relY: pos.height / 2 }
     ];
 
-    handles.forEach(handle => {
+    relativeHandles.forEach(handle => {
+        // Aplicar rotação às coordenadas
+        const rotatedX = handle.relX * Math.cos(rad) - handle.relY * Math.sin(rad);
+        const rotatedY = handle.relX * Math.sin(rad) + handle.relY * Math.cos(rad);
+        
+        const handleX = centerX + rotatedX;
+        const handleY = centerY + rotatedY;
+        
         const handleElement = document.createElement('div');
         handleElement.className = `handle ${handle.class}`;
-        handleElement.style.position = 'absolute';
-        handleElement.style.left = handle.left;
-        handleElement.style.top = handle.top;
-        handleElement.style.transform = 'translate(-50%, -50%)';
-        handleElement.style.cursor = handle.cursor;
-        handleElement.style.pointerEvents = 'all';
+        handleElement.style.left = `${handleX}px`;
+        handleElement.style.top = `${handleY}px`;
         handleElement.style.zIndex = '1002';
         
-        handlesContainer.appendChild(handleElement);
+        this.drawingArea.appendChild(handleElement);
         this.handles.push(handleElement);
         
         this.configurarHandle(handleElement, elemento, handle.class);
     });
 
-    // Handle de rotação
+    // Handle de rotação (já funciona corretamente)
+    const handleRotacaoRelY = -pos.height / 2 - 40;
+    const handleRotacaoX = 0 * Math.cos(rad) - handleRotacaoRelY * Math.sin(rad);
+    const handleRotacaoY = 0 * Math.sin(rad) + handleRotacaoRelY * Math.cos(rad);
+
     const handleRotacao = document.createElement('div');
     handleRotacao.className = 'handle handle-rotacao';
-    handleRotacao.style.position = 'absolute';
-    handleRotacao.style.left = '50%';
-    handleRotacao.style.top = '-40px'; // Acima do elemento
-    handleRotacao.style.transform = 'translate(-50%, -50%)';
-    handleRotacao.style.cursor = 'grab';
-    handleRotacao.style.pointerEvents = 'all';
+    handleRotacao.style.left = `${centerX + handleRotacaoX}px`;
+    handleRotacao.style.top = `${centerY + handleRotacaoY}px`;
     handleRotacao.style.zIndex = '1002';
-    
-    handlesContainer.appendChild(handleRotacao);
+    this.drawingArea.appendChild(handleRotacao);
     this.handles.push(handleRotacao);
-    this.handlesContainer = handlesContainer;
     
-    elemento.appendChild(handlesContainer);
     this.configurarHandleRotacao(handleRotacao, elemento);
-}
-
-// MÉTODO ATUALIZADO - configurarHandle
-configurarHandle(handle, elemento) {
-    let initialWidth, initialHeight, initialLeft, initialTop;
-
-    interact(handle).draggable({
-        listeners: {
-            start: (event) => {
-                const style = window.getComputedStyle(elemento);
-                initialWidth = parseFloat(style.width);
-                initialHeight = parseFloat(style.height);
-                initialLeft = parseFloat(style.left);
-                initialTop = parseFloat(style.top);
-                
-                handle.style.cursor = 'grabbing';
-            },
-            move: (event) => {
-                const deltaX = event.dx;
-                const deltaY = event.dy;
-
-                const handleClasses = handle.classList;
-                let isEast = handleClasses.contains('handle-e');
-                let isWest = handleClasses.contains('handle-w');
-                let isNorth = handleClasses.contains('handle-n');
-                let isSouth = handleClasses.contains('handle-s');
-                let isNorthEast = handleClasses.contains('handle-ne');
-                let isNorthWest = handleClasses.contains('handle-nw');
-                let isSouthEast = handleClasses.contains('handle-se');
-                let isSouthWest = handleClasses.contains('handle-sw');
-
-                let newWidth = initialWidth;
-                let newHeight = initialHeight;
-                let newLeft = initialLeft;
-                let newTop = initialTop;
-
-                if (isEast || isNorthEast || isSouthEast) {
-                    newWidth = initialWidth + deltaX;
-                }
-                else if (isWest || isNorthWest || isSouthWest) {
-                    newWidth = initialWidth - deltaX;
-                    newLeft = initialLeft + deltaX;
-                }
-
-                if (isSouth || isSouthEast || isSouthWest) {
-                    newHeight = initialHeight + deltaY;
-                }
-                else if (isNorth || isNorthEast || isNorthWest) {
-                    newHeight = initialHeight - deltaY;
-                    newTop = initialTop + deltaY;
-                }
-
-                // Aplicar limites mínimos
-                const minSize = 20;
-                if (newWidth < minSize) newWidth = minSize;
-                if (newHeight < minSize) newHeight = minSize;
-
-                elemento.style.width = newWidth + 'px';
-                elemento.style.height = newHeight + 'px';
-                elemento.style.left = newLeft + 'px';
-                elemento.style.top = newTop + 'px';
-
-                this.atualizarLinhasESimbolos(elemento);
-            },
-            end: () => {
-                handle.style.cursor = 'grab';
-                this.salvarEstadoHistorico('Redimensionar Elemento');
-            }
-        }
-    });
-}
-
-// MÉTODO ATUALIZADO - removerHandles
-removerHandles() {
-    if (this.handlesContainer && this.handlesContainer.parentNode) {
-        this.handlesContainer.parentNode.removeChild(this.handlesContainer);
-    }
-    
-    this.handles.forEach(handle => {
-        if (handle.parentNode) {
-            handle.parentNode.removeChild(handle);
-        }
-    });
-    this.handles = [];
-    this.handlesContainer = null;
-}
-
-// MÉTODO ATUALIZADO - configurarHandleRotacao
-configurarHandleRotacao(handle, elemento) {
-    let initialAngle = parseFloat(elemento.getAttribute('data-rotate')) || 0;
-    
-    const angulosFixos = [0, 90, 180, 270];
-    const SNAP_THRESHOLD = 15;
-
-    interact(handle).draggable({
-        listeners: {
-            start: (event) => {
-                handle.style.cursor = 'grabbing';
-            },
-            move: (event) => {
-                const rect = elemento.getBoundingClientRect();
-                const centerX = rect.left + rect.width / 2;
-                const centerY = rect.top + rect.height / 2;
-                
-                const deltaX = event.clientX - centerX;
-                const deltaY = event.clientY - centerY;
-                let angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI) + 90;
-                
-                if (angle < 0) angle += 360;
-                if (angle >= 360) angle -= 360;
-                
-                let snappedAngle = angle;
-                for (const fixedAngle of angulosFixos) {
-                    if (Math.abs(angle - fixedAngle) < SNAP_THRESHOLD) {
-                        snappedAngle = fixedAngle;
-                        break;
-                    }
-                }
-                
-                // Apenas aplicar rotação, manter left/top para posição
-                elemento.style.transform = `rotate(${snappedAngle}deg)`;
-                elemento.setAttribute('data-rotate', snappedAngle);
-                
-                this.atualizarLinhasESimbolos(elemento);
-            },
-            end: () => {
-                handle.style.cursor = 'grab';
-                this.salvarEstadoHistorico('Rotacionar Elemento');
-            }
-        }
-    });
-}
-
-
-// MÉTODO ATUALIZADO - desselecionarElemento
-desselecionarElemento() {
-    this.removerHandles();
-    
-    if (this.elementoSelecionado) {
-        this.removerInteratividade(this.elementoSelecionado);
-        this.elementoSelecionado.classList.remove('elemento-selecionado');
-        
-        if (!this.modoSelecaoAtivo) {
-            this.reabilitarLinhasPecas();
-        }
-        
-        this.elementoSelecionado = null;
-    }
-    
-    this.atualizarEstadoBotoes();
-    this.ultimoElementoClicado = null;
 }
 
             configurarHandle(handle, elemento) {
@@ -2612,34 +2451,60 @@ atualizarEstadoVisualBotoes(botaoAtivo = null, tipoAtivo = null) {
                 }
             }
 
+            // MODIFICADO: Configurar interatividade apenas quando elemento está selecionado
             configurarInteratividade(elemento) {
-    this.removerInteratividade(elemento);
-    
-    if (elemento.classList.contains('elemento-selecionado')) {
-        interact(elemento).draggable({
-            listeners: {
-                start: () => {
-                    elemento.style.zIndex = '1000';
-                },
-                move: (event) => {
-                    // Usar estilo left/top em vez de transform para movimento
-                    const currentLeft = parseFloat(elemento.style.left) || 0;
-                    const currentTop = parseFloat(elemento.style.top) || 0;
-                    
-                    elemento.style.left = `${currentLeft + event.dx}px`;
-                    elemento.style.top = `${currentTop + event.dy}px`;
-                    
-                    this.atualizarLinhasESimbolos(elemento);
-                    this.atualizarHandles();
-                },
-                end: () => {
-                    elemento.style.zIndex = '';
-                    this.salvarEstadoHistorico('Mover Elemento');
+                // Remover interações anteriores
+                this.removerInteratividade(elemento);
+                
+                // Configurar nova interação apenas se o elemento estiver selecionado
+                if (elemento.classList.contains('elemento-selecionado')) {
+                    interact(elemento).draggable({
+                        listeners: {
+                            start: () => {
+                                elemento.style.zIndex = '1000';
+                            },
+                            move: (event) => {
+                                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                                const rotate = elemento.getAttribute('data-rotate') || 0;
+
+                                const drawingRect = this.drawingArea.getBoundingClientRect();
+                                const elementRect = elemento.getBoundingClientRect();
+
+                                let leftBase = 0;
+                                if (elemento.style.left && elemento.style.left.endsWith('px')) {
+                                    leftBase = parseFloat(elemento.style.left) || 0;
+                                } else {
+                                    leftBase = elementRect.left - drawingRect.left;
+                                }
+
+                                const absLeftProposto = leftBase + x;
+                                const margemDireita = 60;
+
+                                const maxLeftAllowed = drawingRect.width - elementRect.width - margemDireita;
+                                const minLeftAllowed = 0;
+
+                                let leftCorrigido = absLeftProposto;
+                                if (leftCorrigido > maxLeftAllowed) leftCorrigido = maxLeftAllowed;
+                                if (leftCorrigido < minLeftAllowed) leftCorrigido = minLeftAllowed;
+
+                                const xCorrigido = leftCorrigido - leftBase;
+
+                                elemento.style.transform = `translate(${xCorrigido}px, ${y}px) rotate(${rotate}deg)`;
+                                elemento.setAttribute('data-x', xCorrigido);
+                                elemento.setAttribute('data-y', y);
+
+                                this.atualizarLinhasESimbolos(elemento);
+                                this.atualizarHandles();
+                            },
+                            end: () => {
+                                elemento.style.zIndex = '';
+                                this.salvarEstadoHistorico('Mover Elemento');
+                            }
+                        }
+                    });
                 }
             }
-        });
-    }
-}
 
             // MÉTODO ATUALIZADO: Configurar interatividade de símbolos
 configurarInteratividadeSimbolo(elemento) {
