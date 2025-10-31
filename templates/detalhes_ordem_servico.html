@@ -1115,29 +1115,19 @@ removerTodosOsHandles() {
     this.elementoSelecionado = null;
 }
 
-// 🔥 CORREÇÃO: Método melhorado para desselecionar elemento
 desselecionarElemento() {
-    console.log('🔧 Desselecionando elemento...');
-    
-    // Sempre remover handles primeiro
-    this.removerHandles();
+    this.removerTodosOsHandles();
     
     if (this.elementoSelecionado) {
-        // Remover interatividade do elemento
         this.removerInteratividade(this.elementoSelecionado);
         
-        this.elementoSelecionado.classList.remove('elemento-selecionado');
-        
-        // Reabilitar linhas quando desselecionar (se não estiver no modo seleção)
         if (!this.modoSelecaoAtivo) {
             this.reabilitarLinhasPecas();
         }
         
-        console.log('✅ Elemento desselecionado:', this.elementoSelecionado.className);
         this.elementoSelecionado = null;
     }
     
-    // Atualizar estado dos botões
     this.atualizarEstadoBotoes();
     
     this.ultimoElementoClicado = null;
@@ -1169,17 +1159,6 @@ refazer() {
         console.log('🔧 Não há ações para refazer');
     }
     this.atualizarBotoesHistorico();
-}
-
-debugElementosSelecionaveis() {
-    const elementos = this.drawingArea.querySelectorAll(
-        '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo'
-    );
-    
-    console.log(`🔧 ${elementos.length} elementos selecionáveis encontrados:`);
-    elementos.forEach((elemento, index) => {
-        console.log(`  ${index + 1}. ${elemento.className} - selecionavel: ${elemento.classList.contains('selecionavel')}`);
-    });
 }
 
 atualizarBotoesHistorico() {
@@ -2187,37 +2166,15 @@ atualizarEstadoVisualBotoes(botaoAtivo = null, tipoAtivo = null) {
            // MODIFICADO: Duplicar elemento criando um novo objeto com todos os dados
 duplicarElemento() {
     const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
-    if (!elementoAlvo) {
-        console.log('⚠️ Nenhum elemento selecionado para duplicar');
-        return;
-    }
-    
-    console.log('🔧 Duplicando elemento:', elementoAlvo.className);
+    if (!elementoAlvo) return;
     
     // Criar novo elemento com todos os atributos e estilos
     const clone = elementoAlvo.cloneNode(true);
     
-    // 🔥 CORREÇÃO: Gerar novo ID único para evitar conflitos
-    const novoId = 'dup-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
-    
-    // Atualizar IDs e atributos de identificação
-    if (clone.id) {
-        clone.id = clone.id + '-copy-' + novoId;
-    }
-    
-    // 🔥 CORREÇÃO CRÍTICA: Atualizar data-peca-id para um novo ID único
-    const pecaIdOriginal = clone.getAttribute('data-peca-id');
-    if (pecaIdOriginal) {
-        clone.setAttribute('data-peca-id', novoId);
-    }
-    
     // MODIFICADO: Posicionar com offset maior para ficar visível
     const offset = 30;
-    const currentLeft = parseFloat(elementoAlvo.style.left) || 0;
-    const currentTop = parseFloat(elementoAlvo.style.top) || 0;
-    
-    clone.style.left = `${currentLeft + offset}px`;
-    clone.style.top = `${currentTop + offset}px`;
+    clone.style.left = `${parseFloat(elementoAlvo.style.left) + offset}px`;
+    clone.style.top = `${parseFloat(elementoAlvo.style.top) + offset}px`;
     clone.classList.remove('elemento-selecionado');
     
     // Remover classe selecionavel se o modo de seleção não estiver ativo
@@ -2225,41 +2182,32 @@ duplicarElemento() {
         clone.classList.remove('selecionavel');
     }
     
-    // 🔥 CORREÇÃO: Remover TODOS os símbolos e linhas antigas do clone
-    const simbolosAntigos = clone.querySelectorAll('.simbolo-linha');
-    simbolosAntigos.forEach(simbolo => simbolo.remove());
+    // MODIFICADO: Gerar novo ID único para evitar conflitos
+    if (clone.id) {
+        clone.id = clone.id + '-copy-' + Date.now();
+    }
     
+    // 🔥 CORREÇÃO: Remover as linhas antigas do clone para recriá-las
     const linhasAntigas = clone.querySelectorAll('.linha-peca');
     linhasAntigas.forEach(linha => linha.remove());
     
-    // Adicionar o clone à área de desenho
     this.drawingArea.appendChild(clone);
     
-    // 🔥 CORREÇÃO: Recriar COMPLETAMENTE as linhas da peça com NOVOS IDs
+    // 🔥 CORREÇÃO: Recriar as linhas da peça com os event listeners
     if (clone.classList.contains('peca')) {
+        const pecaId = clone.getAttribute('data-peca-id') || 'copy-' + Date.now();
         const width = parseFloat(clone.style.width);
         const height = parseFloat(clone.style.height);
         
-        // Recriar as linhas com NOVO peca-id
-        this.criarLinhasPeca(clone, novoId, width, height);
+        // Atualizar ID da peça se necessário
+        clone.setAttribute('data-peca-id', pecaId);
+        clone.id = `peca-${pecaId}`;
         
-        // Recriar dimensões se existiam
-        const dimensoesExistentes = clone.querySelectorAll('.dimensoes');
-        dimensoesExistentes.forEach(d => d.remove());
-        
-        // Se o elemento original tinha dados de peça, recriar dimensões
-        if (elementoAlvo.querySelector('.dimensoes')) {
-            // Aqui você precisaria dos dados originais da peça
-            // Por enquanto, vamos apenas copiar o texto das dimensões existentes
-            const dimensoesOriginais = elementoAlvo.querySelectorAll('.dimensoes');
-            dimensoesOriginais.forEach((dimensao, index) => {
-                const novaDimensao = dimensao.cloneNode(true);
-                clone.appendChild(novaDimensao);
-            });
-        }
+        // Recriar as linhas
+        this.criarLinhasPeca(clone, pecaId, width, height);
     }
     
-    // 🔥 CORREÇÃO: Reconfigurar COMPLETAMENTE a interatividade
+    // MODIFICADO: Reconfigurar completamente a interatividade
     this.configurarInteratividade(clone);
     
     if (clone.classList.contains('simbolo-linha')) {
@@ -2268,72 +2216,12 @@ duplicarElemento() {
         this.configurarInteratividadeCuba(clone);
     } else if (clone.classList.contains('texto-legenda')) {
         this.configurarInteratividadeTexto(clone);
-    } else if (clone.classList.contains('legenda-simplificada')) {
-        // Para legendas, garantir que o conteúdo editável seja independente
-        const spanDescricao = clone.querySelector('.legenda-descricao-inline');
-        if (spanDescricao) {
-            spanDescricao.addEventListener('blur', () => {
-                this.salvarEstadoHistorico('Editar Legenda Duplicada');
-            });
-        }
     }
     
     this.salvarEstadoHistorico('Duplicar Elemento: ' + (elementoAlvo.className || 'Elemento'));
     
     // Selecionar o elemento duplicado
     this.selecionarElemento(clone, null);
-    
-    console.log('✅ Elemento duplicado com novo ID:', novoId);
-}
-
-excluirElemento() {
-    const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
-    if (!elementoAlvo) {
-        console.log('⚠️ Nenhum elemento selecionado para excluir');
-        Swal.fire({
-            title: 'Nenhum elemento selecionado',
-            text: 'Selecione um elemento para excluir.',
-            icon: 'warning',
-            timer: 2000,
-            showConfirmButton: false
-        });
-        return;
-    }
-    
-    console.log('🔧 Excluindo elemento:', elementoAlvo.className);
-    
-    // Confirmar exclusão
-    Swal.fire({
-        title: 'Excluir elemento?',
-        text: 'Esta ação não pode ser desfeita.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#e74a3b',
-        cancelButtonColor: '#6c757d',
-        confirmButtonText: 'Sim, excluir!',
-        cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            // Salvar estado antes de excluir para poder desfazer
-            this.salvarEstadoHistorico('Excluir Elemento: ' + (elementoAlvo.className || 'Elemento'));
-            
-            // Remover o elemento
-            elementoAlvo.remove();
-            
-            // Desselecionar
-            this.desselecionarElemento();
-            
-            Swal.fire({
-                title: 'Excluído!',
-                text: 'Elemento removido com sucesso.',
-                icon: 'success',
-                timer: 1500,
-                showConfirmButton: false
-            });
-            
-            console.log('✅ Elemento excluído com sucesso');
-        }
-    });
 }
 
             // =============================================
@@ -2535,37 +2423,19 @@ excluirElemento() {
             }
 
            configurarInteratividadeCuba(elemento) {
-    this.removerInteratividade(elemento);
-    
     interact(elemento).draggable({
         listeners: {
             start: () => {
                 elemento.style.zIndex = '1000';
             },
             move: (event) => {
-                // 🔥 CORREÇÃO: Usar left/top em vez de transform para movimento permanente
-                let currentLeft = parseFloat(elemento.style.left) || 0;
-                let currentTop = parseFloat(elemento.style.top) || 0;
+                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
                 const rotate = elemento.getAttribute('data-rotate') || 0;
 
-                const newLeft = currentLeft + event.dx;
-                const newTop = currentTop + event.dy;
-
-                // Limites
-                const drawingRect = this.drawingArea.getBoundingClientRect();
-                const elementRect = elemento.getBoundingClientRect();
-                
-                const maxLeft = drawingRect.width - elementRect.width - 20;
-                const minLeft = 20;
-                const maxTop = drawingRect.height - elementRect.height - 20;
-                const minTop = 20;
-
-                const boundedLeft = Math.min(Math.max(newLeft, minLeft), maxLeft);
-                const boundedTop = Math.min(Math.max(newTop, minTop), maxTop);
-
-                elemento.style.left = `${boundedLeft}px`;
-                elemento.style.top = `${boundedTop}px`;
-                elemento.style.transform = `rotate(${rotate}deg)`;
+                elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
+                elemento.setAttribute('data-x', x);
+                elemento.setAttribute('data-y', y);
             },
             end: () => {
                 elemento.style.zIndex = '';
@@ -2573,19 +2443,6 @@ excluirElemento() {
             }
         }
     });
-
-    interact(elemento).resizable({
-        edges: { left: true, right: true, bottom: true, top: true },
-        listeners: {
-            move: function (event) {
-                Object.assign(event.target.style, {
-                    width: `${event.rect.width}px`,
-                    height: `${event.rect.height}px`
-                });
-            }
-        }
-    });
-}
 
     // MODIFICADO: Remover completamente os limites mínimos do redimensionamento
     interact(elemento).resizable({
@@ -2774,7 +2631,7 @@ excluirElemento() {
                 pecaElement.appendChild(quantidadeElement);
             }
 
-           criarLinhasPeca(pecaElement, pecaId, width, height) {
+            criarLinhasPeca(pecaElement, pecaId, width, height) {
     const lados = [
         { tipo: 'top', estilo: { top: '0px', left: '0px', width: width + 'px', height: '8px', transform: 'translateY(-4px)' }, rotacao: 0 },
         { tipo: 'bottom', estilo: { top: height + 'px', left: '0px', width: width + 'px', height: '8px', transform: 'translateY(-4px)' }, rotacao: 0 },
@@ -2785,7 +2642,7 @@ excluirElemento() {
     lados.forEach(lado => {
         const linhaElement = document.createElement('div');
         linhaElement.className = `linha-peca linha-${lado.tipo}`;
-        linhaElement.setAttribute('data-peca-id', pecaId); // 🔥 Usa o NOVO ID
+        linhaElement.setAttribute('data-peca-id', pecaId);
         linhaElement.setAttribute('data-lado', lado.tipo);
         linhaElement.setAttribute('data-rotacao', lado.rotacao);
         
@@ -2797,12 +2654,12 @@ excluirElemento() {
             transition: 'background-color 0.2s ease'
         }, lado.estilo);
 
-        // Event listeners para as linhas
+        // 🔥 CORREÇÃO: Garantir que os event listeners sejam sempre configurados
         linhaElement.addEventListener('mouseenter', () => linhaElement.style.backgroundColor = '#4e73df');
         linhaElement.addEventListener('mouseleave', () => linhaElement.style.backgroundColor = 'transparent');
         linhaElement.addEventListener('click', (e) => this.manipularCliqueLinha(e, linhaElement));
 
-        // Suporte para touch events no mobile
+        // 🔥 CORREÇÃO ADICIONAL: Suporte para touch events no mobile
         linhaElement.addEventListener('touchstart', (e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -2813,30 +2670,25 @@ excluirElemento() {
     });
 }
 
-           criarSimboloLinha(linhaElement, simboloData, simboloExistente = null) {
+            criarSimboloLinha(linhaElement, simboloData, simboloExistente = null) {
     const simboloElement = document.createElement('div');
     simboloElement.className = 'simbolo-linha';
     simboloElement.textContent = simboloData.texto;
-    
-    // 🔥 CORREÇÃO: Usar o data-peca-id da linha (que já é o correto para duplicados)
-    const pecaId = linhaElement.getAttribute('data-peca-id');
-    
     simboloElement.setAttribute('data-rotacao', simboloData.rotacao);
-    simboloElement.setAttribute('data-peca-id', pecaId);
+    simboloElement.setAttribute('data-peca-id', linhaElement.getAttribute('data-peca-id'));
     simboloElement.setAttribute('data-lado', linhaElement.getAttribute('data-lado'));
     simboloElement.setAttribute('data-rotate', '0');
-    
-    console.log('🔧 Criando símbolo para peca-id:', pecaId);
     
     // Adicionar classe selecionavel se o modo de seleção estiver ativo
     if (this.modoSelecaoAtivo) {
         simboloElement.classList.add('selecionavel');
     }
     
-    // 🔥 CORREÇÃO: Encontrar a peça pelo NOVO ID (para duplicados)
-    const pecaElement = this.drawingArea.querySelector(`[data-peca-id="${pecaId}"]`);
+    const pecaId = linhaElement.getAttribute('data-peca-id');
+    const pecaElement = this.drawingArea.querySelector(`#peca-${pecaId}`);
     
     if (pecaElement) {
+        // ✅ CORREÇÃO: Considera a rotação atual da peça
         const rotation = parseFloat(pecaElement.getAttribute('data-rotate')) || 0;
         const pecaWidth = parseFloat(pecaElement.style.width);
         const pecaHeight = parseFloat(pecaElement.style.height);
@@ -2844,6 +2696,8 @@ excluirElemento() {
         let left, top;
         const lado = linhaElement.getAttribute('data-lado');
         
+        // ✅ CORREÇÃO: Posicionamento que considera rotação
+        // Usamos coordenadas do centro e aplicamos transformação
         const centerX = pecaWidth / 2;
         const centerY = pecaHeight / 2;
         
@@ -2851,6 +2705,7 @@ excluirElemento() {
             case 'top':
                 left = centerX;
                 top = 0;
+                // Aplica rotação para manter símbolo no topo independente da rotação da peça
                 simboloElement.style.transform = `translate(-50%, -50%) rotate(${simboloData.rotacao}deg)`;
                 break;
             case 'bottom':
@@ -2874,6 +2729,7 @@ excluirElemento() {
         simboloElement.style.top = `${top}px`;
         simboloElement.style.transformOrigin = 'center center';
         
+        // ✅ Símbolo adicionado como filho da peça
         pecaElement.appendChild(simboloElement);
         
         this.configurarInteratividadeSimbolo(simboloElement);
@@ -2889,61 +2745,63 @@ excluirElemento() {
         }
         
         return simboloElement;
-    } else {
-        console.error('❌ Peça não encontrada para o data-peca-id:', pecaId);
     }
 }
 
-
+            // MODIFICADO: Configurar interatividade apenas quando elemento está selecionado
             configurarInteratividade(elemento) {
-    // Remover interações anteriores
-    this.removerInteratividade(elemento);
-    
-    // Configurar nova interação
-    interact(elemento).draggable({
-        listeners: {
-            start: () => {
-                elemento.style.zIndex = '1000';
-            },
-            move: (event) => {
-                // 🔥 CORREÇÃO: Usar sistema de coordenadas absolutas em vez de transform
-                let currentLeft = parseFloat(elemento.style.left) || 0;
-                let currentTop = parseFloat(elemento.style.top) || 0;
-                const rotate = elemento.getAttribute('data-rotate') || 0;
-
-                const newLeft = currentLeft + event.dx;
-                const newTop = currentTop + event.dy;
-
-                // Limites da área de desenho
-                const drawingRect = this.drawingArea.getBoundingClientRect();
-                const elementRect = elemento.getBoundingClientRect();
+                // Remover interações anteriores
+                this.removerInteratividade(elemento);
                 
-                const maxLeft = drawingRect.width - elementRect.width - 20;
-                const minLeft = 20;
-                const maxTop = drawingRect.height - elementRect.height - 20;
-                const minTop = 20;
+                // Configurar nova interação apenas se o elemento estiver selecionado
+                if (elemento.classList.contains('elemento-selecionado')) {
+                    interact(elemento).draggable({
+                        listeners: {
+                            start: () => {
+                                elemento.style.zIndex = '1000';
+                            },
+                            move: (event) => {
+                                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                                const rotate = elemento.getAttribute('data-rotate') || 0;
 
-                // Aplicar limites
-                const boundedLeft = Math.min(Math.max(newLeft, minLeft), maxLeft);
-                const boundedTop = Math.min(Math.max(newTop, minTop), maxTop);
+                                const drawingRect = this.drawingArea.getBoundingClientRect();
+                                const elementRect = elemento.getBoundingClientRect();
 
-                // 🔥 CORREÇÃO: Usar left/top em vez de transform para movimento permanente
-                elemento.style.left = `${boundedLeft}px`;
-                elemento.style.top = `${boundedTop}px`;
-                
-                // Apenas usar transform para rotação
-                elemento.style.transform = `rotate(${rotate}deg)`;
+                                let leftBase = 0;
+                                if (elemento.style.left && elemento.style.left.endsWith('px')) {
+                                    leftBase = parseFloat(elemento.style.left) || 0;
+                                } else {
+                                    leftBase = elementRect.left - drawingRect.left;
+                                }
 
-                this.atualizarLinhasESimbolos(elemento);
-                this.atualizarHandles();
-            },
-            end: () => {
-                elemento.style.zIndex = '';
-                this.salvarEstadoHistorico('Mover Elemento');
+                                const absLeftProposto = leftBase + x;
+                                const margemDireita = 60;
+
+                                const maxLeftAllowed = drawingRect.width - elementRect.width - margemDireita;
+                                const minLeftAllowed = 20;
+
+                                let leftCorrigido = absLeftProposto;
+                                if (leftCorrigido > maxLeftAllowed) leftCorrigido = maxLeftAllowed;
+                                if (leftCorrigido < minLeftAllowed) leftCorrigido = minLeftAllowed;
+
+                                const xCorrigido = leftCorrigido - leftBase;
+
+                                elemento.style.transform = `translate(${xCorrigido}px, ${y}px) rotate(${rotate}deg)`;
+                                elemento.setAttribute('data-x', xCorrigido);
+                                elemento.setAttribute('data-y', y);
+
+                                this.atualizarLinhasESimbolos(elemento);
+                                this.atualizarHandles();
+                            },
+                            end: () => {
+                                elemento.style.zIndex = '';
+                                this.salvarEstadoHistorico('Mover Elemento');
+                            }
+                        }
+                    });
+                }
             }
-        }
-    });
-}
 
             // MODIFICADO: Configurar interatividade de símbolos apenas quando selecionados
             configurarInteratividadeSimbolo(elemento) {
