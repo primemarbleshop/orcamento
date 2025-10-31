@@ -760,67 +760,6 @@
             background: white !important;
         }
         }
-
-        /* ======================== ESTILOS PARA SELEÇÃO POR LAÇO ======================== */
-        .lasso-mode-selector {
-            font-family: Arial, sans-serif;
-            border: 2px solid #4e73df;
-            position: fixed;
-            top: 120px;
-            right: 20px;
-            background: white;
-            padding: 10px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            z-index: 1000;
-            display: none;
-        }
-
-        .lasso-mode-selector label:hover {
-            background-color: #f8f9fa;
-            border-radius: 4px;
-        }
-
-        .lasso-mode-selector input[type="radio"] {
-            accent-color: #4e73df;
-        }
-
-        .grupo-temporario {
-            position: absolute;
-            border: 2px dashed #4e73df;
-            background-color: rgba(78, 115, 223, 0.1);
-            z-index: 998;
-            pointer-events: none;
-        }
-
-        .grupo-temporario.elemento-selecionado {
-            border: 2px solid #4e73df;
-            background-color: rgba(78, 115, 223, 0.2);
-        }
-
-        /* Dicas visuais para cada modo no laço */
-        .lasso-center {
-            stroke: #e74a3b !important;
-            stroke-dasharray: 5,5 !important;
-        }
-
-        .lasso-partial {
-            stroke: #4e73df !important;
-            stroke-dasharray: 5,5 !important;
-        }
-
-        .lasso-full {
-            stroke: #1cc88a !important;
-            stroke-dasharray: 5,5 !important;
-        }
-
-        /* Impressão - esconder grupo temporário */
-        @media print {
-            .grupo-temporario,
-            .lasso-mode-selector {
-                display: none !important;
-            }
-        }
     </style>
 </head>
 <body>
@@ -933,540 +872,6 @@
         };
 
         // =============================================
-        // SELEÇÃO POR LAÇO (LASSO SELECTION)
-        // =============================================
-
-        class LassoSelection {
-            constructor(gerenciador) {
-                this.gerenciador = gerenciador;
-                this.isDrawing = false;
-                this.points = [];
-                this.lassoElement = null;
-                this.selectedElements = [];
-                this.tempGroup = null;
-                
-                // 🔥 NOVO: Modos de seleção
-                this.selectionModes = {
-                    CENTER: 'center',      // Apenas centro
-                    PARTIAL: 'partial',    // Qualquer parte (RECOMENDADO)
-                    FULL: 'full'          // Completamente dentro
-                };
-                this.currentMode = this.selectionModes.PARTIAL;
-                
-                // 🔥 NOVO: Criar interface de modos
-                this.createModeSelector();
-            }
-
-            // 🔥 NOVO: Criar seletor de modos de seleção
-            createModeSelector() {
-                const modeSelector = document.createElement('div');
-                modeSelector.className = 'lasso-mode-selector';
-                modeSelector.style.position = 'fixed';
-                modeSelector.style.top = '120px';
-                modeSelector.style.right = '20px';
-                modeSelector.style.background = 'white';
-                modeSelector.style.padding = '10px';
-                modeSelector.style.borderRadius = '8px';
-                modeSelector.style.boxShadow = '0 2px 10px rgba(0,0,0,0.1)';
-                modeSelector.style.zIndex = '1000';
-                modeSelector.style.display = 'none';
-                
-                modeSelector.innerHTML = `
-                    <div style="font-weight: bold; margin-bottom: 8px; font-size: 14px;">Modo de Seleção</div>
-                    <div style="display: flex; flex-direction: column; gap: 5px;">
-                        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                            <input type="radio" name="lassoMode" value="center" ${this.currentMode === 'center' ? 'checked' : ''}>
-                            <span style="font-size: 12px;">Apenas Centro</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                            <input type="radio" name="lassoMode" value="partial" ${this.currentMode === 'partial' ? 'checked' : ''}>
-                            <span style="font-size: 12px;">Qualquer Parte</span>
-                        </label>
-                        <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
-                            <input type="radio" name="lassoMode" value="full" ${this.currentMode === 'full' ? 'checked' : ''}>
-                            <span style="font-size: 12px;">Completo</span>
-                        </label>
-                    </div>
-                `;
-                
-                document.body.appendChild(modeSelector);
-                this.modeSelector = modeSelector;
-                
-                // Eventos para mudar modo
-                modeSelector.querySelectorAll('input[name="lassoMode"]').forEach(radio => {
-                    radio.addEventListener('change', (e) => {
-                        this.currentMode = e.target.value;
-                        console.log(`🎯 Modo de seleção alterado para: ${this.currentMode}`);
-                    });
-                });
-            }
-
-            // Ativar modo de desenho do laço
-            activateLassoMode() {
-                console.log('🎯 Ativando modo laço...');
-                
-                // Mostrar seletor de modos
-                this.modeSelector.style.display = 'block';
-                
-                // Desselecionar elemento atual
-                this.gerenciador.desselecionarElemento();
-                
-                // Configurar cursor
-                this.gerenciador.drawingArea.style.cursor = 'crosshair';
-                
-                // Adicionar eventos
-                this.gerenciador.drawingArea.addEventListener('mousedown', this.startLasso.bind(this));
-                this.gerenciador.drawingArea.addEventListener('mousemove', this.drawLasso.bind(this));
-                this.gerenciador.drawingArea.addEventListener('mouseup', this.finishLasso.bind(this));
-                
-                // Eventos touch para mobile
-                this.gerenciador.drawingArea.addEventListener('touchstart', this.startLassoTouch.bind(this));
-                this.gerenciador.drawingArea.addEventListener('touchmove', this.drawLassoTouch.bind(this));
-                this.gerenciador.drawingArea.addEventListener('touchend', this.finishLasso.bind(this));
-                
-                console.log('✅ Modo laço ativado');
-            }
-
-            // Desativar modo laço
-            deactivateLassoMode() {
-                console.log('🎯 Desativando modo laço...');
-                
-                // Esconder seletor de modos
-                this.modeSelector.style.display = 'none';
-                
-                // Remover eventos
-                this.gerenciador.drawingArea.removeEventListener('mousedown', this.startLasso.bind(this));
-                this.gerenciador.drawingArea.removeEventListener('mousemove', this.drawLasso.bind(this));
-                this.gerenciador.drawingArea.removeEventListener('mouseup', this.finishLasso.bind(this));
-                
-                this.gerenciador.drawingArea.removeEventListener('touchstart', this.startLassoTouch.bind(this));
-                this.gerenciador.drawingArea.removeEventListener('touchmove', this.drawLassoTouch.bind(this));
-                this.gerenciador.drawingArea.removeEventListener('touchend', this.finishLasso.bind(this));
-                
-                // Limpar laço se estiver desenhando
-                this.clearLasso();
-                
-                // Restaurar cursor
-                this.gerenciador.drawingArea.style.cursor = 'default';
-                
-                console.log('✅ Modo laço desativado');
-            }
-
-            // Iniciar desenho do laço (mouse)
-            startLasso(e) {
-                if (!this.gerenciador.modoLassoAtivo) return;
-                
-                e.preventDefault();
-                e.stopPropagation();
-                
-                this.isDrawing = true;
-                this.points = [];
-                
-                const rect = this.gerenciador.drawingArea.getBoundingClientRect();
-                const point = {
-                    x: e.clientX - rect.left + this.gerenciador.drawingArea.scrollLeft,
-                    y: e.clientY - rect.top + this.gerenciador.drawingArea.scrollTop
-                };
-                
-                this.points.push(point);
-                this.createLassoElement();
-            }
-
-            // Iniciar desenho do laço (touch)
-            startLassoTouch(e) {
-                if (!this.gerenciador.modoLassoAtivo) return;
-                
-                e.preventDefault();
-                e.stopPropagation();
-                
-                this.isDrawing = true;
-                this.points = [];
-                
-                const rect = this.gerenciador.drawingArea.getBoundingClientRect();
-                const touch = e.touches[0];
-                const point = {
-                    x: touch.clientX - rect.left + this.gerenciador.drawingArea.scrollLeft,
-                    y: touch.clientY - rect.top + this.gerenciador.drawingArea.scrollTop
-                };
-                
-                this.points.push(point);
-                this.createLassoElement();
-            }
-
-            // Desenhar laço (mouse)
-            drawLasso(e) {
-                if (!this.isDrawing) return;
-                
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const rect = this.gerenciador.drawingArea.getBoundingClientRect();
-                const point = {
-                    x: e.clientX - rect.left + this.gerenciador.drawingArea.scrollLeft,
-                    y: e.clientY - rect.top + this.gerenciador.drawingArea.scrollTop
-                };
-                
-                this.points.push(point);
-                this.updateLassoElement();
-            }
-
-            // Desenhar laço (touch)
-            drawLassoTouch(e) {
-                if (!this.isDrawing) return;
-                
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const rect = this.gerenciador.drawingArea.getBoundingClientRect();
-                const touch = e.touches[0];
-                const point = {
-                    x: touch.clientX - rect.left + this.gerenciador.drawingArea.scrollLeft,
-                    y: touch.clientY - rect.top + this.gerenciador.drawingArea.scrollTop
-                };
-                
-                this.points.push(point);
-                this.updateLassoElement();
-            }
-
-            // Finalizar desenho do laço
-            finishLasso(e) {
-                if (!this.isDrawing) return;
-                
-                e.preventDefault();
-                e.stopPropagation();
-                
-                this.isDrawing = false;
-                
-                // Fechar o polígono conectando último ponto com o primeiro
-                if (this.points.length > 2) {
-                    this.points.push(this.points[0]);
-                    this.updateLassoElement();
-                    
-                    // Selecionar elementos dentro do laço
-                    this.selectElementsInLasso();
-                } else {
-                    this.clearLasso();
-                }
-            }
-
-            // Criar elemento SVG para o laço
-            createLassoElement() {
-                this.lassoElement = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                this.lassoElement.style.position = 'absolute';
-                this.lassoElement.style.top = '0';
-                this.lassoElement.style.left = '0';
-                this.lassoElement.style.width = '100%';
-                this.lassoElement.style.height = '100%';
-                this.lassoElement.style.pointerEvents = 'none';
-                this.lassoElement.style.zIndex = '999';
-                
-                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                path.setAttribute('fill', 'rgba(78, 115, 223, 0.2)');
-                path.setAttribute('stroke', '#4e73df');
-                path.setAttribute('stroke-width', '2');
-                path.setAttribute('stroke-dasharray', '5,5');
-                path.setAttribute('id', 'lasso-path');
-                
-                this.lassoElement.appendChild(path);
-                this.gerenciador.drawingArea.appendChild(this.lassoElement);
-            }
-
-            // Atualizar elemento do laço
-            updateLassoElement() {
-                if (!this.lassoElement || this.points.length < 2) return;
-                
-                const path = this.lassoElement.querySelector('#lasso-path');
-                let d = `M ${this.points[0].x} ${this.points[0].y}`;
-                
-                for (let i = 1; i < this.points.length; i++) {
-                    d += ` L ${this.points[i].x} ${this.points[i].y}`;
-                }
-                
-                path.setAttribute('d', d);
-                
-                // 🔥 NOVO: Cor diferente para cada modo
-                const modeColors = {
-                    'center': '#e74a3b',    // Vermelho - mais restritivo
-                    'partial': '#4e73df',   // Azul - padrão
-                    'full': '#1cc88a'       // Verde - mais inclusivo
-                };
-                
-                path.setAttribute('stroke', modeColors[this.currentMode]);
-            }
-
-            // Limpar laço
-            clearLasso() {
-                if (this.lassoElement) {
-                    this.lassoElement.remove();
-                    this.lassoElement = null;
-                }
-                this.points = [];
-                this.isDrawing = false;
-            }
-
-            // 🔥 MELHORADO: Verificar se elemento está dentro do laço (com 3 modos)
-            isElementInLasso(elemento) {
-                const rect = elemento.getBoundingClientRect();
-                const drawingRect = this.gerenciador.drawingArea.getBoundingClientRect();
-                
-                switch(this.currentMode) {
-                    case this.selectionModes.CENTER:
-                        // Apenas centro do elemento
-                        return this.isCenterInLasso(elemento, rect, drawingRect);
-                        
-                    case this.selectionModes.PARTIAL:
-                        // Qualquer parte do elemento (RECOMENDADO)
-                        return this.isPartialInLasso(elemento, rect, drawingRect);
-                        
-                    case this.selectionModes.FULL:
-                        // Elemento completamente dentro
-                        return this.isFullInLasso(elemento, rect, drawingRect);
-                        
-                    default:
-                        return this.isPartialInLasso(elemento, rect, drawingRect);
-                }
-            }
-
-            // 🔥 NOVO: Modo Centro
-            isCenterInLasso(elemento, rect, drawingRect) {
-                const centerX = rect.left - drawingRect.left + rect.width / 2;
-                const centerY = rect.top - drawingRect.top + rect.height / 2;
-                
-                return this.isPointInPolygon(centerX, centerY, this.points);
-            }
-
-            // 🔥 NOVO: Modo Parcial (RECOMENDADO)
-            isPartialInLasso(elemento, rect, drawingRect) {
-                // Verificar múltiplos pontos do elemento
-                const testPoints = [
-                    // Centro
-                    { x: rect.left - drawingRect.left + rect.width / 2, y: rect.top - drawingRect.top + rect.height / 2 },
-                    // Cantos
-                    { x: rect.left - drawingRect.left, y: rect.top - drawingRect.top },
-                    { x: rect.left - drawingRect.left + rect.width, y: rect.top - drawingRect.top },
-                    { x: rect.left - drawingRect.left, y: rect.top - drawingRect.top + rect.height },
-                    { x: rect.left - drawingRect.left + rect.width, y: rect.top - drawingRect.top + rect.height },
-                    // Pontos médios das bordas
-                    { x: rect.left - drawingRect.left + rect.width / 2, y: rect.top - drawingRect.top },
-                    { x: rect.left - drawingRect.left + rect.width, y: rect.top - drawingRect.top + rect.height / 2 },
-                    { x: rect.left - drawingRect.left + rect.width / 2, y: rect.top - drawingRect.top + rect.height },
-                    { x: rect.left - drawingRect.left, y: rect.top - drawingRect.top + rect.height / 2 }
-                ];
-                
-                // Se QUALQUER ponto estiver dentro do laço
-                return testPoints.some(point => this.isPointInPolygon(point.x, point.y, this.points));
-            }
-
-            // 🔥 NOVO: Modo Completo
-            isFullInLasso(elemento, rect, drawingRect) {
-                // Verificar todos os 4 cantos
-                const corners = [
-                    { x: rect.left - drawingRect.left, y: rect.top - drawingRect.top },
-                    { x: rect.left - drawingRect.left + rect.width, y: rect.top - drawingRect.top },
-                    { x: rect.left - drawingRect.left, y: rect.top - drawingRect.top + rect.height },
-                    { x: rect.left - drawingRect.left + rect.width, y: rect.top - drawingRect.top + rect.height }
-                ];
-                
-                // TODOS os cantos devem estar dentro do laço
-                return corners.every(corner => this.isPointInPolygon(corner.x, corner.y, this.points));
-            }
-
-            // Algoritmo ponto em polígono (ray casting)
-            isPointInPolygon(x, y, polygon) {
-                let inside = false;
-                for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-                    const xi = polygon[i].x, yi = polygon[i].y;
-                    const xj = polygon[j].x, yj = polygon[j].y;
-                    
-                    const intersect = ((yi > y) !== (yj > y)) &&
-                        (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
-                    if (intersect) inside = !inside;
-                }
-                return inside;
-            }
-
-            // 🔥 MELHORADO: Selecionar elementos dentro do laço
-            selectElementsInLasso() {
-                this.selectedElements = [];
-                
-                // Obter todos os elementos selecionáveis
-                const elementos = this.gerenciador.drawingArea.querySelectorAll(
-                    '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo'
-                );
-                
-                elementos.forEach(elemento => {
-                    if (this.isElementInLasso(elemento)) {
-                        this.selectedElements.push(elemento);
-                    }
-                });
-                
-                console.log(`🎯 ${this.selectedElements.length} elementos selecionados (Modo: ${this.currentMode})`);
-                
-                if (this.selectedElements.length > 0) {
-                    this.createTempGroup();
-                } else {
-                    this.clearLasso();
-                }
-            }
-
-            // Criar grupo temporário
-            createTempGroup() {
-                // Limpar laço
-                this.clearLasso();
-                
-                if (this.selectedElements.length === 0) return;
-                
-                // Calcular bounding box do grupo
-                const bbox = this.calculateGroupBoundingBox();
-                
-                // Criar container do grupo
-                this.tempGroup = document.createElement('div');
-                this.tempGroup.className = 'grupo-temporario';
-                this.tempGroup.style.position = 'absolute';
-                this.tempGroup.style.left = `${bbox.left}px`;
-                this.tempGroup.style.top = `${bbox.top}px`;
-                this.tempGroup.style.width = `${bbox.width}px`;
-                this.tempGroup.style.height = `${bbox.height}px`;
-                this.tempGroup.style.border = '2px dashed #4e73df';
-                this.tempGroup.style.backgroundColor = 'rgba(78, 115, 223, 0.1)';
-                this.tempGroup.style.zIndex = '998';
-                this.tempGroup.style.pointerEvents = 'none';
-                
-                // Armazenar referências dos elementos
-                this.tempGroup.selectedElements = this.selectedElements;
-                this.tempGroup.originalPositions = this.selectedElements.map(el => {
-                    const style = window.getComputedStyle(el);
-                    return {
-                        element: el,
-                        left: parseFloat(style.left),
-                        top: parseFloat(style.top),
-                        transform: el.style.transform,
-                        dataX: parseFloat(el.getAttribute('data-x')) || 0,
-                        dataY: parseFloat(el.getAttribute('data-y')) || 0
-                    };
-                });
-                
-                this.gerenciador.drawingArea.appendChild(this.tempGroup);
-                
-                // Configurar interatividade do grupo
-                this.configurarGrupoTemporario();
-                
-                console.log('✅ Grupo temporário criado');
-            }
-
-            // Calcular bounding box do grupo
-            calculateGroupBoundingBox() {
-                let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-                
-                this.selectedElements.forEach(elemento => {
-                    const rect = elemento.getBoundingClientRect();
-                    const drawingRect = this.gerenciador.drawingArea.getBoundingClientRect();
-                    
-                    const left = rect.left - drawingRect.left;
-                    const top = rect.top - drawingRect.top;
-                    const right = left + rect.width;
-                    const bottom = top + rect.height;
-                    
-                    minX = Math.min(minX, left);
-                    minY = Math.min(minY, top);
-                    maxX = Math.max(maxX, right);
-                    maxY = Math.max(maxY, bottom);
-                });
-                
-                return {
-                    left: minX,
-                    top: minY,
-                    width: maxX - minX,
-                    height: maxY - minY
-                };
-            }
-
-            // Configurar interatividade do grupo temporário
-            configurarGrupoTemporario() {
-                // Desselecionar elemento atual do gerenciador
-                this.gerenciador.desselecionarElemento();
-                
-                // Configurar o grupo como elemento selecionado
-                this.gerenciador.elementoSelecionado = this.tempGroup;
-                this.tempGroup.classList.add('elemento-selecionado');
-                
-                // Criar handles para o grupo
-                this.gerenciador.criarHandles(this.tempGroup);
-                
-                // Configurar interatividade específica para grupos
-                this.configurarInteratividadeGrupo();
-            }
-
-            // Configurar interatividade específica para grupos
-            configurarInteratividadeGrupo() {
-                const grupo = this.tempGroup;
-                
-                // Configurar drag para mover todo o grupo
-                interact(grupo).draggable({
-                    listeners: {
-                        start: () => {
-                            grupo.style.zIndex = '1000';
-                            this.selectedElements.forEach(el => {
-                                el.style.zIndex = '999';
-                            });
-                        },
-                        move: (event) => {
-                            const dx = event.dx;
-                            const dy = event.dy;
-                            
-                            // Mover grupo visual
-                            let x = (parseFloat(grupo.getAttribute('data-x')) || 0) + dx;
-                            let y = (parseFloat(grupo.getAttribute('data-y')) || 0) + dy;
-                            
-                            grupo.style.transform = `translate(${x}px, ${y}px)`;
-                            grupo.setAttribute('data-x', x);
-                            grupo.setAttribute('data-y', y);
-                            
-                            // Mover todos os elementos do grupo
-                            this.selectedElements.forEach(el => {
-                                let elX = (parseFloat(el.getAttribute('data-x')) || 0) + dx;
-                                let elY = (parseFloat(el.getAttribute('data-y')) || 0) + dy;
-                                const rotate = el.getAttribute('data-rotate') || 0;
-                                
-                                el.style.transform = `translate(${elX}px, ${elY}px) rotate(${rotate}deg)`;
-                                el.setAttribute('data-x', elX);
-                                el.setAttribute('data-y', elY);
-                            });
-                            
-                            this.gerenciador.atualizarHandles();
-                        },
-                        end: () => {
-                            grupo.style.zIndex = '998';
-                            this.selectedElements.forEach(el => {
-                                el.style.zIndex = '';
-                            });
-                            this.gerenciador.salvarEstadoHistorico('Mover Grupo');
-                        }
-                    }
-                });
-            }
-
-            // Liberar grupo (quando desselecionado)
-            releaseGroup() {
-                if (!this.tempGroup) return;
-                
-                console.log('🔓 Liberando grupo temporário...');
-                
-                // Remover handles
-                this.gerenciador.removerHandles();
-                
-                // Remover grupo visual
-                this.tempGroup.remove();
-                this.tempGroup = null;
-                
-                // Limpar seleção
-                this.selectedElements = [];
-                
-                console.log('✅ Grupo liberado');
-            }
-        }
-
-        // =============================================
         // CLASSE PRINCIPAL - GERENCIADOR DE DESENHO
         // =============================================
         class GerenciadorDesenho {
@@ -1475,7 +880,6 @@
                 this.gruposPecas = this.carregarDadosPecas();
                 this.modoInsercaoAtivo = null;
                 this.modoSelecaoAtivo = false; // NOVO: Modo de seleção
-                this.modoLassoAtivo = false;   // 🔥 NOVO: Modo laço
                 this.pecasCriadas = false;
                 this.elementoSelecionado = null;
                 this.handles = [];
@@ -1501,9 +905,6 @@
                 this.backdropLegendaAtual = null;
                 this.legendaX = 0;
                 this.legendaY = 0;
-                
-                // 🔥 NOVO: Inicializar sistema de seleção por laço
-                this.lassoSelection = new LassoSelection(this);
                 
                 this.inicializar();
             }
@@ -1929,49 +1330,13 @@ configurarEventosAreaDesenho() {
     });
 }
 
-// 🔥 NOVO: Método para alternar entre os modos de seleção
+// Método para alternar modo de seleção (toggle)
 toggleModoSelecao() {
-    if (this.modoLassoAtivo) {
-        this.desativarModoLasso();
-    } else if (this.modoSelecaoAtivo) {
+    if (this.modoSelecaoAtivo) {
         this.desativarModoSelecao();
-        this.ativarModoLasso();
     } else {
         this.ativarModoSelecao();
     }
-}
-
-// 🔥 NOVO: Ativar modo laço
-ativarModoLasso() {
-    this.modoLassoAtivo = true;
-    this.desselecionarElemento();
-    this.drawingArea.style.cursor = 'crosshair';
-    
-    // Destacar o botão de seleção
-    const btnSelecionar = document.getElementById('btnSelecionar');
-    btnSelecionar.classList.add('btn-selecao-ativo');
-    
-    // Ativar sistema de laço
-    this.lassoSelection.activateLassoMode();
-    
-    console.log('🎯 Modo laço ativado');
-}
-
-// 🔥 NOVO: Desativar modo laço
-desativarModoLasso() {
-    this.modoLassoAtivo = false;
-    this.desselecionarElemento();
-    this.drawingArea.style.cursor = 'default';
-    
-    // Remover destaque do botão de seleção
-    const btnSelecionar = document.getElementById('btnSelecionar');
-    btnSelecionar.classList.remove('btn-selecao-ativo');
-    
-    // Desativar sistema de laço
-    this.lassoSelection.deactivateLassoMode();
-    this.lassoSelection.releaseGroup();
-    
-    console.log('🎯 Modo laço desativado');
 }
 
             // MODIFICADO: Ativar modo de seleção - desabilita linhas azuis
@@ -2070,15 +1435,13 @@ desativarModoLasso() {
     this.removerHandles();
     
     if (this.elementoSelecionado) {
-        // Se for um grupo temporário, liberá-lo
-        if (this.elementoSelecionado.classList.contains('grupo-temporario')) {
-            this.lassoSelection.releaseGroup();
-        }
-        
+        // Remover interatividade do elemento
         this.removerInteratividade(this.elementoSelecionado);
+        
         this.elementoSelecionado.classList.remove('elemento-selecionado');
         
-        if (!this.modoSelecaoAtivo && !this.modoLassoAtivo) {
+        // Reabilitar linhas quando desselecionar (se não estiver no modo seleção)
+        if (!this.modoSelecaoAtivo) {
             this.reabilitarLinhasPecas();
         }
         
@@ -2135,6 +1498,22 @@ reabilitarLinhasPecas() {
                 
                 document.getElementById('btnDuplicar').disabled = !temElementoSelecionado;
                 document.getElementById('btnExcluir').disabled = !temElementoSelecionado;
+            }
+
+            // NOVO MÉTODO: Desabilitar linhas das peças quando handle está ativo
+            desabilitarLinhasPecas() {
+                const linhas = this.drawingArea.querySelectorAll('.linha-peca');
+                linhas.forEach(linha => {
+                    linha.style.pointerEvents = 'none';
+                });
+            }
+
+            // NOVO MÉTODO: Reabilitar linhas das peças
+            reabilitarLinhasPecas() {
+                const linhas = this.drawingArea.querySelectorAll('.linha-peca');
+                linhas.forEach(linha => {
+                    linha.style.pointerEvents = 'auto';
+                });
             }
 
             criarHandles(elemento) {
@@ -2398,6 +1777,15 @@ atualizarEstadoVisualBotoes(botaoAtivo = null, tipoAtivo = null) {
                 });
             }
 
+            removerHandles() {
+                this.handles.forEach(handle => {
+                    if (handle.parentNode) {
+                        handle.parentNode.removeChild(handle);
+                    }
+                });
+                this.handles = [];
+            }
+
             atualizarHandles() {
                 if (!this.elementoSelecionado) return;
 
@@ -2465,28 +1853,25 @@ atualizarEstadoVisualBotoes(botaoAtivo = null, tipoAtivo = null) {
             case 'top':
                 left = centerX;
                 top = 0;
-                // Aplica rotação para manter símbolo no topo independente da rotação da peça
-                simbolo.style.transform = `translate(-50%, -50%) rotate(${rotacaoSimbolo}deg)`;
                 break;
             case 'bottom':
                 left = centerX;
                 top = pecaHeight;
-                simbolo.style.transform = `translate(-50%, -50%) rotate(${rotacaoSimbolo}deg)`;
                 break;
             case 'left':
                 left = 0;
                 top = centerY;
-                simbolo.style.transform = `translate(-50%, -50%) rotate(${rotacaoSimbolo}deg)`;
                 break;
             case 'right':
                 left = pecaWidth;
                 top = centerY;
-                simbolo.style.transform = `translate(-50%, -50%) rotate(${rotacaoSimbolo}deg)`;
                 break;
         }
         
         simbolo.style.left = `${left}px`;
         simbolo.style.top = `${top}px`;
+        // ✅ CORREÇÃO: Mantém a transformação do símbolo
+        simbolo.style.transform = `translate(-50%, -50%) rotate(${rotacaoSimbolo}deg)`;
         simbolo.style.transformOrigin = 'center center';
     });
 }
