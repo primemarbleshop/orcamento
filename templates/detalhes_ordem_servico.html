@@ -905,7 +905,9 @@
                 this.backdropLegendaAtual = null;
                 this.legendaX = 0;
                 this.legendaY = 0;
-                
+                this.ultimoSalvamentoHistorico = 0;
+                this.ultimaDescricaoHistorico = '';
+
                 this.inicializar();
             }
 
@@ -971,108 +973,169 @@
             // =============================================
             // SISTEMA DE HISTÓRICO DESFAZER/REFAZER
             // =============================================
+salvarEstadoHistorico(descricao) {
+    const agora = Date.now();
+    const tempoDesdeUltimoSalvamento = agora - (this.ultimoSalvamentoHistorico || 0);
+    
+    if (tempoDesdeUltimoSalvamento < 400 && this.ultimaDescricaoHistorico === descricao) {
+        console.log(`⏱️  Ação rápida ignorada: ${descricao}`);
+        return;
+    }
+    
+    if (this.indiceHistorico < this.historico.length - 1) {
+        this.historico = this.historico.slice(0, this.indiceHistorico + 1);
+    }
 
-            salvarEstadoHistorico(descricao) {
-                // Cortar o histórico se não estivermos no final
-                if (this.indiceHistorico < this.historico.length - 1) {
-                    this.historico = this.historico.slice(0, this.indiceHistorico + 1);
-                }
+    const snapshot = {
+        descricao: descricao,
+        timestamp: new Date(),
+        data: this.obterEstadoAtual()
+    };
 
-                const snapshot = {
-                    descricao: descricao,
-                    timestamp: new Date(),
-                    data: this.obterEstadoAtual()
-                };
+    this.historico.push(snapshot);
+    this.indiceHistorico++;
 
-                this.historico.push(snapshot);
-                this.indiceHistorico++;
+    if (this.historico.length > this.maximoHistorico) {
+        this.historico.shift();
+        this.indiceHistorico--;
+    }
 
-                if (this.historico.length > this.maximoHistorico) {
-                    this.historico.shift();
-                    this.indiceHistorico--;
-                }
+    this.ultimoSalvamentoHistorico = agora;
+    this.ultimaDescricaoHistorico = descricao;
+    
+    this.atualizarBotoesHistorico();
+    console.log(`💾 Histórico salvo: ${descricao} (${this.historico.length} estados, índice: ${this.indiceHistorico})`);
+}
 
-                this.atualizarBotoesHistorico();
-                console.log(`💾 Histórico salvo: ${descricao} (${this.historico.length} estados, índice: ${this.indiceHistorico})`);
-            }
+obterEstadoAtual() {
+    return {
+        drawingAreaHTML: this.drawingArea.innerHTML,
+        gruposPecas: JSON.parse(JSON.stringify(this.gruposPecas))
+    };
+}
 
-            obterEstadoAtual() {
-                return {
-                    drawingAreaHTML: this.drawingArea.innerHTML,
-                    gruposPecas: JSON.parse(JSON.stringify(this.gruposPecas))
-                };
-            }
-
-            restaurarEstadoHistorico(estado) {
-    // CORREÇÃO: Desselecionar elemento e remover handles antes de restaurar
-    this.desselecionarElemento();
+restaurarEstadoHistorico(estado) {
+    this.removerTodosOsHandles();
     
     this.drawingArea.innerHTML = estado.drawingAreaHTML;
     this.gruposPecas = JSON.parse(JSON.stringify(estado.gruposPecas));
     this.reconfigurarElementosAposHistorico();
 }
 
-            reconfigurarElementosAposHistorico() {
-                this.desselecionarElemento();
-                
-                const elementosInterativos = this.drawingArea.querySelectorAll(
-                    '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca'
-                );
-                
-                elementosInterativos.forEach(elemento => {
-                    // Remover classe selecionavel se existir
-                    elemento.classList.remove('selecionavel');
-                    
-                    if (elemento.classList.contains('simbolo-linha')) {
-                        this.configurarInteratividadeSimbolo(elemento);
-                    } else if (elemento.classList.contains('cuba')) {
-                        this.configurarInteratividadeCuba(elemento);
-                    } else if (elemento.classList.contains('texto-legenda')) {
-                        this.configurarInteratividadeTexto(elemento);
-                    }
-                });
+reconfigurarElementosAposHistorico() {
+    this.removerTodosOsHandles();
+    
+    const elementosInterativos = this.drawingArea.querySelectorAll(
+        '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca'
+    );
+    
+    elementosInterativos.forEach(elemento => {
+        elemento.classList.remove('selecionavel');
+        
+        if (elemento.classList.contains('simbolo-linha')) {
+            this.configurarInteratividadeSimbolo(elemento);
+        } else if (elemento.classList.contains('cuba')) {
+            this.configurarInteratividadeCuba(elemento);
+        } else if (elemento.classList.contains('texto-legenda')) {
+            this.configurarInteratividadeTexto(elemento);
+        }
+    });
 
-                // Reconfigurar eventos das linhas das peças
-                const linhas = this.drawingArea.querySelectorAll('.linha-peca');
-                linhas.forEach(linha => {
-                    linha.addEventListener('mouseenter', () => linha.style.backgroundColor = '#4e73df');
-                    linha.addEventListener('mouseleave', () => linha.style.backgroundColor = 'transparent');
-                    linha.addEventListener('click', (e) => this.manipularCliqueLinha(e, linha));
-                });
+    const linhas = this.drawingArea.querySelectorAll('.linha-peca');
+    linhas.forEach(linha => {
+        linha.addEventListener('mouseenter', () => linha.style.backgroundColor = '#4e73df');
+        linha.addEventListener('mouseleave', () => linha.style.backgroundColor = 'transparent');
+        linha.addEventListener('click', (e) => this.manipularCliqueLinha(e, linha));
+    });
 
-                // Eventos para elementos editáveis
-                const titulosEditaveis = this.drawingArea.querySelectorAll('.titulo-grupo');
-                titulosEditaveis.forEach(titulo => {
-                    titulo.addEventListener('blur', () => {
-                        this.salvarEstadoHistorico('Editar Título do Grupo');
-                    });
-                });
-
-                const textosEditaveis = this.drawingArea.querySelectorAll('.texto-legenda');
-                textosEditaveis.forEach(texto => {
-                    texto.addEventListener('blur', () => {
-                        this.salvarEstadoHistorico('Editar Texto: ' + texto.value.substring(0, 20));
-                    });
-                });
-
-                const legendasEditaveis = this.drawingArea.querySelectorAll('.legenda-simplificada');
-                legendasEditaveis.forEach(legenda => {
-                    const spanDescricao = legenda.querySelector('.legenda-descricao-inline');
-                    if (spanDescricao) {
-                        spanDescricao.addEventListener('blur', () => {
-                            this.salvarEstadoHistorico('Editar Legenda');
-                        });
-                    }
-                });
-                
-                // Atualizar estado dos botões
-                this.atualizarEstadoBotoes();
+    const titulosEditaveis = this.drawingArea.querySelectorAll('.titulo-grupo');
+    titulosEditaveis.forEach(titulo => {
+        let valorOriginal = titulo.textContent;
+        titulo.addEventListener('blur', () => {
+            if (titulo.textContent !== valorOriginal) {
+                this.salvarEstadoHistorico('Editar Título do Grupo');
+                valorOriginal = titulo.textContent;
             }
+        });
+    });
 
-            desfazer() {
+    const textosEditaveis = this.drawingArea.querySelectorAll('.texto-legenda');
+    textosEditaveis.forEach(texto => {
+        let valorOriginal = texto.value;
+        texto.addEventListener('blur', () => {
+            if (texto.value !== valorOriginal) {
+                if (texto.value.trim() === '') {
+                    texto.remove();
+                    this.salvarEstadoHistorico('Remover Texto Vazio');
+                } else {
+                    this.salvarEstadoHistorico('Editar Texto');
+                }
+                valorOriginal = texto.value;
+            }
+        });
+    });
+
+    const legendasEditaveis = this.drawingArea.querySelectorAll('.legenda-simplificada');
+    legendasEditaveis.forEach(legenda => {
+        const spanDescricao = legenda.querySelector('.legenda-descricao-inline');
+        if (spanDescricao) {
+            let valorOriginal = spanDescricao.textContent;
+            spanDescricao.addEventListener('blur', () => {
+                if (spanDescricao.textContent !== valorOriginal) {
+                    this.salvarEstadoHistorico('Editar Legenda');
+                    valorOriginal = spanDescricao.textContent;
+                }
+            });
+        }
+    });
+    
+    this.atualizarEstadoBotoes();
+}
+
+removerTodosOsHandles() {
+    this.handles.forEach(handle => {
+        if (handle && handle.parentNode) {
+            handle.parentNode.removeChild(handle);
+        }
+    });
+    this.handles = [];
+    
+    const todosHandles = document.querySelectorAll('.handle, .handle-rotacao');
+    todosHandles.forEach(handle => {
+        if (handle.parentNode) {
+            handle.parentNode.removeChild(handle);
+        }
+    });
+    
+    const elementosSelecionados = document.querySelectorAll('.elemento-selecionado');
+    elementosSelecionados.forEach(elemento => {
+        elemento.classList.remove('elemento-selecionado');
+    });
+    
+    this.elementoSelecionado = null;
+}
+
+desselecionarElemento() {
+    this.removerTodosOsHandles();
+    
+    if (this.elementoSelecionado) {
+        this.removerInteratividade(this.elementoSelecionado);
+        
+        if (!this.modoSelecaoAtivo) {
+            this.reabilitarLinhasPecas();
+        }
+        
+        this.elementoSelecionado = null;
+    }
+    
+    this.atualizarEstadoBotoes();
+    
+    this.ultimoElementoClicado = null;
+}
+
+desfazer() {
     if (this.indiceHistorico > 0) {
-        // CORREÇÃO: Desselecionar antes de desfazer
-        this.desselecionarElemento();
+        this.removerTodosOsHandles();
         
         this.indiceHistorico--;
         const estadoAnterior = this.historico[this.indiceHistorico];
@@ -1086,8 +1149,7 @@
 
 refazer() {
     if (this.indiceHistorico < this.historico.length - 1) {
-        // CORREÇÃO: Desselecionar antes de refazer
-        this.desselecionarElemento();
+        this.removerTodosOsHandles();
         
         this.indiceHistorico++;
         const estadoFuturo = this.historico[this.indiceHistorico];
@@ -1099,20 +1161,19 @@ refazer() {
     this.atualizarBotoesHistorico();
 }
 
-            atualizarBotoesHistorico() {
-                const btnDesfazer = document.getElementById('btnDesfazer');
-                const btnRefazer = document.getElementById('btnRefazer');
-                
-                if (btnDesfazer) {
-                    btnDesfazer.disabled = this.indiceHistorico <= 0;
-                    btnDesfazer.title = this.indiceHistorico <= 0 ? 'Nada para desfazer' : 'Desfazer (Ctrl+Z)';
-                }
-                if (btnRefazer) {
-                    btnRefazer.disabled = this.indiceHistorico >= this.historico.length - 1;
-                    btnRefazer.title = this.indiceHistorico >= this.historico.length - 1 ? 'Nada para refazer' : 'Refazer (Ctrl+Y)';
-                }
-            }
-
+atualizarBotoesHistorico() {
+    const btnDesfazer = document.getElementById('btnDesfazer');
+    const btnRefazer = document.getElementById('btnRefazer');
+    
+    if (btnDesfazer) {
+        btnDesfazer.disabled = this.indiceHistorico <= 0;
+        btnDesfazer.title = this.indiceHistorico <= 0 ? 'Nada para desfazer' : 'Desfazer (Ctrl+Z)';
+    }
+    if (btnRefazer) {
+        btnRefazer.disabled = this.indiceHistorico >= this.historico.length - 1;
+        btnRefazer.title = this.indiceHistorico >= this.historico.length - 1 ? 'Nada para refazer' : 'Refazer (Ctrl+Y)';
+    }
+}
             // =============================================
             // MÉTODO SALVAR DESENHO
             // =============================================
@@ -1875,74 +1936,66 @@ atualizarEstadoVisualBotoes(botaoAtivo = null, tipoAtivo = null) {
         simbolo.style.transformOrigin = 'center center';
     });
 }
-            // MODIFICADO: Duplicar elemento criando um novo objeto com todos os dados
-            duplicarElemento() {
-                const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
-                if (!elementoAlvo) return;
-                
-                // Criar novo elemento com todos os atributos e estilos
-                const clone = elementoAlvo.cloneNode(true);
-                
-                // MODIFICADO: Posicionar com offset maior para ficar visível
-                const offset = 30;
-                clone.style.left = `${parseFloat(elementoAlvo.style.left) + offset}px`;
-                clone.style.top = `${parseFloat(elementoAlvo.style.top) + offset}px`;
-                clone.classList.remove('elemento-selecionado');
-                
-                // Remover classe selecionavel se o modo de seleção não estiver ativo
-                if (!this.modoSelecaoAtivo) {
-                    clone.classList.remove('selecionavel');
-                }
-                
-                // MODIFICADO: Gerar novo ID único para evitar conflitos
-                if (clone.id) {
-                    clone.id = clone.id + '-copy-' + Date.now();
-                }
-                
-                this.drawingArea.appendChild(clone);
-                
-                // MODIFICADO: Reconfigurar completamente a interatividade
-                this.configurarInteratividade(clone);
-                
-                if (clone.classList.contains('simbolo-linha')) {
-                    this.configurarInteratividadeSimbolo(clone);
-                } else if (clone.classList.contains('cuba')) {
-                    this.configurarInteratividadeCuba(clone);
-                } else if (clone.classList.contains('texto-legenda')) {
-                    this.configurarInteratividadeTexto(clone);
-                }
-                
-                this.salvarEstadoHistorico('Duplicar Elemento: ' + (elementoAlvo.className || 'Elemento'));
-                
-                // Selecionar o elemento duplicado
-                this.selecionarElemento(clone, null);
-            }
-
-            excluirElemento() {
-                const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
-                if (!elementoAlvo) return;
-                
-                this.salvarEstadoHistorico('Excluir Elemento');
-                
-                elementoAlvo.remove();
-                this.desselecionarElemento();
-            }
-
-            // =============================================
-            // MÉTODOS AUXILIARES
-            // =============================================
-
-            obterPosicaoComScroll(elemento) {
-                const rect = elemento.getBoundingClientRect();
-                const drawingAreaRect = this.drawingArea.getBoundingClientRect();
-                
-                return {
-                    left: rect.left - drawingAreaRect.left + this.drawingArea.scrollLeft,
-                    top: rect.top - drawingAreaRect.top + this.drawingArea.scrollTop,
-                    width: rect.width,
-                    height: rect.height
-                };
-            }
+           // MODIFICADO: Duplicar elemento criando um novo objeto com todos os dados
+duplicarElemento() {
+    const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
+    if (!elementoAlvo) return;
+    
+    // Criar novo elemento com todos os atributos e estilos
+    const clone = elementoAlvo.cloneNode(true);
+    
+    // MODIFICADO: Posicionar com offset maior para ficar visível
+    const offset = 30;
+    clone.style.left = `${parseFloat(elementoAlvo.style.left) + offset}px`;
+    clone.style.top = `${parseFloat(elementoAlvo.style.top) + offset}px`;
+    clone.classList.remove('elemento-selecionado');
+    
+    // Remover classe selecionavel se o modo de seleção não estiver ativo
+    if (!this.modoSelecaoAtivo) {
+        clone.classList.remove('selecionavel');
+    }
+    
+    // MODIFICADO: Gerar novo ID único para evitar conflitos
+    if (clone.id) {
+        clone.id = clone.id + '-copy-' + Date.now();
+    }
+    
+    // 🔥 CORREÇÃO: Remover as linhas antigas do clone para recriá-las
+    const linhasAntigas = clone.querySelectorAll('.linha-peca');
+    linhasAntigas.forEach(linha => linha.remove());
+    
+    this.drawingArea.appendChild(clone);
+    
+    // 🔥 CORREÇÃO: Recriar as linhas da peça com os event listeners
+    if (clone.classList.contains('peca')) {
+        const pecaId = clone.getAttribute('data-peca-id') || 'copy-' + Date.now();
+        const width = parseFloat(clone.style.width);
+        const height = parseFloat(clone.style.height);
+        
+        // Atualizar ID da peça se necessário
+        clone.setAttribute('data-peca-id', pecaId);
+        clone.id = `peca-${pecaId}`;
+        
+        // Recriar as linhas
+        this.criarLinhasPeca(clone, pecaId, width, height);
+    }
+    
+    // MODIFICADO: Reconfigurar completamente a interatividade
+    this.configurarInteratividade(clone);
+    
+    if (clone.classList.contains('simbolo-linha')) {
+        this.configurarInteratividadeSimbolo(clone);
+    } else if (clone.classList.contains('cuba')) {
+        this.configurarInteratividadeCuba(clone);
+    } else if (clone.classList.contains('texto-legenda')) {
+        this.configurarInteratividadeTexto(clone);
+    }
+    
+    this.salvarEstadoHistorico('Duplicar Elemento: ' + (elementoAlvo.className || 'Elemento'));
+    
+    // Selecionar o elemento duplicado
+    this.selecionarElemento(clone, null);
+}
 
             // =============================================
             // MÉTODOS DE CRIAÇÃO DE ELEMENTOS
@@ -2352,35 +2405,43 @@ atualizarEstadoVisualBotoes(botaoAtivo = null, tipoAtivo = null) {
             }
 
             criarLinhasPeca(pecaElement, pecaId, width, height) {
-                const lados = [
-                    { tipo: 'top', estilo: { top: '0px', left: '0px', width: width + 'px', height: '8px', transform: 'translateY(-4px)' }, rotacao: 0 },
-                    { tipo: 'bottom', estilo: { top: height + 'px', left: '0px', width: width + 'px', height: '8px', transform: 'translateY(-4px)' }, rotacao: 0 },
-                    { tipo: 'left', estilo: { top: '0px', left: '0px', width: '8px', height: height + 'px', transform: 'translateX(-4px)' }, rotacao: 90 },
-                    { tipo: 'right', estilo: { top: '0px', left: width + 'px', width: '8px', height: height + 'px', transform: 'translateX(-4px)' }, rotacao: 90 }
-                ];
+    const lados = [
+        { tipo: 'top', estilo: { top: '0px', left: '0px', width: width + 'px', height: '8px', transform: 'translateY(-4px)' }, rotacao: 0 },
+        { tipo: 'bottom', estilo: { top: height + 'px', left: '0px', width: width + 'px', height: '8px', transform: 'translateY(-4px)' }, rotacao: 0 },
+        { tipo: 'left', estilo: { top: '0px', left: '0px', width: '8px', height: height + 'px', transform: 'translateX(-4px)' }, rotacao: 90 },
+        { tipo: 'right', estilo: { top: '0px', left: width + 'px', width: '8px', height: height + 'px', transform: 'translateX(-4px)' }, rotacao: 90 }
+    ];
 
-                lados.forEach(lado => {
-                    const linhaElement = document.createElement('div');
-                    linhaElement.className = `linha-peca linha-${lado.tipo}`;
-                    linhaElement.setAttribute('data-peca-id', pecaId);
-                    linhaElement.setAttribute('data-lado', lado.tipo);
-                    linhaElement.setAttribute('data-rotacao', lado.rotacao);
-                    
-                    Object.assign(linhaElement.style, {
-                        position: 'absolute',
-                        backgroundColor: 'transparent',
-                        cursor: 'pointer',
-                        zIndex: '6',
-                        transition: 'background-color 0.2s ease'
-                    }, lado.estilo);
+    lados.forEach(lado => {
+        const linhaElement = document.createElement('div');
+        linhaElement.className = `linha-peca linha-${lado.tipo}`;
+        linhaElement.setAttribute('data-peca-id', pecaId);
+        linhaElement.setAttribute('data-lado', lado.tipo);
+        linhaElement.setAttribute('data-rotacao', lado.rotacao);
+        
+        Object.assign(linhaElement.style, {
+            position: 'absolute',
+            backgroundColor: 'transparent',
+            cursor: 'pointer',
+            zIndex: '6',
+            transition: 'background-color 0.2s ease'
+        }, lado.estilo);
 
-                    linhaElement.addEventListener('mouseenter', () => linhaElement.style.backgroundColor = '#4e73df');
-                    linhaElement.addEventListener('mouseleave', () => linhaElement.style.backgroundColor = 'transparent');
-                    linhaElement.addEventListener('click', (e) => this.manipularCliqueLinha(e, linhaElement));
+        // 🔥 CORREÇÃO: Garantir que os event listeners sejam sempre configurados
+        linhaElement.addEventListener('mouseenter', () => linhaElement.style.backgroundColor = '#4e73df');
+        linhaElement.addEventListener('mouseleave', () => linhaElement.style.backgroundColor = 'transparent');
+        linhaElement.addEventListener('click', (e) => this.manipularCliqueLinha(e, linhaElement));
 
-                    pecaElement.appendChild(linhaElement);
-                });
-            }
+        // 🔥 CORREÇÃO ADICIONAL: Suporte para touch events no mobile
+        linhaElement.addEventListener('touchstart', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.manipularCliqueLinha(e, linhaElement);
+        });
+
+        pecaElement.appendChild(linhaElement);
+    });
+}
 
             criarSimboloLinha(linhaElement, simboloData, simboloExistente = null) {
     const simboloElement = document.createElement('div');
@@ -2618,17 +2679,23 @@ atualizarEstadoVisualBotoes(botaoAtivo = null, tipoAtivo = null) {
                 return Math.min(escalaCalculada, 1.8); // AUMENTADO limite máximo
             }
 
-            manipularCliqueLinha(e, linhaElement, simboloExistente = null) {
-                e.stopPropagation();
-                
-                const simboloAtual = this.drawingArea.querySelector(`.simbolo-linha[data-peca-id="${linhaElement.getAttribute('data-peca-id')}"][data-lado="${linhaElement.getAttribute('data-lado')}"]`);
-                
-                if (simboloAtual) {
-                    this.mostrarSeletorSimbolos(e, linhaElement, simboloAtual);
-                } else {
-                    this.mostrarSeletorSimbolos(e, linhaElement);
-                }
-            }
+           manipularCliqueLinha(e, linhaElement, simboloExistente = null) {
+    e.stopPropagation();
+    
+    // 🔥 CORREÇÃO: Verificar se o modo de seleção está ativo
+    if (this.modoSelecaoAtivo) {
+        console.log('⚠️ Modo seleção ativo - linhas desabilitadas');
+        return; // Não permitir clicar em linhas quando modo seleção está ativo
+    }
+    
+    const simboloAtual = this.drawingArea.querySelector(`.simbolo-linha[data-peca-id="${linhaElement.getAttribute('data-peca-id')}"][data-lado="${linhaElement.getAttribute('data-lado')}"]`);
+    
+    if (simboloAtual) {
+        this.mostrarSeletorSimbolos(e, linhaElement, simboloAtual);
+    } else {
+        this.mostrarSeletorSimbolos(e, linhaElement);
+    }
+}
 
             mostrarSeletorSimbolos(event, linhaElement, simboloExistente = null) {
                 const simboloAtual = simboloExistente ? simboloExistente.textContent : '//';
