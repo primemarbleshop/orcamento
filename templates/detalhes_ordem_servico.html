@@ -3550,29 +3550,28 @@ atualizarPosicaoSimbolos(elemento) {
                 console.log(`🔧 Modo inserção ativado: ${tipo}`);
             }
 
-           manipularCliqueInsercao(e) {
+            manipularCliqueInsercao(e) {
     if (!this.modoInsercaoAtivo) return;
     
-    const drawingRect = this.drawingArea.getBoundingClientRect();
-    const x = e.clientX - drawingRect.left;
-    const y = e.clientY - drawingRect.top;
+    // 🔥 CORREÇÃO: Usar coordenadas relativas à área de desenho considerando scroll
+    const rect = this.drawingArea.getBoundingClientRect();
     
-    console.log(`🎯 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y}`);
+    // Calcular coordenadas considerando scroll da área de desenho
+    const x = e.clientX - rect.left + this.drawingArea.scrollLeft;
+    const y = e.clientY - rect.top + this.drawingArea.scrollTop;
+    
+    console.log(`🔧 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y}`);
+    console.log(`📐 Detalhes: clientX:${e.clientX}, clientY:${e.clientY}, rect.left:${rect.left}, rect.top:${rect.top}, scrollLeft:${this.drawingArea.scrollLeft}, scrollTop:${this.drawingArea.scrollTop}`);
 
-    // 🔥 SOLUÇÃO: Sempre inserir DIRETO na área de desenho, ignorando grupos
     switch (this.modoInsercaoAtivo) {
         case 'texto':
-            const textoElement = this.criarTexto(x, y, '');
-            // 🔥 FORÇAR inserção direta
-            this.drawingArea.appendChild(textoElement);
+            this.criarTexto(x, y, '');
             break;
         case 'cuba':
             this.mostrarSeletorCuba(x, y);
             break;
         case 'legenda':
-            const legendaElement = this.criarLegendaSimplificada(x, y);
-            // 🔥 FORÇAR inserção direta
-            this.drawingArea.appendChild(legendaElement);
+            this.mostrarSeletorLegenda(x, y);
             break;
     }
     
