@@ -2506,6 +2506,86 @@
             return legendaElement;
         }
 
+configurarInteratividadeLegenda(elemento) {
+    // 🔥 Captura e guarda a rotação inicial (se houver)
+    const transformInicial = window.getComputedStyle(elemento).transform;
+
+    let rotacaoInicial = 0;
+    const match = elemento.style.transform.match(/rotate\(([-0-9.]+)deg\)/);
+    if (match) {
+        rotacaoInicial = parseFloat(match[1]);
+    } else {
+        const matrix = transformInicial.match(/^matrix\(([^)]+)\)$/);
+        if (matrix) {
+            const valores = matrix[1].split(',').map(parseFloat);
+            const a = valores[0], b = valores[1];
+            const angulo = Math.round(Math.atan2(b, a) * (180 / Math.PI));
+            rotacaoInicial = angulo;
+        }
+    }
+
+    elemento.setAttribute('data-rotacao', rotacaoInicial);
+    elemento.setAttribute('data-x', '0');
+    elemento.setAttribute('data-y', '0');
+
+    // === CONFIGURAÇÃO PRINCIPAL COM INTERACT.JS ===
+    interact(elemento).draggable({
+        allowFrom: '.legenda-simplificada',
+        ignoreFrom: 'input, textarea, button, select, .legenda-descricao-inline',
+        modifiers: [
+            interact.modifiers.restrictRect({
+                restriction: 'parent',
+                endOnly: true
+            })
+        ],
+        // ⚠️ Removido preventDefault: 'always' (impedia toque no celular)
+
+        listeners: {
+            start: (event) => {
+                if (event.type.includes('touch')) event.preventDefault();
+
+                elemento.style.zIndex = '1000';
+                const rotacao = parseFloat(elemento.getAttribute('data-rotacao')) || 0;
+                elemento.style.transform = `rotate(${rotacao}deg)`;
+
+                console.log('🌀 Iniciando movimento da legenda com rotação fixa:', rotacao);
+            },
+
+            move: (event) => {
+                if (event.type.includes('touch')) event.preventDefault();
+
+                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                const rotacao = parseFloat(elemento.getAttribute('data-rotacao')) || 0;
+
+                // ✅ Mantém a rotação fixa enquanto move
+                elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotacao}deg)`;
+                elemento.setAttribute('data-x', x);
+                elemento.setAttribute('data-y', y);
+            },
+
+            end: (event) => {
+                if (event.type.includes('touch')) event.preventDefault();
+                elemento.style.zIndex = '';
+                this.salvarEstadoHistorico('Mover Legenda');
+                console.log('✅ Movimento da legenda finalizado');
+            }
+        }
+    });
+
+    // === SUPORTE MOBILE ===
+    // 🔒 Impede que o toque na legenda role a tela durante o arrasto
+    elemento.addEventListener('touchstart', (e) => {
+        e.stopPropagation();
+    }, { passive: true });
+
+    elemento.addEventListener('touchmove', (e) => {
+        if (e.cancelable) e.preventDefault();
+    }, { passive: false });
+}
+
+
+
        configurarInteratividadeLegenda(elemento) {
     // 🔥 Captura e guarda a rotação inicial (de estilo inline ou data-rotacao)
     const transformInicial = window.getComputedStyle(elemento).transform;
