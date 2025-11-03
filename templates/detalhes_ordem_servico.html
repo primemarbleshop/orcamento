@@ -3559,50 +3559,39 @@ atualizarPosicaoSimbolos(elemento) {
     
     console.log(`🎯 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y}`);
 
-    switch(this.modoInsercaoAtivo) {
-        case 'texto':
-            // Criação direta do elemento de texto
-            const textoElement = document.createElement('textarea');
-            textoElement.className = 'texto-legenda';
-            textoElement.style.position = 'absolute';
-            textoElement.style.left = x + 'px';
-            textoElement.style.top = y + 'px';
-            textoElement.style.width = '120px';
-            textoElement.style.minWidth = '120px';
-            textoElement.style.zIndex = '1000';
-            textoElement.placeholder = "Digite seu texto";
-            
-            this.drawingArea.appendChild(textoElement);
-            textoElement.focus();
-            
-            textoElement.addEventListener('blur', () => {
-                if (textoElement.value.trim() === '') {
-                    textoElement.remove();
-                }
-                this.salvarEstadoHistorico('Adicionar Texto');
-            });
-            break;
-            
-        case 'cuba':
-            // Abrir modal para seleção de cuba
-            this.mostrarSeletorCuba(x, y);
-            break;
-            
-        case 'legenda':
-            // Abrir modal para seleção de legenda
-            this.mostrarSeletorLegenda(x, y);
-            break;
-    }
-    
-    // Não desativar o modo imediatamente para cuba e legenda
-    // pois os modais precisam ficar abertos
     if (this.modoInsercaoAtivo === 'texto') {
-        this.modoInsercaoAtivo = null;
-        this.drawingArea.style.cursor = 'default';
+        // 🔥 CRIAÇÃO DIRETA E IMEDIATA do elemento de texto
+        const textoElement = document.createElement('textarea');
+        textoElement.className = 'texto-legenda';
+        textoElement.style.position = 'absolute';
+        textoElement.style.left = x + 'px';
+        textoElement.style.top = y + 'px';
+        textoElement.style.width = '120px';
+        textoElement.style.minWidth = '120px';
+        textoElement.style.zIndex = '1000';
+        textoElement.placeholder = "Digite seu texto";
+        
+        // Adicionar à área de desenho IMEDIATAMENTE
+        this.drawingArea.appendChild(textoElement);
+        
+        // Focar
+        textoElement.focus();
+        
+        // Configurar evento de salvamento
+        textoElement.addEventListener('blur', () => {
+            if (textoElement.value.trim() === '') {
+                textoElement.remove();
+            }
+            this.salvarEstadoHistorico('Adicionar Texto');
+        });
+        
+        console.log('✅ Caixa de texto criada com sucesso!');
     }
+    // ... outros casos (cuba, legenda) ...
+    
+    this.modoInsercaoAtivo = null;
+    this.drawingArea.style.cursor = 'default';
 }
-
-
 
             // MODIFICADO: Mostrar seletor de legenda com as mesmas configurações do modal de símbolos
             mostrarSeletorLegenda(x, y) {
@@ -3772,7 +3761,7 @@ atualizarPosicaoSimbolos(elemento) {
     modalCuba.innerHTML = `
         <div class="d-flex justify-content-between align-items-center mb-2">
             <h6 style="margin: 0; font-weight: bold;">Selecione o tipo de cuba</h6>
-           <button type="button" class="btn-close btn-sm" onclick="gerenciadorDesenho.fecharModalCuba()" style="font-size: 0.8rem;"></button>
+            <button type="button" class="btn-close btn-sm" onclick="gerenciadorDesenho.fecharModalCuba()" style="font-size: 0.8rem;"></button>
         </div>
         
         <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 10px 0;">
@@ -3787,10 +3776,11 @@ atualizarPosicaoSimbolos(elemento) {
     backdrop.style.display = 'block';
     document.body.appendChild(backdrop);
 
-    // No método mostrarSeletorCuba, atualizar para:
-backdrop.addEventListener('click', () => {
-    this.fecharModalCuba();
-});
+    // Fechar modal ao clicar fora
+    backdrop.addEventListener('click', () => {
+        modalCuba.remove();
+        backdrop.remove();
+    });
 
     // Definir função global para selecionar cuba
     window.selecionarCuba = (tipo) => {
@@ -3800,18 +3790,16 @@ backdrop.addEventListener('click', () => {
     };
 }
 
-// 🔥 ADICIONAR ESTE MÉTODO NOVO (se não existir)
+// 🔥 NOVO: Método para fechar modal de cuba
 fecharModalCuba() {
     const modal = document.querySelector('.modal-controles');
     const backdrop = document.querySelector('.modal-backdrop');
     
     if (modal) modal.remove();
     if (backdrop) backdrop.remove();
-    
-    // Restaurar estado normal
-    this.modoInsercaoAtivo = null;
-    this.drawingArea.style.cursor = 'default';
 }
+
+} // 🔥 CORREÇÃO: Fechamento da classe GerenciadorDesenho
 
 // =============================================
 // INICIALIZAÇÃO DA APLICAÇÃO
