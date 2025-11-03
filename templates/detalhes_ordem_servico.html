@@ -3527,16 +3527,12 @@ atualizarPosicaoSimbolos(elemento) {
     this.modoInsercaoAtivo = tipo;
     
     if (tipo === 'legenda') {
-        // ✅ CORREÇÃO: Para legenda, mostrar o seletor IMEDIATAMENTE
-        this.mostrarSeletorLegenda(100, 100); // Posição padrão
-        this.modoInsercaoAtivo = null; // Resetar modo
-        this.drawingArea.style.cursor = 'default';
+        this.drawingArea.style.cursor = 'crosshair';
+        console.log('🔧 Modo legenda ativado - clique na área para posicionar');
     } 
     else if (tipo === 'cuba') {
-        // ✅ CORREÇÃO: Para cuba, mostrar o seletor IMEDIATAMENTE  
-        this.mostrarSeletorCuba(100, 100); // Posição padrão
-        this.modoInsercaoAtivo = null; // Resetar modo
-        this.drawingArea.style.cursor = 'default';
+        this.drawingArea.style.cursor = 'crosshair';
+        console.log('🔧 Modo cuba ativado - clique na área para posicionar');
     }
     else {
         this.drawingArea.style.cursor = tipo === 'texto' ? 'text' : 'crosshair';
@@ -3545,7 +3541,7 @@ atualizarPosicaoSimbolos(elemento) {
     console.log(`🔧 Modo inserção ativado: ${tipo}`);
 }
 
-            manipularCliqueInsercao(e) {
+           manipularCliqueInsercao(e) {
     if (!this.modoInsercaoAtivo) return;
     
     const drawingRect = this.drawingArea.getBoundingClientRect();
@@ -3554,10 +3550,9 @@ atualizarPosicaoSimbolos(elemento) {
     
     console.log(`🎯 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y}`);
 
-    // ✅ CORREÇÃO: Adicionados todos os casos com switch
     switch(this.modoInsercaoAtivo) {
         case 'texto':
-            // 🔥 CRIAÇÃO DIRETA E IMEDIATA do elemento de texto
+            // CRIAÇÃO DIRETA do elemento de texto
             const textoElement = document.createElement('textarea');
             textoElement.className = 'texto-legenda';
             textoElement.style.position = 'absolute';
@@ -3568,13 +3563,9 @@ atualizarPosicaoSimbolos(elemento) {
             textoElement.style.zIndex = '1000';
             textoElement.placeholder = "Digite seu texto";
             
-            // Adicionar à área de desenho IMEDIATAMENTE
             this.drawingArea.appendChild(textoElement);
-            
-            // Focar
             textoElement.focus();
             
-            // Configurar evento de salvamento
             textoElement.addEventListener('blur', () => {
                 if (textoElement.value.trim() === '') {
                     textoElement.remove();
@@ -3601,6 +3592,7 @@ atualizarPosicaoSimbolos(elemento) {
             console.warn('⚠️ Modo de inserção desconhecido:', this.modoInsercaoAtivo);
     }
     
+    // ✅ CORREÇÃO: Resetar APÓS processar o clique
     this.modoInsercaoAtivo = null;
     this.drawingArea.style.cursor = 'default';
 }
@@ -3718,9 +3710,9 @@ atualizarPosicaoSimbolos(elemento) {
                 document.body.style.overflow = '';
             }
 
-           mostrarSeletorCuba(x, y) {
+          mostrarSeletorCuba(x, y) {
     const botoesCuba = CONFIG.TIPOS_CUBA.map(cuba => 
-        `<button type="button" class="btn btn-outline-primary m-1" onclick="window.selecionarCuba('${cuba.tipo}')" style="min-width: 100px; padding: 8px 4px;">
+        `<button type="button" class="btn btn-outline-primary m-1" onclick="gerenciadorDesenho.selecionarCuba('${cuba.tipo}', ${x}, ${y})" style="min-width: 100px; padding: 8px 4px;">
             ${cuba.nome}
         </button>`
     ).join('');
@@ -3793,16 +3785,14 @@ atualizarPosicaoSimbolos(elemento) {
         modalCuba.remove();
         backdrop.remove();
     });
-
-    // Definir função global para selecionar cuba
-    window.selecionarCuba = (tipo) => {
-        this.criarCuba(x, y, tipo);
-        modalCuba.remove();
-        backdrop.remove();
-    };
 }
 
-// 🔥 NOVO: Método para fechar modal de cuba
+// ✅ ADICIONAR ESTE MÉTODO À CLASSE:
+selecionarCuba(tipo, x, y) {
+    this.criarCuba(x, y, tipo);
+    this.fecharModalCuba();
+}
+
 fecharModalCuba() {
     const modal = document.querySelector('.modal-controles');
     const backdrop = document.querySelector('.modal-backdrop');
