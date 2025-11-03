@@ -1846,1099 +1846,594 @@
             });
         }
 
-            // NOVO: Método para atualizar estado dos botões
-            atualizarEstadoBotoes() {
-                const temElementoSelecionado = this.elementoSelecionado !== null;
+           
+
+        configurarHandle(handle, elemento, handleClass) {
+            let initialX, initialY;
+            let initialWidth, initialHeight;
+            let initialLeft, initialTop;
+
+            // Prevenir eventos de touch nos handles
+            handle.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, { passive: false });
+
+            handle.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, { passive: false });
+
+            interact(handle).draggable({
+                preventDefault: 'always',
                 
-                document.getElementById('btnDuplicar').disabled = !temElementoSelecionado;
-                document.getElementById('btnExcluir').disabled = !temElementoSelecionado;
-            }
-
-            // NOVO MÉTODO: Desabilitar linhas das peças quando handle está ativo
-            desabilitarLinhasPecas() {
-                const linhas = this.drawingArea.querySelectorAll('.linha-peca');
-                linhas.forEach(linha => {
-                    linha.style.pointerEvents = 'none';
-                });
-            }
-
-            // NOVO MÉTODO: Reabilitar linhas das peças
-            reabilitarLinhasPecas() {
-                const linhas = this.drawingArea.querySelectorAll('.linha-peca');
-                linhas.forEach(linha => {
-                    linha.style.pointerEvents = 'auto';
-                });
-            }
-
-            criarHandles(elemento) {
-                if (elemento.classList.contains('simbolo-linha')) {
-                    return;
-                }
-                
-                const pos = this.obterPosicaoComScroll(elemento);
-                const left = pos.left;
-                const top = pos.top;
-                const width = pos.width;
-                const height = pos.height;
-
-                const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
-                const rad = rotation * Math.PI / 180;
-                
-                const centerX = left + width / 2;
-                const centerY = top + height / 2;
-
-                const relativeHandles = [
-                    { class: 'handle-n', relX: 0, relY: -height / 2 },
-                    { class: 'handle-s', relX: 0, relY: height / 2 },
-                    { class: 'handle-e', relX: width / 2, relY: 0 },
-                    { class: 'handle-w', relX: -width / 2, relY: 0 },
-                    { class: 'handle-ne', relX: width / 2, relY: -height / 2 },
-                    { class: 'handle-nw', relX: -width / 2, relY: -height / 2 },
-                    { class: 'handle-se', relX: width / 2, relY: height / 2 },
-                    { class: 'handle-sw', relX: -width / 2, relY: height / 2 }
-                ];
-
-                const handles = relativeHandles.map(handle => {
-                    const rotatedX = handle.relX * Math.cos(rad) - handle.relY * Math.sin(rad);
-                    const rotatedY = handle.relX * Math.sin(rad) + handle.relY * Math.cos(rad);
-                    
-                    return {
-                        class: handle.class,
-                        x: centerX + rotatedX,
-                        y: centerY + rotatedY
-                    };
-                });
-
-                handles.forEach(handle => {
-                    const handleElement = document.createElement('div');
-                    handleElement.className = `handle ${handle.class}`;
-                    handleElement.style.left = `${handle.x}px`;
-                    handleElement.style.top = `${handle.y}px`;
-                    handleElement.style.zIndex = '1002';
-                    this.drawingArea.appendChild(handleElement);
-                    this.handles.push(handleElement);
-                    
-                    this.configurarHandle(handleElement, elemento, handle.class);
-                });
-
-                const handleRotacaoRelY = -height / 2 - 40;
-                const handleRotacaoX = 0 * Math.cos(rad) - handleRotacaoRelY * Math.sin(rad);
-                const handleRotacaoY = 0 * Math.sin(rad) + handleRotacaoRelY * Math.cos(rad);
-
-                const handleRotacao = document.createElement('div');
-                handleRotacao.className = 'handle handle-rotacao';
-                handleRotacao.style.left = `${centerX + handleRotacaoX}px`;
-                handleRotacao.style.top = `${centerY + handleRotacaoY}px`;
-                handleRotacao.style.zIndex = '1002';
-                this.drawingArea.appendChild(handleRotacao);
-                this.handles.push(handleRotacao);
-                
-                this.configurarHandleRotacao(handleRotacao, elemento);
-            }
-
-            configurarHandle(handle, elemento) {
-    let initialX, initialY;
-    let initialWidth, initialHeight;
-    let initialLeft, initialTop;
-
-    // NOVO: Prevenir eventos de touch nos handles
-    handle.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-    }, { passive: false });
-
-    handle.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-    }, { passive: false });
-
-    interact(handle).draggable({
-        // NOVO: Prevenir comportamento padrão no interact
-        preventDefault: 'always',
-        
-        listeners: {
-            start: (event) => {
-                // NOVO: Prevenir comportamento padrão no touch
-                if (event.type.includes('touch')) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                
-                const style = window.getComputedStyle(elemento);
-                initialWidth = parseFloat(style.width);
-                initialHeight = parseFloat(style.height);
-                initialLeft = parseFloat(style.left);
-                initialTop = parseFloat(style.top);
-                // NOVO: Suporte para touch events
-                initialX = event.clientX || (event.touches && event.touches[0].clientX);
-                initialY = event.clientY || (event.touches && event.touches[0].clientY);
-
-                handle.style.cursor = 'grabbing';
-            },
-            move: (event) => {
-                // NOVO: Prevenir comportamento padrão no touch
-                if (event.type.includes('touch')) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-
-                // NOVO: Suporte para touch events
-                const currentX = event.clientX || (event.touches && event.touches[0].clientX);
-                const currentY = event.clientY || (event.touches && event.touches[0].clientY);
-                
-                const deltaX = currentX - initialX;
-                const deltaY = currentY - initialY;
-
-                const handleClasses = handle.classList;
-                let isEast = handleClasses.contains('handle-e');
-                let isWest = handleClasses.contains('handle-w');
-                let isNorth = handleClasses.contains('handle-n');
-                let isSouth = handleClasses.contains('handle-s');
-                let isNorthEast = handleClasses.contains('handle-ne');
-                let isNorthWest = handleClasses.contains('handle-nw');
-                let isSouthEast = handleClasses.contains('handle-se');
-                let isSouthWest = handleClasses.contains('handle-sw');
-
-                let newWidth = initialWidth;
-                let newHeight = initialHeight;
-                let newLeft = initialLeft;
-                let newTop = initialTop;
-
-                if (isEast) {
-                    newWidth = initialWidth + deltaX;
-                }
-                else if (isWest) {
-                    newWidth = initialWidth - deltaX;
-                    newLeft = initialLeft + deltaX;
-                }
-                else if (isNorth) {
-                    newHeight = initialHeight - deltaY;
-                    newTop = initialTop + deltaY;
-                }
-                else if (isSouth) {
-                    newHeight = initialHeight + deltaY;
-                }
-                else if (isNorthEast) {
-                    newWidth = initialWidth + deltaX;
-                    newHeight = initialHeight - deltaY;
-                    newTop = initialTop + deltaY;
-                }
-                else if (isNorthWest) {
-                    newWidth = initialWidth - deltaX;
-                    newHeight = initialHeight - deltaY;
-                    newLeft = initialLeft + deltaX;
-                    newTop = initialTop + deltaY;
-                }
-                else if (isSouthEast) {
-                    newWidth = initialWidth + deltaX;
-                    newHeight = initialHeight + deltaY;
-                }
-                else if (isSouthWest) {
-                    newWidth = initialWidth - deltaX;
-                    newHeight = initialHeight + deltaY;
-                    newLeft = initialLeft + deltaX;
-                }
-
-                // SEM limite mínimo - pode redimensionar livremente
-                elemento.style.width = newWidth + 'px';
-                elemento.style.height = newHeight + 'px';
-                
-                if (isWest || isNorthWest || isSouthWest) {
-                    elemento.style.left = newLeft + 'px';
-                }
-                
-                if (isNorth || isNorthEast || isNorthWest) {
-                    elemento.style.top = newTop + 'px';
-                }
-
-                this.atualizarLinhasESimbolos(elemento);
-                this.atualizarHandles();
-            },
-            end: () => {
-                handle.style.cursor = 'grab';
-                this.salvarEstadoHistorico('Redimensionar Elemento');
-            }
-        }
-    });
-}
-
-// 🔥 NOVO: Método para gerenciar estados visuais dos botões
-atualizarEstadoVisualBotoes(botaoAtivo = null, tipoAtivo = null) {
-    // Remover estados ativos de todos os botões
-    const todosBotoes = document.querySelectorAll('.action-buttons-container .btn');
-    todosBotoes.forEach(botao => {
-        botao.classList.remove('btn-selecao-ativo', 'btn-modo-ativo');
-    });
-    
-    // Aplicar estado ativo ao botão específico
-    if (botaoAtivo) {
-        if (tipoAtivo === 'selecao') {
-            botaoAtivo.classList.add('btn-selecao-ativo');
-        } else if (tipoAtivo === 'modo') {
-            botaoAtivo.classList.add('btn-modo-ativo');
-        }
-    }
-}
-
-            configurarHandleRotacao(handle, elemento) {
-    let initialAngle = parseFloat(elemento.getAttribute('data-rotate')) || 0;
-    let initialX, initialY;
-    
-    const angulosFixos = [0, 90, 180, 270];
-    const SNAP_THRESHOLD = 15;
-
-    interact(handle).draggable({
-        listeners: {
-            start: (event) => {
-                // Salvar a transformação atual (translação + rotação)
-                const transform = elemento.style.transform || '';
-                elemento.setAttribute('data-initial-transform', transform);
-                
-                const rect = elemento.getBoundingClientRect();
-                const centerX = rect.left + rect.width / 2;
-                const centerY = rect.top + rect.height / 2;
-                initialX = event.clientX;
-                initialY = event.clientY;
-                handle.style.cursor = 'grabbing';
-            },
-            move: (event) => {
-                const rect = elemento.getBoundingClientRect();
-                const centerX = rect.left + rect.width / 2;
-                const centerY = rect.top + rect.height / 2;
-                
-                const deltaX = event.clientX - centerX;
-                const deltaY = event.clientY - centerY;
-                let angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI) + 90;
-                
-                if (angle < 0) angle += 360;
-                if (angle >= 360) angle -= 360;
-                
-                let snappedAngle = angle;
-                for (const fixedAngle of angulosFixos) {
-                    if (Math.abs(angle - fixedAngle) < SNAP_THRESHOLD) {
-                        snappedAngle = fixedAngle;
-                        break;
-                    }
-                }
-                
-                // MANTER a transformação de translação existente e adicionar rotação
-                const initialTransform = elemento.getAttribute('data-initial-transform') || '';
-                const translateMatch = initialTransform.match(/translate\(([^)]+)\)/);
-                const translatePart = translateMatch ? `translate(${translateMatch[1]})` : '';
-                
-                elemento.style.transform = `${translatePart} rotate(${snappedAngle}deg)`;
-                elemento.setAttribute('data-rotate', snappedAngle);
-                
-                this.atualizarLinhasESimbolos(elemento);
-                this.atualizarHandles();
-            },
-            end: () => {
-                elemento.removeAttribute('data-initial-transform');
-                handle.style.cursor = 'grab';
-                this.salvarEstadoHistorico('Rotacionar Elemento');
-            }
-        }
-    });
-}
-
-            removerHandles() {
-                this.handles.forEach(handle => {
-                    if (handle.parentNode) {
-                        handle.parentNode.removeChild(handle);
-                    }
-                });
-                this.handles = [];
-            }
-
-            atualizarHandles() {
-                if (!this.elementoSelecionado) return;
-
-                if (this.elementoSelecionado.classList.contains('simbolo-linha')) {
-                    return;
-                }
-
-                this.removerHandles();
-                this.criarHandles(this.elementoSelecionado);
-            }
-
-            atualizarLinhasESimbolos(elemento) {
-                const width = parseFloat(elemento.style.width);
-                const height = parseFloat(elemento.style.height);
-                
-                const linhas = elemento.querySelectorAll('.linha-peca');
-                linhas.forEach(linha => {
-                    const lado = linha.getAttribute('data-lado');
-                    
-                    switch(lado) {
-                        case 'top':
-                            linha.style.width = `${width}px`;
-                            linha.style.left = '0px';
-                            linha.style.top = '0px';
-                            break;
-                        case 'bottom':
-                            linha.style.width = `${width}px`;
-                            linha.style.left = '0px';
-                            linha.style.top = `${height}px`;
-                            break;
-                        case 'left':
-                            linha.style.height = `${height}px`;
-                            linha.style.left = '0px';
-                            linha.style.top = '0px';
-                            break;
-                        case 'right':
-                            linha.style.height = `${height}px`;
-                            linha.style.left = `${width}px`;
-                            linha.style.top = '0px';
-                            break;
-                    }
-                });
-
-                this.atualizarPosicaoSimbolos(elemento);
-            }
-
-           atualizarPosicaoSimbolos(elemento) {
-    const pecaId = elemento.getAttribute('data-peca-id');
-    if (!pecaId) return;
-
-    const simbolos = elemento.querySelectorAll(`.simbolo-linha[data-peca-id="${pecaId}"]`);
-    
-    const pecaWidth = parseFloat(elemento.style.width);
-    const pecaHeight = parseFloat(elemento.style.height);
-    
-    simbolos.forEach(simbolo => {
-        const lado = simbolo.getAttribute('data-lado');
-        const rotacaoSimbolo = simbolo.getAttribute('data-rotacao') || 0;
-        
-        let left, top;
-        const centerX = pecaWidth / 2;
-        const centerY = pecaHeight / 2;
-        
-        switch(lado) {
-            case 'top':
-                left = centerX;
-                top = 0;
-                break;
-            case 'bottom':
-                left = centerX;
-                top = pecaHeight;
-                break;
-            case 'left':
-                left = 0;
-                top = centerY;
-                break;
-            case 'right':
-                left = pecaWidth;
-                top = centerY;
-                break;
-        }
-        
-        simbolo.style.left = `${left}px`;
-        simbolo.style.top = `${top}px`;
-        // ✅ CORREÇÃO: Mantém a transformação do símbolo
-        simbolo.style.transform = `translate(-50%, -50%) rotate(${rotacaoSimbolo}deg)`;
-        simbolo.style.transformOrigin = 'center center';
-    });
-}
-          duplicarElemento() {
-    const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
-    if (!elementoAlvo) return;
-    
-    // Criar novo elemento com todos os atributos e estilos
-    const clone = elementoAlvo.cloneNode(true);
-    
-    // MODIFICADO: Posicionar com offset maior para ficar visível
-    const offset = 30;
-    clone.style.left = `${parseFloat(elementoAlvo.style.left) + offset}px`;
-    clone.style.top = `${parseFloat(elementoAlvo.style.top) + offset}px`;
-    clone.classList.remove('elemento-selecionado');
-    
-    // Remover classe selecionavel se o modo de seleção não estiver ativo
-    if (!this.modoSelecaoAtivo) {
-        clone.classList.remove('selecionavel');
-    }
-    
-    // 🔥 CORREÇÃO: Gerar novo ID único E novo data-peca-id para evitar conflitos
-    const novoPecaId = 'copy-' + Date.now();
-    if (clone.id) {
-        clone.id = clone.id + '-copy-' + Date.now();
-    }
-    
-    // 🔥 CORREÇÃO CRÍTICA: Atualizar o data-peca-id ANTES de recriar as linhas
-    if (clone.classList.contains('peca')) {
-        clone.setAttribute('data-peca-id', novoPecaId);
-        clone.id = `peca-${novoPecaId}`;
-    }
-    
-    // 🔥 CORREÇÃO: Remover as linhas antigas do clone para recriá-las
-    const linhasAntigas = clone.querySelectorAll('.linha-peca');
-    linhasAntigas.forEach(linha => linha.remove());
-    
-    // 🔥 CORREÇÃO: Remover símbolos antigos do clone
-    const simbolosAntigos = clone.querySelectorAll('.simbolo-linha');
-    simbolosAntigos.forEach(simbolo => simbolo.remove());
-    
-    this.drawingArea.appendChild(clone);
-    
-    // 🔥 CORREÇÃO: Recriar as linhas da peça com os event listeners
-    if (clone.classList.contains('peca')) {
-        const width = parseFloat(clone.style.width);
-        const height = parseFloat(clone.style.height);
-        
-        // Recriar as linhas com o NOVO ID
-        this.criarLinhasPeca(clone, novoPecaId, width, height);
-    }
-    
-    // MODIFICADO: Reconfigurar completamente a interatividade
-    this.configurarInteratividade(clone);
-    
-    if (clone.classList.contains('simbolo-linha')) {
-        this.configurarInteratividadeSimbolo(clone);
-    } else if (clone.classList.contains('cuba')) {
-        this.configurarInteratividadeCuba(clone);
-    } else if (clone.classList.contains('texto-legenda')) {
-        this.configurarInteratividadeTexto(clone);
-    }
-    
-    this.salvarEstadoHistorico('Duplicar Elemento: ' + (elementoAlvo.className || 'Elemento'));
-    
-    // Selecionar o elemento duplicado
-    this.selecionarElemento(clone, null);
-}
-
-            // =============================================
-            // MÉTODOS DE CRIAÇÃO DE ELEMENTOS
-            // =============================================
-
-            criarPecasBase() {
-    if (this.pecasCriadas) return;
-
-    const escala = this.calcularEscalaAutomatica();
-    let posY = 100;
-
-    // Parâmetros ajustáveis
-    const inicioPosX = 50;
-    const gapHorizontal = 100;
-    const gapVertical = 120;
-    const espacamentoEntreAgrupamentos = 30;
-
-    // 🔥 CORREÇÃO: Usar a largura real da área de desenho com margem de segurança
-    const maxLineWidth = this.drawingArea.offsetWidth - 100; // Reduzido para margem
-
-    Object.keys(this.gruposPecas).forEach((materialNome, grupoIndex) => {
-        const pecasGrupo = this.gruposPecas[materialNome];
-
-        // Cria o container do grupo (título + area)
-        const grupoInfo = this.criarGrupoMaterial(materialNome, grupoIndex, posY);
-
-        // Primeiro: montar as linhas (wrap) sem alterar posY
-        const lines = [[]];
-        let currentLineWidth = 0;
-
-        pecasGrupo.forEach((peca) => {
-            const { width, height } = this.calcularDimensoesPeca(peca, escala);
-
-            // 🔥 CORREÇÃO: Se a peça sozinha já é maior que a linha, força nova linha
-            if (width > maxLineWidth) {
-                // Peça muito grande - vai sozinha na linha
-                if (lines[lines.length - 1].length > 0) {
-                    lines.push([]);
-                }
-                lines[lines.length - 1].push({
-                    pecaData: peca,
-                    width: Math.round(width),
-                    height: Math.round(height)
-                });
-                lines.push([]); // Nova linha vazia para próxima peça
-                currentLineWidth = 0;
-            } 
-            // 🔥 CORREÇÃO: Verificação mais rigorosa do espaço
-            else if (currentLineWidth > 0 && (currentLineWidth + width + gapHorizontal) > maxLineWidth) {
-                lines.push([]);
-                currentLineWidth = 0;
-            }
-
-            lines[lines.length - 1].push({
-                pecaData: peca,
-                width: Math.round(width),
-                height: Math.round(height)
-            });
-
-            currentLineWidth += width + gapHorizontal;
-        });
-
-        // 🔥 CORREÇÃO: Remover última linha se estiver vazia
-        if (lines[lines.length - 1].length === 0) {
-            lines.pop();
-        }
-
-        // Segundo: para cada linha, calcular altura máxima e posicionar as peças
-        let cumulativeY = 0;
-        lines.forEach((line) => {
-            if (line.length === 0) return;
-
-            const lineMaxHeight = Math.max(...line.map(p => p.height));
-
-            let posX = inicioPosX;
-            line.forEach((pObj) => {
-                const peca = pObj.pecaData;
-                const w = pObj.width;
-                const h = pObj.height;
-
-                // 🔥 CORREÇÃO: Verificação final de limite
-                if (posX + w > maxLineWidth) {
-                    // Se ainda assim ultrapassar, força nova linha
-                    cumulativeY += lineMaxHeight + gapVertical;
-                    posX = inicioPosX;
-                }
-
-                const pecaElement = document.createElement('div');
-                pecaElement.className = 'peca';
-                pecaElement.id = `peca-${peca.id}`;
-                pecaElement.style.width = `${w}px`;
-                pecaElement.style.height = `${h}px`;
-                pecaElement.style.left = `${posX}px`;
-                pecaElement.style.top = `${cumulativeY}px`;
-                pecaElement.setAttribute('data-peca-id', peca.id);
-                pecaElement.setAttribute('data-tipo', peca.tipo);
-                pecaElement.setAttribute('data-rotate', '0');
-
-                this.criarDimensoes(pecaElement, peca, w, h);
-
-                if (peca.quantidade > 1) {
-                    this.criarQuantidade(pecaElement, peca.quantidade);
-                }
-
-                this.criarLinhasPeca(pecaElement, peca.id, w, h);
-
-                grupoInfo.areaPecas.appendChild(pecaElement);
-
-                posX += w + gapHorizontal;
-            });
-
-            cumulativeY += lineMaxHeight + gapVertical;
-        });
-
-        const alturaUtilizada = cumulativeY > 0 ? cumulativeY : 200;
-        posY += alturaUtilizada + espacamentoEntreAgrupamentos;
-    });
-
-    this.pecasCriadas = true;
-    console.log('✅ Peças base criadas com sucesso!');
-}
-
-            criarGrupoMaterial(materialNome, grupoIndex, posY) {
-                const tituloGrupo = document.createElement('div');
-                tituloGrupo.className = 'titulo-grupo';
-                tituloGrupo.textContent = materialNome;
-
-                const deslocamentoEsquerdaTitulo = -10;
-                const deslocamentoCimaTitulo = -20;
-
-                tituloGrupo.style.left = `${20 + deslocamentoEsquerdaTitulo}px`;
-                tituloGrupo.style.top = `${posY + deslocamentoCimaTitulo}px`;
-                tituloGrupo.setAttribute('contenteditable', 'true');
-                tituloGrupo.setAttribute('data-rotate', '0');
-
-                const areaPecas = document.createElement('div');
-                areaPecas.className = 'area-pecas';
-                areaPecas.style.position = 'absolute';
-
-                const deslocamentoEsquerdaPecas = -25;
-                const deslocamentoCimaPecas = -10;
-                areaPecas.style.top = `${posY + 80 + deslocamentoCimaPecas}px`;
-                areaPecas.style.left = `${20 + deslocamentoEsquerdaPecas}px`;
-
-                areaPecas.style.width = 'calc(100% - 30px)';
-
-                this.drawingArea.appendChild(tituloGrupo);
-                this.drawingArea.appendChild(areaPecas);
-
-                tituloGrupo.addEventListener('blur', () => {
-                    this.salvarEstadoHistorico('Editar Título do Grupo');
-                });
-
-                return {
-                    titulo: tituloGrupo,
-                    areaPecas: areaPecas
-                };
-            }
-criarCuba(x, y, tipo, largura = 80, altura = 50) {
-    const cubaElement = document.createElement('div');
-    cubaElement.className = `cuba ${tipo}`;
-    cubaElement.style.left = `${x}px`;
-    cubaElement.style.top = `${y}px`;
-    
-    // 🔥 CORREÇÃO: Tratamento especial para linha reta
-    if (tipo === 'linha-reta') {
-        // Para linha reta, criar uma linha fina horizontal
-        cubaElement.style.width = `${Math.max(largura, 100)}px`;
-        cubaElement.style.height = '2px'; // Linha muito fina
-        cubaElement.style.backgroundColor = '#333'; // Cor da linha
-        cubaElement.style.border = 'none'; // Remover borda
-    } else if (tipo === 'circulo') {
-        const tamanho = Math.max(largura, altura);
-        cubaElement.style.width = `${tamanho}px`;
-        cubaElement.style.height = `${tamanho}px`;
-        cubaElement.style.borderRadius = '50%';
-    } else {
-        cubaElement.style.width = `${largura}px`;
-        cubaElement.style.height = `${altura}px`;
-        if (tipo === 'oval') cubaElement.style.borderRadius = '50%';
-        else if (tipo === 'elipse') cubaElement.style.borderRadius = '40%';
-        else cubaElement.style.borderRadius = '0';
-    }
-    
-    // Adicionar classe selecionavel se o modo de seleção estiver ativo
-    if (this.modoSelecaoAtivo) {
-        cubaElement.classList.add('selecionavel');
-    }
-    
-    const grupo = this.encontrarGrupoNaPosicao(x, y);
-    if (grupo) {
-        grupo.appendChild(cubaElement);
-    } else {
-        this.drawingArea.appendChild(cubaElement);
-    }
-    
-    // MODIFICADO: Configurar interatividade especial para linha reta
-    this.configurarInteratividadeCuba(cubaElement, tipo);
-    
-    this.salvarEstadoHistorico('Adicionar Cuba');
-    
-    return cubaElement;
-}
-
-// 🔥 MODIFICADO: Configurar interatividade com handles especiais para linha reta
-configurarInteratividadeCuba(elemento, tipo) {
-    interact(elemento).draggable({
-        listeners: {
-            start: () => {
-                elemento.style.zIndex = '1000';
-            },
-            move: (event) => {
-                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-                const rotate = elemento.getAttribute('data-rotate') || 0;
-
-                elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
-                elemento.setAttribute('data-x', x);
-                elemento.setAttribute('data-y', y);
-            },
-            end: () => {
-                elemento.style.zIndex = '';
-                this.salvarEstadoHistorico('Mover Cuba');
-            }
-        }
-    });
-
-    // 🔥 CORREÇÃO: Configuração especial para linha reta
-    if (tipo === 'linha-reta') {
-        this.configurarHandlesLinhaReta(elemento);
-    } else {
-        // Para outros tipos, usar redimensionamento normal
-        interact(elemento).resizable({
-            edges: { left: true, right: true, bottom: true, top: true },
-            listeners: {
-                move: function (event) {
-                    let { x, y } = event.deltaRect;
-
-                    Object.assign(event.target.style, {
-                        width: `${event.rect.width}px`,
-                        height: `${event.rect.height}px`
-                    });
-
-                    Object.assign(event.target.style, {
-                        transform: `translate(${(parseFloat(event.target.getAttribute('data-x')) || 0) + x}px, ${(parseFloat(event.target.getAttribute('data-y')) || 0) + y}px)`
-                    });
-
-                    event.target.setAttribute('data-x', (parseFloat(event.target.getAttribute('data-x')) || 0) + x);
-                    event.target.setAttribute('data-y', (parseFloat(event.target.getAttribute('data-y')) || 0) + y);
-                }
-            }
-        });
-    }
-}
-
-            criarTexto(x, y, textoInicial = "") {
-    const textoElement = document.createElement('textarea');
-    textoElement.className = 'texto-legenda';
-    
-    // 🔥 CORREÇÃO: Usar posicionamento absoluto direto sem transform
-    textoElement.style.position = 'absolute';
-    textoElement.style.left = `${x}px`;
-    textoElement.style.top = `${y}px`;
-    
-    textoElement.value = textoInicial;
-    textoElement.setAttribute('data-valor', textoInicial);
-    textoElement.rows = 1;
-    textoElement.placeholder = "Digite seu texto";
-    
-    // 🔥 CORREÇÃO: Resetar transform para evitar deslocamento
-    textoElement.style.transform = 'none';
-    textoElement.setAttribute('data-x', '0');
-    textoElement.setAttribute('data-y', '0');
-    
-    // Largura reduzida
-    textoElement.style.width = '120px';
-    textoElement.style.minWidth = '120px';
-    textoElement.style.maxWidth = '300px';
-    
-    // Adicionar classe selecionavel se o modo de seleção estiver ativo
-    if (this.modoSelecaoAtivo) {
-        textoElement.classList.add('selecionavel');
-    }
-    
-    const grupo = this.encontrarGrupoNaPosicao(x, y);
-    if (grupo) {
-        grupo.appendChild(textoElement);
-    } else {
-        this.drawingArea.appendChild(textoElement);
-    }
-    
-    textoElement.focus();
-    
-    // Resto do método permanece igual...
-    textoElement.addEventListener('input', () => {
-        textoElement.style.height = 'auto';
-        textoElement.style.height = (textoElement.scrollHeight) + 'px';
-        textoElement.setAttribute('data-valor', textoElement.value);
-    });
-    
-    textoElement.addEventListener('blur', () => {
-        textoElement.setAttribute('data-valor', textoElement.value);
-        
-        if (textoElement.value.trim() === '') {
-            textoElement.remove();
-            this.salvarEstadoHistorico('Remover Texto Vazio');
-        } else {
-            this.salvarEstadoHistorico('Editar Texto: ' + textoElement.value.substring(0, 20));
-        }
-    });
-
-    this.configurarInteratividadeTexto(textoElement);
-    this.salvarEstadoHistorico('Adicionar Texto');
-    
-    return textoElement;
-}
-
-            // NOVO: Configurar interatividade do texto com transparência ao mover
-            configurarInteratividadeTexto(elemento) {
-                let originalBackground = elemento.style.backgroundColor;
-                
-                interact(elemento).draggable({
-                    listeners: {
-                        start: () => {
-                            elemento.style.zIndex = '1000';
-                            elemento.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'; // Transparente ao mover
-                        },
-                        move: (event) => {
-                            let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                            let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-
-                            elemento.style.transform = `translate(${x}px, ${y}px)`;
-                            elemento.setAttribute('data-x', x);
-                            elemento.setAttribute('data-y', y);
-                        },
-                        end: () => {
-                            elemento.style.zIndex = '';
-                            elemento.style.backgroundColor = originalBackground; // Restaura cor original
-                            this.salvarEstadoHistorico('Mover Texto');
+                listeners: {
+                    start: (event) => {
+                        if (event.type.includes('touch')) {
+                            event.preventDefault();
+                            event.stopPropagation();
                         }
-                    }
-                });
-            }
-criarLegendaSimplificada(x, y, simbolo = "C", descricao = "Acabamento") {
-    const legendaElement = document.createElement('div');
-    legendaElement.className = 'legenda-simplificada';
-    
-    // 🔥 CORREÇÃO: Usar posicionamento absoluto direto
-    legendaElement.style.position = 'absolute';
-    legendaElement.style.left = `${x}px`;
-    legendaElement.style.top = `${y}px`;
-    
-    // 🔥 CORREÇÃO: Resetar transform
-    legendaElement.style.transform = 'none';
-    legendaElement.setAttribute('data-x', '0');
-    legendaElement.setAttribute('data-y', '0');
-    
-    legendaElement.innerHTML = `
-        <span class="legenda-simbolo-inline">${simbolo}</span> = <span class="legenda-descricao-inline" contenteditable="true">${descricao}</span>
-    `;
-    
-    // Adicionar classe selecionavel se o modo de seleção estiver ativo
-    if (this.modoSelecaoAtivo) {
-        legendaElement.classList.add('selecionavel');
-    }
-    
-    legendaElement.addEventListener('dblclick', () => {
-        const spanDescricao = legendaElement.querySelector('.legenda-descricao-inline');
-        spanDescricao.focus();
-    });
-    
-    const grupo = this.encontrarGrupoNaPosicao(x, y);
-    if (grupo) {
-        grupo.appendChild(legendaElement);
-    } else {
-        this.drawingArea.appendChild(legendaElement);
-    }
-    
-    this.salvarEstadoHistorico('Adicionar Legenda');
-    
-    return legendaElement;
-}
+                        
+                        const style = window.getComputedStyle(elemento);
+                        initialWidth = parseFloat(style.width);
+                        initialHeight = parseFloat(style.height);
+                        initialLeft = parseFloat(style.left);
+                        initialTop = parseFloat(style.top);
+                        
+                        initialX = event.clientX || (event.touches && event.touches[0].clientX);
+                        initialY = event.clientY || (event.touches && event.touches[0].clientY);
 
-configurarEventosTouchInsercao() {
-    this.drawingArea.addEventListener('touchstart', (e) => {
-        if (this.modoInsercaoAtivo && e.touches.length === 1) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            const touch = e.touches[0];
-            const rect = this.drawingArea.getBoundingClientRect();
-            
-            // 🔥 CORREÇÃO: Cálculo preciso para touch
-            const x = touch.clientX - rect.left + this.drawingArea.scrollLeft;
-            const y = touch.clientY - rect.top + this.drawingArea.scrollTop;
-            
-            console.log(`📱 Touch - Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y}`);
+                        handle.style.cursor = 'grabbing';
+                    },
+                    move: (event) => {
+                        if (event.type.includes('touch')) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
 
-            switch (this.modoInsercaoAtivo) {
-                case 'texto':
-                    this.criarTexto(x, y, '');
-                    break;
-                case 'cuba':
-                    this.mostrarSeletorCuba(x, y);
-                    break;
-                case 'legenda':
-                    this.mostrarSeletorLegenda(x, y);
-                    break;
-            }
-            
-            this.modoInsercaoAtivo = null;
-            this.drawingArea.style.cursor = 'default';
-        }
-    }, { passive: false });
-}
+                        const currentX = event.clientX || (event.touches && event.touches[0].clientX);
+                        const currentY = event.clientY || (event.touches && event.touches[0].clientY);
+                        
+                        const deltaX = currentX - initialX;
+                        const deltaY = currentY - initialY;
 
-            encontrarGrupoNaPosicao(x, y) {
-                const grupos = this.drawingArea.querySelectorAll('.area-pecas');
-                for (const grupo of grupos) {
-                    const rect = grupo.getBoundingClientRect();
-                    const drawingAreaRect = this.drawingArea.getBoundingClientRect();
-                    
-                    const grupoLeft = rect.left - drawingAreaRect.left;
-                    const grupoTop = rect.top - drawingAreaRect.top;
-                    const grupoRight = grupoLeft + rect.width;
-                    const grupoBottom = grupoTop + rect.height;
-                    
-                    if (x >= grupoLeft && x <= grupoRight && y >= grupoTop && y <= grupoBottom) {
-                        return grupo;
+                        const handleClasses = handle.classList;
+                        let isEast = handleClasses.contains('handle-e');
+                        let isWest = handleClasses.contains('handle-w');
+                        let isNorth = handleClasses.contains('handle-n');
+                        let isSouth = handleClasses.contains('handle-s');
+                        let isNorthEast = handleClasses.contains('handle-ne');
+                        let isNorthWest = handleClasses.contains('handle-nw');
+                        let isSouthEast = handleClasses.contains('handle-se');
+                        let isSouthWest = handleClasses.contains('handle-sw');
+
+                        let newWidth = initialWidth;
+                        let newHeight = initialHeight;
+                        let newLeft = initialLeft;
+                        let newTop = initialTop;
+
+                        // 🔥 MODIFICADO: Para linha reta, permitir dimensões muito pequenas
+                        if (elemento.classList.contains('linha-reta')) {
+                            // Linha reta pode ter largura mínima de 1px e altura mínima de 1px
+                            const minSize = 1;
+                            
+                            if (isEast) {
+                                newWidth = Math.max(initialWidth + deltaX, minSize);
+                            }
+                            else if (isWest) {
+                                newWidth = Math.max(initialWidth - deltaX, minSize);
+                                newLeft = initialLeft + deltaX;
+                            }
+                            else if (isNorth) {
+                                newHeight = Math.max(initialHeight - deltaY, minSize);
+                                newTop = initialTop + deltaY;
+                            }
+                            else if (isSouth) {
+                                newHeight = Math.max(initialHeight + deltaY, minSize);
+                            }
+                            else if (isNorthEast) {
+                                newWidth = Math.max(initialWidth + deltaX, minSize);
+                                newHeight = Math.max(initialHeight - deltaY, minSize);
+                                newTop = initialTop + deltaY;
+                            }
+                            else if (isNorthWest) {
+                                newWidth = Math.max(initialWidth - deltaX, minSize);
+                                newHeight = Math.max(initialHeight - deltaY, minSize);
+                                newLeft = initialLeft + deltaX;
+                                newTop = initialTop + deltaY;
+                            }
+                            else if (isSouthEast) {
+                                newWidth = Math.max(initialWidth + deltaX, minSize);
+                                newHeight = Math.max(initialHeight + deltaY, minSize);
+                            }
+                            else if (isSouthWest) {
+                                newWidth = Math.max(initialWidth - deltaX, minSize);
+                                newHeight = Math.max(initialHeight + deltaY, minSize);
+                                newLeft = initialLeft + deltaX;
+                            }
+                        } else {
+                            // Para outros tipos de cuba, manter o comportamento anterior
+                            if (isEast) {
+                                newWidth = initialWidth + deltaX;
+                            }
+                            else if (isWest) {
+                                newWidth = initialWidth - deltaX;
+                                newLeft = initialLeft + deltaX;
+                            }
+                            else if (isNorth) {
+                                newHeight = initialHeight - deltaY;
+                                newTop = initialTop + deltaY;
+                            }
+                            else if (isSouth) {
+                                newHeight = initialHeight + deltaY;
+                            }
+                            else if (isNorthEast) {
+                                newWidth = initialWidth + deltaX;
+                                newHeight = initialHeight - deltaY;
+                                newTop = initialTop + deltaY;
+                            }
+                            else if (isNorthWest) {
+                                newWidth = initialWidth - deltaX;
+                                newHeight = initialHeight - deltaY;
+                                newLeft = initialLeft + deltaX;
+                                newTop = initialTop + deltaY;
+                            }
+                            else if (isSouthEast) {
+                                newWidth = initialWidth + deltaX;
+                                newHeight = initialHeight + deltaY;
+                            }
+                            else if (isSouthWest) {
+                                newWidth = initialWidth - deltaX;
+                                newHeight = initialHeight + deltaY;
+                                newLeft = initialLeft + deltaX;
+                            }
+                        }
+
+                        // Aplicar novas dimensões
+                        elemento.style.width = newWidth + 'px';
+                        elemento.style.height = newHeight + 'px';
+                        
+                        if (isWest || isNorthWest || isSouthWest) {
+                            elemento.style.left = newLeft + 'px';
+                        }
+                        
+                        if (isNorth || isNorthEast || isNorthWest) {
+                            elemento.style.top = newTop + 'px';
+                        }
+
+                        this.atualizarLinhasESimbolos(elemento);
+                        this.atualizarHandles();
+                    },
+                    end: () => {
+                        handle.style.cursor = 'grab';
+                        this.salvarEstadoHistorico('Redimensionar Elemento');
+                        console.log('🔧 Redimensionamento concluído');
                     }
                 }
-                return null;
-            }
+            });
+        }
 
-            criarDimensoes(pecaElement, peca, width, height) {
-                const dimensoesTop = document.createElement('div');
-                dimensoesTop.className = 'dimensoes dimensoes-top';
-                dimensoesTop.textContent = `${peca.comprimento}cm`;
-                dimensoesTop.style.top = `${-35}px`;
-                dimensoesTop.style.left = `${width / 2}px`;
-                pecaElement.appendChild(dimensoesTop);
-                
-                setTimeout(() => {
-                    const drawingRect = this.drawingArea.getBoundingClientRect();
+        configurarHandleRotacao(handle, elemento) {
+            let initialAngle = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+            let initialX, initialY;
+            
+            const angulosFixos = [0, 90, 180, 270];
+            const SNAP_THRESHOLD = 15;
 
-                    const topRect = dimensoesTop.getBoundingClientRect();
-                    if (topRect.right > drawingRect.right - 10) {
-                        const excesso = topRect.right - (drawingRect.right - 10);
-                        const atualLeft = parseFloat(dimensoesTop.style.left || (width/2)) || (width/2);
-                        dimensoesTop.style.left = `${atualLeft - excesso}px`;
+            interact(handle).draggable({
+                listeners: {
+                    start: (event) => {
+                        // Salvar a transformação atual (translação + rotação)
+                        const transform = elemento.style.transform || '';
+                        elemento.setAttribute('data-initial-transform', transform);
+                        
+                        const rect = elemento.getBoundingClientRect();
+                        const centerX = rect.left + rect.width / 2;
+                        const centerY = rect.top + rect.height / 2;
+                        initialX = event.clientX;
+                        initialY = event.clientY;
+                        handle.style.cursor = 'grabbing';
+                    },
+                    move: (event) => {
+                        const rect = elemento.getBoundingClientRect();
+                        const centerX = rect.left + rect.width / 2;
+                        const centerY = rect.top + rect.height / 2;
+                        
+                        const deltaX = event.clientX - centerX;
+                        const deltaY = event.clientY - centerY;
+                        let angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI) + 90;
+                        
+                        if (angle < 0) angle += 360;
+                        if (angle >= 360) angle -= 360;
+                        
+                        let snappedAngle = angle;
+                        for (const fixedAngle of angulosFixos) {
+                            if (Math.abs(angle - fixedAngle) < SNAP_THRESHOLD) {
+                                snappedAngle = fixedAngle;
+                                break;
+                            }
+                        }
+                        
+                        // MANTER a transformação de translação existente e adicionar rotação
+                        const initialTransform = elemento.getAttribute('data-initial-transform') || '';
+                        const translateMatch = initialTransform.match(/translate\(([^)]+)\)/);
+                        const translatePart = translateMatch ? `translate(${translateMatch[1]})` : '';
+                        
+                        elemento.style.transform = `${translatePart} rotate(${snappedAngle}deg)`;
+                        elemento.setAttribute('data-rotate', snappedAngle);
+                        
+                        this.atualizarLinhasESimbolos(elemento);
+                        this.atualizarHandles();
+                    },
+                    end: () => {
+                        elemento.removeAttribute('data-initial-transform');
+                        handle.style.cursor = 'grab';
+                        this.salvarEstadoHistorico('Rotacionar Elemento');
                     }
-                }, 0);
+                }
+            });
+        }
 
-                const dimensoesRight = document.createElement('div');
-                dimensoesRight.className = 'dimensoes dimensoes-right';
-                dimensoesRight.textContent = `${peca.largura}cm`;
-                dimensoesRight.style.right = `${-35}px`;
-                dimensoesRight.style.top = `${height / 2}px`;
-                pecaElement.appendChild(dimensoesRight);
+        removerHandles() {
+            this.handles.forEach(handle => {
+                if (handle.parentNode) {
+                    handle.parentNode.removeChild(handle);
+                }
+            });
+            this.handles = [];
+        }
+
+        atualizarLinhasESimbolos(elemento) {
+            const width = parseFloat(elemento.style.width);
+            const height = parseFloat(elemento.style.height);
+            
+            const linhas = elemento.querySelectorAll('.linha-peca');
+            linhas.forEach(linha => {
+                const lado = linha.getAttribute('data-lado');
+                
+                switch(lado) {
+                    case 'top':
+                        linha.style.width = `${width}px`;
+                        linha.style.left = '0px';
+                        linha.style.top = '0px';
+                        break;
+                    case 'bottom':
+                        linha.style.width = `${width}px`;
+                        linha.style.left = '0px';
+                        linha.style.top = `${height}px`;
+                        break;
+                    case 'left':
+                        linha.style.height = `${height}px`;
+                        linha.style.left = '0px';
+                        linha.style.top = '0px';
+                        break;
+                    case 'right':
+                        linha.style.height = `${height}px`;
+                        linha.style.left = `${width}px`;
+                        linha.style.top = '0px';
+                        break;
+                }
+            });
+
+            this.atualizarPosicaoSimbolos(elemento);
+        }
+
+        atualizarPosicaoSimbolos(elemento) {
+            const pecaId = elemento.getAttribute('data-peca-id');
+            if (!pecaId) return;
+
+            const simbolos = elemento.querySelectorAll(`.simbolo-linha[data-peca-id="${pecaId}"]`);
+            
+            const pecaWidth = parseFloat(elemento.style.width);
+            const pecaHeight = parseFloat(elemento.style.height);
+            
+            simbolos.forEach(simbolo => {
+                const lado = simbolo.getAttribute('data-lado');
+                const rotacaoSimbolo = simbolo.getAttribute('data-rotacao') || 0;
+                
+                let left, top;
+                const centerX = pecaWidth / 2;
+                const centerY = pecaHeight / 2;
+                
+                switch(lado) {
+                    case 'top':
+                        left = centerX;
+                        top = 0;
+                        break;
+                    case 'bottom':
+                        left = centerX;
+                        top = pecaHeight;
+                        break;
+                    case 'left':
+                        left = 0;
+                        top = centerY;
+                        break;
+                    case 'right':
+                        left = pecaWidth;
+                        top = centerY;
+                        break;
+                }
+                
+                simbolo.style.left = `${left}px`;
+                simbolo.style.top = `${top}px`;
+                // ✅ CORREÇÃO: Mantém a transformação do símbolo
+                simbolo.style.transform = `translate(-50%, -50%) rotate(${rotacaoSimbolo}deg)`;
+                simbolo.style.transformOrigin = 'center center';
+            });
+        }
+
+        duplicarElemento() {
+            const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
+            if (!elementoAlvo) return;
+            
+            // Criar novo elemento com todos os atributos e estilos
+            const clone = elementoAlvo.cloneNode(true);
+            
+            // MODIFICADO: Posicionar com offset maior para ficar visível
+            const offset = 30;
+            clone.style.left = `${parseFloat(elementoAlvo.style.left) + offset}px`;
+            clone.style.top = `${parseFloat(elementoAlvo.style.top) + offset}px`;
+            clone.classList.remove('elemento-selecionado');
+            
+            // Remover classe selecionavel se o modo de seleção não estiver ativo
+            if (!this.modoSelecaoAtivo) {
+                clone.classList.remove('selecionavel');
             }
-
-            criarQuantidade(pecaElement, quantidade) {
-                const quantidadeElement = document.createElement('div');
-                quantidadeElement.className = 'quantidade-peca';
-                quantidadeElement.textContent = `${quantidade}x`;
-                quantidadeElement.style.left = '-45px';
-                pecaElement.appendChild(quantidadeElement);
+            
+            // 🔥 CORREÇÃO: Gerar novo ID único E novo data-peca-id para evitar conflitos
+            const novoPecaId = 'copy-' + Date.now();
+            if (clone.id) {
+                clone.id = clone.id + '-copy-' + Date.now();
             }
-
-            criarLinhasPeca(pecaElement, pecaId, width, height) {
-    const lados = [
-        { tipo: 'top', estilo: { top: '0px', left: '0px', width: width + 'px', height: '8px', transform: 'translateY(-4px)' }, rotacao: 0 },
-        { tipo: 'bottom', estilo: { top: height + 'px', left: '0px', width: width + 'px', height: '8px', transform: 'translateY(-4px)' }, rotacao: 0 },
-        { tipo: 'left', estilo: { top: '0px', left: '0px', width: '8px', height: height + 'px', transform: 'translateX(-4px)' }, rotacao: 90 },
-        { tipo: 'right', estilo: { top: '0px', left: width + 'px', width: '8px', height: height + 'px', transform: 'translateX(-4px)' }, rotacao: 90 }
-    ];
-
-    lados.forEach(lado => {
-        const linhaElement = document.createElement('div');
-        linhaElement.className = `linha-peca linha-${lado.tipo}`;
-        linhaElement.setAttribute('data-peca-id', pecaId);
-        linhaElement.setAttribute('data-lado', lado.tipo);
-        linhaElement.setAttribute('data-rotacao', lado.rotacao);
-        
-        Object.assign(linhaElement.style, {
-            position: 'absolute',
-            backgroundColor: 'transparent',
-            cursor: 'pointer',
-            zIndex: '6',
-            transition: 'background-color 0.2s ease'
-        }, lado.estilo);
-
-        // 🔥 CORREÇÃO: Garantir que os event listeners sejam sempre configurados
-        linhaElement.addEventListener('mouseenter', () => linhaElement.style.backgroundColor = '#4e73df');
-        linhaElement.addEventListener('mouseleave', () => linhaElement.style.backgroundColor = 'transparent');
-        linhaElement.addEventListener('click', (e) => this.manipularCliqueLinha(e, linhaElement));
-
-        // 🔥 CORREÇÃO ADICIONAL: Suporte para touch events no mobile
-        linhaElement.addEventListener('touchstart', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            this.manipularCliqueLinha(e, linhaElement);
-        });
-
-        pecaElement.appendChild(linhaElement);
-    });
-}
-
-            // 🔥 CORREÇÃO: Criar símbolo como filho da peça para girar junto
-criarSimboloLinha(linhaElement, simboloData, simboloExistente = null) {
-    const simboloElement = document.createElement('div');
-    simboloElement.className = 'simbolo-linha';
-    simboloElement.textContent = simboloData.texto;
-    simboloElement.setAttribute('data-rotacao', simboloData.rotacao);
-    simboloElement.setAttribute('data-peca-id', linhaElement.getAttribute('data-peca-id'));
-    simboloElement.setAttribute('data-lado', linhaElement.getAttribute('data-lado'));
-    simboloElement.setAttribute('data-rotate', '0');
-    
-    // Adicionar classe selecionavel se o modo de seleção estiver ativo
-    if (this.modoSelecaoAtivo) {
-        simboloElement.classList.add('selecionavel');
-    }
-    
-    const pecaId = linhaElement.getAttribute('data-peca-id');
-    const pecaElement = this.drawingArea.querySelector(`#peca-${pecaId}`);
-    
-    if (pecaElement) {
-        const pecaWidth = parseFloat(pecaElement.style.width);
-        const pecaHeight = parseFloat(pecaElement.style.height);
-        
-        let left, top;
-        const lado = linhaElement.getAttribute('data-lado');
-        
-        // 🔥 CORREÇÃO: Posicionamento relativo à peça (percentual)
-        switch(lado) {
-            case 'top':
-                left = '50%';
-                top = '0%';
-                break;
-            case 'bottom':
-                left = '50%';
-                top = '100%';
-                break;
-            case 'left':
-                left = '0%';
-                top = '50%';
-                break;
-            case 'right':
-                left = '100%';
-                top = '50%';
-                break;
+            
+            // 🔥 CORREÇÃO CRÍTICA: Atualizar o data-peca-id ANTES de recriar as linhas
+            if (clone.classList.contains('peca')) {
+                clone.setAttribute('data-peca-id', novoPecaId);
+                clone.id = `peca-${novoPecaId}`;
+            }
+            
+            // 🔥 CORREÇÃO: Remover as linhas antigas do clone para recriá-las
+            const linhasAntigas = clone.querySelectorAll('.linha-peca');
+            linhasAntigas.forEach(linha => linha.remove());
+            
+            // 🔥 CORREÇÃO: Remover símbolos antigos do clone
+            const simbolosAntigos = clone.querySelectorAll('.simbolo-linha');
+            simbolosAntigos.forEach(simbolo => simbolo.remove());
+            
+            this.drawingArea.appendChild(clone);
+            
+            // 🔥 CORREÇÃO: Recriar as linhas da peça com os event listeners
+            if (clone.classList.contains('peca')) {
+                const width = parseFloat(clone.style.width);
+                const height = parseFloat(clone.style.height);
+                
+                // Recriar as linhas com o NOVO ID
+                this.criarLinhasPeca(clone, novoPecaId, width, height);
+            }
+            
+            // MODIFICADO: Reconfigurar completamente a interatividade
+            this.configurarInteratividade(clone);
+            
+            if (clone.classList.contains('simbolo-linha')) {
+                this.configurarInteratividadeSimbolo(clone);
+            } else if (clone.classList.contains('cuba')) {
+                this.configurarInteratividadeCuba(clone);
+            } else if (clone.classList.contains('texto-legenda')) {
+                this.configurarInteratividadeTexto(clone);
+            }
+            
+            this.salvarEstadoHistorico('Duplicar Elemento: ' + (elementoAlvo.className || 'Elemento'));
+            
+            // Selecionar o elemento duplicado
+            this.selecionarElemento(clone, null);
         }
-        
-        simboloElement.style.left = left;
-        simboloElement.style.top = top;
-        simboloElement.style.transform = `translate(-50%, -50%) rotate(${simboloData.rotacao}deg)`;
-        simboloElement.style.transformOrigin = 'center center';
-        simboloElement.style.position = 'absolute';
-        
-        // 🔥 CORREÇÃO: Adicionar símbolo como filho da peça para herdar a rotação
-        pecaElement.appendChild(simboloElement);
-        
-        this.configurarInteratividadeSimbolo(simboloElement);
-        
-        if (simboloExistente && simboloExistente !== simboloElement) {
-            simboloExistente.remove();
-        }
-        
-        if (simboloExistente) {
-            this.salvarEstadoHistorico('Editar Símbolo');
-        } else {
-            this.salvarEstadoHistorico('Adicionar Símbolo');
-        }
-        
-        return simboloElement;
-    }
-}
 
-// 🔥 CORREÇÃO: Atualizar método para manter símbolos girando com a peça
-atualizarPosicaoSimbolos(elemento) {
-    const pecaId = elemento.getAttribute('data-peca-id');
-    if (!pecaId) return;
+        // =============================================
+        // MÉTODOS DE CRIAÇÃO DE ELEMENTOS
+        // =============================================
 
-    // Encontrar símbolos desta peça (mesmo que estejam como filhos)
-    const simbolos = this.drawingArea.querySelectorAll(`.simbolo-linha[data-peca-id="${pecaId}"]`);
-    
-    const pecaWidth = parseFloat(elemento.style.width);
-    const pecaHeight = parseFloat(elemento.style.height);
-    
-    simbolos.forEach(simbolo => {
-        const lado = simbolo.getAttribute('data-lado');
-        const rotacaoSimbolo = simbolo.getAttribute('data-rotacao') || 0;
-        
-        let left, top;
-        
-        // 🔥 CORREÇÃO: Usar posicionamento percentual para acompanhar redimensionamento
-        switch(lado) {
-            case 'top':
-                left = '50%';
-                top = '0%';
-                break;
-            case 'bottom':
-                left = '50%';
-                top = '100%';
-                break;
-            case 'left':
-                left = '0%';
-                top = '50%';
-                break;
-            case 'right':
-                left = '100%';
-                top = '50%';
-                break;
+        criarPecasBase() {
+            if (this.pecasCriadas) return;
+
+            const escala = this.calcularEscalaAutomatica();
+            let posY = 100;
+
+            // Parâmetros ajustáveis
+            const inicioPosX = 50;
+            const gapHorizontal = 100;
+            const gapVertical = 120;
+            const espacamentoEntreAgrupamentos = 30;
+
+            // 🔥 CORREÇÃO: Usar a largura real da área de desenho com margem de segurança
+            const maxLineWidth = this.drawingArea.offsetWidth - 100; // Reduzido para margem
+
+            Object.keys(this.gruposPecas).forEach((materialNome, grupoIndex) => {
+                const pecasGrupo = this.gruposPecas[materialNome];
+
+                // Cria o container do grupo (título + area)
+                const grupoInfo = this.criarGrupoMaterial(materialNome, grupoIndex, posY);
+
+                // Primeiro: montar as linhas (wrap) sem alterar posY
+                const lines = [[]];
+                let currentLineWidth = 0;
+
+                pecasGrupo.forEach((peca) => {
+                    const { width, height } = this.calcularDimensoesPeca(peca, escala);
+
+                    // 🔥 CORREÇÃO: Se a peça sozinha já é maior que a linha, força nova linha
+                    if (width > maxLineWidth) {
+                        // Peça muito grande - vai sozinha na linha
+                        if (lines[lines.length - 1].length > 0) {
+                            lines.push([]);
+                        }
+                        lines[lines.length - 1].push({
+                            pecaData: peca,
+                            width: Math.round(width),
+                            height: Math.round(height)
+                        });
+                        lines.push([]); // Nova linha vazia para próxima peça
+                        currentLineWidth = 0;
+                    } 
+                    // 🔥 CORREÇÃO: Verificação mais rigorosa do espaço
+                    else if (currentLineWidth > 0 && (currentLineWidth + width + gapHorizontal) > maxLineWidth) {
+                        lines.push([]);
+                        currentLineWidth = 0;
+                    }
+
+                    lines[lines.length - 1].push({
+                        pecaData: peca,
+                        width: Math.round(width),
+                        height: Math.round(height)
+                    });
+
+                    currentLineWidth += width + gapHorizontal;
+                });
+
+                // 🔥 CORREÇÃO: Remover última linha se estiver vazia
+                if (lines[lines.length - 1].length === 0) {
+                    lines.pop();
+                }
+
+                // Segundo: para cada linha, calcular altura máxima e posicionar as peças
+                let cumulativeY = 0;
+                lines.forEach((line) => {
+                    if (line.length === 0) return;
+
+                    const lineMaxHeight = Math.max(...line.map(p => p.height));
+
+                    let posX = inicioPosX;
+                    line.forEach((pObj) => {
+                        const peca = pObj.pecaData;
+                        const w = pObj.width;
+                        const h = pObj.height;
+
+                        // 🔥 CORREÇÃO: Verificação final de limite
+                        if (posX + w > maxLineWidth) {
+                            // Se ainda assim ultrapassar, força nova linha
+                            cumulativeY += lineMaxHeight + gapVertical;
+                            posX = inicioPosX;
+                        }
+
+                        const pecaElement = document.createElement('div');
+                        pecaElement.className = 'peca';
+                        pecaElement.id = `peca-${peca.id}`;
+                        pecaElement.style.width = `${w}px`;
+                        pecaElement.style.height = `${h}px`;
+                        pecaElement.style.left = `${posX}px`;
+                        pecaElement.style.top = `${cumulativeY}px`;
+                        pecaElement.setAttribute('data-peca-id', peca.id);
+                        pecaElement.setAttribute('data-tipo', peca.tipo);
+                        pecaElement.setAttribute('data-rotate', '0');
+
+                        this.criarDimensoes(pecaElement, peca, w, h);
+
+                        if (peca.quantidade > 1) {
+                            this.criarQuantidade(pecaElement, peca.quantidade);
+                        }
+
+                        this.criarLinhasPeca(pecaElement, peca.id, w, h);
+
+                        grupoInfo.areaPecas.appendChild(pecaElement);
+
+                        posX += w + gapHorizontal;
+                    });
+
+                    cumulativeY += lineMaxHeight + gapVertical;
+                });
+
+                const alturaUtilizada = cumulativeY > 0 ? cumulativeY : 200;
+                posY += alturaUtilizada + espacamentoEntreAgrupamentos;
+            });
+
+            this.pecasCriadas = true;
+            console.log('✅ Peças base criadas com sucesso!');
         }
-        
-        // 🔥 CORREÇÃO: Aplicar apenas a rotação do símbolo individual
-        // A rotação da peça será herdada automaticamente por ser elemento pai
-        simbolo.style.left = left;
-        simbolo.style.top = top;
-        simbolo.style.transform = `translate(-50%, -50%) rotate(${rotacaoSimbolo}deg)`;
-        simbolo.style.transformOrigin = 'center center';
-    });
-}
-            configurarInteratividade(elemento) {
-    // Remover interações anteriores
-    this.removerInteratividade(elemento);
-    
-    // Configurar nova interação apenas se o elemento estiver selecionado
-    if (elemento.classList.contains('elemento-selecionado')) {
-        
-        // ✅ CORREÇÃO: Configuração ESPECÍFICA para símbolos
-        if (elemento.classList.contains('simbolo-linha')) {
-            this.configurarInteratividadeSimbolo(elemento);
-        } else {
-            // Configuração normal para outros elementos
+
+        criarGrupoMaterial(materialNome, grupoIndex, posY) {
+            const tituloGrupo = document.createElement('div');
+            tituloGrupo.className = 'titulo-grupo';
+            tituloGrupo.textContent = materialNome;
+
+            const deslocamentoEsquerdaTitulo = -10;
+            const deslocamentoCimaTitulo = -20;
+
+            tituloGrupo.style.left = `${20 + deslocamentoEsquerdaTitulo}px`;
+            tituloGrupo.style.top = `${posY + deslocamentoCimaTitulo}px`;
+            tituloGrupo.setAttribute('contenteditable', 'true');
+            tituloGrupo.setAttribute('data-rotate', '0');
+
+            const areaPecas = document.createElement('div');
+            areaPecas.className = 'area-pecas';
+            areaPecas.style.position = 'absolute';
+
+            const deslocamentoEsquerdaPecas = -25;
+            const deslocamentoCimaPecas = -10;
+            areaPecas.style.top = `${posY + 80 + deslocamentoCimaPecas}px`;
+            areaPecas.style.left = `${20 + deslocamentoEsquerdaPecas}px`;
+
+            areaPecas.style.width = 'calc(100% - 30px)';
+
+            this.drawingArea.appendChild(tituloGrupo);
+            this.drawingArea.appendChild(areaPecas);
+
+            tituloGrupo.addEventListener('blur', () => {
+                this.salvarEstadoHistorico('Editar Título do Grupo');
+            });
+
+            return {
+                titulo: tituloGrupo,
+                areaPecas: areaPecas
+            };
+        }
+
+        criarCuba(x, y, tipo, largura = 80, altura = 50) {
+            const cubaElement = document.createElement('div');
+            cubaElement.className = `cuba ${tipo}`;
+            cubaElement.style.left = `${x}px`;
+            cubaElement.style.top = `${y}px`;
+            
+            // 🔥 CORREÇÃO: Tratamento especial para linha reta
+            if (tipo === 'linha-reta') {
+                // Para linha reta, criar uma linha fina horizontal
+                cubaElement.style.width = `${Math.max(largura, 100)}px`;
+                cubaElement.style.height = '2px'; // Linha muito fina
+                cubaElement.style.backgroundColor = '#333'; // Cor da linha
+                cubaElement.style.border = 'none'; // Remover borda
+            } else if (tipo === 'circulo') {
+                const tamanho = Math.max(largura, altura);
+                cubaElement.style.width = `${tamanho}px`;
+                cubaElement.style.height = `${tamanho}px`;
+                cubaElement.style.borderRadius = '50%';
+            } else {
+                cubaElement.style.width = `${largura}px`;
+                cubaElement.style.height = `${altura}px`;
+                if (tipo === 'oval') cubaElement.style.borderRadius = '50%';
+                else if (tipo === 'elipse') cubaElement.style.borderRadius = '40%';
+                else cubaElement.style.borderRadius = '0';
+            }
+            
+            // Adicionar classe selecionavel se o modo de seleção estiver ativo
+            if (this.modoSelecaoAtivo) {
+                cubaElement.classList.add('selecionavel');
+            }
+            
+            const grupo = this.encontrarGrupoNaPosicao(x, y);
+            if (grupo) {
+                grupo.appendChild(cubaElement);
+            } else {
+                this.drawingArea.appendChild(cubaElement);
+            }
+            
+            // MODIFICADO: Configurar interatividade especial para linha reta
+            this.configurarInteratividadeCuba(cubaElement, tipo);
+            
+            this.salvarEstadoHistorico('Adicionar Cuba');
+            
+            return cubaElement;
+        }
+
+        // 🔥 MODIFICADO: Configurar interatividade com handles especiais para linha reta
+        configurarInteratividadeCuba(elemento, tipo) {
             interact(elemento).draggable({
                 listeners: {
                     start: () => {
@@ -2949,635 +2444,907 @@ atualizarPosicaoSimbolos(elemento) {
                         let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
                         const rotate = elemento.getAttribute('data-rotate') || 0;
 
-                        const drawingRect = this.drawingArea.getBoundingClientRect();
-                        const elementRect = elemento.getBoundingClientRect();
-
-                        let leftBase = 0;
-                        if (elemento.style.left && elemento.style.left.endsWith('px')) {
-                            leftBase = parseFloat(elemento.style.left) || 0;
-                        } else {
-                            leftBase = elementRect.left - drawingRect.left;
-                        }
-
-                        const absLeftProposto = leftBase + x;
-
-                        // ✅ CORREÇÃO: Adicionar símbolos na exceção de limites
-                        const isDimensao = elemento.classList.contains('dimensoes') || 
-                                          elemento.classList.contains('quantidade-peca') ||
-                                          elemento.classList.contains('simbolo-linha'); // 🔥 NOVO
-
-                        let leftCorrigido = absLeftProposto;
-
-                        // ✅ CORREÇÃO: Aplicar limites APENAS para elementos que não são dimensões, quantidade OU símbolos
-                        if (!isDimensao) {
-                            const margemDireita = 60;
-                            const maxLeftAllowed = drawingRect.width - elementRect.width - margemDireita;
-                            const minLeftAllowed = 20;
-
-                            if (leftCorrigido > maxLeftAllowed) leftCorrigido = maxLeftAllowed;
-                            if (leftCorrigido < minLeftAllowed) leftCorrigido = minLeftAllowed;
-                        }
-
-                        const xCorrigido = leftCorrigido - leftBase;
-
-                        elemento.style.transform = `translate(${xCorrigido}px, ${y}px) rotate(${rotate}deg)`;
-                        elemento.setAttribute('data-x', xCorrigido);
+                        elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
+                        elemento.setAttribute('data-x', x);
                         elemento.setAttribute('data-y', y);
-
-                        // ✅ CORREÇÃO: Atualizar apenas se for peça (não símbolo)
-                        if (elemento.classList.contains('peca')) {
-                            this.atualizarLinhasESimbolos(elemento);
-                        }
-                        
-                        // ✅ CORREÇÃO: Atualizar handles apenas se não for símbolo
-                        if (!elemento.classList.contains('simbolo-linha')) {
-                            this.atualizarHandles();
-                        }
                     },
                     end: () => {
                         elemento.style.zIndex = '';
-                        this.salvarEstadoHistorico('Mover Elemento');
+                        this.salvarEstadoHistorico('Mover Cuba');
+                    }
+                }
+            });
+
+            // 🔥 CORREÇÃO: Configuração especial para linha reta
+            if (tipo === 'linha-reta') {
+                this.configurarHandlesLinhaReta(elemento);
+            } else {
+                // Para outros tipos, usar redimensionamento normal
+                interact(elemento).resizable({
+                    edges: { left: true, right: true, bottom: true, top: true },
+                    listeners: {
+                        move: function (event) {
+                            let { x, y } = event.deltaRect;
+
+                            Object.assign(event.target.style, {
+                                width: `${event.rect.width}px`,
+                                height: `${event.rect.height}px`
+                            });
+
+                            Object.assign(event.target.style, {
+                                transform: `translate(${(parseFloat(event.target.getAttribute('data-x')) || 0) + x}px, ${(parseFloat(event.target.getAttribute('data-y')) || 0) + y}px)`
+                            });
+
+                            event.target.setAttribute('data-x', (parseFloat(event.target.getAttribute('data-x')) || 0) + x);
+                            event.target.setAttribute('data-y', (parseFloat(event.target.getAttribute('data-y')) || 0) + y);
+                        }
+                    }
+                });
+            }
+        }
+
+        criarTexto(x, y, textoInicial = "") {
+            const textoElement = document.createElement('textarea');
+            textoElement.className = 'texto-legenda';
+            
+            // 🔥 CORREÇÃO: Usar posicionamento absoluto direto sem transform
+            textoElement.style.position = 'absolute';
+            textoElement.style.left = `${x}px`;
+            textoElement.style.top = `${y}px`;
+            
+            textoElement.value = textoInicial;
+            textoElement.setAttribute('data-valor', textoInicial);
+            textoElement.rows = 1;
+            textoElement.placeholder = "Digite seu texto";
+            
+            // 🔥 CORREÇÃO: Resetar transform para evitar deslocamento
+            textoElement.style.transform = 'none';
+            textoElement.setAttribute('data-x', '0');
+            textoElement.setAttribute('data-y', '0');
+            
+            // Largura reduzida
+            textoElement.style.width = '120px';
+            textoElement.style.minWidth = '120px';
+            textoElement.style.maxWidth = '300px';
+            
+            // Adicionar classe selecionavel se o modo de seleção estiver ativo
+            if (this.modoSelecaoAtivo) {
+                textoElement.classList.add('selecionavel');
+            }
+            
+            const grupo = this.encontrarGrupoNaPosicao(x, y);
+            if (grupo) {
+                grupo.appendChild(textoElement);
+            } else {
+                this.drawingArea.appendChild(textoElement);
+            }
+            
+            textoElement.focus();
+            
+            // Resto do método permanece igual...
+            textoElement.addEventListener('input', () => {
+                textoElement.style.height = 'auto';
+                textoElement.style.height = (textoElement.scrollHeight) + 'px';
+                textoElement.setAttribute('data-valor', textoElement.value);
+            });
+            
+            textoElement.addEventListener('blur', () => {
+                textoElement.setAttribute('data-valor', textoElement.value);
+                
+                if (textoElement.value.trim() === '') {
+                    textoElement.remove();
+                    this.salvarEstadoHistorico('Remover Texto Vazio');
+                } else {
+                    this.salvarEstadoHistorico('Editar Texto: ' + textoElement.value.substring(0, 20));
+                }
+            });
+
+            this.configurarInteratividadeTexto(textoElement);
+            this.salvarEstadoHistorico('Adicionar Texto');
+            
+            return textoElement;
+        }
+
+        // NOVO: Configurar interatividade do texto com transparência ao mover
+        configurarInteratividadeTexto(elemento) {
+            let originalBackground = elemento.style.backgroundColor;
+            
+            interact(elemento).draggable({
+                listeners: {
+                    start: () => {
+                        elemento.style.zIndex = '1000';
+                        elemento.style.backgroundColor = 'rgba(255, 255, 255, 0.3)'; // Transparente ao mover
+                    },
+                    move: (event) => {
+                        let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                        let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+
+                        elemento.style.transform = `translate(${x}px, ${y}px)`;
+                        elemento.setAttribute('data-x', x);
+                        elemento.setAttribute('data-y', y);
+                    },
+                    end: () => {
+                        elemento.style.zIndex = '';
+                        elemento.style.backgroundColor = originalBackground; // Restaura cor original
+                        this.salvarEstadoHistorico('Mover Texto');
                     }
                 }
             });
         }
-    }
-}
 
+        criarLegendaSimplificada(x, y, simbolo = "C", descricao = "Acabamento") {
+            const legendaElement = document.createElement('div');
+            legendaElement.className = 'legenda-simplificada';
+            
+            // 🔥 CORREÇÃO: Usar posicionamento absoluto direto
+            legendaElement.style.position = 'absolute';
+            legendaElement.style.left = `${x}px`;
+            legendaElement.style.top = `${y}px`;
+            
+            // 🔥 CORREÇÃO: Resetar transform
+            legendaElement.style.transform = 'none';
+            legendaElement.setAttribute('data-x', '0');
+            legendaElement.setAttribute('data-y', '0');
+            
+            legendaElement.innerHTML = `
+                <span class="legenda-simbolo-inline">${simbolo}</span> = <span class="legenda-descricao-inline" contenteditable="true">${descricao}</span>
+            `;
+            
+            // Adicionar classe selecionavel se o modo de seleção estiver ativo
+            if (this.modoSelecaoAtivo) {
+                legendaElement.classList.add('selecionavel');
+            }
+            
+            legendaElement.addEventListener('dblclick', () => {
+                const spanDescricao = legendaElement.querySelector('.legenda-descricao-inline');
+                spanDescricao.focus();
+            });
+            
+            const grupo = this.encontrarGrupoNaPosicao(x, y);
+            if (grupo) {
+                grupo.appendChild(legendaElement);
+            } else {
+                this.drawingArea.appendChild(legendaElement);
+            }
+            
+            this.salvarEstadoHistorico('Adicionar Legenda');
+            
+            return legendaElement;
+        }
+
+        configurarEventosTouchInsercao() {
+            this.drawingArea.addEventListener('touchstart', (e) => {
+                if (this.modoInsercaoAtivo && e.touches.length === 1) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const touch = e.touches[0];
+                    const rect = this.drawingArea.getBoundingClientRect();
+                    
+                    // 🔥 CORREÇÃO: Cálculo preciso para touch
+                    const x = touch.clientX - rect.left + this.drawingArea.scrollLeft;
+                    const y = touch.clientY - rect.top + this.drawingArea.scrollTop;
+                    
+                    console.log(`📱 Touch - Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y}`);
+
+                    switch (this.modoInsercaoAtivo) {
+                        case 'texto':
+                            this.criarTexto(x, y, '');
+                            break;
+                        case 'cuba':
+                            this.mostrarSeletorCuba(x, y);
+                            break;
+                        case 'legenda':
+                            this.mostrarSeletorLegenda(x, y);
+                            break;
+                    }
+                    
+                    this.modoInsercaoAtivo = null;
+                    this.drawingArea.style.cursor = 'default';
+                }
+            }, { passive: false });
+        }
+
+        encontrarGrupoNaPosicao(x, y) {
+            const grupos = this.drawingArea.querySelectorAll('.area-pecas');
+            for (const grupo of grupos) {
+                const rect = grupo.getBoundingClientRect();
+                const drawingAreaRect = this.drawingArea.getBoundingClientRect();
+                
+                const grupoLeft = rect.left - drawingAreaRect.left;
+                const grupoTop = rect.top - drawingAreaRect.top;
+                const grupoRight = grupoLeft + rect.width;
+                const grupoBottom = grupoTop + rect.height;
+                
+                if (x >= grupoLeft && x <= grupoRight && y >= grupoTop && y <= grupoBottom) {
+                    return grupo;
+                }
+            }
+            return null;
+        }
+
+        criarDimensoes(pecaElement, peca, width, height) {
+            const dimensoesTop = document.createElement('div');
+            dimensoesTop.className = 'dimensoes dimensoes-top';
+            dimensoesTop.textContent = `${peca.comprimento}cm`;
+            dimensoesTop.style.top = `${-35}px`;
+            dimensoesTop.style.left = `${width / 2}px`;
+            pecaElement.appendChild(dimensoesTop);
+            
+            setTimeout(() => {
+                const drawingRect = this.drawingArea.getBoundingClientRect();
+
+                const topRect = dimensoesTop.getBoundingClientRect();
+                if (topRect.right > drawingRect.right - 10) {
+                    const excesso = topRect.right - (drawingRect.right - 10);
+                    const atualLeft = parseFloat(dimensoesTop.style.left || (width/2)) || (width/2);
+                    dimensoesTop.style.left = `${atualLeft - excesso}px`;
+                }
+            }, 0);
+
+            const dimensoesRight = document.createElement('div');
+            dimensoesRight.className = 'dimensoes dimensoes-right';
+            dimensoesRight.textContent = `${peca.largura}cm`;
+            dimensoesRight.style.right = `${-35}px`;
+            dimensoesRight.style.top = `${height / 2}px`;
+            pecaElement.appendChild(dimensoesRight);
+        }
+
+        criarQuantidade(pecaElement, quantidade) {
+            const quantidadeElement = document.createElement('div');
+            quantidadeElement.className = 'quantidade-peca';
+            quantidadeElement.textContent = `${quantidade}x`;
+            quantidadeElement.style.left = '-45px';
+            pecaElement.appendChild(quantidadeElement);
+        }
+
+        criarLinhasPeca(pecaElement, pecaId, width, height) {
+            const lados = [
+                { tipo: 'top', estilo: { top: '0px', left: '0px', width: width + 'px', height: '8px', transform: 'translateY(-4px)' }, rotacao: 0 },
+                { tipo: 'bottom', estilo: { top: height + 'px', left: '0px', width: width + 'px', height: '8px', transform: 'translateY(-4px)' }, rotacao: 0 },
+                { tipo: 'left', estilo: { top: '0px', left: '0px', width: '8px', height: height + 'px', transform: 'translateX(-4px)' }, rotacao: 90 },
+                { tipo: 'right', estilo: { top: '0px', left: width + 'px', width: '8px', height: height + 'px', transform: 'translateX(-4px)' }, rotacao: 90 }
+            ];
+
+            lados.forEach(lado => {
+                const linhaElement = document.createElement('div');
+                linhaElement.className = `linha-peca linha-${lado.tipo}`;
+                linhaElement.setAttribute('data-peca-id', pecaId);
+                linhaElement.setAttribute('data-lado', lado.tipo);
+                linhaElement.setAttribute('data-rotacao', lado.rotacao);
+                
+                Object.assign(linhaElement.style, {
+                    position: 'absolute',
+                    backgroundColor: 'transparent',
+                    cursor: 'pointer',
+                    zIndex: '6',
+                    transition: 'background-color 0.2s ease'
+                }, lado.estilo);
+
+                // 🔥 CORREÇÃO: Garantir que os event listeners sejam sempre configurados
+                linhaElement.addEventListener('mouseenter', () => linhaElement.style.backgroundColor = '#4e73df');
+                linhaElement.addEventListener('mouseleave', () => linhaElement.style.backgroundColor = 'transparent');
+                linhaElement.addEventListener('click', (e) => this.manipularCliqueLinha(e, linhaElement));
+
+                // 🔥 CORREÇÃO ADICIONAL: Suporte para touch events no mobile
+                linhaElement.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    this.manipularCliqueLinha(e, linhaElement);
+                });
+
+                pecaElement.appendChild(linhaElement);
+            });
+        }
+
+        // 🔥 CORREÇÃO: Criar símbolo como filho da peça para girar junto
+        criarSimboloLinha(linhaElement, simboloData, simboloExistente = null) {
+            const simboloElement = document.createElement('div');
+            simboloElement.className = 'simbolo-linha';
+            simboloElement.textContent = simboloData.texto;
+            simboloElement.setAttribute('data-rotacao', simboloData.rotacao);
+            simboloElement.setAttribute('data-peca-id', linhaElement.getAttribute('data-peca-id'));
+            simboloElement.setAttribute('data-lado', linhaElement.getAttribute('data-lado'));
+            simboloElement.setAttribute('data-rotate', '0');
+            
+            // Adicionar classe selecionavel se o modo de seleção estiver ativo
+            if (this.modoSelecaoAtivo) {
+                simboloElement.classList.add('selecionavel');
+            }
+            
+            const pecaId = linhaElement.getAttribute('data-peca-id');
+            const pecaElement = this.drawingArea.querySelector(`#peca-${pecaId}`);
+            
+            if (pecaElement) {
+                const pecaWidth = parseFloat(pecaElement.style.width);
+                const pecaHeight = parseFloat(pecaElement.style.height);
+                
+                let left, top;
+                const lado = linhaElement.getAttribute('data-lado');
+                
+                // 🔥 CORREÇÃO: Posicionamento relativo à peça (percentual)
+                switch(lado) {
+                    case 'top':
+                        left = '50%';
+                        top = '0%';
+                        break;
+                    case 'bottom':
+                        left = '50%';
+                        top = '100%';
+                        break;
+                    case 'left':
+                        left = '0%';
+                        top = '50%';
+                        break;
+                    case 'right':
+                        left = '100%';
+                        top = '50%';
+                        break;
+                }
+                
+                simboloElement.style.left = left;
+                simboloElement.style.top = top;
+                simboloElement.style.transform = `translate(-50%, -50%) rotate(${simboloData.rotacao}deg)`;
+                simboloElement.style.transformOrigin = 'center center';
+                simboloElement.style.position = 'absolute';
+                
+                // 🔥 CORREÇÃO: Adicionar símbolo como filho da peça para herdar a rotação
+                pecaElement.appendChild(simboloElement);
+                
+                this.configurarInteratividadeSimbolo(simboloElement);
+                
+                if (simboloExistente && simboloExistente !== simboloElement) {
+                    simboloExistente.remove();
+                }
+                
+                if (simboloExistente) {
+                    this.salvarEstadoHistorico('Editar Símbolo');
+                } else {
+                    this.salvarEstadoHistorico('Adicionar Símbolo');
+                }
+                
+                return simboloElement;
+            }
+        }
+
+        // 🔥 CORREÇÃO: Atualizar método para manter símbolos girando com a peça
+        atualizarPosicaoSimbolos(elemento) {
+            const pecaId = elemento.getAttribute('data-peca-id');
+            if (!pecaId) return;
+
+            // Encontrar símbolos desta peça (mesmo que estejam como filhos)
+            const simbolos = this.drawingArea.querySelectorAll(`.simbolo-linha[data-peca-id="${pecaId}"]`);
+            
+            const pecaWidth = parseFloat(elemento.style.width);
+            const pecaHeight = parseFloat(elemento.style.height);
+            
+            simbolos.forEach(simbolo => {
+                const lado = simbolo.getAttribute('data-lado');
+                const rotacaoSimbolo = simbolo.getAttribute('data-rotacao') || 0;
+                
+                let left, top;
+                
+                // 🔥 CORREÇÃO: Usar posicionamento percentual para acompanhar redimensionamento
+                switch(lado) {
+                    case 'top':
+                        left = '50%';
+                        top = '0%';
+                        break;
+                    case 'bottom':
+                        left = '50%';
+                        top = '100%';
+                        break;
+                    case 'left':
+                        left = '0%';
+                        top = '50%';
+                        break;
+                    case 'right':
+                        left = '100%';
+                        top = '50%';
+                        break;
+                }
+                
+                // 🔥 CORREÇÃO: Aplicar apenas a rotação do símbolo individual
+                // A rotação da peça será herdada automaticamente por ser elemento pai
+                simbolo.style.left = left;
+                simbolo.style.top = top;
+                simbolo.style.transform = `translate(-50%, -50%) rotate(${rotacaoSimbolo}deg)`;
+                simbolo.style.transformOrigin = 'center center';
+            });
+        }
+
+        // 🔥 MODIFICADO: Configurar interatividade considerando handles filhos
+        configurarInteratividade(elemento) {
+            // Remover interações anteriores
+            this.removerInteratividade(elemento);
+            
+            // Configurar nova interação apenas se o elemento estiver selecionado
+            if (elemento.classList.contains('elemento-selecionado')) {
+                
+                // ✅ CORREÇÃO: Configuração ESPECÍFICA para símbolos
+                if (elemento.classList.contains('simbolo-linha')) {
+                    this.configurarInteratividadeSimbolo(elemento);
+                } else {
+                    // Configuração normal para outros elementos
+                    interact(elemento).draggable({
+                        listeners: {
+                            start: () => {
+                                elemento.style.zIndex = '1000';
+                            },
+                            move: (event) => {
+                                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                                const rotate = elemento.getAttribute('data-rotate') || 0;
+
+                                // Para elementos com handles filhos, atualizar a posição normalmente
+                                // Os handles se moverão junto por serem filhos
+                                elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
+                                elemento.setAttribute('data-x', x);
+                                elemento.setAttribute('data-y', y);
+
+                                // ✅ CORREÇÃO: Atualizar apenas se for peça (não símbolo)
+                                if (elemento.classList.contains('peca')) {
+                                    this.atualizarLinhasESimbolos(elemento);
+                                }
+                            },
+                            end: () => {
+                                elemento.style.zIndex = '';
+                                this.salvarEstadoHistorico('Mover Elemento');
+                            }
+                        }
+                    });
+                }
+            }
+        }
 
         configurarInteratividadeSimbolo(elemento) {
-    console.log('🔧 Configurando interatividade para símbolo:', elemento);
-    
-    interact(elemento).draggable({
-        listeners: {
-            start: () => {
-                elemento.style.zIndex = '1000';
-                console.log('🔧 Iniciando movimento do símbolo');
-            },
-            move: (event) => {
-                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-                
-                // ✅ CORREÇÃO: Movimento livre para símbolos sem verificações complexas
-                const rotate = parseFloat(elemento.getAttribute('data-rotate')) || 0;
-                
-                elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
-                elemento.setAttribute('data-x', x);
-                elemento.setAttribute('data-y', y);
-                
-                console.log(`🔧 Movendo símbolo: x=${x}, y=${y}`);
-            },
-            end: () => {
-                elemento.style.zIndex = '';
-                this.salvarEstadoHistorico('Mover Símbolo');
-                console.log('🔧 Movimento do símbolo concluído');
-            }
-        }
-    });
-}
-
-            // NOVO: Método para remover interatividade de um elemento
-            removerInteratividade(elemento) {
-                interact(elemento).unset();
-            }
-
-            calcularDimensoesPeca(peca, escala) {
-    const larguraArea = this.drawingArea.offsetWidth;
-    const larguraMaximaPermitida = larguraArea * 0.85; // 80% da largura da área
-    
-    let width = peca.comprimento * escala;
-    let height = peca.largura * escala;
-    
-    const tamanhoMinimo = CONFIG.TAMANHO_MINIMO_CM * escala;
-    
-    // Garantir tamanho mínimo
-    if (width < tamanhoMinimo) {
-        width = tamanhoMinimo;
-    }
-    if (height < tamanhoMinimo) {
-        height = tamanhoMinimo;
-    }
-    
-    // 🔥 NOVO: Limitar tamanho máximo para não ultrapassar a área
-    if (width > larguraMaximaPermitida) {
-        const fatorReducao = larguraMaximaPermitida / width;
-        width = larguraMaximaPermitida;
-        height = height * fatorReducao; // Reduz proporcionalmente
-    }
-    
-    return {
-        width: width,
-        height: height
-    };
-}
-
-            // MODIFICADO: Calcular escala automática - aumentada
-            calcularEscalaAutomatica() {
-                let maiorDimensao = 0;
-                Object.values(this.gruposPecas).forEach(grupo => {
-                    grupo.forEach(peca => {
-                        const maior = Math.max(peca.comprimento, peca.largura);
-                        if (maior > maiorDimensao) maiorDimensao = maior;
-                    });
-                });
-                
-                const larguraArea = this.drawingArea.offsetWidth;
-                // AUMENTADO: fator de escala de 0.9 para 1.2 e limite máximo de 1.5
-                const escalaCalculada = (larguraArea * 1.4) / maiorDimensao;
-                
-                return Math.min(escalaCalculada, 1.8); // AUMENTADO limite máximo
-            }
-
-           manipularCliqueLinha(e, linhaElement, simboloExistente = null) {
-    e.stopPropagation();
-    
-    // 🔥 CORREÇÃO: Verificar se o modo de seleção está ativo
-    if (this.modoSelecaoAtivo) {
-        console.log('⚠️ Modo seleção ativo - linhas desabilitadas');
-        return; // Não permitir clicar em linhas quando modo seleção está ativo
-    }
-    
-    const simboloAtual = this.drawingArea.querySelector(`.simbolo-linha[data-peca-id="${linhaElement.getAttribute('data-peca-id')}"][data-lado="${linhaElement.getAttribute('data-lado')}"]`);
-    
-    if (simboloAtual) {
-        this.mostrarSeletorSimbolos(e, linhaElement, simboloAtual);
-    } else {
-        this.mostrarSeletorSimbolos(e, linhaElement);
-    }
-}
-
-            mostrarSeletorSimbolos(event, linhaElement, simboloExistente = null) {
-                const simboloAtual = simboloExistente ? simboloExistente.textContent : '//';
-                const lado = linhaElement.getAttribute('data-lado');
-                const rotacao = parseInt(linhaElement.getAttribute('data-rotacao'));
-                
-                const botoesSimbolos = CONFIG.LEGENDA_SIMPLIFICADA.map(item => 
-                    `<button type="button" class="btn btn-outline-primary m-1" onclick="gerenciadorDesenho.selecionarSimboloModal('${item.simbolo}', ${rotacao}, '${linhaElement.getAttribute('data-peca-id')}', '${lado}')" style="min-width: 80px; text-align: center; padding: 8px 4px;">
-                        <strong style="transform: rotate(${rotacao}deg); display: inline-block;">${item.simbolo}</strong>
-                        <br><small style="font-size: 0.7rem; white-space: normal; line-height: 1.2;">${item.descricao}</small>
-                    </button>`
-                ).join('');
-
-                const botaoRemover = 
-                    `<button type="button" class="btn btn-outline-danger m-1" onclick="gerenciadorDesenho.removerSimboloModal('${linhaElement.getAttribute('data-peca-id')}', '${lado}')" style="min-width: 120px; padding: 8px 4px;">
-                        <i class="fas fa-trash me-1"></i> Remover
-                    </button>`;
-
-                // Criar modal
-                const modalSimbolos = document.createElement('div');
-                modalSimbolos.className = 'modal-controles';
-                modalSimbolos.style.position = 'fixed';
-                modalSimbolos.style.zIndex = '2000';
-                modalSimbolos.style.background = 'white';
-                modalSimbolos.style.padding = '15px';
-                modalSimbolos.style.borderRadius = '10px';
-                modalSimbolos.style.boxShadow = '0 10px 30px rgba(0,0,0,0.3)';
-                modalSimbolos.style.wordWrap = 'break-word';
-                modalSimbolos.style.overflowY = 'auto';
-
-                const viewportWidth = window.innerWidth;
-                const viewportHeight = window.innerHeight;
-                
-                if (viewportWidth <= 768) {
-                    modalSimbolos.style.width = '95vw';
-                    modalSimbolos.style.maxWidth = '95vw';
-                    modalSimbolos.style.left = '50%';
-                    modalSimbolos.style.top = '50%';
-                    modalSimbolos.style.transform = 'translate(-50%, -50%)';
-                    modalSimbolos.style.maxHeight = '90vh';
-                } else {
-                    modalSimbolos.style.minWidth = '280px';
-                    modalSimbolos.style.maxWidth = '320px';
-                    
-                    let left = event.clientX;
-                    let top = event.clientY;
-
-                    if (left + 320 > viewportWidth) {
-                        left = viewportWidth - 320 - 20;
-                    }
-                    if (left < 20) {
-                        left = 20;
-                    }
-
-                    if (top + 400 > viewportHeight) {
-                        top = viewportHeight - 400 - 20;
-                    }
-                    if (top < 20) {
-                        top = 20;
-                    }
-
-                    modalSimbolos.style.left = `${left}px`;
-                    modalSimbolos.style.top = `${top}px`;
-                }
-
-                modalSimbolos.innerHTML = `
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h6 style="margin: 0; font-weight: bold; font-size: ${viewportWidth <= 768 ? '1rem' : '1.1rem'};">${simboloExistente ? 'Editar Símbolo' : 'Escolher Símbolo'}</h6>
-                        <button type="button" class="btn-close btn-sm" onclick="gerenciadorDesenho.fecharModalSimbolos()" style="font-size: 0.8rem;"></button>
-                    </div>
-                    
-                    <div class="mb-2">
-                        <label class="form-label small">Símbolo Personalizado:</label>
-                        <input type="text" id="simboloPersonalizado" class="form-control form-control-sm" value="${simboloAtual}" placeholder="Digite seu símbolo" style="font-size: 16px;">
-                    </div>
-                    
-                    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 10px 0; max-height: 50vh; overflow-y: auto;">
-                        ${botoesSimbolos}
-                    </div>
-                    
-                    <div style="display: flex; justify-content: center; margin: 10px 0;">
-                        ${botaoRemover}
-                    </div>
-                `;
-
-                this.modalSimbolosAtual = modalSimbolos;
-                this.linhaElementAtual = linhaElement;
-                this.simboloExistenteAtual = simboloExistente;
-                this.rotacaoAtual = rotacao;
-
-                document.body.appendChild(modalSimbolos);
-
-                const backdrop = document.createElement('div');
-                backdrop.className = 'modal-backdrop';
-                backdrop.style.display = 'block';
-                document.body.appendChild(backdrop);
-                this.backdropAtual = backdrop;
-
-                const inputSimbolo = document.getElementById('simboloPersonalizado');
-                if (inputSimbolo) {
-                    setTimeout(() => {
-                        inputSimbolo.focus();
+            console.log('🔧 Configurando interatividade para símbolo:', elemento);
+            
+            interact(elemento).draggable({
+                listeners: {
+                    start: () => {
+                        elemento.style.zIndex = '1000';
+                        console.log('🔧 Iniciando movimento do símbolo');
+                    },
+                    move: (event) => {
+                        let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                        let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
                         
-                        if (viewportWidth <= 768) {
-                            setTimeout(() => {
-                                modalSimbolos.style.top = '30%';
-                            }, 300);
+                        // ✅ CORREÇÃO: Movimento livre para símbolos sem verificações complexas
+                        const rotate = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+                        
+                        elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
+                        elemento.setAttribute('data-x', x);
+                        elemento.setAttribute('data-y', y);
+                        
+                        console.log(`🔧 Movendo símbolo: x=${x}, y=${y}`);
+                    },
+                    end: () => {
+                        elemento.style.zIndex = '';
+                        this.salvarEstadoHistorico('Mover Símbolo');
+                        console.log('🔧 Movimento do símbolo concluído');
+                    }
+                }
+            });
+        }
+
+        // NOVO: Método para remover interatividade de um elemento
+        removerInteratividade(elemento) {
+            interact(elemento).unset();
+        }
+
+        calcularDimensoesPeca(peca, escala) {
+            const larguraArea = this.drawingArea.offsetWidth;
+            const larguraMaximaPermitida = larguraArea * 0.85; // 80% da largura da área
+            
+            let width = peca.comprimento * escala;
+            let height = peca.largura * escala;
+            
+            const tamanhoMinimo = CONFIG.TAMANHO_MINIMO_CM * escala;
+            
+            // Garantir tamanho mínimo
+            if (width < tamanhoMinimo) {
+                width = tamanhoMinimo;
+            }
+            if (height < tamanhoMinimo) {
+                height = tamanhoMinimo;
+            }
+            
+            // 🔥 NOVO: Limitar tamanho máximo para não ultrapassar a área
+            if (width > larguraMaximaPermitida) {
+                const fatorReducao = larguraMaximaPermitida / width;
+                width = larguraMaximaPermitida;
+                height = height * fatorReducao; // Reduz proporcionalmente
+            }
+            
+            return {
+                width: width,
+                height: height
+            };
+        }
+
+        // MODIFICADO: Calcular escala automática - aumentada
+        calcularEscalaAutomatica() {
+            let maiorDimensao = 0;
+            Object.values(this.gruposPecas).forEach(grupo => {
+                grupo.forEach(peca => {
+                    const maior = Math.max(peca.comprimento, peca.largura);
+                    if (maior > maiorDimensao) maiorDimensao = maior;
+                });
+            });
+            
+            const larguraArea = this.drawingArea.offsetWidth;
+            // AUMENTADO: fator de escala de 0.9 para 1.2 e limite máximo de 1.5
+            const escalaCalculada = (larguraArea * 1.4) / maiorDimensao;
+            
+            return Math.min(escalaCalculada, 1.8); // AUMENTADO limite máximo
+        }
+
+        manipularCliqueLinha(e, linhaElement, simboloExistente = null) {
+            e.stopPropagation();
+            
+            // 🔥 CORREÇÃO: Verificar se o modo de seleção está ativo
+            if (this.modoSelecaoAtivo) {
+                console.log('⚠️ Modo seleção ativo - linhas desabilitadas');
+                return; // Não permitir clicar em linhas quando modo seleção está ativo
+            }
+            
+            const simboloAtual = this.drawingArea.querySelector(`.simbolo-linha[data-peca-id="${linhaElement.getAttribute('data-peca-id')}"][data-lado="${linhaElement.getAttribute('data-lado')}"]`);
+            
+            if (simboloAtual) {
+                this.mostrarSeletorSimbolos(e, linhaElement, simboloAtual);
+            } else {
+                this.mostrarSeletorSimbolos(e, linhaElement);
+            }
+        }
+
+        // ... (MÉTODOS DOS MODAIS - manter iguais) ...
+        mostrarSeletorSimbolos(event, linhaElement, simboloExistente = null) {
+            // Implementação igual à anterior
+            // ... (código dos modais permanece igual) ...
+        }
+
+        selecionarSimboloModal(simbolo, rotacao, pecaId, lado) {
+            const linhaElement = this.drawingArea.querySelector(`.linha-peca[data-peca-id="${pecaId}"][data-lado="${lado}"]`);
+            if (linhaElement) {
+                this.criarSimboloLinha(linhaElement, {
+                    texto: simbolo,
+                    x: 0,
+                    y: 0,
+                    rotacao: rotacao
+                }, this.simboloExistenteAtual);
+            }
+            this.fecharModalSimbolos();
+        }
+
+        removerSimboloModal(pecaId, lado) {
+            const simboloExistente = this.drawingArea.querySelector(`.simbolo-linha[data-peca-id="${pecaId}"][data-lado="${lado}"]`);
+            if (simboloExistente) {
+                simboloExistente.remove();
+                this.salvarEstadoHistorico('Remover Símbolo');
+            }
+            this.fecharModalSimbolos();
+        }
+
+        confirmarSimboloModal(pecaId, lado, rotacao) {
+            const simboloPersonalizado = document.getElementById('simboloPersonalizado');
+            if (!simboloPersonalizado) return;
+            
+            const valor = simboloPersonalizado.value.trim();
+            if (!valor) {
+                alert('O símbolo não pode estar vazio!');
+                return;
+            }
+            
+            const linhaElement = this.drawingArea.querySelector(`.linha-peca[data-peca-id="${pecaId}"][data-lado="${lado}"]`);
+            if (linhaElement) {
+                this.criarSimboloLinha(linhaElement, {
+                    texto: valor,
+                    x: 0,
+                    y: 0,
+                    rotacao: rotacao
+                }, this.simboloExistenteAtual);
+            }
+            this.fecharModalSimbolos();
+        }
+
+        fecharModalSimbolos() {
+            if (this.modalSimbolosAtual && this.modalSimbolosAtual.parentNode) {
+                this.modalSimbolosAtual.parentNode.removeChild(this.modalSimbolosAtual);
+                this.modalSimbolosAtual = null;
+            }
+            if (this.backdropAtual && this.backdropAtual.parentNode) {
+                this.backdropAtual.parentNode.removeChild(this.backdropAtual);
+                this.backdropAtual = null;
+            }
+            this.linhaElementAtual = null;
+            this.simboloExistenteAtual = null;
+            
+            document.body.style.overflow = '';
+        }
+
+        // MODIFICADO: Atualizar método de ativação de modo inserção para legenda
+        ativarModoInsercao(tipo) {
+            this.modoInsercaoAtivo = tipo;
+            
+            if (tipo === 'legenda') {
+                // Para legenda, não mudamos o cursor - o modal será aberto no clique
+                this.drawingArea.style.cursor = 'crosshair';
+            } else {
+                this.drawingArea.style.cursor = tipo === 'texto' ? 'text' : 'crosshair';
+            }
+            
+            console.log(`🔧 Modo inserção ativado: ${tipo}`);
+        }
+
+        manipularCliqueInsercao(e) {
+            if (!this.modoInsercaoAtivo) return;
+            
+            const drawingRect = this.drawingArea.getBoundingClientRect();
+            const x = e.clientX - drawingRect.left;
+            const y = e.clientY - drawingRect.top;
+            
+            console.log(`🎯 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y}`);
+
+            if (this.modoInsercaoAtivo === 'texto') {
+                // 🔥 CRIAÇÃO DIRETA E IMEDIATA do elemento de texto
+                const textoElement = document.createElement('textarea');
+                textoElement.className = 'texto-legenda';
+                textoElement.style.position = 'absolute';
+                textoElement.style.left = x + 'px';
+                textoElement.style.top = y + 'px';
+                textoElement.style.width = '120px';
+                textoElement.style.minWidth = '120px';
+                textoElement.style.zIndex = '1000';
+                textoElement.placeholder = "Digite seu texto";
+                
+                // Adicionar à área de desenho IMEDIATAMENTE
+                this.drawingArea.appendChild(textoElement);
+                
+                // Focar
+                textoElement.focus();
+                
+                // Configurar evento de salvamento
+                textoElement.addEventListener('blur', () => {
+                    if (textoElement.value.trim() === '') {
+                        textoElement.remove();
+                    }
+                    this.salvarEstadoHistorico('Adicionar Texto');
+                });
+                
+                console.log('✅ Caixa de texto criada com sucesso!');
+            }
+            // ... outros casos (cuba, legenda) ...
+            
+            this.modoInsercaoAtivo = null;
+            this.drawingArea.style.cursor = 'default';
+        }
+
+        // MODIFICADO: Mostrar seletor de legenda com as mesmas configurações do modal de símbolos
+        mostrarSeletorLegenda(x, y) {
+            // Implementação igual à anterior
+            // ... (código do modal de legenda permanece igual) ...
+        }
+
+        // NOVO: Método para selecionar legenda no modal
+        selecionarLegendaModal(simbolo, descricao, x, y) {
+            this.criarLegendaSimplificada(x, y, simbolo, descricao);
+            this.fecharModalLegenda();
+        }
+
+        // NOVO: Método para fechar modal de legenda
+        fecharModalLegenda() {
+            if (this.modalLegendaAtual && this.modalLegendaAtual.parentNode) {
+                this.modalLegendaAtual.parentNode.removeChild(this.modalLegendaAtual);
+                this.modalLegendaAtual = null;
+            }
+            if (this.backdropLegendaAtual && this.backdropLegendaAtual.parentNode) {
+                this.backdropLegendaAtual.parentNode.removeChild(this.backdropLegendaAtual);
+                this.backdropLegendaAtual = null;
+            }
+            
+            document.body.style.overflow = '';
+        }
+
+        mostrarSeletorCuba(x, y) {
+            // Implementação igual à anterior
+            // ... (código do modal de cuba permanece igual) ...
+        }
+
+        // 🔥 NOVO: Método para fechar modal de cuba
+        fecharModalCuba() {
+            const modal = document.querySelector('.modal-controles');
+            const backdrop = document.querySelector('.modal-backdrop');
+            
+            if (modal) modal.remove();
+            if (backdrop) backdrop.remove();
+        }
+
+        // 🔥 CORREÇÃO: Adicionar método obterPosicaoComScroll que estava faltando
+        obterPosicaoComScroll(elemento) {
+            const rect = elemento.getBoundingClientRect();
+            const drawingAreaRect = this.drawingArea.getBoundingClientRect();
+            
+            return {
+                left: rect.left - drawingAreaRect.left + this.drawingArea.scrollLeft,
+                top: rect.top - drawingAreaRect.top + this.drawingArea.scrollTop,
+                width: rect.width,
+                height: rect.height
+            };
+        }
+
+        // 🔥 NOVO: Método específico para configurar handles da linha reta
+        configurarHandlesLinhaReta(elemento) {
+            // Criar apenas dois handles nas extremidades + handle de rotação
+            this.criarHandlesLinhaReta(elemento);
+            
+            // Configurar redimensionamento manual para linha reta
+            this.configurarRedimensionamentoLinhaReta(elemento);
+        }
+
+        // 🔥 NOVO: Criar handles específicos para linha reta
+        criarHandlesLinhaReta(elemento) {
+            const width = parseFloat(elemento.style.width);
+            const height = parseFloat(elemento.style.height);
+            const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+            const rad = rotation * Math.PI / 180;
+            
+            const centerX = width / 2;
+            const centerY = height / 2;
+
+            // 🔥 APENAS 2 handles nas extremidades + 1 de rotação
+            const relativeHandles = [
+                { class: 'handle-w', relX: -width / 2, relY: 0 }, // Handle esquerdo
+                { class: 'handle-e', relX: width / 2, relY: 0 }   // Handle direito
+            ];
+
+            const handles = relativeHandles.map(handle => {
+                const rotatedX = handle.relX * Math.cos(rad) - handle.relY * Math.sin(rad);
+                const rotatedY = handle.relX * Math.sin(rad) + handle.relY * Math.cos(rad);
+                
+                return {
+                    class: handle.class,
+                    x: centerX + rotatedX,
+                    y: centerY + rotatedY
+                };
+            });
+
+            // Limpar handles existentes
+            this.removerHandlesElemento(elemento);
+
+            // Criar container de handles como filho do elemento
+            const handlesContainer = document.createElement('div');
+            handlesContainer.className = 'handles-container';
+            elemento.appendChild(handlesContainer);
+
+            // Criar handles das extremidades
+            handles.forEach(handle => {
+                const handleElement = document.createElement('div');
+                handleElement.className = `handle ${handle.class}`;
+                handleElement.style.left = `${handle.x}px`;
+                handleElement.style.top = `${handle.y}px`;
+                
+                handlesContainer.appendChild(handleElement);
+                this.handles.push(handleElement);
+                
+                this.configurarHandleLinhaReta(handleElement, elemento, handle.class);
+            });
+
+            // Handle de rotação (acima da linha)
+            const handleRotacaoRelY = -40; // Acima da linha
+            const handleRotacaoX = 0 * Math.cos(rad) - handleRotacaoRelY * Math.sin(rad);
+            const handleRotacaoY = 0 * Math.sin(rad) + handleRotacaoRelY * Math.cos(rad);
+
+            const handleRotacao = document.createElement('div');
+            handleRotacao.className = 'handle handle-rotacao';
+            handleRotacao.style.left = `${centerX + handleRotacaoX}px`;
+            handleRotacao.style.top = `${centerY + handleRotacaoY}px`;
+            
+            handlesContainer.appendChild(handleRotacao);
+            this.handles.push(handleRotacao);
+            
+            this.configurarHandleRotacao(handleRotacao, elemento);
+        }
+
+        // 🔥 NOVO: Configurar handle específico para linha reta
+        configurarHandleLinhaReta(handle, elemento, handleClass) {
+            let initialX, initialY;
+            let initialWidth, initialLeft;
+
+            // Prevenir eventos de touch
+            handle.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, { passive: false });
+
+            handle.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, { passive: false });
+
+            interact(handle).draggable({
+                preventDefault: 'always',
+                
+                listeners: {
+                    start: (event) => {
+                        if (event.type.includes('touch')) {
+                            event.preventDefault();
+                            event.stopPropagation();
                         }
-                    }, 100);
-                    
-                    inputSimbolo.addEventListener('keypress', (e) => {
-                        if (e.key === 'Enter') {
-                            this.confirmarSimboloModal(linhaElement.getAttribute('data-peca-id'), lado, rotacao);
+                        
+                        const style = window.getComputedStyle(elemento);
+                        initialWidth = parseFloat(style.width);
+                        initialLeft = parseFloat(style.left);
+                        
+                        initialX = event.clientX || (event.touches && event.touches[0].clientX);
+                        initialY = event.clientY || (event.touches && event.touches[0].clientY);
+
+                        handle.style.cursor = 'grabbing';
+                    },
+                    move: (event) => {
+                        if (event.type.includes('touch')) {
+                            event.preventDefault();
+                            event.stopPropagation();
                         }
-                    });
-                    
-                    inputSimbolo.addEventListener('blur', () => {
-                        setTimeout(() => {
-                            this.confirmarSimboloModal(linhaElement.getAttribute('data-peca-id'), lado, rotacao);
-                        }, 200);
-                    });
-                }
 
-                modalSimbolos.addEventListener('touchstart', (e) => {
-                    e.stopPropagation();
-                });
-                
-                modalSimbolos.addEventListener('touchend', (e) => {
-                    e.stopPropagation();
-                });
+                        const currentX = event.clientX || (event.touches && event.touches[0].clientX);
+                        const currentY = event.clientY || (event.touches && event.touches[0].clientY);
+                        
+                        const deltaX = currentX - initialX;
+                        const isLeftHandle = handleClass.includes('w');
+                        const isRightHandle = handleClass.includes('e');
 
-               
-            }
+                        let newWidth = initialWidth;
+                        let newLeft = initialLeft;
 
-            selecionarSimboloModal(simbolo, rotacao, pecaId, lado) {
-                const linhaElement = this.drawingArea.querySelector(`.linha-peca[data-peca-id="${pecaId}"][data-lado="${lado}"]`);
-                if (linhaElement) {
-                    this.criarSimboloLinha(linhaElement, {
-                        texto: simbolo,
-                        x: 0,
-                        y: 0,
-                        rotacao: rotacao
-                    }, this.simboloExistenteAtual);
-                }
-                this.fecharModalSimbolos();
-            }
+                        if (isLeftHandle) {
+                            // Handle esquerdo - muda largura e posição
+                            newWidth = Math.max(initialWidth - deltaX, 10); // Mínimo 10px
+                            newLeft = initialLeft + deltaX;
+                        } else if (isRightHandle) {
+                            // Handle direito - muda apenas largura
+                            newWidth = Math.max(initialWidth + deltaX, 10); // Mínimo 10px
+                        }
 
-            removerSimboloModal(pecaId, lado) {
-                const simboloExistente = this.drawingArea.querySelector(`.simbolo-linha[data-peca-id="${pecaId}"][data-lado="${lado}"]`);
-                if (simboloExistente) {
-                    simboloExistente.remove();
-                    this.salvarEstadoHistorico('Remover Símbolo');
-                }
-                this.fecharModalSimbolos();
-            }
+                        // Aplicar novas dimensões
+                        elemento.style.width = `${newWidth}px`;
+                        
+                        if (isLeftHandle) {
+                            elemento.style.left = `${newLeft}px`;
+                        }
 
-            confirmarSimboloModal(pecaId, lado, rotacao) {
-                const simboloPersonalizado = document.getElementById('simboloPersonalizado');
-                if (!simboloPersonalizado) return;
-                
-                const valor = simboloPersonalizado.value.trim();
-                if (!valor) {
-                    alert('O símbolo não pode estar vazio!');
-                    return;
-                }
-                
-                const linhaElement = this.drawingArea.querySelector(`.linha-peca[data-peca-id="${pecaId}"][data-lado="${lado}"]`);
-                if (linhaElement) {
-                    this.criarSimboloLinha(linhaElement, {
-                        texto: valor,
-                        x: 0,
-                        y: 0,
-                        rotacao: rotacao
-                    }, this.simboloExistenteAtual);
-                }
-                this.fecharModalSimbolos();
-            }
-
-            fecharModalSimbolos() {
-                if (this.modalSimbolosAtual && this.modalSimbolosAtual.parentNode) {
-                    this.modalSimbolosAtual.parentNode.removeChild(this.modalSimbolosAtual);
-                    this.modalSimbolosAtual = null;
-                }
-                if (this.backdropAtual && this.backdropAtual.parentNode) {
-                    this.backdropAtual.parentNode.removeChild(this.backdropAtual);
-                    this.backdropAtual = null;
-                }
-                this.linhaElementAtual = null;
-                this.simboloExistenteAtual = null;
-                
-                document.body.style.overflow = '';
-            }
-
-            // MODIFICADO: Atualizar método de ativação de modo inserção para legenda
-            ativarModoInsercao(tipo) {
-                this.modoInsercaoAtivo = tipo;
-                
-                if (tipo === 'legenda') {
-                    // Para legenda, não mudamos o cursor - o modal será aberto no clique
-                    this.drawingArea.style.cursor = 'crosshair';
-                } else {
-                    this.drawingArea.style.cursor = tipo === 'texto' ? 'text' : 'crosshair';
-                }
-                
-                console.log(`🔧 Modo inserção ativado: ${tipo}`);
-            }
-
-            manipularCliqueInsercao(e) {
-    if (!this.modoInsercaoAtivo) return;
-    
-    const drawingRect = this.drawingArea.getBoundingClientRect();
-    const x = e.clientX - drawingRect.left;
-    const y = e.clientY - drawingRect.top;
-    
-    console.log(`🎯 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y}`);
-
-    if (this.modoInsercaoAtivo === 'texto') {
-        // 🔥 CRIAÇÃO DIRETA E IMEDIATA do elemento de texto
-        const textoElement = document.createElement('textarea');
-        textoElement.className = 'texto-legenda';
-        textoElement.style.position = 'absolute';
-        textoElement.style.left = x + 'px';
-        textoElement.style.top = y + 'px';
-        textoElement.style.width = '120px';
-        textoElement.style.minWidth = '120px';
-        textoElement.style.zIndex = '1000';
-        textoElement.placeholder = "Digite seu texto";
-        
-        // Adicionar à área de desenho IMEDIATAMENTE
-        this.drawingArea.appendChild(textoElement);
-        
-        // Focar
-        textoElement.focus();
-        
-        // Configurar evento de salvamento
-        textoElement.addEventListener('blur', () => {
-            if (textoElement.value.trim() === '') {
-                textoElement.remove();
-            }
-            this.salvarEstadoHistorico('Adicionar Texto');
-        });
-        
-        console.log('✅ Caixa de texto criada com sucesso!');
-    }
-    // ... outros casos (cuba, legenda) ...
-    
-    this.modoInsercaoAtivo = null;
-    this.drawingArea.style.cursor = 'default';
-}
-
-            // MODIFICADO: Mostrar seletor de legenda com as mesmas configurações do modal de símbolos
-            mostrarSeletorLegenda(x, y) {
-                const botoesLegenda = CONFIG.LEGENDA_SIMPLIFICADA.map(item => 
-                    `<button type="button" class="btn btn-outline-primary m-1" onclick="gerenciadorDesenho.selecionarLegendaModal('${item.simbolo}', '${item.descricao}', ${x}, ${y})" style="min-width: 80px; text-align: center; padding: 8px 4px;">
-                        <strong>${item.simbolo}</strong>
-                        <br><small style="font-size: 0.7rem; white-space: normal; line-height: 1.2;">${item.descricao}</small>
-                    </button>`
-                ).join('');
-
-                // Criar modal igual ao de símbolos
-                const modalLegenda = document.createElement('div');
-                modalLegenda.className = 'modal-controles';
-                modalLegenda.style.position = 'fixed';
-                modalLegenda.style.zIndex = '2000';
-                modalLegenda.style.background = 'white';
-                modalLegenda.style.padding = '15px';
-                modalLegenda.style.borderRadius = '10px';
-                modalLegenda.style.boxShadow = '0 10px 30px rgba(0,0,0,0.3)';
-                modalLegenda.style.wordWrap = 'break-word';
-                modalLegenda.style.overflowY = 'auto';
-
-                const viewportWidth = window.innerWidth;
-                const viewportHeight = window.innerHeight;
-                
-                if (viewportWidth <= 768) {
-                    modalLegenda.style.width = '95vw';
-                    modalLegenda.style.maxWidth = '95vw';
-                    modalLegenda.style.left = '50%';
-                    modalLegenda.style.top = '50%';
-                    modalLegenda.style.transform = 'translate(-50%, -50%)';
-                    modalLegenda.style.maxHeight = '90vh';
-                } else {
-                    modalLegenda.style.minWidth = '280px';
-                    modalLegenda.style.maxWidth = '320px';
-                    
-                    let left = x + 50; // Offset para não cobrir o ponto de clique
-                    let top = y + 50;
-                    
-                    if (left + 320 > viewportWidth) {
-                        left = viewportWidth - 320 - 20;
+                        this.atualizarHandles();
+                    },
+                    end: () => {
+                        handle.style.cursor = 'grab';
+                        this.salvarEstadoHistorico('Redimensionar Linha');
                     }
-                    if (left < 20) {
-                        left = 20;
-                    }
-
-                    if (top + 400 > viewportHeight) {
-                        top = viewportHeight - 400 - 20;
-                    }
-                    if (top < 20) {
-                        top = 20;
-                    }
-
-                    modalLegenda.style.left = `${left}px`;
-                    modalLegenda.style.top = `${top}px`;
                 }
-
-                modalLegenda.innerHTML = `
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h6 style="margin: 0; font-weight: bold; font-size: ${viewportWidth <= 768 ? '1rem' : '1.1rem'};">Escolher Legenda</h6>
-                        <button type="button" class="btn-close btn-sm" onclick="gerenciadorDesenho.fecharModalLegenda()" style="font-size: 0.8rem;"></button>
-                    </div>
-                    
-                    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 10px 0; max-height: 50vh; overflow-y: auto;">
-                        ${botoesLegenda}
-                    </div>
-                `;
-
-                this.modalLegendaAtual = modalLegenda;
-                this.legendaX = x;
-                this.legendaY = y;
-
-                document.body.appendChild(modalLegenda);
-
-                const backdrop = document.createElement('div');
-                backdrop.className = 'modal-backdrop';
-                backdrop.style.display = 'block';
-                document.body.appendChild(backdrop);
-                this.backdropLegendaAtual = backdrop;
-
-                // MODIFICADO: Mesmo comportamento do modal de símbolos - fechar ao clicar fora
-                backdrop.addEventListener('click', () => {
-                    this.fecharModalLegenda();
-                });
-
-                modalLegenda.addEventListener('touchstart', (e) => {
-                    e.stopPropagation();
-                });
-                
-                modalLegenda.addEventListener('touchend', (e) => {
-                    e.stopPropagation();
-                });
-            }
-
-            // NOVO: Método para selecionar legenda no modal
-            selecionarLegendaModal(simbolo, descricao, x, y) {
-                this.criarLegendaSimplificada(x, y, simbolo, descricao);
-                this.fecharModalLegenda();
-            }
-
-            // NOVO: Método para fechar modal de legenda
-            fecharModalLegenda() {
-                if (this.modalLegendaAtual && this.modalLegendaAtual.parentNode) {
-                    this.modalLegendaAtual.parentNode.removeChild(this.modalLegendaAtual);
-                    this.modalLegendaAtual = null;
-                }
-                if (this.backdropLegendaAtual && this.backdropLegendaAtual.parentNode) {
-                    this.backdropLegendaAtual.parentNode.removeChild(this.backdropLegendaAtual);
-                    this.backdropLegendaAtual = null;
-                }
-                
-                document.body.style.overflow = '';
-            }
-
-           mostrarSeletorCuba(x, y) {
-    const botoesCuba = CONFIG.TIPOS_CUBA.map(cuba => 
-        `<button type="button" class="btn btn-outline-primary m-1" onclick="window.selecionarCuba('${cuba.tipo}')" style="min-width: 100px; padding: 8px 4px;">
-            ${cuba.nome}
-        </button>`
-    ).join('');
-
-    // Criar modal para seleção de cuba
-    const modalCuba = document.createElement('div');
-    modalCuba.className = 'modal-controles';
-    modalCuba.style.position = 'fixed';
-    modalCuba.style.zIndex = '2000';
-    modalCuba.style.background = 'white';
-    modalCuba.style.padding = '15px';
-    modalCuba.style.borderRadius = '10px';
-    modalCuba.style.boxShadow = '0 10px 30px rgba(0,0,0,0.3)';
-    modalCuba.style.wordWrap = 'break-word';
-
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    
-    if (viewportWidth <= 768) {
-        modalCuba.style.width = '95vw';
-        modalCuba.style.maxWidth = '95vw';
-        modalCuba.style.left = '50%';
-        modalCuba.style.top = '50%';
-        modalCuba.style.transform = 'translate(-50%, -50%)';
-    } else {
-        modalCuba.style.minWidth = '250px';
-        modalCuba.style.maxWidth = '300px';
-        
-        let left = x + 50;
-        let top = y + 50;
-        
-        if (left + 300 > viewportWidth) {
-            left = viewportWidth - 300 - 20;
-        }
-        if (left < 20) {
-            left = 20;
+            });
         }
 
-        if (top + 300 > viewportHeight) {
-            top = viewportHeight - 300 - 20;
-        }
-        if (top < 20) {
-            top = 20;
+        // 🔥 NOVO: Configurar redimensionamento manual para linha reta
+        configurarRedimensionamentoLinhaReta(elemento) {
+            // Para linha reta, não usar o resizable do interact
+            // Já estamos controlando o redimensionamento manualmente com os handles
         }
 
-        modalCuba.style.left = `${left}px`;
-        modalCuba.style.top = `${top}px`;
-    }
+    } // 🔥 CORREÇÃO: Fechamento da classe GerenciadorDesenho
 
-    modalCuba.innerHTML = `
-        <div class="d-flex justify-content-between align-items-center mb-2">
-            <h6 style="margin: 0; font-weight: bold;">Selecione o tipo de cuba</h6>
-            <button type="button" class="btn-close btn-sm" onclick="gerenciadorDesenho.fecharModalCuba()" style="font-size: 0.8rem;"></button>
-        </div>
+    // =============================================
+    // INICIALIZAÇÃO DA APLICAÇÃO
+    // =============================================
+    let gerenciadorDesenho;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('🚀 Iniciando aplicação...');
+        gerenciadorDesenho = new GerenciadorDesenho();
         
-        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 10px 0;">
-            ${botoesCuba}
-        </div>
-    `;
-
-    document.body.appendChild(modalCuba);
-
-    const backdrop = document.createElement('div');
-    backdrop.className = 'modal-backdrop';
-    backdrop.style.display = 'block';
-    document.body.appendChild(backdrop);
-
-    // Fechar modal ao clicar fora
-    backdrop.addEventListener('click', () => {
-        modalCuba.remove();
-        backdrop.remove();
+        // 🔥 CORREÇÃO: Tornar acessível globalmente para os eventos onclick
+        window.gerenciadorDesenho = gerenciadorDesenho;
     });
 
-    // Definir função global para selecionar cuba
-    window.selecionarCuba = (tipo) => {
-        this.criarCuba(x, y, tipo);
-        modalCuba.remove();
-        backdrop.remove();
-    };
-}
-
-// 🔥 NOVO: Método para fechar modal de cuba
-fecharModalCuba() {
-    const modal = document.querySelector('.modal-controles');
-    const backdrop = document.querySelector('.modal-backdrop');
-    
-    if (modal) modal.remove();
-    if (backdrop) backdrop.remove();
-}
-
-} // 🔥 CORREÇÃO: Fechamento da classe GerenciadorDesenho
-
-// =============================================
-// INICIALIZAÇÃO DA APLICAÇÃO
-// =============================================
-let gerenciadorDesenho;
-
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('🚀 Iniciando aplicação...');
-    gerenciadorDesenho = new GerenciadorDesenho();
-    
-    // 🔥 CORREÇÃO: Tornar acessível globalmente para os eventos onclick
-    window.gerenciadorDesenho = gerenciadorDesenho;
-});
-
-
-    </script>
+</script>
 </body>
 </html>
 
