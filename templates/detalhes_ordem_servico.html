@@ -969,33 +969,15 @@
             console.log('✅ Gerenciador de Desenho inicializado com sucesso!');
         }
 
-        excluirElemento() {
-            const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
-            if (!elementoAlvo) return;
+       excluirElemento() {
+    const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
+    if (!elementoAlvo) return;
 
-            Swal.fire({
-                title: 'Confirmar Exclusão',
-                text: 'Tem certeza que deseja excluir este elemento?',
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#d33',
-                cancelButtonColor: '#3085d6',
-                confirmButtonText: 'Sim, excluir!',
-                cancelButtonText: 'Cancelar'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    elementoAlvo.remove();
-                    this.desselecionarElemento();
-                    this.salvarEstadoHistorico('Excluir Elemento: ' + (elementoAlvo.className || 'Elemento'));
-                    
-                    Swal.fire(
-                        'Excluído!',
-                        'O elemento foi excluído com sucesso.',
-                        'success'
-                    );
-                }
-            });
-        }
+    elementoAlvo.remove();
+    this.desselecionarElemento();
+    this.salvarEstadoHistorico('Excluir Elemento: ' + (elementoAlvo.className || 'Elemento'));
+}
+
 
         carregarDesenhoSalvo() {
             try {
@@ -1613,7 +1595,7 @@
                     start: (event) => {
                         if (event.type.includes('touch')) {
                             event.preventDefault();
-                            event.stopPropagation();
+                            
                         }
                         
                         const style = window.getComputedStyle(elemento);
@@ -2321,47 +2303,43 @@
             };
         }
 
-        criarCuba(x, y, tipo, largura = 80, altura = 50) {
-            const cubaElement = document.createElement('div');
-            cubaElement.className = `cuba ${tipo}`;
-            cubaElement.style.left = `${x}px`;
-            cubaElement.style.top = `${y}px`;
-            
-            if (tipo === 'linha-reta') {
-                cubaElement.style.width = `${Math.max(largura, 100)}px`;
-                cubaElement.style.height = '2px';
-                cubaElement.style.backgroundColor = '#333';
-                cubaElement.style.border = 'none';
-            } else if (tipo === 'circulo') {
-                const tamanho = Math.max(largura, altura);
-                cubaElement.style.width = `${tamanho}px`;
-                cubaElement.style.height = `${tamanho}px`;
-                cubaElement.style.borderRadius = '50%';
-            } else {
-                cubaElement.style.width = `${largura}px`;
-                cubaElement.style.height = `${altura}px`;
-                if (tipo === 'oval') cubaElement.style.borderRadius = '50%';
-                else if (tipo === 'elipse') cubaElement.style.borderRadius = '40%';
-                else cubaElement.style.borderRadius = '0';
-            }
-            
-            if (this.modoSelecaoAtivo) {
-                cubaElement.classList.add('selecionavel');
-            }
-            
-            const grupo = this.encontrarGrupoNaPosicao(x, y);
-            if (grupo) {
-                grupo.appendChild(cubaElement);
-            } else {
-                this.drawingArea.appendChild(cubaElement);
-            }
-            
-            this.configurarInteratividadeCuba(cubaElement, tipo);
-            
-            this.salvarEstadoHistorico('Adicionar Cuba');
-            
-            return cubaElement;
-        }
+       criarCuba(x, y, tipo, largura = 80, altura = 50) {
+    const cubaElement = document.createElement('div');
+    cubaElement.className = `cuba ${tipo}`;
+    cubaElement.style.position = 'absolute';
+    cubaElement.style.left = `${x}px`;
+    cubaElement.style.top = `${y}px`;
+    
+    if (tipo === 'linha-reta') {
+        cubaElement.style.width = `${Math.max(largura, 100)}px`;
+        cubaElement.style.height = '2px';
+        cubaElement.style.backgroundColor = '#333';
+        cubaElement.style.border = 'none';
+    } else if (tipo === 'circulo') {
+        const tamanho = Math.max(largura, altura);
+        cubaElement.style.width = `${tamanho}px`;
+        cubaElement.style.height = `${tamanho}px`;
+        cubaElement.style.borderRadius = '50%';
+    } else {
+        cubaElement.style.width = `${largura}px`;
+        cubaElement.style.height = `${altura}px`;
+        if (tipo === 'oval') cubaElement.style.borderRadius = '50%';
+        else if (tipo === 'elipse') cubaElement.style.borderRadius = '40%';
+        else cubaElement.style.borderRadius = '0';
+    }
+
+    if (this.modoSelecaoAtivo) cubaElement.classList.add('selecionavel');
+
+    const grupo = this.encontrarGrupoNaPosicao(x, y);
+    if (grupo) grupo.appendChild(cubaElement);
+    else this.drawingArea.appendChild(cubaElement);
+
+    this.configurarInteratividadeCuba(cubaElement, tipo);
+    this.salvarEstadoHistorico('Adicionar Cuba');
+    return cubaElement;
+}
+
+
 
         configurarInteratividadeCuba(elemento, tipo) {
             interact(elemento).draggable({
@@ -2472,13 +2450,14 @@
                         elemento.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
                     },
                     move: (event) => {
-                        let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                        let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+    let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+    let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+    const rotacao = parseFloat(elemento.getAttribute('data-rotacao')) || 0;
 
-                        elemento.style.transform = `translate(${x}px, ${y}px)`;
-                        elemento.setAttribute('data-x', x);
-                        elemento.setAttribute('data-y', y);
-                    },
+    elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotacao}deg)`;
+    elemento.setAttribute('data-x', x);
+    elemento.setAttribute('data-y', y);
+},
                     end: () => {
                         elemento.style.zIndex = '';
                         elemento.style.backgroundColor = originalBackground;
@@ -2527,56 +2506,75 @@
             return legendaElement;
         }
 
-        configurarInteratividadeLegenda(elemento) {
-            interact(elemento).draggable({
-                allowFrom: '.legenda-simplificada',
-                ignoreFrom: 'input, textarea, button, select, .legenda-descricao-inline',
-                modifiers: [
-                    interact.modifiers.restrictRect({
-                        restriction: 'parent',
-                        endOnly: true
-                    })
-                ],
-                preventDefault: 'always',
-                
-                listeners: {
-                    start: (event) => {
-                        if (event.type.includes('touch')) {
-                            event.preventDefault();
-                            event.stopPropagation();
-                        }
-                        
-                        elemento.style.zIndex = '1000';
-                        console.log('🔧 Iniciando movimento da legenda');
-                    },
-                    move: (event) => {
-                        if (event.type.includes('touch')) {
-                            event.preventDefault();
-                            event.stopPropagation();
-                        }
-                        
-                        let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                        let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+       configurarInteratividadeLegenda(elemento) {
+    // 🔥 Captura e guarda a rotação inicial (de estilo inline ou data-rotacao)
+    const transformInicial = window.getComputedStyle(elemento).transform;
 
-                        elemento.style.transform = `translate(${x}px, ${y}px)`;
-                        elemento.setAttribute('data-x', x);
-                        elemento.setAttribute('data-y', y);
-                        
-                        console.log(`🔧 Movendo legenda: x=${x}, y=${y}`);
-                    },
-                    end: (event) => {
-                        if (event.type.includes('touch')) {
-                            event.preventDefault();
-                            event.stopPropagation();
-                        }
-                        
-                        elemento.style.zIndex = '';
-                        this.salvarEstadoHistorico('Mover Legenda');
-                        console.log('🔧 Movimento da legenda concluído');
-                    }
-                }
-            });
+    // Extrai o ângulo de rotação (se houver)
+    let rotacaoInicial = 0;
+    const match = elemento.style.transform.match(/rotate\(([-0-9.]+)deg\)/);
+    if (match) {
+        rotacaoInicial = parseFloat(match[1]);
+    } else {
+        // Tenta extrair da matriz de transformação (caso o rotate venha de CSS computed)
+        const matrix = transformInicial.match(/^matrix\(([^)]+)\)$/);
+        if (matrix) {
+            const valores = matrix[1].split(',').map(parseFloat);
+            const a = valores[0], b = valores[1];
+            const angulo = Math.round(Math.atan2(b, a) * (180 / Math.PI));
+            rotacaoInicial = angulo;
         }
+    }
+
+    elemento.setAttribute('data-rotacao', rotacaoInicial);
+
+    interact(elemento).draggable({
+        allowFrom: '.legenda-simplificada',
+        ignoreFrom: 'input, textarea, button, select, .legenda-descricao-inline',
+        modifiers: [
+            interact.modifiers.restrictRect({
+                restriction: 'parent',
+                endOnly: true
+            })
+        ],
+        preventDefault: 'always',
+
+        listeners: {
+            start: (event) => {
+                if (event.type.includes('touch')) event.preventDefault();
+
+                elemento.style.zIndex = '1000';
+                // ✅ Garante que a rotação inicial seja reaplicada no começo
+                const rotacao = parseFloat(elemento.getAttribute('data-rotacao')) || 0;
+                elemento.style.transform = `rotate(${rotacao}deg)`;
+
+                console.log('🌀 Iniciando movimento da legenda com rotação fixa:', rotacao);
+            },
+
+            move: (event) => {
+                if (event.type.includes('touch')) event.preventDefault();
+
+                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                const rotacao = parseFloat(elemento.getAttribute('data-rotacao')) || 0;
+
+                // ✅ Mantém a rotação fixa enquanto move
+                elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotacao}deg)`;
+                elemento.setAttribute('data-x', x);
+                elemento.setAttribute('data-y', y);
+            },
+
+            end: (event) => {
+                if (event.type.includes('touch')) event.preventDefault();
+                elemento.style.zIndex = '';
+                this.salvarEstadoHistorico('Mover Legenda');
+                console.log('✅ Movimento da legenda finalizado');
+            }
+        }
+    });
+}
+
+
 
         configurarEventosTouchInsercao() {
             this.drawingArea.addEventListener('touchstart', (e) => {
@@ -2701,70 +2699,83 @@
         }
 
         criarSimboloLinha(linhaElement, simboloData, simboloExistente = null) {
-            const simboloElement = document.createElement('div');
-            simboloElement.className = 'simbolo-linha';
-            simboloElement.textContent = simboloData.texto;
-            simboloElement.setAttribute('data-rotacao', simboloData.rotacao);
-            simboloElement.setAttribute('data-peca-id', linhaElement.getAttribute('data-peca-id'));
-            simboloElement.setAttribute('data-lado', linhaElement.getAttribute('data-lado'));
-            simboloElement.setAttribute('data-rotate', '0');
-            
-            if (this.modoSelecaoAtivo) {
-                simboloElement.classList.add('selecionavel');
-            }
-            
-            const pecaId = linhaElement.getAttribute('data-peca-id');
-            const pecaElement = this.drawingArea.querySelector(`#peca-${pecaId}`);
-            
-            if (pecaElement) {
-                const pecaWidth = parseFloat(pecaElement.style.width);
-                const pecaHeight = parseFloat(pecaElement.style.height);
-                
-                let left, top;
-                const lado = linhaElement.getAttribute('data-lado');
-                
-                switch(lado) {
-                    case 'top':
-                        left = '50%';
-                        top = '0%';
-                        break;
-                    case 'bottom':
-                        left = '50%';
-                        top = '100%';
-                        break;
-                    case 'left':
-                        left = '0%';
-                        top = '50%';
-                        break;
-                    case 'right':
-                        left = '100%';
-                        top = '50%';
-                        break;
-                }
-                
-                simboloElement.style.left = left;
-                simboloElement.style.top = top;
-                simboloElement.style.transform = `translate(-50%, -50%) rotate(${simboloData.rotacao}deg)`;
-                simboloElement.style.transformOrigin = 'center center';
-                simboloElement.style.position = 'absolute';
-                
-                pecaElement.appendChild(simboloElement);
-                
-                this.configurarInteratividadeSimbolo(simboloElement);
-                
-                if (simboloExistente && simboloExistente !== simboloElement) {
-                    simboloExistente.remove();
-                }
-                
-                if (simboloExistente) {
-                    this.salvarEstadoHistorico('Editar Símbolo');
-                } else {
-                    this.salvarEstadoHistorico('Adicionar Símbolo');
-                }
-                
-                return simboloElement;
-            }
+    const simboloElement = document.createElement('div');
+    simboloElement.className = 'simbolo-linha';
+    simboloElement.textContent = simboloData.texto;
+
+    // GUARDA o ângulo de rotação em ambos os atributos para compatibilidade
+    const angulo = Number(simboloData.rotacao) || 0;
+    simboloElement.setAttribute('data-rotacao', angulo);
+    // também gravamos data-rotate (aqui com o mesmo valor) — evita inconsistências
+    simboloElement.setAttribute('data-rotate', angulo);
+
+    simboloElement.setAttribute('data-peca-id', linhaElement.getAttribute('data-peca-id'));
+    simboloElement.setAttribute('data-lado', linhaElement.getAttribute('data-lado'));
+
+    // inicializa posição relativa de arraste
+    simboloElement.setAttribute('data-x', '0');
+    simboloElement.setAttribute('data-y', '0');
+
+    if (this.modoSelecaoAtivo) {
+        simboloElement.classList.add('selecionavel');
+    }
+
+    const pecaId = linhaElement.getAttribute('data-peca-id');
+    const pecaElement = this.drawingArea.querySelector(`#peca-${pecaId}`);
+    
+    if (pecaElement) {
+        const pecaWidth = parseFloat(pecaElement.style.width);
+        const pecaHeight = parseFloat(pecaElement.style.height);
+        
+        let left, top;
+        const lado = linhaElement.getAttribute('data-lado');
+        
+        switch(lado) {
+            case 'top':
+                left = '50%';
+                top = '0%';
+                break;
+            case 'bottom':
+                left = '50%';
+                top = '100%';
+                break;
+            case 'left':
+                left = '0%';
+                top = '50%';
+                break;
+            case 'right':
+                left = '100%';
+                top = '50%';
+                break;
         }
+        
+        simboloElement.style.left = left;
+        simboloElement.style.top = top;
+        // define transform inicial e origem
+        simboloElement.style.transform = `translate(-50%, -50%) rotate(${angulo}deg)`;
+        simboloElement.style.transformOrigin = 'center center';
+        simboloElement.style.position = 'absolute';
+        
+        // adiciona ao DOM antes de configurar interatividade — OK
+        pecaElement.appendChild(simboloElement);
+        
+        // configura o draggable (ver abaixo: a função foi ajustada também)
+        this.configurarInteratividadeSimbolo(simboloElement);
+        
+        if (simboloExistente && simboloExistente !== simboloElement) {
+            simboloExistente.remove();
+        }
+        
+        if (simboloExistente) {
+            this.salvarEstadoHistorico('Editar Símbolo');
+        } else {
+            this.salvarEstadoHistorico('Adicionar Símbolo');
+        }
+        
+        return simboloElement;
+    }
+}
+
 
         configurarInteratividade(elemento) {
             this.removerInteratividade(elemento);
@@ -3140,8 +3151,8 @@
             if (!this.modoInsercaoAtivo) return;
             
             const drawingRect = this.drawingArea.getBoundingClientRect();
-            const x = e.clientX - drawingRect.left;
-            const y = e.clientY - drawingRect.top;
+const x = e.clientX - drawingRect.left + this.drawingArea.scrollLeft;
+const y = e.clientY - drawingRect.top + this.drawingArea.scrollTop;
             
             console.log(`🎯 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y}`);
 
@@ -3221,8 +3232,9 @@
                 modalLegenda.style.minWidth = '280px';
                 modalLegenda.style.maxWidth = '320px';
                 
-                let left = x + 0;
-                let top = y + 0;
+                const drawingRect = this.drawingArea.getBoundingClientRect();
+    let left = drawingRect.left + x - this.drawingArea.scrollLeft;
+    let top = drawingRect.top + y - this.drawingArea.scrollTop;
                 
                 if (left + 320 > viewportWidth) {
                     left = viewportWidth - 320 - 20;
@@ -3326,8 +3338,9 @@
                 modalCuba.style.minWidth = '250px';
                 modalCuba.style.maxWidth = '300px';
                 
-                let left = x + 0;
-                let top = y + 0;
+                const drawingRect = this.drawingArea.getBoundingClientRect();
+let left = drawingRect.left + x - this.drawingArea.scrollLeft;
+let top = drawingRect.top + y - this.drawingArea.scrollTop;
                 
                 if (left + 300 > viewportWidth) {
                     left = viewportWidth - 300 - 20;
@@ -3371,10 +3384,11 @@
             });
         }
 
-        selecionarCuba(tipo, x, y) {
-            this.criarCuba(x, y, tipo);
-            this.fecharModalCuba();
-        }
+       selecionarCuba(tipo, x, y) {
+    this.criarCuba(x, y, tipo);
+    this.fecharModalCuba();
+}
+
 
         fecharModalCuba() {
             const modal = document.querySelector('.modal-controles');
