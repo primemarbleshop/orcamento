@@ -2919,14 +2919,22 @@ atualizarPosicaoSimbolos(elemento) {
                                 }
 
                                 const absLeftProposto = leftBase + x;
-                                const margemDireita = 60;
 
-                                const maxLeftAllowed = drawingRect.width - elementRect.width - margemDireita;
-                                const minLeftAllowed = 20;
+// 🔥 CORREÇÃO: REMOVER as verificações de limite esquerdo para dimensões e quantidade
+const isDimensao = elemento.classList.contains('dimensoes') || 
+                  elemento.classList.contains('quantidade-peca');
 
-                                let leftCorrigido = absLeftProposto;
-                                if (leftCorrigido > maxLeftAllowed) leftCorrigido = maxLeftAllowed;
-                                if (leftCorrigido < minLeftAllowed) leftCorrigido = minLeftAllowed;
+let leftCorrigido = absLeftProposto;
+
+// 🔥 APENAS para elementos que NÃO são dimensões ou quantidade, manter os limites
+if (!isDimensao) {
+    const margemDireita = 60;
+    const maxLeftAllowed = drawingRect.width - elementRect.width - margemDireita;
+    const minLeftAllowed = 20;
+
+    if (leftCorrigido > maxLeftAllowed) leftCorrigido = maxLeftAllowed;
+    if (leftCorrigido < minLeftAllowed) leftCorrigido = minLeftAllowed;
+}
 
                                 const xCorrigido = leftCorrigido - leftBase;
 
