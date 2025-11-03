@@ -959,6 +959,7 @@
                 
                 // Configurar eventos ANTES de carregar/criar desenho
                 this.configurarEventos();
+ 		this.configurarEventosTouchInsercao(); // 🔥 NOVO: Configurar eventos touch
                 
                 // Verificar se há desenho salvo
                 if (this.desenhoSalvo && this.desenhoSalvo !== 'None' && this.desenhoSalvo !== '') {
@@ -2799,17 +2800,23 @@ configurarInteratividadeCuba(elemento, tipo) {
             criarTexto(x, y, textoInicial = "") {
     const textoElement = document.createElement('textarea');
     textoElement.className = 'texto-legenda';
+    
+    // 🔥 CORREÇÃO: Usar posicionamento absoluto direto sem transform
+    textoElement.style.position = 'absolute';
     textoElement.style.left = `${x}px`;
     textoElement.style.top = `${y}px`;
+    
     textoElement.value = textoInicial;
-    
-    // 🔥 CORREÇÃO: Salvar o valor também no atributo data-valor
     textoElement.setAttribute('data-valor', textoInicial);
-    
     textoElement.rows = 1;
     textoElement.placeholder = "Digite seu texto";
     
-    // MODIFICADO: Largura reduzida
+    // 🔥 CORREÇÃO: Resetar transform para evitar deslocamento
+    textoElement.style.transform = 'none';
+    textoElement.setAttribute('data-x', '0');
+    textoElement.setAttribute('data-y', '0');
+    
+    // Largura reduzida
     textoElement.style.width = '120px';
     textoElement.style.minWidth = '120px';
     textoElement.style.maxWidth = '300px';
@@ -2828,17 +2835,14 @@ configurarInteratividadeCuba(elemento, tipo) {
     
     textoElement.focus();
     
+    // Resto do método permanece igual...
     textoElement.addEventListener('input', () => {
         textoElement.style.height = 'auto';
         textoElement.style.height = (textoElement.scrollHeight) + 'px';
-        
-        // 🔥 CORREÇÃO: Atualizar também o atributo data-valor em tempo real
         textoElement.setAttribute('data-valor', textoElement.value);
     });
     
-    // MODIFICADO: Salvar histórico individualmente para cada texto
     textoElement.addEventListener('blur', () => {
-        // 🔥 CORREÇÃO: Atualizar data-valor no blur também
         textoElement.setAttribute('data-valor', textoElement.value);
         
         if (textoElement.value.trim() === '') {
@@ -2849,9 +2853,7 @@ configurarInteratividadeCuba(elemento, tipo) {
         }
     });
 
-    // MODIFICADO: Configurar interatividade com transparência ao mover
     this.configurarInteratividadeTexto(textoElement);
-    
     this.salvarEstadoHistorico('Adicionar Texto');
     
     return textoElement;
@@ -2883,37 +2885,78 @@ configurarInteratividadeCuba(elemento, tipo) {
                     }
                 });
             }
+criarLegendaSimplificada(x, y, simbolo = "C", descricao = "Acabamento") {
+    const legendaElement = document.createElement('div');
+    legendaElement.className = 'legenda-simplificada';
+    
+    // 🔥 CORREÇÃO: Usar posicionamento absoluto direto
+    legendaElement.style.position = 'absolute';
+    legendaElement.style.left = `${x}px`;
+    legendaElement.style.top = `${y}px`;
+    
+    // 🔥 CORREÇÃO: Resetar transform
+    legendaElement.style.transform = 'none';
+    legendaElement.setAttribute('data-x', '0');
+    legendaElement.setAttribute('data-y', '0');
+    
+    legendaElement.innerHTML = `
+        <span class="legenda-simbolo-inline">${simbolo}</span> = <span class="legenda-descricao-inline" contenteditable="true">${descricao}</span>
+    `;
+    
+    // Adicionar classe selecionavel se o modo de seleção estiver ativo
+    if (this.modoSelecaoAtivo) {
+        legendaElement.classList.add('selecionavel');
+    }
+    
+    legendaElement.addEventListener('dblclick', () => {
+        const spanDescricao = legendaElement.querySelector('.legenda-descricao-inline');
+        spanDescricao.focus();
+    });
+    
+    const grupo = this.encontrarGrupoNaPosicao(x, y);
+    if (grupo) {
+        grupo.appendChild(legendaElement);
+    } else {
+        this.drawingArea.appendChild(legendaElement);
+    }
+    
+    this.salvarEstadoHistorico('Adicionar Legenda');
+    
+    return legendaElement;
+}
 
-            criarLegendaSimplificada(x, y, simbolo = "C", descricao = "Acabamento") {
-                const legendaElement = document.createElement('div');
-                legendaElement.className = 'legenda-simplificada';
-                legendaElement.style.left = `${x}px`;
-                legendaElement.style.top = `${y}px`;
-                legendaElement.innerHTML = `
-                    <span class="legenda-simbolo-inline">${simbolo}</span> = <span class="legenda-descricao-inline" contenteditable="true">${descricao}</span>
-                `;
-                
-                // Adicionar classe selecionavel se o modo de seleção estiver ativo
-                if (this.modoSelecaoAtivo) {
-                    legendaElement.classList.add('selecionavel');
-                }
-                
-                legendaElement.addEventListener('dblclick', () => {
-                    const spanDescricao = legendaElement.querySelector('.legenda-descricao-inline');
-                    spanDescricao.focus();
-                });
-                
-                const grupo = this.encontrarGrupoNaPosicao(x, y);
-                if (grupo) {
-                    grupo.appendChild(legendaElement);
-                } else {
-                    this.drawingArea.appendChild(legendaElement);
-                }
-                
-                this.salvarEstadoHistorico('Adicionar Legenda');
-                
-                return legendaElement;
+configurarEventosTouchInsercao() {
+    this.drawingArea.addEventListener('touchstart', (e) => {
+        if (this.modoInsercaoAtivo && e.touches.length === 1) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const touch = e.touches[0];
+            const rect = this.drawingArea.getBoundingClientRect();
+            
+            // 🔥 CORREÇÃO: Cálculo preciso para touch
+            const x = touch.clientX - rect.left + this.drawingArea.scrollLeft;
+            const y = touch.clientY - rect.top + this.drawingArea.scrollTop;
+            
+            console.log(`📱 Touch - Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y}`);
+
+            switch (this.modoInsercaoAtivo) {
+                case 'texto':
+                    this.criarTexto(x, y, '');
+                    break;
+                case 'cuba':
+                    this.mostrarSeletorCuba(x, y);
+                    break;
+                case 'legenda':
+                    this.mostrarSeletorLegenda(x, y);
+                    break;
             }
+            
+            this.modoInsercaoAtivo = null;
+            this.drawingArea.style.cursor = 'default';
+        }
+    }, { passive: false });
+}
 
             encontrarGrupoNaPosicao(x, y) {
                 const grupos = this.drawingArea.querySelectorAll('.area-pecas');
@@ -3507,31 +3550,34 @@ atualizarPosicaoSimbolos(elemento) {
                 console.log(`🔧 Modo inserção ativado: ${tipo}`);
             }
 
-            // MODIFICADO: Manipular clique de inserção para legenda
             manipularCliqueInsercao(e) {
-                if (!this.modoInsercaoAtivo) return;
-                
-                const rect = this.drawingArea.getBoundingClientRect();
-                const x = e.clientX - rect.left;
-                const y = e.clientY - rect.top;
+    if (!this.modoInsercaoAtivo) return;
+    
+    // 🔥 CORREÇÃO: Usar coordenadas relativas à área de desenho considerando scroll
+    const rect = this.drawingArea.getBoundingClientRect();
+    
+    // Calcular coordenadas considerando scroll da área de desenho
+    const x = e.clientX - rect.left + this.drawingArea.scrollLeft;
+    const y = e.clientY - rect.top + this.drawingArea.scrollTop;
+    
+    console.log(`🔧 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y}`);
+    console.log(`📐 Detalhes: clientX:${e.clientX}, clientY:${e.clientY}, rect.left:${rect.left}, rect.top:${rect.top}, scrollLeft:${this.drawingArea.scrollLeft}, scrollTop:${this.drawingArea.scrollTop}`);
 
-                console.log(`🔧 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y}`);
-
-                switch (this.modoInsercaoAtivo) {
-                    case 'texto':
-                        this.criarTexto(x, y, ''); // MODIFICADO: Texto vazio por padrão
-                        break;
-                    case 'cuba':
-                        this.mostrarSeletorCuba(x, y);
-                        break;
-                    case 'legenda':
-                        this.mostrarSeletorLegenda(x, y); // MODIFICADO: Usar novo modal
-                        break;
-                }
-                
-                this.modoInsercaoAtivo = null;
-                this.drawingArea.style.cursor = 'default';
-            }
+    switch (this.modoInsercaoAtivo) {
+        case 'texto':
+            this.criarTexto(x, y, '');
+            break;
+        case 'cuba':
+            this.mostrarSeletorCuba(x, y);
+            break;
+        case 'legenda':
+            this.mostrarSeletorLegenda(x, y);
+            break;
+    }
+    
+    this.modoInsercaoAtivo = null;
+    this.drawingArea.style.cursor = 'default';
+}
 
             // MODIFICADO: Mostrar seletor de legenda com as mesmas configurações do modal de símbolos
             mostrarSeletorLegenda(x, y) {
