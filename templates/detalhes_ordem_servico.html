@@ -1015,98 +1015,82 @@
             }
 
             restaurarEstadoHistorico(estado) {
-    // 🔥 CORREÇÃO: Limpeza mais agressiva dos handles
-    this.limparHandlesCompletamente();
-    
-    this.drawingArea.innerHTML = estado.drawingAreaHTML;
-    this.gruposPecas = JSON.parse(JSON.stringify(estado.gruposPecas));
-    this.reconfigurarElementosAposHistorico();
-}
-
-// 🔥 NOVO MÉTODO: Limpeza completa e garantida dos handles
-limparHandlesCompletamente() {
-    // Limpar array interno
-    this.handles = [];
-    
-    // Remover TODOS os handles do DOM, independente de estarem no array
-    const todosHandles = this.drawingArea.querySelectorAll('.handle, .handle-rotacao');
-    todosHandles.forEach(handle => {
-        if (handle.parentNode) {
-            handle.parentNode.removeChild(handle);
-        }
-    });
-    
-    // Limpar também qualquer handle em todo o documento (caso tenham "vazado")
-    const handlesDocument = document.querySelectorAll('.handle, .handle-rotacao');
-    handlesDocument.forEach(handle => {
-        if (handle.parentNode && handle.parentNode !== this.drawingArea) {
-            handle.parentNode.removeChild(handle);
-        }
-    });
-    
-    console.log('🧹 Handles limpos completamente');
-}
+                this.removerTodosOsHandles();
+                
+                this.drawingArea.innerHTML = estado.drawingAreaHTML;
+                this.gruposPecas = JSON.parse(JSON.stringify(estado.gruposPecas));
+                this.reconfigurarElementosAposHistorico();
+            }
 
             reconfigurarElementosAposHistorico() {
-    // 🔥 CORREÇÃO: Limpeza garantida antes de reconfigurar
-    this.limparHandlesCompletamente();
-    this.elementoSelecionado = null;
-    
-    const elementosInterativos = this.drawingArea.querySelectorAll(
-        '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca'
-    );
-    
-    elementosInterativos.forEach(elemento => {
-        // Remover classe selecionavel se existir
-        elemento.classList.remove('selecionavel');
-        
-        if (elemento.classList.contains('simbolo-linha')) {
-            this.configurarInteratividadeSimbolo(elemento);
-        } else if (elemento.classList.contains('cuba')) {
-            this.configurarInteratividadeCuba(elemento);
-        } else if (elemento.classList.contains('texto-legenda')) {
-            this.configurarInteratividadeTexto(elemento);
-        }
-    });
+                this.removerTodosOsHandles();
+                
+                const elementosInterativos = this.drawingArea.querySelectorAll(
+                    '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca'
+                );
+                
+                elementosInterativos.forEach(elemento => {
+                    elemento.classList.remove('selecionavel');
+                    
+                    if (elemento.classList.contains('simbolo-linha')) {
+                        this.configurarInteratividadeSimbolo(elemento);
+                    } else if (elemento.classList.contains('cuba')) {
+                        this.configurarInteratividadeCuba(elemento);
+                    } else if (elemento.classList.contains('texto-legenda')) {
+                        this.configurarInteratividadeTexto(elemento);
+                    }
+                });
 
-    // Reconfigurar eventos das linhas das peças
-    const linhas = this.drawingArea.querySelectorAll('.linha-peca');
-    linhas.forEach(linha => {
-        linha.addEventListener('mouseenter', () => linha.style.backgroundColor = '#4e73df');
-        linha.addEventListener('mouseleave', () => linha.style.backgroundColor = 'transparent');
-        linha.addEventListener('click', (e) => this.manipularCliqueLinha(e, linha));
-    });
+                const linhas = this.drawingArea.querySelectorAll('.linha-peca');
+                linhas.forEach(linha => {
+                    linha.addEventListener('mouseenter', () => linha.style.backgroundColor = '#4e73df');
+                    linha.addEventListener('mouseleave', () => linha.style.backgroundColor = 'transparent');
+                    linha.addEventListener('click', (e) => this.manipularCliqueLinha(e, linha));
+                });
 
-    // Eventos para elementos editáveis
-    const titulosEditaveis = this.drawingArea.querySelectorAll('.titulo-grupo');
-    titulosEditaveis.forEach(titulo => {
-        titulo.addEventListener('blur', () => {
-            this.salvarEstadoHistorico('Editar Título do Grupo');
-        });
-    });
+                const titulosEditaveis = this.drawingArea.querySelectorAll('.titulo-grupo');
+                titulosEditaveis.forEach(titulo => {
+                    let valorOriginal = titulo.textContent;
+                    titulo.addEventListener('blur', () => {
+                        if (titulo.textContent !== valorOriginal) {
+                            this.salvarEstadoHistorico('Editar Título do Grupo');
+                            valorOriginal = titulo.textContent;
+                        }
+                    });
+                });
 
-    const textosEditaveis = this.drawingArea.querySelectorAll('.texto-legenda');
-    textosEditaveis.forEach(texto => {
-        texto.addEventListener('blur', () => {
-            this.salvarEstadoHistorico('Editar Texto: ' + texto.value.substring(0, 20));
-        });
-    });
+                const textosEditaveis = this.drawingArea.querySelectorAll('.texto-legenda');
+                textosEditaveis.forEach(texto => {
+                    let valorOriginal = texto.value;
+                    texto.addEventListener('blur', () => {
+                        if (texto.value !== valorOriginal) {
+                            if (texto.value.trim() === '') {
+                                texto.remove();
+                                this.salvarEstadoHistorico('Remover Texto Vazio');
+                            } else {
+                                this.salvarEstadoHistorico('Editar Texto');
+                            }
+                            valorOriginal = texto.value;
+                        }
+                    });
+                });
 
-    const legendasEditaveis = this.drawingArea.querySelectorAll('.legenda-simplificada');
-    legendasEditaveis.forEach(legenda => {
-        const spanDescricao = legenda.querySelector('.legenda-descricao-inline');
-        if (spanDescricao) {
-            spanDescricao.addEventListener('blur', () => {
-                this.salvarEstadoHistorico('Editar Legenda');
-            });
-        }
-    });
-    
-    // Atualizar estado dos botões
-    this.atualizarEstadoBotoes();
-    
-    console.log('✅ Elementos reconfigurados após histórico');
-}
+                const legendasEditaveis = this.drawingArea.querySelectorAll('.legenda-simplificada');
+                legendasEditaveis.forEach(legenda => {
+                    const spanDescricao = legenda.querySelector('.legenda-descricao-inline');
+                    if (spanDescricao) {
+                        let valorOriginal = spanDescricao.textContent;
+                        spanDescricao.addEventListener('blur', () => {
+                            if (spanDescricao.textContent !== valorOriginal) {
+                                this.salvarEstadoHistorico('Editar Legenda');
+                                valorOriginal = spanDescricao.textContent;
+                            }
+                        });
+                    }
+                });
+                
+                this.atualizarEstadoBotoes();
+            }
 
             removerTodosOsHandles() {
                 this.handles.forEach(handle => {
@@ -1131,39 +1115,60 @@ limparHandlesCompletamente() {
                 this.elementoSelecionado = null;
             }
 
-           desselecionarElemento() {
+            desselecionarElemento() {
+                console.log('🔧 Desselecionando elemento...');
+                
+                // Sempre remover handles primeiro
+                this.removerHandles();
+                
+                if (this.elementoSelecionado) {
+                    // Remover interatividade do elemento
+                    this.removerInteratividade(this.elementoSelecionado);
+                    
+                    this.elementoSelecionado.classList.remove('elemento-selecionado');
+                    
+                    // Reabilitar linhas quando desselecionar (se não estiver no modo seleção)
+                    if (!this.modoSelecaoAtivo) {
+                        this.reabilitarLinhasPecas();
+                    }
+                    
+                    console.log('✅ Elemento desselecionado:', this.elementoSelecionado.className);
+                    this.elementoSelecionado = null;
+                }
+                
+                // Atualizar estado dos botões
+                this.atualizarEstadoBotoes();
+                
+                this.ultimoElementoClicado = null;
+            }
 
             desfazer() {
-    if (this.indiceHistorico > 0) {
-        // 🔥 CORREÇÃO: Limpeza mais agressiva antes de desfazer
-        this.limparHandlesCompletamente();
-        
-        this.indiceHistorico--;
-        const estadoAnterior = this.historico[this.indiceHistorico];
-        this.restaurarEstadoHistorico(estadoAnterior.data);
-        console.log('🔧 Desfazer executado - Estado:', this.indiceHistorico);
-    } else {
-        console.log('🔧 Não há ações para desfazer');
-    }
-    this.atualizarBotoesHistorico();
-}
+                if (this.indiceHistorico > 0) {
+                    this.removerTodosOsHandles();
+                    
+                    this.indiceHistorico--;
+                    const estadoAnterior = this.historico[this.indiceHistorico];
+                    this.restaurarEstadoHistorico(estadoAnterior.data);
+                    console.log('🔧 Desfazer executado - Estado:', this.indiceHistorico);
+                } else {
+                    console.log('🔧 Não há ações para desfazer');
+                }
+                this.atualizarBotoesHistorico();
+            }
 
-// MODIFICADO: refazer com garantia de limpeza
-refazer() {
-    if (this.indiceHistorico < this.historico.length - 1) {
-        // 🔥 CORREÇÃO: Limpeza mais agressiva antes de refazer
-        this.limparHandlesCompletamente();
-        
-        this.indiceHistorico++;
-        const estadoFuturo = this.historico[this.indiceHistorico];
-        this.restaurarEstadoHistorico(estadoFuturo.data);
-        console.log('🔧 Refazer executado - Estado:', this.indiceHistorico);
-    } else {
-        console.log('🔧 Não há ações para refazer');
-    }
-    this.atualizarBotoesHistorico();
-}
-
+            refazer() {
+                if (this.indiceHistorico < this.historico.length - 1) {
+                    this.removerTodosOsHandles();
+                    
+                    this.indiceHistorico++;
+                    const estadoFuturo = this.historico[this.indiceHistorico];
+                    this.restaurarEstadoHistorico(estadoFuturo.data);
+                    console.log('🔧 Refazer executado - Estado:', this.indiceHistorico);
+                } else {
+                    console.log('🔧 Não há ações para refazer');
+                }
+                this.atualizarBotoesHistorico();
+            }
 
             atualizarBotoesHistorico() {
                 const btnDesfazer = document.getElementById('btnDesfazer');
@@ -1519,89 +1524,92 @@ refazer() {
 
             // 🔥 CORREÇÃO: Método melhorado para criar handles
             criarHandles(elemento) {
-    if (elemento.classList.contains('simbolo-linha')) {
-        return;
-    }
-    
-    // 🔥 CORREÇÃO: Verificar se já existem handles para este elemento
-    if (this.handles.length > 0) {
-        console.warn('⚠️ Tentativa de criar handles duplicados');
-        this.removerHandles();
-    }
-    
-    const pos = this.obterPosicaoComScroll(elemento);
-    const left = pos.left;
-    const top = pos.top;
-    const width = pos.width;
-    const height = pos.height;
+                console.log('🔧 Criando handles para:', elemento.className);
+                
+                if (elemento.classList.contains('simbolo-linha')) {
+                    console.log('⚠️ Símbolo de linha - sem handles');
+                    return;
+                }
+                
+                // 🔥 CORREÇÃO: Usar método auxiliar para obter posição correta
+                const pos = this.obterPosicaoComScroll(elemento);
+                const left = pos.left;
+                const top = pos.top;
+                const width = pos.width;
+                const height = pos.height;
 
-    const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
-    const rad = rotation * Math.PI / 180;
-    
-    const centerX = left + width / 2;
-    const centerY = top + height / 2;
+                const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+                const rad = rotation * Math.PI / 180;
+                
+                const centerX = left + width / 2;
+                const centerY = top + height / 2;
 
-    const relativeHandles = [
-        { class: 'handle-n', relX: 0, relY: -height / 2 },
-        { class: 'handle-s', relX: 0, relY: height / 2 },
-        { class: 'handle-e', relX: width / 2, relY: 0 },
-        { class: 'handle-w', relX: -width / 2, relY: 0 },
-        { class: 'handle-ne', relX: width / 2, relY: -height / 2 },
-        { class: 'handle-nw', relX: -width / 2, relY: -height / 2 },
-        { class: 'handle-se', relX: width / 2, relY: height / 2 },
-        { class: 'handle-sw', relX: -width / 2, relY: height / 2 }
-    ];
+                console.log(`🔧 Posição: left=${left}, top=${top}, width=${width}, height=${height}, rotation=${rotation}`);
 
-    const handles = relativeHandles.map(handle => {
-        const rotatedX = handle.relX * Math.cos(rad) - handle.relY * Math.sin(rad);
-        const rotatedY = handle.relX * Math.sin(rad) + handle.relY * Math.cos(rad);
-        
-        return {
-            class: handle.class,
-            x: centerX + rotatedX,
-            y: centerY + rotatedY
-        };
-    });
+                const relativeHandles = [
+                    { class: 'handle-n', relX: 0, relY: -height / 2 },
+                    { class: 'handle-s', relX: 0, relY: height / 2 },
+                    { class: 'handle-e', relX: width / 2, relY: 0 },
+                    { class: 'handle-w', relX: -width / 2, relY: 0 },
+                    { class: 'handle-ne', relX: width / 2, relY: -height / 2 },
+                    { class: 'handle-nw', relX: -width / 2, relY: -height / 2 },
+                    { class: 'handle-se', relX: width / 2, relY: height / 2 },
+                    { class: 'handle-sw', relX: -width / 2, relY: height / 2 }
+                ];
 
-    handles.forEach(handle => {
-        const handleElement = document.createElement('div');
-        handleElement.className = `handle ${handle.class}`;
-        handleElement.style.left = `${handle.x}px`;
-        handleElement.style.top = `${handle.y}px`;
-        handleElement.style.zIndex = '1002';
-        
-        // 🔥 CORREÇÃO: Adicionar atributo de identificação
-        handleElement.setAttribute('data-handle-for', elemento.id || 'unknown');
-        
-        this.drawingArea.appendChild(handleElement);
-        this.handles.push(handleElement);
-        
-        this.configurarHandle(handleElement, elemento, handle.class);
-    });
+                const handles = relativeHandles.map(handle => {
+                    const rotatedX = handle.relX * Math.cos(rad) - handle.relY * Math.sin(rad);
+                    const rotatedY = handle.relX * Math.sin(rad) + handle.relY * Math.cos(rad);
+                    
+                    return {
+                        class: handle.class,
+                        x: centerX + rotatedX,
+                        y: centerY + rotatedY
+                    };
+                });
 
-    const handleRotacaoRelY = -height / 2 - 40;
-    const handleRotacaoX = 0 * Math.cos(rad) - handleRotacaoRelY * Math.sin(rad);
-    const handleRotacaoY = 0 * Math.sin(rad) + handleRotacaoRelY * Math.cos(rad);
+                // 🔥 CORREÇÃO: Limpar handles existentes antes de criar novos
+                this.removerHandles();
 
-    const handleRotacao = document.createElement('div');
-    handleRotacao.className = 'handle handle-rotacao';
-    handleRotacao.style.left = `${centerX + handleRotacaoX}px`;
-    handleRotacao.style.top = `${centerY + handleRotacaoY}px`;
-    handleRotacao.style.zIndex = '1002';
-    
-    // 🔥 CORREÇÃO: Adicionar atributo de identificação
-    handleRotacao.setAttribute('data-handle-for', elemento.id || 'unknown');
-    
-    this.drawingArea.appendChild(handleRotacao);
-    this.handles.push(handleRotacao);
-    
-    this.configurarHandleRotacao(handleRotacao, elemento);
-    
-    console.log(`✅ ${this.handles.length} handles criados para elemento`);
-}
-            
+                handles.forEach(handle => {
+                    const handleElement = document.createElement('div');
+                    handleElement.className = `handle ${handle.class}`;
+                    handleElement.style.left = `${handle.x}px`;
+                    handleElement.style.top = `${handle.y}px`;
+                    handleElement.style.zIndex = '1002';
+                    handleElement.style.position = 'absolute';
+                    
+                    console.log(`🔧 Criando handle ${handle.class} em x=${handle.x}, y=${handle.y}`);
+                    
+                    this.drawingArea.appendChild(handleElement);
+                    this.handles.push(handleElement);
+                    
+                    this.configurarHandle(handleElement, elemento, handle.class);
+                });
 
-// 🔥 CORREÇÃO: Método melhorado para configurar handles
+                // Handle de rotação
+                const handleRotacaoRelY = -height / 2 - 40;
+                const handleRotacaoX = 0 * Math.cos(rad) - handleRotacaoRelY * Math.sin(rad);
+                const handleRotacaoY = 0 * Math.sin(rad) + handleRotacaoRelY * Math.cos(rad);
+
+                const handleRotacao = document.createElement('div');
+                handleRotacao.className = 'handle handle-rotacao';
+                handleRotacao.style.left = `${centerX + handleRotacaoX}px`;
+                handleRotacao.style.top = `${centerY + handleRotacaoY}px`;
+                handleRotacao.style.zIndex = '1002';
+                handleRotacao.style.position = 'absolute';
+                
+                console.log(`🔧 Criando handle de rotação em x=${centerX + handleRotacaoX}, y=${centerY + handleRotacaoY}`);
+                
+                this.drawingArea.appendChild(handleRotacao);
+                this.handles.push(handleRotacao);
+                
+                this.configurarHandleRotacao(handleRotacao, elemento);
+                
+                console.log(`✅ ${this.handles.length} handles criados com sucesso`);
+            }
+
+            // 🔥 CORREÇÃO: Método melhorado para configurar handles
             configurarHandle(handle, elemento, handleClass) {
                 let initialX, initialY;
                 let initialWidth, initialHeight;
@@ -1779,24 +1787,25 @@ refazer() {
 
             // 🔥 CORREÇÃO: Método melhorado para remover handles
             removerHandles() {
-    // Primeiro: remover do DOM
-    this.handles.forEach(handle => {
-        if (handle && handle.parentNode) {
-            handle.parentNode.removeChild(handle);
-        }
-    });
-    
-    // Segundo: limpar o array
-    this.handles = [];
-    
-    // Terceiro: limpeza final de qualquer handle residual
-    const handlesResiduais = this.drawingArea.querySelectorAll('.handle, .handle-rotacao');
-    handlesResiduais.forEach(handle => {
-        if (handle.parentNode) {
-            handle.parentNode.removeChild(handle);
-        }
-    });
-}
+                console.log(`🔧 Removendo ${this.handles.length} handles...`);
+                
+                this.handles.forEach(handle => {
+                    if (handle && handle.parentNode) {
+                        handle.parentNode.removeChild(handle);
+                    }
+                });
+                this.handles = [];
+                
+                // Remover também qualquer handle "órfão" que possa ter ficado
+                const handlesOrfaos = this.drawingArea.querySelectorAll('.handle, .handle-rotacao');
+                handlesOrfaos.forEach(handle => {
+                    if (handle.parentNode) {
+                        handle.parentNode.removeChild(handle);
+                    }
+                });
+                
+                console.log('✅ Handles removidos');
+            }
 
             // 🔥 CORREÇÃO: Método melhorado para atualizar handles
             atualizarHandles() {
