@@ -1169,10 +1169,39 @@ restaurarEstadoHistorico(estado) {
     this.drawingArea.innerHTML = estado.drawingAreaHTML;
     this.gruposPecas = JSON.parse(JSON.stringify(estado.gruposPecas));
     
-    // 🔥 CORREÇÃO: Restaurar elementos de texto também no histórico
-    this.restaurarElementosTexto();
+    // 🔥 CORREÇÃO MELHORADA: Restaurar elementos de texto
+    this.restaurarElementosTextoAposHistorico();
     
     this.reconfigurarElementosAposHistorico();
+}
+
+// 🔥 NOVO MÉTODO: Restauração específica para textos após histórico
+restaurarElementosTextoAposHistorico() {
+    const elementosTexto = this.drawingArea.querySelectorAll('.texto-legenda');
+    
+    elementosTexto.forEach(texto => {
+        // Restaurar valor do data-valor
+        const valorSalvo = texto.getAttribute('data-valor');
+        if (valorSalvo !== null) {
+            texto.value = valorSalvo;
+        }
+        
+        // Ajustar altura
+        texto.style.height = 'auto';
+        texto.style.height = (texto.scrollHeight) + 'px';
+        
+        // Reconfigurar eventos
+        texto.addEventListener('blur', () => {
+            texto.setAttribute('data-valor', texto.value);
+            
+            if (texto.value.trim() === '') {
+                texto.remove();
+                this.salvarEstadoImediato('Remover Texto Vazio');
+            } else {
+                this.salvarEstadoImediato('Editar Texto');
+            }
+        });
+    });
 }
 
 reconfigurarElementosAposHistorico() {
@@ -2855,7 +2884,7 @@ configurarInteratividadeCuba(elemento, tipo) {
     }
 }
 
-          criarTexto(x, y, textoInicial = "") {
+           criarTexto(x, y, textoInicial = "") {
     const textoElement = document.createElement('textarea');
     textoElement.className = 'texto-legenda';
     textoElement.style.left = `${x}px`;
@@ -2939,8 +2968,6 @@ case 'texto':
     
     console.log('✅ Caixa de texto criada com sucesso!');
     break;
-
-
 
             // NOVO: Configurar interatividade do texto com transparência ao mover
             configurarInteratividadeTexto(elemento) {
@@ -3810,113 +3837,114 @@ atualizarPosicaoSimbolos(elemento) {
                 document.body.style.overflow = '';
             }
 
-                      mostrarSeletorCuba(x, y) {
-                const botoesCuba = CONFIG.TIPOS_CUBA.map(cuba => 
-                    `<button type="button" class="btn btn-outline-primary m-1" onclick="gerenciadorDesenho.selecionarCuba('${cuba.tipo}', ${x}, ${y})" style="min-width: 100px; padding: 8px 4px;">
-                        ${cuba.nome}
-                    </button>`
-                ).join('');
+          mostrarSeletorCuba(x, y) {
+    const botoesCuba = CONFIG.TIPOS_CUBA.map(cuba => 
+        `<button type="button" class="btn btn-outline-primary m-1" onclick="gerenciadorDesenho.selecionarCuba('${cuba.tipo}', ${x}, ${y})" style="min-width: 100px; padding: 8px 4px;">
+            ${cuba.nome}
+        </button>`
+    ).join('');
 
-                // Criar modal para seleção de cuba
-                const modalCuba = document.createElement('div');
-                modalCuba.className = 'modal-controles';
-                modalCuba.style.position = 'fixed';
-                modalCuba.style.zIndex = '2000';
-                modalCuba.style.background = 'white';
-                modalCuba.style.padding = '15px';
-                modalCuba.style.borderRadius = '10px';
-                modalCuba.style.boxShadow = '0 10px 30px rgba(0,0,0,0.3)';
-                modalCuba.style.wordWrap = 'break-word';
+    // Criar modal para seleção de cuba
+    const modalCuba = document.createElement('div');
+    modalCuba.className = 'modal-controles';
+    modalCuba.style.position = 'fixed';
+    modalCuba.style.zIndex = '2000';
+    modalCuba.style.background = 'white';
+    modalCuba.style.padding = '15px';
+    modalCuba.style.borderRadius = '10px';
+    modalCuba.style.boxShadow = '0 10px 30px rgba(0,0,0,0.3)';
+    modalCuba.style.wordWrap = 'break-word';
 
-                const viewportWidth = window.innerWidth;
-                const viewportHeight = window.innerHeight;
-                
-                if (viewportWidth <= 768) {
-                    modalCuba.style.width = '95vw';
-                    modalCuba.style.maxWidth = '95vw';
-                    modalCuba.style.left = '50%';
-                    modalCuba.style.top = '50%';
-                    modalCuba.style.transform = 'translate(-50%, -50%)';
-                } else {
-                    modalCuba.style.minWidth = '250px';
-                    modalCuba.style.maxWidth = '300px';
-                    
-                    let left = x + 0;
-                    let top = y + 0;
-                    
-                    if (left + 300 > viewportWidth) {
-                        left = viewportWidth - 300 - 20;
-                    }
-                    if (left < 20) {
-                        left = 20;
-                    }
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    
+    if (viewportWidth <= 768) {
+        modalCuba.style.width = '95vw';
+        modalCuba.style.maxWidth = '95vw';
+        modalCuba.style.left = '50%';
+        modalCuba.style.top = '50%';
+        modalCuba.style.transform = 'translate(-50%, -50%)';
+    } else {
+        modalCuba.style.minWidth = '250px';
+        modalCuba.style.maxWidth = '300px';
+        
+        let left = x + 0;
+        let top = y + 0;
+        
+        if (left + 300 > viewportWidth) {
+            left = viewportWidth - 300 - 20;
+        }
+        if (left < 20) {
+            left = 20;
+        }
 
-                    if (top + 300 > viewportHeight) {
-                        top = viewportHeight - 300 - 20;
-                    }
-                    if (top < 20) {
-                        top = 20;
-                    }
+        if (top + 300 > viewportHeight) {
+            top = viewportHeight - 300 - 20;
+        }
+        if (top < 20) {
+            top = 20;
+        }
 
-                    modalCuba.style.left = `${left}px`;
-                    modalCuba.style.top = `${top}px`;
-                }
+        modalCuba.style.left = `${left}px`;
+        modalCuba.style.top = `${top}px`;
+    }
 
-                modalCuba.innerHTML = `
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h6 style="margin: 0; font-weight: bold;">Selecione o tipo de desenho</h6>
-                        <button type="button" class="btn-close btn-sm" onclick="gerenciadorDesenho.fecharModalCuba()" style="font-size: 0.8rem;"></button>
-                    </div>
-                    
-                    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 10px 0;">
-                        ${botoesCuba}
-                    </div>
-                `;
+    modalCuba.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-2">
+            <h6 style="margin: 0; font-weight: bold;">Selecione o tipo de desenho</h6>
+            <button type="button" class="btn-close btn-sm" onclick="gerenciadorDesenho.fecharModalCuba()" style="font-size: 0.8rem;"></button>
+        </div>
+        
+        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 10px 0;">
+            ${botoesCuba}
+        </div>
+    `;
 
-                document.body.appendChild(modalCuba);
+    document.body.appendChild(modalCuba);
 
-                const backdrop = document.createElement('div');
-                backdrop.className = 'modal-backdrop';
-                backdrop.style.display = 'block';
-                document.body.appendChild(backdrop);
+    const backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+    backdrop.style.display = 'block';
+    document.body.appendChild(backdrop);
 
-                // Fechar modal ao clicar fora
-                backdrop.addEventListener('click', () => {
-                    modalCuba.remove();
-                    backdrop.remove();
-                });
-            }
+    // Fechar modal ao clicar fora
+    backdrop.addEventListener('click', () => {
+        modalCuba.remove();
+        backdrop.remove();
+    });
+}
 
-            // ✅ CORREÇÃO: Métodos movidos para DENTRO da classe
-            selecionarCuba(tipo, x, y) {
-                this.criarCuba(x, y, tipo);
-                this.fecharModalCuba();
-            }
+// ✅ ADICIONAR ESTE MÉTODO À CLASSE:
+selecionarCuba(tipo, x, y) {
+    this.criarCuba(x, y, tipo);
+    this.fecharModalCuba();
+}
 
-            fecharModalCuba() {
-                const modal = document.querySelector('.modal-controles');
-                const backdrop = document.querySelector('.modal-backdrop');
-                
-                if (modal) modal.remove();
-                if (backdrop) backdrop.remove();
-            }
+fecharModalCuba() {
+    const modal = document.querySelector('.modal-controles');
+    const backdrop = document.querySelector('.modal-backdrop');
+    
+    if (modal) modal.remove();
+    if (backdrop) backdrop.remove();
+}
 
-        } // 🔥 FECHAMENTO CORRETO DA CLASSE GerenciadorDesenho
+} // 🔥 CORREÇÃO: Fechamento da classe GerenciadorDesenho
 
-        // =============================================
-        // INICIALIZAÇÃO DA APLICAÇÃO
-        // =============================================
-        let gerenciadorDesenho;
+// =============================================
+// INICIALIZAÇÃO DA APLICAÇÃO
+// =============================================
+let gerenciadorDesenho;
 
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 Iniciando aplicação...');
-            gerenciadorDesenho = new GerenciadorDesenho();
-            
-            // 🔥 CORREÇÃO: Tornar acessível globalmente para os eventos onclick
-            window.gerenciadorDesenho = gerenciadorDesenho;
-        });
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('🚀 Iniciando aplicação...');
+    gerenciadorDesenho = new GerenciadorDesenho();
+    
+    // 🔥 CORREÇÃO: Tornar acessível globalmente para os eventos onclick
+    window.gerenciadorDesenho = gerenciadorDesenho;
+});
+
+
     </script>
 </body>
 </html>
-
 
