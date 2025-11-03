@@ -1339,26 +1339,62 @@
                 }, { passive: true });
 
                 // CORREÇÃO: Evento global para desselecionar ao clicar fora, mas ignorar botões de ação
-                document.addEventListener('click', (e) => {
-                    // Não desselecionar se clicar em botões de ação ou handles
-                    if (!e.target.closest('#drawingArea') && 
-                        !e.target.closest('.handle') &&
-                        !e.target.closest('.action-buttons-container') &&
-                        !e.target.closest('.top-buttons-container')) {
-                        this.desselecionarElemento();
-                    }
-                });
+                // CORREÇÃO: Evento global para desselecionar ao clicar fora, mas ignorar durante arrasto
+let isDragging = false;
 
-                // CORREÇÃO: Evento de touch para desselecionar no mobile, ignorando botões
-                document.addEventListener('touchstart', (e) => {
-                    // Não desselecionar se tocar em botões de ação ou handles
-                    if (!e.target.closest('#drawingArea') && 
-                        !e.target.closest('.handle') &&
-                        !e.target.closest('.action-buttons-container') &&
-                        !e.target.closest('.top-buttons-container')) {
-                        this.desselecionarElemento();
-                    }
-                });
+document.addEventListener('mousedown', (e) => {
+    // Marcar como não-arrasto inicialmente
+    isDragging = false;
+});
+
+document.addEventListener('mousemove', (e) => {
+    // Se houver movimento significativo, considerar como arrasto
+    if (e.buttons === 1) { // Botão esquerdo pressionado
+        isDragging = true;
+    }
+});
+
+document.addEventListener('click', (e) => {
+    // Só desselecionar se for um clique genuíno (não arrasto)
+    if (!isDragging && 
+        !e.target.closest('#drawingArea') && 
+        !e.target.closest('.handle') &&
+        !e.target.closest('.action-buttons-container') &&
+        !e.target.closest('.top-buttons-container')) {
+        this.desselecionarElemento();
+    }
+    // Resetar flag após processar o clique
+    isDragging = false;
+});
+
+// CORREÇÃO: Evento de touch para desselecionar no mobile, diferenciando toque de arrasto
+let touchStartTime = 0;
+let touchStartX = 0;
+let touchStartY = 0;
+
+document.addEventListener('touchstart', (e) => {
+    touchStartTime = Date.now();
+    touchStartX = e.touches[0].clientX;
+    touchStartY = e.touches[0].clientY;
+});
+
+document.addEventListener('touchend', (e) => {
+    const touchDuration = Date.now() - touchStartTime;
+    const touchEndX = e.changedTouches[0].clientX;
+    const touchEndY = e.changedTouches[0].clientY;
+    const distance = Math.sqrt(Math.pow(touchEndX - touchStartX, 2) + Math.pow(touchEndY - touchStartY, 2));
+    
+    // Considerar como clique apenas se foi rápido e com pouca movimentação
+    const isTap = touchDuration < 300 && distance < 10;
+    
+    if (isTap && 
+        !e.target.closest('#drawingArea') && 
+        !e.target.closest('.handle') &&
+        !e.target.closest('.action-buttons-container') &&
+        !e.target.closest('.top-buttons-container')) {
+        this.desselecionarElemento();
+    }
+});
 
                 // Eventos de teclado para desfazer/refazer
                 document.addEventListener('keydown', (e) => {
