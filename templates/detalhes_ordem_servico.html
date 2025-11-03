@@ -1110,12 +1110,14 @@ restaurarElementosTexto() {
             // =============================================
             // SISTEMA DE HISTÓRICO DESFAZER/REFAZER
             // =============================================
-salvarEstadoHistorico(descricao) {
+salvarEstadoHistorico(descricao, forcarSalvamento = false) {
     const agora = Date.now();
     const tempoDesdeUltimoSalvamento = agora - (this.ultimoSalvamentoHistorico || 0);
     
-    if (tempoDesdeUltimoSalvamento < 400 && this.ultimaDescricaoHistorico === descricao) {
-        console.log(`⏱️  Ação rápida ignorada: ${descricao}`);
+    // 🔥 CORREÇÃO: Debounce menos agressivo e não verificar por descrição
+    // Permite ações rápidas mas diferentes, só previne salvamentos idênticos em sequência
+    if (!forcarSalvamento && tempoDesdeUltimoSalvamento < 200) {
+        console.log(`⏱️  Ação rápida ignorada temporariamente: ${descricao}`);
         return;
     }
     
@@ -1138,17 +1140,27 @@ salvarEstadoHistorico(descricao) {
     }
 
     this.ultimoSalvamentoHistorico = agora;
-    this.ultimaDescricaoHistorico = descricao;
     
     this.atualizarBotoesHistorico();
     console.log(`💾 Histórico salvo: ${descricao} (${this.historico.length} estados, índice: ${this.indiceHistorico})`);
 }
 
 obterEstadoAtual() {
+    // 🔥 CORREÇÃO CRÍTICA: Garantir que valores de texto sejam serializados
+    const elementosTexto = this.drawingArea.querySelectorAll('.texto-legenda');
+    elementosTexto.forEach(texto => {
+        texto.setAttribute('data-valor', texto.value);
+    });
+    
     return {
         drawingAreaHTML: this.drawingArea.innerHTML,
         gruposPecas: JSON.parse(JSON.stringify(this.gruposPecas))
     };
+}
+
+// 🔥 NOVO MÉTODO: Forçar salvamento imediato (para eventos de blur)
+salvarEstadoImediato(descricao) {
+    this.salvarEstadoHistorico(descricao, true);
 }
 
 restaurarEstadoHistorico(estado) {
@@ -2843,25 +2855,20 @@ configurarInteratividadeCuba(elemento, tipo) {
     }
 }
 
-           criarTexto(x, y, textoInicial = "") {
+          criarTexto(x, y, textoInicial = "") {
     const textoElement = document.createElement('textarea');
     textoElement.className = 'texto-legenda';
     textoElement.style.left = `${x}px`;
     textoElement.style.top = `${y}px`;
     textoElement.value = textoInicial;
     
-    // 🔥 CORREÇÃO: Salvar o valor também no atributo data-valor
     textoElement.setAttribute('data-valor', textoInicial);
-    
     textoElement.rows = 1;
     textoElement.placeholder = "Digite seu texto";
-    
-    // MODIFICADO: Largura reduzida
     textoElement.style.width = '120px';
     textoElement.style.minWidth = '120px';
     textoElement.style.maxWidth = '300px';
     
-    // Adicionar classe selecionavel se o modo de seleção estiver ativo
     if (this.modoSelecaoAtivo) {
         textoElement.classList.add('selecionavel');
     }
@@ -2873,33 +2880,69 @@ configurarInteratividadeCuba(elemento, tipo) {
         this.drawingArea.appendChild(textoElement);
     }
     
+    // 🔥 CORREÇÃO: Salvar estado IMEDIATAMENTE ao criar texto
+    this.salvarEstadoImediato('Adicionar Caixa de Texto');
+    
     textoElement.focus();
     
     textoElement.addEventListener('input', () => {
         textoElement.style.height = 'auto';
         textoElement.style.height = (textoElement.scrollHeight) + 'px';
-        
-        // 🔥 CORREÇÃO: Atualizar também o atributo data-valor em tempo real
         textoElement.setAttribute('data-valor', textoElement.value);
     });
     
-    // MODIFICADO: Salvar histórico individualmente para cada texto
+    // 🔥 CORREÇÃO CRÍTICA: Salvar estado ao perder foco (blur)
     textoElement.addEventListener('blur', () => {
-        // 🔥 CORREÇÃO: Atualizar data-valor no blur também
         textoElement.setAttribute('data-valor', textoElement.value);
         
         if (textoElement.value.trim() === '') {
             textoElement.remove();
-            this.salvarEstadoHistorico('Remover Texto Vazio');
+            this.salvarEstadoImediato('Remover Texto Vazio');
         } else {
-            this.salvarEstadoHistorico('Editar Texto: ' + textoElement.value.substring(0, 20));
+            // 🔥 CORREÇÃO: Usar salvamento imediato para garantir histórico
+            this.salvarEstadoImediato('Editar Texto: ' + textoElement.value.substring(0, 20));
         }
     });
+
+    this.configurarInteratividadeTexto(textoElement);
+    
+    return textoElement;
+}
+
+// 🔥 CORREÇÃO: No método manipularCliqueInsercao para texto
+case 'texto':
+    const textoElement = document.createElement('textarea');
+    textoElement.className = 'texto-legenda';
+    textoElement.style.position = 'absolute';
+    textoElement.style.left = x + 'px';
+    textoElement.style.top = y + 'px';
+    textoElement.style.width = '120px';
+    textoElement.style.minWidth = '120px';
+    textoElement.style.zIndex = '1000';
+    textoElement.placeholder = "Digite seu texto";
+    
+    this.drawingArea.appendChild(textoElement);
+    
+    // 🔥 CORREÇÃO: Salvar estado ANTES de focar
+    this.salvarEstadoImediato('Adicionar Caixa de Texto');
+    
+    textoElement.focus();
+    
+    textoElement.addEventListener('blur', () => {
+        if (textoElement.value.trim() === '') {
+            textoElement.remove();
+            this.salvarEstadoImediato('Remover Texto Vazio');
+        } else {
+            this.salvarEstadoImediato('Editar Texto');
+        }
+    });
+    
+    console.log('✅ Caixa de texto criada com sucesso!');
+    break;
 
     // MODIFICADO: Configurar interatividade com transparência ao mover
     this.configurarInteratividadeTexto(textoElement);
     
-    this.salvarEstadoHistorico('Adicionar Texto');
     
     return textoElement;
 }
