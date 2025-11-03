@@ -1645,45 +1645,29 @@
     handlesContainer.className = 'handles-container';
     elemento.appendChild(handlesContainer);
     
-    const width = parseFloat(elemento.style.width);
-    const height = parseFloat(elemento.style.height);
-    const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
-    const rad = rotation * Math.PI / 180;
-    
-    const centerX = width / 2;
-    const centerY = height / 2;
+    console.log(`🔧 Criando handles travados nas bordas do elemento`);
 
-    console.log(`🔧 Posição relativa: width=${width}, height=${height}, rotation=${rotation}`);
-
-    const relativeHandles = [
-        { class: 'handle-n', relX: 0, relY: -height / 2 },
-        { class: 'handle-s', relX: 0, relY: height / 2 },
-        { class: 'handle-e', relX: width / 2, relY: 0 },
-        { class: 'handle-w', relX: -width / 2, relY: 0 },
-        { class: 'handle-ne', relX: width / 2, relY: -height / 2 },
-        { class: 'handle-nw', relX: -width / 2, relY: -height / 2 },
-        { class: 'handle-se', relX: width / 2, relY: height / 2 },
-        { class: 'handle-sw', relX: -width / 2, relY: height / 2 }
+    // 🔥 CORREÇÃO: Usar posicionamento percentual simples para travar nas bordas
+    const handles = [
+        { class: 'handle-n', x: '50%', y: '0%' },      // Top - meio da borda superior
+        { class: 'handle-s', x: '50%', y: '100%' },    // Bottom - meio da borda inferior  
+        { class: 'handle-e', x: '100%', y: '50%' },    // Right - meio da borda direita
+        { class: 'handle-w', x: '0%', y: '50%' },      // Left - meio da borda esquerda
+        { class: 'handle-ne', x: '100%', y: '0%' },    // Top-Right - canto superior direito
+        { class: 'handle-nw', x: '0%', y: '0%' },      // Top-Left - canto superior esquerdo
+        { class: 'handle-se', x: '100%', y: '100%' },  // Bottom-Right - canto inferior direito
+        { class: 'handle-sw', x: '0%', y: '100%' }     // Bottom-Left - canto inferior esquerdo
     ];
-
-    const handles = relativeHandles.map(handle => {
-        const rotatedX = handle.relX * Math.cos(rad) - handle.relY * Math.sin(rad);
-        const rotatedY = handle.relX * Math.sin(rad) + handle.relY * Math.cos(rad);
-        
-        return {
-            class: handle.class,
-            x: centerX + rotatedX,
-            y: centerY + rotatedY
-        };
-    });
 
     handles.forEach(handle => {
         const handleElement = document.createElement('div');
         handleElement.className = `handle ${handle.class}`;
-        handleElement.style.left = `${handle.x}px`;
-        handleElement.style.top = `${handle.y}px`;
+        handleElement.style.left = handle.x;
+        handleElement.style.top = handle.y;
+        // 🔥 CORREÇÃO: Centralizar o handle no ponto da borda
+        handleElement.style.transform = 'translate(-50%, -50%)';
         
-        console.log(`🔧 Criando handle ${handle.class} em x=${handle.x}, y=${handle.y}`);
+        console.log(`🔧 Criando handle ${handle.class} em ${handle.x}, ${handle.y}`);
         
         handlesContainer.appendChild(handleElement);
         this.handles.push(handleElement);
@@ -1691,27 +1675,24 @@
         this.configurarHandle(handleElement, elemento, handle.class);
     });
 
-    // Handle de rotação
-    const handleRotacaoRelY = -height / 2 - 40;
-    const handleRotacaoX = 0 * Math.cos(rad) - handleRotacaoRelY * Math.sin(rad);
-    const handleRotacaoY = 0 * Math.sin(rad) + handleRotacaoRelY * Math.cos(rad);
-
+    // Handle de rotação (acima do elemento)
     const handleRotacao = document.createElement('div');
     handleRotacao.className = 'handle handle-rotacao';
-    handleRotacao.style.left = `${centerX + handleRotacaoX}px`;
-    handleRotacao.style.top = `${centerY + handleRotacaoY}px`;
+    handleRotacao.style.left = '50%';
+    handleRotacao.style.top = '-30px'; // 🔥 CORREÇÃO: Fixo acima do elemento
+    handleRotacao.style.transform = 'translate(-50%, -50%)';
     
-    console.log(`🔧 Criando handle de rotação em x=${centerX + handleRotacaoX}, y=${centerY + handleRotacaoY}`);
+    console.log(`🔧 Criando handle de rotação acima do elemento`);
     
     handlesContainer.appendChild(handleRotacao);
     this.handles.push(handleRotacao);
     
     this.configurarHandleRotacao(handleRotacao, elemento);
     
-    console.log(`✅ ${this.handles.length} handles criados como filhos do elemento`);
+    console.log(`✅ ${this.handles.length} handles criados como filhos do elemento, travados nas bordas`);
 }
 
-// 🔥 NOVO: Método para criar handles separados (para texto)
+// 🔥 CORREÇÃO: Método para criar handles separados (para texto) - também corrigido
 criarHandlesSeparados(elemento) {
     const pos = this.obterPosicaoComScroll(elemento);
     const left = pos.left;
@@ -1719,36 +1700,20 @@ criarHandlesSeparados(elemento) {
     const width = pos.width;
     const height = pos.height;
 
-    const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
-    const rad = rotation * Math.PI / 180;
-    
-    const centerX = left + width / 2;
-    const centerY = top + height / 2;
-
-    const relativeHandles = [
-        { class: 'handle-n', relX: 0, relY: -height / 2 },
-        { class: 'handle-s', relX: 0, relY: height / 2 },
-        { class: 'handle-e', relX: width / 2, relY: 0 },
-        { class: 'handle-w', relX: -width / 2, relY: 0 },
-        { class: 'handle-ne', relX: width / 2, relY: -height / 2 },
-        { class: 'handle-nw', relX: -width / 2, relY: -height / 2 },
-        { class: 'handle-se', relX: width / 2, relY: height / 2 },
-        { class: 'handle-sw', relX: -width / 2, relY: height / 2 }
-    ];
-
-    const handles = relativeHandles.map(handle => {
-        const rotatedX = handle.relX * Math.cos(rad) - handle.relY * Math.sin(rad);
-        const rotatedY = handle.relX * Math.sin(rad) + handle.relY * Math.cos(rad);
-        
-        return {
-            class: handle.class,
-            x: centerX + rotatedX,
-            y: centerY + rotatedY
-        };
-    });
-
     // Limpar handles existentes
     this.removerHandles();
+
+    // 🔥 CORREÇÃO: Handles travados nas bordas do texto
+    const handles = [
+        { class: 'handle-n', x: left + width / 2, y: top },                    // Top
+        { class: 'handle-s', x: left + width / 2, y: top + height },           // Bottom  
+        { class: 'handle-e', x: left + width, y: top + height / 2 },           // Right
+        { class: 'handle-w', x: left, y: top + height / 2 },                   // Left
+        { class: 'handle-ne', x: left + width, y: top },                       // Top-Right
+        { class: 'handle-nw', x: left, y: top },                               // Top-Left
+        { class: 'handle-se', x: left + width, y: top + height },              // Bottom-Right
+        { class: 'handle-sw', x: left, y: top + height }                       // Bottom-Left
+    ];
 
     handles.forEach(handle => {
         const handleElement = document.createElement('div');
@@ -1764,15 +1729,11 @@ criarHandlesSeparados(elemento) {
         this.configurarHandle(handleElement, elemento, handle.class);
     });
 
-    // Handle de rotação
-    const handleRotacaoRelY = -height / 2 - 40;
-    const handleRotacaoX = 0 * Math.cos(rad) - handleRotacaoRelY * Math.sin(rad);
-    const handleRotacaoY = 0 * Math.sin(rad) + handleRotacaoRelY * Math.cos(rad);
-
+    // Handle de rotação para texto
     const handleRotacao = document.createElement('div');
     handleRotacao.className = 'handle handle-rotacao';
-    handleRotacao.style.left = `${centerX + handleRotacaoX}px`;
-    handleRotacao.style.top = `${centerY + handleRotacaoY}px`;
+    handleRotacao.style.left = `${left + width / 2}px`;
+    handleRotacao.style.top = `${top - 30}px`; // 🔥 CORREÇÃO: Fixo acima do texto
     handleRotacao.style.zIndex = '1002';
     handleRotacao.style.position = 'absolute';
     
@@ -1782,42 +1743,33 @@ criarHandlesSeparados(elemento) {
     this.configurarHandleRotacao(handleRotacao, elemento);
 }
 
-// 🔥 NOVO: Método para remover handles específicos de um elemento
-removerHandlesElemento(elemento) {
-    const handlesContainer = elemento.querySelector('.handles-container');
-    if (handlesContainer) {
-        handlesContainer.remove();
+// 🔥 CORREÇÃO: Atualizar método de seleção para usar handles travados
+selecionarElemento(elemento, event) {
+    this.desselecionarElemento();
+    
+    this.elementoSelecionado = elemento;
+    elemento.classList.add('elemento-selecionado');
+    
+    console.log('🔧 Selecionando elemento:', elemento.className);
+    
+    this.desabilitarLinhasPecas();
+    
+    // ✅ CORREÇÃO: Criar handles APENAS para elementos que podem tê-los
+    if (!elemento.classList.contains('simbolo-linha') && 
+        !elemento.classList.contains('dimensoes-right') &&
+        !elemento.classList.contains('dimensoes-left')) {
+        
+        if (elemento.classList.contains('texto-legenda')) {
+            // Para texto, usar handles separados
+            this.criarHandlesSeparados(elemento);
+        } else {
+            // Para peças e cubas, usar handles travados nas bordas
+            this.criarHandles(elemento);
+        }
     }
     
-    // Remover da lista global também
-    this.handles = this.handles.filter(handle => 
-        !handle.parentNode || handle.parentNode.parentNode !== elemento
-    );
-}
-
-// 🔥 MODIFICADO: Atualizar handles quando elemento for redimensionado
-atualizarHandles() {
-    if (!this.elementoSelecionado) {
-        console.log('⚠️ Nenhum elemento selecionado para atualizar handles');
-        return;
-    }
-
-    if (this.elementoSelecionado.classList.contains('simbolo-linha') ||
-        this.elementoSelecionado.classList.contains('texto-legenda')) {
-        console.log('⚠️ Elemento sem handles para atualizar');
-        return;
-    }
-
-    console.log('🔧 Atualizando handles...');
-    this.criarHandles(this.elementoSelecionado);
-}
-
-// NOVO: Método para atualizar estado dos botões
-atualizarEstadoBotoes() {
-    const temElementoSelecionado = this.elementoSelecionado !== null;
-    
-    document.getElementById('btnDuplicar').disabled = !temElementoSelecionado;
-    document.getElementById('btnExcluir').disabled = !temElementoSelecionado;
+    this.configurarInteratividade(elemento);
+    this.atualizarEstadoBotoes();
 }
 
 // NOVO MÉTODO: Desabilitar linhas das peças quando modo seleção está ativo
@@ -2847,47 +2799,46 @@ duplicarElemento() {
 
         // 🔥 MODIFICADO: Configurar interatividade considerando handles filhos
         configurarInteratividade(elemento) {
-            // Remover interações anteriores
-            this.removerInteratividade(elemento);
-            
-            // Configurar nova interação apenas se o elemento estiver selecionado
-            if (elemento.classList.contains('elemento-selecionado')) {
-                
-                // ✅ CORREÇÃO: Configuração ESPECÍFICA para símbolos
-                if (elemento.classList.contains('simbolo-linha')) {
-                    this.configurarInteratividadeSimbolo(elemento);
-                } else {
-                    // Configuração normal para outros elementos
-                    interact(elemento).draggable({
-                        listeners: {
-                            start: () => {
-                                elemento.style.zIndex = '1000';
-                            },
-                            move: (event) => {
-                                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-                                const rotate = elemento.getAttribute('data-rotate') || 0;
+    // Remover interações anteriores
+    this.removerInteratividade(elemento);
+    
+    // Configurar nova interação apenas se o elemento estiver selecionado
+    if (elemento.classList.contains('elemento-selecionado')) {
+        
+        interact(elemento).draggable({
+            listeners: {
+                start: () => {
+                    elemento.style.zIndex = '1000';
+                },
+                move: (event) => {
+                    let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                    let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                    const rotate = elemento.getAttribute('data-rotate') || 0;
 
-                                // Para elementos com handles filhos, atualizar a posição normalmente
-                                // Os handles se moverão junto por serem filhos
-                                elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
-                                elemento.setAttribute('data-x', x);
-                                elemento.setAttribute('data-y', y);
+                    // 🔥 CORREÇÃO: Aplicar translação + rotação
+                    elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
+                    elemento.setAttribute('data-x', x);
+                    elemento.setAttribute('data-y', y);
 
-                                // ✅ CORREÇÃO: Atualizar apenas se for peça (não símbolo)
-                                if (elemento.classList.contains('peca')) {
-                                    this.atualizarLinhasESimbolos(elemento);
-                                }
-                            },
-                            end: () => {
-                                elemento.style.zIndex = '';
-                                this.salvarEstadoHistorico('Mover Elemento');
-                            }
-                        }
-                    });
+                    // Os handles se movem automaticamente por serem filhos
+                    // E mantêm as posições travadas nas bordas
+                    if (elemento.classList.contains('peca')) {
+                        this.atualizarLinhasESimbolos(elemento);
+                    }
+                    
+                    // Para texto, atualizar handles separados
+                    if (elemento.classList.contains('texto-legenda')) {
+                        this.atualizarHandles();
+                    }
+                },
+                end: () => {
+                    elemento.style.zIndex = '';
+                    this.salvarEstadoHistorico('Mover Elemento');
                 }
             }
-        }
+        });
+    }
+}
 
         configurarInteratividadeSimbolo(elemento) {
             console.log('🔧 Configurando interatividade para símbolo:', elemento);
