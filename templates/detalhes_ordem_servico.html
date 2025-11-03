@@ -954,6 +954,41 @@
                 console.log('✅ Gerenciador de Desenho inicializado com sucesso!');
             }
 
+        // 🔥 CORREÇÃO: Método para excluir elemento selecionado
+excluirElemento() {
+    const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
+    if (!elementoAlvo) return;
+
+    // Confirmar exclusão
+    Swal.fire({
+        title: 'Confirmar Exclusão',
+        text: 'Tem certeza que deseja excluir este elemento?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sim, excluir!',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Remover o elemento
+            elementoAlvo.remove();
+            
+            // Desselecionar e limpar handles
+            this.desselecionarElemento();
+            
+            // Salvar no histórico
+            this.salvarEstadoHistorico('Excluir Elemento: ' + (elementoAlvo.className || 'Elemento'));
+            
+            Swal.fire(
+                'Excluído!',
+                'O elemento foi excluído com sucesso.',
+                'success'
+            );
+        }
+    });
+}
+
             carregarDesenhoSalvo() {
                 try {
                     // Limpar área de desenho
@@ -969,6 +1004,8 @@
                     this.criarPecasBase();
                 }
             }
+
+        
 
             // =============================================
             // SISTEMA DE HISTÓRICO DESFAZER/REFAZER
