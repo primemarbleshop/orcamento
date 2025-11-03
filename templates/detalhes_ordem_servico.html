@@ -848,7 +848,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-         // =============================================
+        // =============================================
         // CONFIGURAÇÕES E CONSTANTES - MODIFICADO
         // =============================================
         const CONFIG = {
@@ -1521,25 +1521,20 @@ toggleModoSelecao() {
     console.log('🔧 Modo seleção desativado - linhas reabilitadas');
 }
 
+            // NOVO: Método para tornar elementos selecionáveis ou não
             tornarElementosSelecionaveis(selecionavel) {
-    const elementos = this.drawingArea.querySelectorAll(
-        '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca'
-    );
-    
-    elementos.forEach(elemento => {
-        if (selecionavel) {
-            elemento.classList.add('selecionavel');
-            // 🔥 ADICIONADO: Reconfigurar interatividade quando se torna selecionável
-            if (elemento.classList.contains('simbolo-linha')) {
-                this.configurarInteratividadeSimbolo(elemento);
+                const elementos = this.drawingArea.querySelectorAll(
+                    '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca'
+                );
+                
+                elementos.forEach(elemento => {
+                    if (selecionavel) {
+                        elemento.classList.add('selecionavel');
+                    } else {
+                        elemento.classList.remove('selecionavel');
+                    }
+                });
             }
-        } else {
-            elemento.classList.remove('selecionavel');
-            // 🔥 ADICIONADO: Remover interatividade quando deixa de ser selecionável
-            this.removerInteratividade(elemento);
-        }
-    });
-}
 
             // NOVO: Método para manipular clique durante modo de seleção
             manipularCliqueSelecao(e) {
@@ -1585,8 +1580,10 @@ selecionarElemento(elemento, event) {
     // Desabilitar cliques nas linhas quando handle está selecionado
     this.desabilitarLinhasPecas();
     
-    // 🔥 CORREÇÃO: Criar handles para TODOS os elementos, incluindo símbolos
-    this.criarHandles(elemento);
+    // 🔥 CORREÇÃO: Criar handles para todos os elementos exceto símbolos de linha
+    if (!elemento.classList.contains('simbolo-linha')) {
+        this.criarHandles(elemento);
+    }
     
     // Configurar interatividade para o elemento selecionado
     this.configurarInteratividade(elemento);
@@ -1595,16 +1592,15 @@ selecionarElemento(elemento, event) {
     this.atualizarEstadoBotoes();
 }
 
-
+// 🔥 CORREÇÃO: Método melhorado para criar handles
 criarHandles(elemento) {
     console.log('🔧 Criando handles para:', elemento.className);
     
-    // 🔥 REMOVIDO: A verificação que impedia handles para símbolos
-    if (elemento.classList.contains('dimensoes-right') || elemento.classList.contains('dimensoes-left')) {
+   if (elemento.classList.contains('dimensoes-right') || elemento.classList.contains('dimensoes-left')) {
         return;
     }
     
-    // Resto do método permanece igual...
+    // 🔥 CORREÇÃO: Usar método auxiliar para obter posição correta
     const pos = this.obterPosicaoComScroll(elemento);
     const left = pos.left;
     const top = pos.top;
@@ -1650,7 +1646,7 @@ criarHandles(elemento) {
         handleElement.style.left = `${handle.x}px`;
         handleElement.style.top = `${handle.y}px`;
         handleElement.style.zIndex = '1002';
-        handleElement.style.position = 'absolute';
+        handleElement.style.position = 'absolute'; // 🔥 CORREÇÃO: Garantir posição absoluta
         
         console.log(`🔧 Criando handle ${handle.class} em x=${handle.x}, y=${handle.y}`);
         
@@ -1660,7 +1656,7 @@ criarHandles(elemento) {
         this.configurarHandle(handleElement, elemento, handle.class);
     });
 
-    // Handle de rotação - 🔥 AGORA TAMBÉM PARA SÍMBOLOS
+    // Handle de rotação
     const handleRotacaoRelY = -height / 2 - 40;
     const handleRotacaoX = 0 * Math.cos(rad) - handleRotacaoRelY * Math.sin(rad);
     const handleRotacaoY = 0 * Math.sin(rad) + handleRotacaoRelY * Math.cos(rad);
@@ -1670,7 +1666,7 @@ criarHandles(elemento) {
     handleRotacao.style.left = `${centerX + handleRotacaoX}px`;
     handleRotacao.style.top = `${centerY + handleRotacaoY}px`;
     handleRotacao.style.zIndex = '1002';
-    handleRotacao.style.position = 'absolute';
+    handleRotacao.style.position = 'absolute'; // 🔥 CORREÇÃO: Garantir posição absoluta
     
     console.log(`🔧 Criando handle de rotação em x=${centerX + handleRotacaoX}, y=${centerY + handleRotacaoY}`);
     
@@ -1683,8 +1679,7 @@ criarHandles(elemento) {
 }
 
 // 🔥 CORREÇÃO: Método melhorado para configurar handles
- // 🔥 MODIFICADO: Atualizar handles para linha reta
-            configurarHandle(handle, elemento, handleClass) {
+configurarHandle(handle, elemento, handleClass) {
                 let initialX, initialY;
                 let initialWidth, initialHeight;
                 let initialLeft, initialTop;
@@ -2525,8 +2520,8 @@ atualizarEstadoVisualBotoes(botaoAtivo = null, tipoAtivo = null) {
                     areaPecas: areaPecas
                 };
             }
- // MODIFICADO: Criar Cuba - sem limite mínimo de tamanho + linha reta
-            criarCuba(x, y, tipo, largura = 80, altura = 50) {
+
+           criarCuba(x, y, tipo, largura = 80, altura = 50) {
                 const cubaElement = document.createElement('div');
                 cubaElement.className = `cuba ${tipo}`;
                 cubaElement.style.left = `${x}px`;
@@ -3453,98 +3448,27 @@ if (!isDimensao) {
                 document.body.style.overflow = '';
             }
 
-           mostrarSeletorCuba(x, y) {
+            mostrarSeletorCuba(x, y) {
                 const botoesCuba = CONFIG.TIPOS_CUBA.map(cuba => 
-                    `<button type="button" class="btn btn-outline-primary m-1" onclick="window.selecionarCuba('${cuba.tipo}')" style="min-width: 100px; padding: 8px 4px;">
+                    `<button type="button" class="btn btn-outline-primary m-1" onclick="window.selecionarCuba('${cuba.tipo}')">
                         ${cuba.nome}
                     </button>`
                 ).join('');
 
-                // Criar modal para seleção de cuba
-                const modalCuba = document.createElement('div');
-                modalCuba.className = 'modal-controles';
-                modalCuba.style.position = 'fixed';
-                modalCuba.style.zIndex = '2000';
-                modalCuba.style.background = 'white';
-                modalCuba.style.padding = '15px';
-                modalCuba.style.borderRadius = '10px';
-                modalCuba.style.boxShadow = '0 10px 30px rgba(0,0,0,0.3)';
-                modalCuba.style.wordWrap = 'break-word';
-
-                const viewportWidth = window.innerWidth;
-                const viewportHeight = window.innerHeight;
-                
-                if (viewportWidth <= 768) {
-                    modalCuba.style.width = '95vw';
-                    modalCuba.style.maxWidth = '95vw';
-                    modalCuba.style.left = '50%';
-                    modalCuba.style.top = '50%';
-                    modalCuba.style.transform = 'translate(-50%, -50%)';
-                } else {
-                    modalCuba.style.minWidth = '250px';
-                    modalCuba.style.maxWidth = '300px';
-                    
-                    let left = x + 50;
-                    let top = y + 50;
-                    
-                    if (left + 300 > viewportWidth) {
-                        left = viewportWidth - 300 - 20;
-                    }
-                    if (left < 20) {
-                        left = 20;
-                    }
-
-                    if (top + 300 > viewportHeight) {
-                        top = viewportHeight - 300 - 20;
-                    }
-                    if (top < 20) {
-                        top = 20;
-                    }
-
-                    modalCuba.style.left = `${left}px`;
-                    modalCuba.style.top = `${top}px`;
-                }
-
-                modalCuba.innerHTML = `
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <h6 style="margin: 0; font-weight: bold;">Selecione o tipo de cuba</h6>
-                        <button type="button" class="btn-close btn-sm" onclick="gerenciadorDesenho.fecharModalCuba()" style="font-size: 0.8rem;"></button>
-                    </div>
-                    
-                    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 10px 0;">
-                        ${botoesCuba}
-                    </div>
-                `;
-
-                document.body.appendChild(modalCuba);
-
-                const backdrop = document.createElement('div');
-                backdrop.className = 'modal-backdrop';
-                backdrop.style.display = 'block';
-                document.body.appendChild(backdrop);
-
-                // Fechar modal ao clicar fora
-                backdrop.addEventListener('click', () => {
-                    modalCuba.remove();
-                    backdrop.remove();
+                Swal.fire({
+                    title: 'Selecione o tipo de cuba',
+                    html: `<div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 15px 0;">${botoesCuba}</div>`,
+                    showConfirmButton: false,
+                    showCancelButton: true,
+                    cancelButtonText: 'Cancelar'
                 });
 
-                // Definir função global para selecionar cuba
                 window.selecionarCuba = (tipo) => {
                     this.criarCuba(x, y, tipo);
-                    modalCuba.remove();
-                    backdrop.remove();
+                    Swal.close();
                 };
             }
-
-fecharModalCuba() {
-                const modal = document.querySelector('.modal-controles');
-                const backdrop = document.querySelector('.modal-backdrop');
-                
-                if (modal) modal.remove();
-                if (backdrop) backdrop.remove();
-            }
-
+        }
 
 
         // =============================================
@@ -3559,3 +3483,4 @@ fecharModalCuba() {
     </script>
 </body>
 </html>
+
