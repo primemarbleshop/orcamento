@@ -990,21 +990,44 @@ excluirElemento() {
 }
 
             carregarDesenhoSalvo() {
-                try {
-                    // Limpar área de desenho
-                    this.drawingArea.innerHTML = this.desenhoSalvo;
-                    
-                    // Reconfigurar a interatividade de todos os elementos
-                    this.reconfigurarElementosAposHistorico();
-                    
-                    console.log('✅ Desenho salvo carregado com sucesso!');
-                } catch (error) {
-                    console.error('❌ Erro ao carregar desenho salvo:', error);
-                    // Se houver erro, criar peças base
-                    this.criarPecasBase();
-                }
-            }
+    try {
+        // Limpar área de desenho
+        this.drawingArea.innerHTML = this.desenhoSalvo;
+        
+        // 🔥 CORREÇÃO: Restaurar valores dos elementos de texto
+        this.restaurarElementosTexto();
+        
+        // Reconfigurar a interatividade de todos os elementos
+        this.reconfigurarElementosAposHistorico();
+        
+        console.log('✅ Desenho salvo carregado com sucesso!');
+    } catch (error) {
+        console.error('❌ Erro ao carregar desenho salvo:', error);
+        // Se houver erro, criar peças base
+        this.criarPecasBase();
+    }
+}
 
+restaurarElementosTexto() {
+    const elementosTexto = this.drawingArea.querySelectorAll('.texto-legenda');
+    
+    elementosTexto.forEach(texto => {
+        // Restaurar o valor do atributo data-valor se existir
+        const valorSalvo = texto.getAttribute('data-valor');
+        if (valorSalvo !== null) {
+            texto.value = valorSalvo;
+        }
+        
+        // 🔥 CORREÇÃO ADICIONAL: Restaurar também o conteúdo interno para compatibilidade
+        if (texto.value === '' && texto.textContent !== '') {
+            texto.value = texto.textContent;
+        }
+        
+        // Ajustar altura automaticamente
+        texto.style.height = 'auto';
+        texto.style.height = (texto.scrollHeight) + 'px';
+    });
+}
         
 
             // =============================================
@@ -1056,6 +1079,10 @@ restaurarEstadoHistorico(estado) {
     
     this.drawingArea.innerHTML = estado.drawingAreaHTML;
     this.gruposPecas = JSON.parse(JSON.stringify(estado.gruposPecas));
+    
+    // 🔥 CORREÇÃO: Restaurar elementos de texto também no histórico
+    this.restaurarElementosTexto();
+    
     this.reconfigurarElementosAposHistorico();
 }
 
@@ -1099,7 +1126,18 @@ reconfigurarElementosAposHistorico() {
     const textosEditaveis = this.drawingArea.querySelectorAll('.texto-legenda');
     textosEditaveis.forEach(texto => {
         let valorOriginal = texto.value;
+        
+        // 🔥 CORREÇÃO: Reconfigurar evento de input para ajustar altura
+        texto.addEventListener('input', () => {
+            texto.style.height = 'auto';
+            texto.style.height = (texto.scrollHeight) + 'px';
+            texto.setAttribute('data-valor', texto.value);
+        });
+        
         texto.addEventListener('blur', () => {
+            // 🔥 CORREÇÃO: Atualizar data-valor no blur
+            texto.setAttribute('data-valor', texto.value);
+            
             if (texto.value !== valorOriginal) {
                 if (texto.value.trim() === '') {
                     texto.remove();
@@ -1216,67 +1254,74 @@ atualizarBotoesHistorico() {
             // =============================================
 
             salvarDesenho() {
-                console.log('💾 Iniciando salvamento do desenho...');
-                
-                // Obter o HTML atual da área de desenho
-                const drawingAreaHTML = this.drawingArea.innerHTML;
-                
-                const dadosDesenho = {
-                    drawingAreaHTML: drawingAreaHTML,
-                    timestamp: new Date().toISOString()
-                };
+    console.log('💾 Iniciando salvamento do desenho...');
+    
+    // 🔥 CORREÇÃO: Serializar elementos de texto corretamente
+    const elementosTexto = this.drawingArea.querySelectorAll('.texto-legenda');
+    elementosTexto.forEach(texto => {
+        // Garantir que o valor atual seja preservado no HTML
+        texto.setAttribute('data-valor', texto.value);
+    });
+    
+    // Obter o HTML atual da área de desenho
+    const drawingAreaHTML = this.drawingArea.innerHTML;
+    
+    const dadosDesenho = {
+        drawingAreaHTML: drawingAreaHTML,
+        timestamp: new Date().toISOString()
+    };
 
-                console.log('📤 Enviando dados para servidor...');
+    console.log('📤 Enviando dados para servidor...');
 
-                // Mostrar loading
-                Swal.fire({
-                    title: 'Salvando...',
-                    text: 'Por favor, aguarde enquanto o desenho é salvo.',
-                    allowOutsideClick: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
+    // Mostrar loading
+    Swal.fire({
+        title: 'Salvando...',
+        text: 'Por favor, aguarde enquanto o desenho é salvo.',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
 
-                // Enviar para o servidor
-                fetch('/salvar_desenho_ordem_servico/{{ codigo_orcamento }}', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(dadosDesenho)
-                })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`Erro HTTP: ${response.status}`);
-                    }
-                    return response.json();
-                })
-                .then(data => {
-                    Swal.close();
-                    if (data.success) {
-                        Swal.fire({
-                            title: 'Sucesso!',
-                            text: 'Desenho salvo com sucesso!',
-                            icon: 'success',
-                            timer: 2000,
-                            showConfirmButton: false
-                        });
-                        console.log('✅ Desenho salvo com sucesso!', data);
-                    } else {
-                        throw new Error(data.error || 'Erro desconhecido ao salvar');
-                    }
-                })
-                .catch(error => {
-                    console.error('❌ Erro ao salvar desenho:', error);
-                    Swal.fire({
-                        title: 'Erro!',
-                        text: 'Não foi possível salvar o desenho: ' + error.message,
-                        icon: 'error',
-                        confirmButtonText: 'OK'
-                    });
-                });
-            }
+    // Enviar para o servidor
+    fetch('/salvar_desenho_ordem_servico/{{ codigo_orcamento }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(dadosDesenho)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`Erro HTTP: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        Swal.close();
+        if (data.success) {
+            Swal.fire({
+                title: 'Sucesso!',
+                text: 'Desenho salvo com sucesso!',
+                icon: 'success',
+                timer: 2000,
+                showConfirmButton: false
+            });
+            console.log('✅ Desenho salvo com sucesso!', data);
+        } else {
+            throw new Error(data.error || 'Erro desconhecido ao salvar');
+        }
+    })
+    .catch(error => {
+        console.error('❌ Erro ao salvar desenho:', error);
+        Swal.fire({
+            title: 'Erro!',
+            text: 'Não foi possível salvar o desenho: ' + error.message,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    });
+}
 
             // =============================================
             // MÉTODO IMPRIMIR
@@ -2520,57 +2565,66 @@ atualizarEstadoVisualBotoes(botaoAtivo = null, tipoAtivo = null) {
     });
 }
 
-            // MODIFICADO: Criar texto com largura reduzida e transparente ao mover
             criarTexto(x, y, textoInicial = "") {
-                const textoElement = document.createElement('textarea');
-                textoElement.className = 'texto-legenda';
-                textoElement.style.left = `${x}px`;
-                textoElement.style.top = `${y}px`;
-                textoElement.value = textoInicial;
-                textoElement.rows = 1;
-                textoElement.placeholder = "Digite seu texto";
-                
-                // MODIFICADO: Largura reduzida
-                textoElement.style.width = '120px';
-                textoElement.style.minWidth = '120px';
-                textoElement.style.maxWidth = '300px';
-                
-                // Adicionar classe selecionavel se o modo de seleção estiver ativo
-                if (this.modoSelecaoAtivo) {
-                    textoElement.classList.add('selecionavel');
-                }
-                
-                const grupo = this.encontrarGrupoNaPosicao(x, y);
-                if (grupo) {
-                    grupo.appendChild(textoElement);
-                } else {
-                    this.drawingArea.appendChild(textoElement);
-                }
-                
-                textoElement.focus();
-                
-                textoElement.addEventListener('input', () => {
-                    textoElement.style.height = 'auto';
-                    textoElement.style.height = (textoElement.scrollHeight) + 'px';
-                });
-                
-                // MODIFICADO: Salvar histórico individualmente para cada texto
-                textoElement.addEventListener('blur', () => {
-                    if (textoElement.value.trim() === '') {
-                        textoElement.remove();
-                        this.salvarEstadoHistorico('Remover Texto Vazio');
-                    } else {
-                        this.salvarEstadoHistorico('Editar Texto: ' + textoElement.value.substring(0, 20));
-                    }
-                });
+    const textoElement = document.createElement('textarea');
+    textoElement.className = 'texto-legenda';
+    textoElement.style.left = `${x}px`;
+    textoElement.style.top = `${y}px`;
+    textoElement.value = textoInicial;
+    
+    // 🔥 CORREÇÃO: Salvar o valor também no atributo data-valor
+    textoElement.setAttribute('data-valor', textoInicial);
+    
+    textoElement.rows = 1;
+    textoElement.placeholder = "Digite seu texto";
+    
+    // MODIFICADO: Largura reduzida
+    textoElement.style.width = '120px';
+    textoElement.style.minWidth = '120px';
+    textoElement.style.maxWidth = '300px';
+    
+    // Adicionar classe selecionavel se o modo de seleção estiver ativo
+    if (this.modoSelecaoAtivo) {
+        textoElement.classList.add('selecionavel');
+    }
+    
+    const grupo = this.encontrarGrupoNaPosicao(x, y);
+    if (grupo) {
+        grupo.appendChild(textoElement);
+    } else {
+        this.drawingArea.appendChild(textoElement);
+    }
+    
+    textoElement.focus();
+    
+    textoElement.addEventListener('input', () => {
+        textoElement.style.height = 'auto';
+        textoElement.style.height = (textoElement.scrollHeight) + 'px';
+        
+        // 🔥 CORREÇÃO: Atualizar também o atributo data-valor em tempo real
+        textoElement.setAttribute('data-valor', textoElement.value);
+    });
+    
+    // MODIFICADO: Salvar histórico individualmente para cada texto
+    textoElement.addEventListener('blur', () => {
+        // 🔥 CORREÇÃO: Atualizar data-valor no blur também
+        textoElement.setAttribute('data-valor', textoElement.value);
+        
+        if (textoElement.value.trim() === '') {
+            textoElement.remove();
+            this.salvarEstadoHistorico('Remover Texto Vazio');
+        } else {
+            this.salvarEstadoHistorico('Editar Texto: ' + textoElement.value.substring(0, 20));
+        }
+    });
 
-                // MODIFICADO: Configurar interatividade com transparência ao mover
-                this.configurarInteratividadeTexto(textoElement);
-                
-                this.salvarEstadoHistorico('Adicionar Texto');
-                
-                return textoElement;
-            }
+    // MODIFICADO: Configurar interatividade com transparência ao mover
+    this.configurarInteratividadeTexto(textoElement);
+    
+    this.salvarEstadoHistorico('Adicionar Texto');
+    
+    return textoElement;
+}
 
             // NOVO: Configurar interatividade do texto com transparência ao mover
             configurarInteratividadeTexto(elemento) {
