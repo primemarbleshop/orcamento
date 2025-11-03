@@ -848,7 +848,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
     <script>
-        // =============================================
+         // =============================================
         // CONFIGURAÇÕES E CONSTANTES - MODIFICADO
         // =============================================
         const CONFIG = {
@@ -858,7 +858,8 @@
                 { tipo: "retangulo", nome: "Retângulo" },
                 { tipo: "circulo", nome: "Círculo" },
                 { tipo: "oval", nome: "Oval" },
-                { tipo: "elipse", nome: "Elipse" }
+                { tipo: "elipse", nome: "Elipse" },
+                { tipo: "linha-reta", nome: "Linha Reta" } // 🔥 NOVO: Adicionar linha reta
             ],
             LEGENDA_SIMPLIFICADA: [
                 { simbolo: "C", descricao: "Acabamento" },
@@ -1520,20 +1521,25 @@ toggleModoSelecao() {
     console.log('🔧 Modo seleção desativado - linhas reabilitadas');
 }
 
-            // NOVO: Método para tornar elementos selecionáveis ou não
             tornarElementosSelecionaveis(selecionavel) {
-                const elementos = this.drawingArea.querySelectorAll(
-                    '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca'
-                );
-                
-                elementos.forEach(elemento => {
-                    if (selecionavel) {
-                        elemento.classList.add('selecionavel');
-                    } else {
-                        elemento.classList.remove('selecionavel');
-                    }
-                });
+    const elementos = this.drawingArea.querySelectorAll(
+        '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca'
+    );
+    
+    elementos.forEach(elemento => {
+        if (selecionavel) {
+            elemento.classList.add('selecionavel');
+            // 🔥 ADICIONADO: Reconfigurar interatividade quando se torna selecionável
+            if (elemento.classList.contains('simbolo-linha')) {
+                this.configurarInteratividadeSimbolo(elemento);
             }
+        } else {
+            elemento.classList.remove('selecionavel');
+            // 🔥 ADICIONADO: Remover interatividade quando deixa de ser selecionável
+            this.removerInteratividade(elemento);
+        }
+    });
+}
 
             // NOVO: Método para manipular clique durante modo de seleção
             manipularCliqueSelecao(e) {
@@ -1579,10 +1585,8 @@ selecionarElemento(elemento, event) {
     // Desabilitar cliques nas linhas quando handle está selecionado
     this.desabilitarLinhasPecas();
     
-    // 🔥 CORREÇÃO: Criar handles para todos os elementos exceto símbolos de linha
-    if (!elemento.classList.contains('simbolo-linha')) {
-        this.criarHandles(elemento);
-    }
+    // 🔥 CORREÇÃO: Criar handles para TODOS os elementos, incluindo símbolos
+    this.criarHandles(elemento);
     
     // Configurar interatividade para o elemento selecionado
     this.configurarInteratividade(elemento);
@@ -1591,15 +1595,16 @@ selecionarElemento(elemento, event) {
     this.atualizarEstadoBotoes();
 }
 
-// 🔥 CORREÇÃO: Método melhorado para criar handles
+
 criarHandles(elemento) {
     console.log('🔧 Criando handles para:', elemento.className);
     
-   if (elemento.classList.contains('dimensoes-right') || elemento.classList.contains('dimensoes-left')) {
+    // 🔥 REMOVIDO: A verificação que impedia handles para símbolos
+    if (elemento.classList.contains('dimensoes-right') || elemento.classList.contains('dimensoes-left')) {
         return;
     }
     
-    // 🔥 CORREÇÃO: Usar método auxiliar para obter posição correta
+    // Resto do método permanece igual...
     const pos = this.obterPosicaoComScroll(elemento);
     const left = pos.left;
     const top = pos.top;
@@ -1645,7 +1650,7 @@ criarHandles(elemento) {
         handleElement.style.left = `${handle.x}px`;
         handleElement.style.top = `${handle.y}px`;
         handleElement.style.zIndex = '1002';
-        handleElement.style.position = 'absolute'; // 🔥 CORREÇÃO: Garantir posição absoluta
+        handleElement.style.position = 'absolute';
         
         console.log(`🔧 Criando handle ${handle.class} em x=${handle.x}, y=${handle.y}`);
         
@@ -1655,7 +1660,7 @@ criarHandles(elemento) {
         this.configurarHandle(handleElement, elemento, handle.class);
     });
 
-    // Handle de rotação
+    // Handle de rotação - 🔥 AGORA TAMBÉM PARA SÍMBOLOS
     const handleRotacaoRelY = -height / 2 - 40;
     const handleRotacaoX = 0 * Math.cos(rad) - handleRotacaoRelY * Math.sin(rad);
     const handleRotacaoY = 0 * Math.sin(rad) + handleRotacaoRelY * Math.cos(rad);
@@ -1665,7 +1670,7 @@ criarHandles(elemento) {
     handleRotacao.style.left = `${centerX + handleRotacaoX}px`;
     handleRotacao.style.top = `${centerY + handleRotacaoY}px`;
     handleRotacao.style.zIndex = '1002';
-    handleRotacao.style.position = 'absolute'; // 🔥 CORREÇÃO: Garantir posição absoluta
+    handleRotacao.style.position = 'absolute';
     
     console.log(`🔧 Criando handle de rotação em x=${centerX + handleRotacaoX}, y=${centerY + handleRotacaoY}`);
     
@@ -1678,129 +1683,172 @@ criarHandles(elemento) {
 }
 
 // 🔥 CORREÇÃO: Método melhorado para configurar handles
-configurarHandle(handle, elemento, handleClass) {
-    let initialX, initialY;
-    let initialWidth, initialHeight;
-    let initialLeft, initialTop;
+ // 🔥 MODIFICADO: Atualizar handles para linha reta
+            configurarHandle(handle, elemento, handleClass) {
+                let initialX, initialY;
+                let initialWidth, initialHeight;
+                let initialLeft, initialTop;
 
-    // Prevenir eventos de touch nos handles
-    handle.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-    }, { passive: false });
+                // Prevenir eventos de touch nos handles
+                handle.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }, { passive: false });
 
-    handle.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-    }, { passive: false });
+                handle.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }, { passive: false });
 
-    interact(handle).draggable({
-        preventDefault: 'always',
-        
-        listeners: {
-            start: (event) => {
-                if (event.type.includes('touch')) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                
-                const style = window.getComputedStyle(elemento);
-                initialWidth = parseFloat(style.width);
-                initialHeight = parseFloat(style.height);
-                initialLeft = parseFloat(style.left);
-                initialTop = parseFloat(style.top);
-                
-                initialX = event.clientX || (event.touches && event.touches[0].clientX);
-                initialY = event.clientY || (event.touches && event.touches[0].clientY);
+                interact(handle).draggable({
+                    preventDefault: 'always',
+                    
+                    listeners: {
+                        start: (event) => {
+                            if (event.type.includes('touch')) {
+                                event.preventDefault();
+                                event.stopPropagation();
+                            }
+                            
+                            const style = window.getComputedStyle(elemento);
+                            initialWidth = parseFloat(style.width);
+                            initialHeight = parseFloat(style.height);
+                            initialLeft = parseFloat(style.left);
+                            initialTop = parseFloat(style.top);
+                            
+                            initialX = event.clientX || (event.touches && event.touches[0].clientX);
+                            initialY = event.clientY || (event.touches && event.touches[0].clientY);
 
-                handle.style.cursor = 'grabbing';
-                console.log('🔧 Iniciando redimensionamento');
-            },
-            move: (event) => {
-                if (event.type.includes('touch')) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
+                            handle.style.cursor = 'grabbing';
+                            console.log('🔧 Iniciando redimensionamento');
+                        },
+                        move: (event) => {
+                            if (event.type.includes('touch')) {
+                                event.preventDefault();
+                                event.stopPropagation();
+                            }
 
-                const currentX = event.clientX || (event.touches && event.touches[0].clientX);
-                const currentY = event.clientY || (event.touches && event.touches[0].clientY);
-                
-                const deltaX = currentX - initialX;
-                const deltaY = currentY - initialY;
+                            const currentX = event.clientX || (event.touches && event.touches[0].clientX);
+                            const currentY = event.clientY || (event.touches && event.touches[0].clientY);
+                            
+                            const deltaX = currentX - initialX;
+                            const deltaY = currentY - initialY;
 
-                const handleClasses = handle.classList;
-                let isEast = handleClasses.contains('handle-e');
-                let isWest = handleClasses.contains('handle-w');
-                let isNorth = handleClasses.contains('handle-n');
-                let isSouth = handleClasses.contains('handle-s');
-                let isNorthEast = handleClasses.contains('handle-ne');
-                let isNorthWest = handleClasses.contains('handle-nw');
-                let isSouthEast = handleClasses.contains('handle-se');
-                let isSouthWest = handleClasses.contains('handle-sw');
+                            const handleClasses = handle.classList;
+                            let isEast = handleClasses.contains('handle-e');
+                            let isWest = handleClasses.contains('handle-w');
+                            let isNorth = handleClasses.contains('handle-n');
+                            let isSouth = handleClasses.contains('handle-s');
+                            let isNorthEast = handleClasses.contains('handle-ne');
+                            let isNorthWest = handleClasses.contains('handle-nw');
+                            let isSouthEast = handleClasses.contains('handle-se');
+                            let isSouthWest = handleClasses.contains('handle-sw');
 
-                let newWidth = initialWidth;
-                let newHeight = initialHeight;
-                let newLeft = initialLeft;
-                let newTop = initialTop;
+                            let newWidth = initialWidth;
+                            let newHeight = initialHeight;
+                            let newLeft = initialLeft;
+                            let newTop = initialTop;
 
-                if (isEast) {
-                    newWidth = initialWidth + deltaX;
-                }
-                else if (isWest) {
-                    newWidth = initialWidth - deltaX;
-                    newLeft = initialLeft + deltaX;
-                }
-                else if (isNorth) {
-                    newHeight = initialHeight - deltaY;
-                    newTop = initialTop + deltaY;
-                }
-                else if (isSouth) {
-                    newHeight = initialHeight + deltaY;
-                }
-                else if (isNorthEast) {
-                    newWidth = initialWidth + deltaX;
-                    newHeight = initialHeight - deltaY;
-                    newTop = initialTop + deltaY;
-                }
-                else if (isNorthWest) {
-                    newWidth = initialWidth - deltaX;
-                    newHeight = initialHeight - deltaY;
-                    newLeft = initialLeft + deltaX;
-                    newTop = initialTop + deltaY;
-                }
-                else if (isSouthEast) {
-                    newWidth = initialWidth + deltaX;
-                    newHeight = initialHeight + deltaY;
-                }
-                else if (isSouthWest) {
-                    newWidth = initialWidth - deltaX;
-                    newHeight = initialHeight + deltaY;
-                    newLeft = initialLeft + deltaX;
-                }
+                            // 🔥 MODIFICADO: Para linha reta, permitir dimensões muito pequenas
+                            if (elemento.classList.contains('linha-reta')) {
+                                // Linha reta pode ter largura mínima de 1px e altura mínima de 1px
+                                const minSize = 1;
+                                
+                                if (isEast) {
+                                    newWidth = Math.max(initialWidth + deltaX, minSize);
+                                }
+                                else if (isWest) {
+                                    newWidth = Math.max(initialWidth - deltaX, minSize);
+                                    newLeft = initialLeft + deltaX;
+                                }
+                                else if (isNorth) {
+                                    newHeight = Math.max(initialHeight - deltaY, minSize);
+                                    newTop = initialTop + deltaY;
+                                }
+                                else if (isSouth) {
+                                    newHeight = Math.max(initialHeight + deltaY, minSize);
+                                }
+                                else if (isNorthEast) {
+                                    newWidth = Math.max(initialWidth + deltaX, minSize);
+                                    newHeight = Math.max(initialHeight - deltaY, minSize);
+                                    newTop = initialTop + deltaY;
+                                }
+                                else if (isNorthWest) {
+                                    newWidth = Math.max(initialWidth - deltaX, minSize);
+                                    newHeight = Math.max(initialHeight - deltaY, minSize);
+                                    newLeft = initialLeft + deltaX;
+                                    newTop = initialTop + deltaY;
+                                }
+                                else if (isSouthEast) {
+                                    newWidth = Math.max(initialWidth + deltaX, minSize);
+                                    newHeight = Math.max(initialHeight + deltaY, minSize);
+                                }
+                                else if (isSouthWest) {
+                                    newWidth = Math.max(initialWidth - deltaX, minSize);
+                                    newHeight = Math.max(initialHeight + deltaY, minSize);
+                                    newLeft = initialLeft + deltaX;
+                                }
+                            } else {
+                                // Para outros tipos de cuba, manter o comportamento anterior
+                                if (isEast) {
+                                    newWidth = initialWidth + deltaX;
+                                }
+                                else if (isWest) {
+                                    newWidth = initialWidth - deltaX;
+                                    newLeft = initialLeft + deltaX;
+                                }
+                                else if (isNorth) {
+                                    newHeight = initialHeight - deltaY;
+                                    newTop = initialTop + deltaY;
+                                }
+                                else if (isSouth) {
+                                    newHeight = initialHeight + deltaY;
+                                }
+                                else if (isNorthEast) {
+                                    newWidth = initialWidth + deltaX;
+                                    newHeight = initialHeight - deltaY;
+                                    newTop = initialTop + deltaY;
+                                }
+                                else if (isNorthWest) {
+                                    newWidth = initialWidth - deltaX;
+                                    newHeight = initialHeight - deltaY;
+                                    newLeft = initialLeft + deltaX;
+                                    newTop = initialTop + deltaY;
+                                }
+                                else if (isSouthEast) {
+                                    newWidth = initialWidth + deltaX;
+                                    newHeight = initialHeight + deltaY;
+                                }
+                                else if (isSouthWest) {
+                                    newWidth = initialWidth - deltaX;
+                                    newHeight = initialHeight + deltaY;
+                                    newLeft = initialLeft + deltaX;
+                                }
+                            }
 
-                // Aplicar novas dimensões
-                elemento.style.width = Math.max(newWidth, 20) + 'px'; // Mínimo de 20px
-                elemento.style.height = Math.max(newHeight, 20) + 'px';
-                
-                if (isWest || isNorthWest || isSouthWest) {
-                    elemento.style.left = newLeft + 'px';
-                }
-                
-                if (isNorth || isNorthEast || isNorthWest) {
-                    elemento.style.top = newTop + 'px';
-                }
+                            // Aplicar novas dimensões
+                            elemento.style.width = newWidth + 'px';
+                            elemento.style.height = newHeight + 'px';
+                            
+                            if (isWest || isNorthWest || isSouthWest) {
+                                elemento.style.left = newLeft + 'px';
+                            }
+                            
+                            if (isNorth || isNorthEast || isNorthWest) {
+                                elemento.style.top = newTop + 'px';
+                            }
 
-                this.atualizarLinhasESimbolos(elemento);
-                this.atualizarHandles();
-            },
-            end: () => {
-                handle.style.cursor = 'grab';
-                this.salvarEstadoHistorico('Redimensionar Elemento');
-                console.log('🔧 Redimensionamento concluído');
+                            this.atualizarLinhasESimbolos(elemento);
+                            this.atualizarHandles();
+                        },
+                        end: () => {
+                            handle.style.cursor = 'grab';
+                            this.salvarEstadoHistorico('Redimensionar Elemento');
+                            console.log('🔧 Redimensionamento concluído');
+                        }
+                    }
+                });
             }
-        }
-    });
-}
 
 // 🔥 CORREÇÃO: Método melhorado para atualizar handles
 atualizarHandles() {
@@ -2477,15 +2525,19 @@ atualizarEstadoVisualBotoes(botaoAtivo = null, tipoAtivo = null) {
                     areaPecas: areaPecas
                 };
             }
-
-            // MODIFICADO: Criar Cuba - sem limite mínimo de tamanho
-            criarCuba(x, y, tipo, largura = 80, altura = 50) { // REDUZIDO tamanho padrão
+ // MODIFICADO: Criar Cuba - sem limite mínimo de tamanho + linha reta
+            criarCuba(x, y, tipo, largura = 80, altura = 50) {
                 const cubaElement = document.createElement('div');
                 cubaElement.className = `cuba ${tipo}`;
                 cubaElement.style.left = `${x}px`;
                 cubaElement.style.top = `${y}px`;
                 
-                if (tipo === 'circulo') {
+                // 🔥 NOVO: Tratamento especial para linha reta
+                if (tipo === 'linha-reta') {
+                    // Para linha reta, usar altura mínima e largura maior
+                    cubaElement.style.width = `${Math.max(largura, 100)}px`; // Largura mínima maior para linha
+                    cubaElement.style.height = '2px'; // Altura mínima para linha
+                } else if (tipo === 'circulo') {
                     const tamanho = Math.max(largura, altura);
                     cubaElement.style.width = `${tamanho}px`;
                     cubaElement.style.height = `${tamanho}px`;
@@ -2518,51 +2570,52 @@ atualizarEstadoVisualBotoes(botaoAtivo = null, tipoAtivo = null) {
                 return cubaElement;
             }
 
-           configurarInteratividadeCuba(elemento) {
-    interact(elemento).draggable({
-        listeners: {
-            start: () => {
-                elemento.style.zIndex = '1000';
-            },
-            move: (event) => {
-                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-                const rotate = elemento.getAttribute('data-rotate') || 0;
+            // 🔥 MODIFICADO: Configurar interatividade da cuba sem limites mínimos
+            configurarInteratividadeCuba(elemento) {
+                interact(elemento).draggable({
+                    listeners: {
+                        start: () => {
+                            elemento.style.zIndex = '1000';
+                        },
+                        move: (event) => {
+                            let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                            let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                            const rotate = elemento.getAttribute('data-rotate') || 0;
 
-                elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
-                elemento.setAttribute('data-x', x);
-                elemento.setAttribute('data-y', y);
-            },
-            end: () => {
-                elemento.style.zIndex = '';
-                this.salvarEstadoHistorico('Mover Cuba');
-            }
-        }
-    });
-
-    // MODIFICADO: Remover completamente os limites mínimos do redimensionamento
-    interact(elemento).resizable({
-        edges: { left: true, right: true, bottom: true, top: true },
-        listeners: {
-            move: function (event) {
-                let { x, y } = event.deltaRect;
-
-                Object.assign(event.target.style, {
-                    width: `${event.rect.width}px`,
-                    height: `${event.rect.height}px`
+                            elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
+                            elemento.setAttribute('data-x', x);
+                            elemento.setAttribute('data-y', y);
+                        },
+                        end: () => {
+                            elemento.style.zIndex = '';
+                            this.salvarEstadoHistorico('Mover Cuba');
+                        }
+                    }
                 });
 
-                Object.assign(event.target.style, {
-                    transform: `translate(${(parseFloat(event.target.getAttribute('data-x')) || 0) + x}px, ${(parseFloat(event.target.getAttribute('data-y')) || 0) + y}px)`
-                });
+                // 🔥 MODIFICADO: Remover completamente os limites mínimos do redimensionamento
+                interact(elemento).resizable({
+                    edges: { left: true, right: true, bottom: true, top: true },
+                    listeners: {
+                        move: function (event) {
+                            let { x, y } = event.deltaRect;
 
-                event.target.setAttribute('data-x', (parseFloat(event.target.getAttribute('data-x')) || 0) + x);
-                event.target.setAttribute('data-y', (parseFloat(event.target.getAttribute('data-y')) || 0) + y);
+                            Object.assign(event.target.style, {
+                                width: `${event.rect.width}px`,
+                                height: `${event.rect.height}px`
+                            });
+
+                            Object.assign(event.target.style, {
+                                transform: `translate(${(parseFloat(event.target.getAttribute('data-x')) || 0) + x}px, ${(parseFloat(event.target.getAttribute('data-y')) || 0) + y}px)`
+                            });
+
+                            event.target.setAttribute('data-x', (parseFloat(event.target.getAttribute('data-x')) || 0) + x);
+                            event.target.setAttribute('data-y', (parseFloat(event.target.getAttribute('data-y')) || 0) + y);
+                        }
+                    }
+                    // REMOVIDO: Modificadores de limite mínimo
+                });
             }
-        }
-        // REMOVIDO: Modificadores de limite mínimo
-    });
-}
 
             criarTexto(x, y, textoInicial = "") {
     const textoElement = document.createElement('textarea');
@@ -3400,27 +3453,98 @@ if (!isDimensao) {
                 document.body.style.overflow = '';
             }
 
-            mostrarSeletorCuba(x, y) {
+           mostrarSeletorCuba(x, y) {
                 const botoesCuba = CONFIG.TIPOS_CUBA.map(cuba => 
-                    `<button type="button" class="btn btn-outline-primary m-1" onclick="window.selecionarCuba('${cuba.tipo}')">
+                    `<button type="button" class="btn btn-outline-primary m-1" onclick="window.selecionarCuba('${cuba.tipo}')" style="min-width: 100px; padding: 8px 4px;">
                         ${cuba.nome}
                     </button>`
                 ).join('');
 
-                Swal.fire({
-                    title: 'Selecione o tipo de cuba',
-                    html: `<div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin: 15px 0;">${botoesCuba}</div>`,
-                    showConfirmButton: false,
-                    showCancelButton: true,
-                    cancelButtonText: 'Cancelar'
+                // Criar modal para seleção de cuba
+                const modalCuba = document.createElement('div');
+                modalCuba.className = 'modal-controles';
+                modalCuba.style.position = 'fixed';
+                modalCuba.style.zIndex = '2000';
+                modalCuba.style.background = 'white';
+                modalCuba.style.padding = '15px';
+                modalCuba.style.borderRadius = '10px';
+                modalCuba.style.boxShadow = '0 10px 30px rgba(0,0,0,0.3)';
+                modalCuba.style.wordWrap = 'break-word';
+
+                const viewportWidth = window.innerWidth;
+                const viewportHeight = window.innerHeight;
+                
+                if (viewportWidth <= 768) {
+                    modalCuba.style.width = '95vw';
+                    modalCuba.style.maxWidth = '95vw';
+                    modalCuba.style.left = '50%';
+                    modalCuba.style.top = '50%';
+                    modalCuba.style.transform = 'translate(-50%, -50%)';
+                } else {
+                    modalCuba.style.minWidth = '250px';
+                    modalCuba.style.maxWidth = '300px';
+                    
+                    let left = x + 50;
+                    let top = y + 50;
+                    
+                    if (left + 300 > viewportWidth) {
+                        left = viewportWidth - 300 - 20;
+                    }
+                    if (left < 20) {
+                        left = 20;
+                    }
+
+                    if (top + 300 > viewportHeight) {
+                        top = viewportHeight - 300 - 20;
+                    }
+                    if (top < 20) {
+                        top = 20;
+                    }
+
+                    modalCuba.style.left = `${left}px`;
+                    modalCuba.style.top = `${top}px`;
+                }
+
+                modalCuba.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 style="margin: 0; font-weight: bold;">Selecione o tipo de cuba</h6>
+                        <button type="button" class="btn-close btn-sm" onclick="gerenciadorDesenho.fecharModalCuba()" style="font-size: 0.8rem;"></button>
+                    </div>
+                    
+                    <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 10px 0;">
+                        ${botoesCuba}
+                    </div>
+                `;
+
+                document.body.appendChild(modalCuba);
+
+                const backdrop = document.createElement('div');
+                backdrop.className = 'modal-backdrop';
+                backdrop.style.display = 'block';
+                document.body.appendChild(backdrop);
+
+                // Fechar modal ao clicar fora
+                backdrop.addEventListener('click', () => {
+                    modalCuba.remove();
+                    backdrop.remove();
                 });
 
+                // Definir função global para selecionar cuba
                 window.selecionarCuba = (tipo) => {
                     this.criarCuba(x, y, tipo);
-                    Swal.close();
+                    modalCuba.remove();
+                    backdrop.remove();
                 };
             }
-        }
+
+fecharModalCuba() {
+                const modal = document.querySelector('.modal-controles');
+                const backdrop = document.querySelector('.modal-backdrop');
+                
+                if (modal) modal.remove();
+                if (backdrop) backdrop.remove();
+            }
+
 
 
         // =============================================
