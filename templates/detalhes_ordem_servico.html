@@ -914,42 +914,42 @@
     // =============================================
     // CLASSE PRINCIPAL - GERENCIADOR DE DESENHO
     // =============================================
-    class GerenciadorDesenho {
-        constructor() {
-            this.drawingArea = document.getElementById('drawingArea');
-            this.gruposPecas = this.carregarDadosPecas();
-            this.modoInsercaoAtivo = null;
-            this.modoSelecaoAtivo = false;
-            this.pecasCriadas = false;
-            this.elementoSelecionado = null;
-            this.handles = [];
-            
-            this.ultimoElementoClicado = null;
-            
-            this.historico = [];
-            this.indiceHistorico = -1;
-            this.maximoHistorico = 50;
+     class GerenciadorDesenho {
+            constructor() {
+                this.drawingArea = document.getElementById('drawingArea');
+                this.gruposPecas = this.carregarDadosPecas();
+                this.modoInsercaoAtivo = null;
+                this.modoSelecaoAtivo = false;
+                this.pecasCriadas = false;
+                this.elementoSelecionado = null;
+                this.handles = [];
+                
+                this.ultimoElementoClicado = null;
+                
+                this.historico = [];
+                this.indiceHistorico = -1;
+                this.maximoHistorico = 50;
 
-            // Carregar desenho salvo se existir
-            this.desenhoSalvo = {{ desenho_salvo | tojson | safe }};
-            
-            // Variáveis para controle do modal de símbolos
-            this.modalSimbolosAtual = null;
-            this.backdropAtual = null;
-            this.linhaElementAtual = null;
-            this.simboloExistenteAtual = null;
-            this.rotacaoAtual = 0;
-            
-            // Variáveis para controle do modal de legenda
-            this.modalLegendaAtual = null;
-            this.backdropLegendaAtual = null;
-            this.legendaX = 0;
-            this.legendaY = 0;
-            this.ultimoSalvamentoHistorico = 0;
-            this.ultimaDescricaoHistorico = '';
+                // Carregar desenho salvo se existir
+                this.desenhoSalvo = {{ desenho_salvo | tojson | safe }};
+                
+                // Variáveis para controle do modal de símbolos
+                this.modalSimbolosAtual = null;
+                this.backdropAtual = null;
+                this.linhaElementAtual = null;
+                this.simboloExistenteAtual = null;
+                this.rotacaoAtual = 0;
+                
+                // Variáveis para controle do modal de legenda
+                this.modalLegendaAtual = null;
+                this.backdropLegendaAtual = null;
+                this.legendaX = 0;
+                this.legendaY = 0;
+                this.ultimoSalvamentoHistorico = 0;
+                this.ultimaDescricaoHistorico = '';
 
-            this.inicializar();
-        }
+                this.inicializar();
+            }
 
         carregarDadosPecas() {
             const grupos = {};
@@ -1396,61 +1396,60 @@
         // =============================================
         // CONFIGURAÇÃO DE EVENTOS
         // =============================================
-        configurarEventos() {
-            console.log('🔧 Configurando eventos...');
-            
-            // CORREÇÃO: Prevenir apenas zoom duplo toque, não clique único
-            const prevenirZoomDuploToque = (e) => {
-                // Só prevenir se for toque duplo ou múltiplo
-                if (e.touches && e.touches.length > 1) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                }
-            };
+         configurarEventos() {
+                console.log('🔧 Configurando eventos...');
+                
+                // CORREÇÃO: Prevenir apenas zoom duplo toque, não clique único
+                const prevenirZoomDuploToque = (e) => {
+                    // Só prevenir se for toque duplo ou múltiplo
+                    if (e.touches && e.touches.length > 1) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                    }
+                };
 
-            // Configurar todos os botões
-            const botoes = [
-                'btnSelecionar', 'btnDesfazer', 'btnRefazer', 'btnAdicionarTexto',
-                'btnAdicionarCuba', 'btnLegendaSimplificada', 'btnDuplicar', 
-                'btnExcluir', 'btnSalvar', 'btnImprimir'
-            ];
+                // Configurar todos os botões
+                const botoes = [
+                    'btnSelecionar', 'btnDesfazer', 'btnRefazer', 'btnAdicionarTexto',
+                    'btnAdicionarCuba', 'btnLegendaSimplificada', 'btnDuplicar', 
+                    'btnExcluir', 'btnSalvar', 'btnImprimir'
+                ];
 
-            botoes.forEach(botaoId => {
-                const botao = document.getElementById(botaoId);
-                if (botao) {
-                    // Evento de click normal (funciona em desktop e mobile)
-                    botao.addEventListener('click', (e) => {
-                        console.log(`🖱️ Botão ${botaoId} clicado`);
-                        
-                        // Chamar a função correspondente
-                        switch(botaoId) {
-                            case 'btnSelecionar': this.toggleModoSelecao(); break;
-                            case 'btnAdicionarTexto': this.ativarModoInsercao('texto'); break;
-                            case 'btnAdicionarCuba': this.ativarModoInsercao('cuba'); break;
-                            case 'btnLegendaSimplificada': this.ativarModoInsercao('legenda'); break;
-                            case 'btnDuplicar': this.duplicarElemento(); break;
-                            case 'btnExcluir': this.excluirElemento(); break;
-                            case 'btnSalvar': this.salvarDesenho(); break;
-                            case 'btnImprimir': this.imprimirDesenho(); break;
-                            case 'btnDesfazer': this.desfazer(); break;
-                            case 'btnRefazer': this.refazer(); break;
-                        }
-                    });
+                botoes.forEach(botaoId => {
+                    const botao = document.getElementById(botaoId);
+                    if (botao) {
+                        // Evento de click normal (funciona em desktop e mobile)
+                        botao.addEventListener('click', (e) => {
+                            console.log(`🖱️ Botão ${botaoId} clicado`);
+                            
+                            // Chamar a função correspondente
+                            switch(botaoId) {
+                                case 'btnSelecionar': this.toggleModoSelecao(); break;
+                                case 'btnAdicionarTexto': this.ativarModoInsercao('texto'); break;
+                                case 'btnAdicionarCuba': this.ativarModoInsercao('cuba'); break;
+                                case 'btnLegendaSimplificada': this.ativarModoInsercao('legenda'); break;
+                                case 'btnDuplicar': this.duplicarElemento(); break;
+                                case 'btnExcluir': this.excluirElemento(); break;
+                                case 'btnSalvar': this.salvarDesenho(); break;
+                                case 'btnImprimir': this.imprimirDesenho(); break;
+                                case 'btnDesfazer': this.desfazer(); break;
+                                case 'btnRefazer': this.refazer(); break;
+                            }
+                        });
 
-                    // CORREÇÃO: Prevenir apenas eventos de touch que causam zoom duplo
-                    botao.addEventListener('touchstart', prevenirZoomDuploToque, { passive: false });
-                    botao.addEventListener('touchmove', prevenirZoomDuploToque, { passive: false });
-                }
-            });
+                        // CORREÇÃO: Prevenir apenas eventos de touch que causam zoom duplo
+                        botao.addEventListener('touchstart', prevenirZoomDuploToque, { passive: false });
+                        botao.addEventListener('touchmove', prevenirZoomDuploToque, { passive: false });
+                    }
+                });
 
-            // Evento de clique na área de desenho para modos de inserção e seleção
-            this.drawingArea.addEventListener('click', (e) => {
-                if (this.modoInsercaoAtivo) {
-                    this.manipularCliqueInsercao(e);
-                } else if (this.modoSelecaoAtivo) {
-                    this.manipularCliqueSelecao(e);
-                }
-            });
+                this.drawingArea.addEventListener('click', (e) => {
+                    if (this.modoInsercaoAtivo) {
+                        this.manipularCliqueInsercao(e);
+                    } else if (this.modoSelecaoAtivo) {
+                        this.manipularCliqueSelecao(e);
+                    }
+                });
             
             // CORREÇÃO: Permitir zoom e movimentação livre na área de desenho
             this.drawingArea.addEventListener('touchstart', (e) => {
@@ -3077,88 +3076,268 @@
             console.log(`🔧 Modo inserção ativado: ${tipo}`);
         }
 
-        manipularCliqueInsercao(e) {
-            if (!this.modoInsercaoAtivo) return;
-            
-            const drawingRect = this.drawingArea.getBoundingClientRect();
-            const x = e.clientX - drawingRect.left;
-            const y = e.clientY - drawingRect.top;
-            
-            console.log(`🎯 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y}`);
+       // 🔥 CORREÇÃO: Método manipularCliqueInsercao corrigido para Cuba e Legenda
+            manipularCliqueInsercao(e) {
+                if (!this.modoInsercaoAtivo) return;
+                
+                const drawingRect = this.drawingArea.getBoundingClientRect();
+                const x = e.clientX - drawingRect.left;
+                const y = e.clientY - drawingRect.top;
+                
+                console.log(`🎯 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y}`);
 
-            if (this.modoInsercaoAtivo === 'texto') {
-                // 🔥 CRIAÇÃO DIRETA E IMEDIATA do elemento de texto
-                const textoElement = document.createElement('textarea');
-                textoElement.className = 'texto-legenda';
-                textoElement.style.position = 'absolute';
-                textoElement.style.left = x + 'px';
-                textoElement.style.top = y + 'px';
-                textoElement.style.width = '120px';
-                textoElement.style.minWidth = '120px';
-                textoElement.style.zIndex = '1000';
-                textoElement.placeholder = "Digite seu texto";
+                switch(this.modoInsercaoAtivo) {
+                    case 'texto':
+                        // 🔥 CRIAÇÃO DIRETA E IMEDIATA do elemento de texto
+                        const textoElement = document.createElement('textarea');
+                        textoElement.className = 'texto-legenda';
+                        textoElement.style.position = 'absolute';
+                        textoElement.style.left = x + 'px';
+                        textoElement.style.top = y + 'px';
+                        textoElement.style.width = '120px';
+                        textoElement.style.minWidth = '120px';
+                        textoElement.style.zIndex = '1000';
+                        textoElement.placeholder = "Digite seu texto";
+                        
+                        // Adicionar à área de desenho IMEDIATAMENTE
+                        this.drawingArea.appendChild(textoElement);
+                        
+                        // Focar
+                        textoElement.focus();
+                        
+                        // Configurar evento de salvamento
+                        textoElement.addEventListener('blur', () => {
+                            if (textoElement.value.trim() === '') {
+                                textoElement.remove();
+                            }
+                            this.salvarEstadoHistorico('Adicionar Texto');
+                        });
+                        
+                        console.log('✅ Caixa de texto criada com sucesso!');
+                        break;
+                        
+                    case 'cuba':
+                        // 🔥 CORREÇÃO: Mostrar seletor de cuba no clique
+                        this.mostrarSeletorCuba(x, y);
+                        break;
+                        
+                    case 'legenda':
+                        // 🔥 CORREÇÃO: Mostrar seletor de legenda no clique
+                        this.mostrarSeletorLegenda(x, y);
+                        break;
+                }
                 
-                // Adicionar à área de desenho IMEDIATAMENTE
-                this.drawingArea.appendChild(textoElement);
+                // 🔥 CORREÇÃO: Não desativar o modo imediatamente para Cuba e Legenda
+                // Eles serão desativados quando o modal for fechado
+                if (this.modoInsercaoAtivo === 'texto') {
+                    this.modoInsercaoAtivo = null;
+                    this.drawingArea.style.cursor = 'default';
+                }
+            }
+
+            // 🔥 CORREÇÃO: Método ativarModoInsercao atualizado
+            ativarModoInsercao(tipo) {
+                // Desselecionar elemento atual se houver
+                this.desselecionarElemento();
                 
-                // Focar
-                textoElement.focus();
+                // Desativar modo de seleção se estiver ativo
+                if (this.modoSelecaoAtivo) {
+                    this.desativarModoSelecao();
+                }
                 
-                // Configurar evento de salvamento
-                textoElement.addEventListener('blur', () => {
-                    if (textoElement.value.trim() === '') {
-                        textoElement.remove();
+                this.modoInsercaoAtivo = tipo;
+                this.drawingArea.style.cursor = tipo === 'texto' ? 'text' : 'crosshair';
+                
+                // Destacar o botão ativo
+                this.destacarBotaoModoAtivo(tipo);
+                
+                console.log(`🔧 Modo inserção ativado: ${tipo}`);
+            }
+
+            // 🔥 NOVO: Método para destacar botão do modo ativo
+            destacarBotaoModoAtivo(tipo) {
+                // Remover destaque de todos os botões de modo
+                const botoesModo = ['btnAdicionarTexto', 'btnAdicionarCuba', 'btnLegendaSimplificada'];
+                botoesModo.forEach(botaoId => {
+                    const botao = document.getElementById(botaoId);
+                    if (botao) {
+                        botao.classList.remove('btn-modo-ativo');
                     }
-                    this.salvarEstadoHistorico('Adicionar Texto');
                 });
                 
-                console.log('✅ Caixa de texto criada com sucesso!');
+                // Adicionar destaque ao botão ativo
+                let botaoAtivoId;
+                switch(tipo) {
+                    case 'texto': botaoAtivoId = 'btnAdicionarTexto'; break;
+                    case 'cuba': botaoAtivoId = 'btnAdicionarCuba'; break;
+                    case 'legenda': botaoAtivoId = 'btnLegendaSimplificada'; break;
+                }
+                
+                if (botaoAtivoId) {
+                    const botaoAtivo = document.getElementById(botaoAtivoId);
+                    if (botaoAtivo) {
+                        botaoAtivo.classList.add('btn-modo-ativo');
+                    }
+                }
             }
-            // ... outros casos (cuba, legenda) ...
-            
-            this.modoInsercaoAtivo = null;
-            this.drawingArea.style.cursor = 'default';
-        }
 
-        // MODIFICADO: Mostrar seletor de legenda com as mesmas configurações do modal de símbolos
-        mostrarSeletorLegenda(x, y) {
-            // Implementação igual à anterior
-            // ... (código do modal de legenda permanece igual) ...
-        }
-
-        // NOVO: Método para selecionar legenda no modal
-        selecionarLegendaModal(simbolo, descricao, x, y) {
-            this.criarLegendaSimplificada(x, y, simbolo, descricao);
-            this.fecharModalLegenda();
-        }
-
-        // NOVO: Método para fechar modal de legenda
-        fecharModalLegenda() {
-            if (this.modalLegendaAtual && this.modalLegendaAtual.parentNode) {
-                this.modalLegendaAtual.parentNode.removeChild(this.modalLegendaAtual);
-                this.modalLegendaAtual = null;
+            // 🔥 CORREÇÃO: Método para desativar modo de inserção
+            desativarModoInsercao() {
+                this.modoInsercaoAtivo = null;
+                this.drawingArea.style.cursor = 'default';
+                
+                // Remover destaque de todos os botões de modo
+                const botoesModo = ['btnAdicionarTexto', 'btnAdicionarCuba', 'btnLegendaSimplificada'];
+                botoesModo.forEach(botaoId => {
+                    const botao = document.getElementById(botaoId);
+                    if (botao) {
+                        botao.classList.remove('btn-modo-ativo');
+                    }
+                });
             }
-            if (this.backdropLegendaAtual && this.backdropLegendaAtual.parentNode) {
-                this.backdropLegendaAtual.parentNode.removeChild(this.backdropLegendaAtual);
-                this.backdropLegendaAtual = null;
+
+            // 🔥 CORREÇÃO: Métodos dos modais de Cuba e Legenda (garantir que existam)
+            mostrarSeletorCuba(x, y) {
+                console.log('🔄 Abrindo seletor de cuba...');
+                
+                // Criar backdrop
+                this.backdropAtual = document.createElement('div');
+                this.backdropAtual.className = 'modal-backdrop';
+                document.body.appendChild(this.backdropAtual);
+                
+                // Criar modal
+                this.modalSimbolosAtual = document.createElement('div');
+                this.modalSimbolosAtual.className = 'modal-controles';
+                this.modalSimbolosAtual.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: white;
+                    padding: 20px;
+                    border-radius: 10px;
+                    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+                    z-index: 2000;
+                    min-width: 300px;
+                    max-width: 90vw;
+                `;
+                
+                this.modalSimbolosAtual.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">Selecionar Tipo de Cuba</h6>
+                        <button type="button" class="btn-close" onclick="gerenciadorDesenho.fecharModalCuba()"></button>
+                    </div>
+                    <div class="d-grid gap-2">
+                        ${CONFIG.TIPOS_CUBA.map(tipo => `
+                            <button type="button" class="btn btn-outline-primary" 
+                                onclick="gerenciadorDesenho.selecionarTipoCuba('${tipo.tipo}', ${x}, ${y})">
+                                <small>${tipo.nome}</small>
+                            </button>
+                        `).join('')}
+                    </div>
+                `;
+                
+                document.body.appendChild(this.modalSimbolosAtual);
+                document.body.style.overflow = 'hidden';
+                
+                // Fechar modal ao clicar no backdrop
+                this.backdropAtual.addEventListener('click', () => {
+                    this.fecharModalCuba();
+                    this.desativarModoInsercao();
+                });
             }
-            
-            document.body.style.overflow = '';
-        }
 
-        mostrarSeletorCuba(x, y) {
-            // Implementação igual à anterior
-            // ... (código do modal de cuba permanece igual) ...
-        }
+            selecionarTipoCuba(tipo, x, y) {
+                console.log(`✅ Selecionado tipo de cuba: ${tipo} em x:${x}, y:${y}`);
+                this.criarCuba(x, y, tipo);
+                this.fecharModalCuba();
+                this.desativarModoInsercao();
+            }
 
-        // 🔥 NOVO: Método para fechar modal de cuba
-        fecharModalCuba() {
-            const modal = document.querySelector('.modal-controles');
-            const backdrop = document.querySelector('.modal-backdrop');
-            
-            if (modal) modal.remove();
-            if (backdrop) backdrop.remove();
-        }
+            mostrarSeletorLegenda(x, y) {
+                console.log('🔄 Abrindo seletor de legenda...');
+                
+                // Salvar coordenadas para uso posterior
+                this.legendaX = x;
+                this.legendaY = y;
+                
+                // Criar backdrop
+                this.backdropLegendaAtual = document.createElement('div');
+                this.backdropLegendaAtual.className = 'modal-backdrop';
+                document.body.appendChild(this.backdropLegendaAtual);
+                
+                // Criar modal
+                this.modalLegendaAtual = document.createElement('div');
+                this.modalLegendaAtual.className = 'modal-controles';
+                this.modalLegendaAtual.style.cssText = `
+                    position: fixed;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    background: white;
+                    padding: 20px;
+                    border-radius: 10px;
+                    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+                    z-index: 2000;
+                    min-width: 300px;
+                    max-width: 90vw;
+                `;
+                
+                this.modalLegendaAtual.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">Selecionar Legenda</h6>
+                        <button type="button" class="btn-close" onclick="gerenciadorDesenho.fecharModalLegenda()"></button>
+                    </div>
+                    <div class="d-grid gap-2">
+                        ${CONFIG.LEGENDA_SIMPLIFICADA.map(legenda => `
+                            <button type="button" class="btn btn-outline-primary" 
+                                onclick="gerenciadorDesenho.selecionarLegendaModal('${legenda.simbolo}', '${legenda.descricao}')">
+                                <small><strong>${legenda.simbolo}</strong> = ${legenda.descricao}</small>
+                            </button>
+                        `).join('')}
+                    </div>
+                `;
+                
+                document.body.appendChild(this.modalLegendaAtual);
+                document.body.style.overflow = 'hidden';
+                
+                // Fechar modal ao clicar no backdrop
+                this.backdropLegendaAtual.addEventListener('click', () => {
+                    this.fecharModalLegenda();
+                    this.desativarModoInsercao();
+                });
+            }
+
+            selecionarLegendaModal(simbolo, descricao) {
+                console.log(`✅ Selecionada legenda: ${simbolo} = ${descricao}`);
+                this.criarLegendaSimplificada(this.legendaX, this.legendaY, simbolo, descricao);
+                this.fecharModalLegenda();
+                this.desativarModoInsercao();
+            }
+
+            fecharModalCuba() {
+                if (this.modalSimbolosAtual && this.modalSimbolosAtual.parentNode) {
+                    this.modalSimbolosAtual.parentNode.removeChild(this.modalSimbolosAtual);
+                    this.modalSimbolosAtual = null;
+                }
+                if (this.backdropAtual && this.backdropAtual.parentNode) {
+                    this.backdropAtual.parentNode.removeChild(this.backdropAtual);
+                    this.backdropAtual = null;
+                }
+                document.body.style.overflow = '';
+            }
+
+            fecharModalLegenda() {
+                if (this.modalLegendaAtual && this.modalLegendaAtual.parentNode) {
+                    this.modalLegendaAtual.parentNode.removeChild(this.modalLegendaAtual);
+                    this.modalLegendaAtual = null;
+                }
+                if (this.backdropLegendaAtual && this.backdropLegendaAtual.parentNode) {
+                    this.backdropLegendaAtual.parentNode.removeChild(this.backdropLegendaAtual);
+                    this.backdropLegendaAtual = null;
+                }
+                document.body.style.overflow = '';
+            }
 
         // 🔥 CORREÇÃO: Adicionar método obterPosicaoComScroll que estava faltando
         obterPosicaoComScroll(elemento) {
@@ -3336,13 +3515,13 @@
     // =============================================
     let gerenciadorDesenho;
 
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('🚀 Iniciando aplicação...');
-        gerenciadorDesenho = new GerenciadorDesenho();
-        
-        // 🔥 CORREÇÃO: Tornar acessível globalmente para os eventos onclick
-        window.gerenciadorDesenho = gerenciadorDesenho;
-    });
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 Iniciando aplicação...');
+            gerenciadorDesenho = new GerenciadorDesenho();
+            
+            // 🔥 CORREÇÃO: Tornar acessível globalmente para os eventos onclick
+            window.gerenciadorDesenho = gerenciadorDesenho;
+        });
 
 </script>
 </body>
