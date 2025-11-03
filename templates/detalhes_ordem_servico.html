@@ -3553,27 +3553,41 @@ atualizarPosicaoSimbolos(elemento) {
             manipularCliqueInsercao(e) {
     if (!this.modoInsercaoAtivo) return;
     
-    // 🔥 CORREÇÃO: Usar coordenadas relativas à área de desenho considerando scroll
-    const rect = this.drawingArea.getBoundingClientRect();
+    const drawingRect = this.drawingArea.getBoundingClientRect();
+    const x = e.clientX - drawingRect.left;
+    const y = e.clientY - drawingRect.top;
     
-    // Calcular coordenadas considerando scroll da área de desenho
-    const x = e.clientX - rect.left + this.drawingArea.scrollLeft;
-    const y = e.clientY - rect.top + this.drawingArea.scrollTop;
-    
-    console.log(`🔧 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y}`);
-    console.log(`📐 Detalhes: clientX:${e.clientX}, clientY:${e.clientY}, rect.left:${rect.left}, rect.top:${rect.top}, scrollLeft:${this.drawingArea.scrollLeft}, scrollTop:${this.drawingArea.scrollTop}`);
+    console.log(`🎯 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y}`);
 
-    switch (this.modoInsercaoAtivo) {
-        case 'texto':
-            this.criarTexto(x, y, '');
-            break;
-        case 'cuba':
-            this.mostrarSeletorCuba(x, y);
-            break;
-        case 'legenda':
-            this.mostrarSeletorLegenda(x, y);
-            break;
+    if (this.modoInsercaoAtivo === 'texto') {
+        // 🔥 CRIAÇÃO DIRETA E IMEDIATA do elemento de texto
+        const textoElement = document.createElement('textarea');
+        textoElement.className = 'texto-legenda';
+        textoElement.style.position = 'absolute';
+        textoElement.style.left = x + 'px';
+        textoElement.style.top = y + 'px';
+        textoElement.style.width = '120px';
+        textoElement.style.minWidth = '120px';
+        textoElement.style.zIndex = '1000';
+        textoElement.placeholder = "Digite seu texto";
+        
+        // Adicionar à área de desenho IMEDIATAMENTE
+        this.drawingArea.appendChild(textoElement);
+        
+        // Focar
+        textoElement.focus();
+        
+        // Configurar evento de salvamento
+        textoElement.addEventListener('blur', () => {
+            if (textoElement.value.trim() === '') {
+                textoElement.remove();
+            }
+            this.salvarEstadoHistorico('Adicionar Texto');
+        });
+        
+        console.log('✅ Caixa de texto criada com sucesso!');
     }
+    // ... outros casos (cuba, legenda) ...
     
     this.modoInsercaoAtivo = null;
     this.drawingArea.style.cursor = 'default';
