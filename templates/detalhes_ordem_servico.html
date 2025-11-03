@@ -2005,45 +2005,35 @@
                 };
             }
 
-            // MODIFICADO: Criar Cuba - sem limite mínimo de tamanho
-            criarCuba(x, y, tipo, largura = 80, altura = 50) {
-                const cubaElement = document.createElement('div');
-                cubaElement.className = `cuba ${tipo}`;
-                cubaElement.style.left = `${x}px`;
-                cubaElement.style.top = `${y}px`;
-                
-                if (tipo === 'circulo') {
-                    const tamanho = Math.max(largura, altura);
-                    cubaElement.style.width = `${tamanho}px`;
-                    cubaElement.style.height = `${tamanho}px`;
-                    cubaElement.style.borderRadius = '50%';
-                } else {
-                    cubaElement.style.width = `${largura}px`;
-                    cubaElement.style.height = `${altura}px`;
-                    if (tipo === 'oval') cubaElement.style.borderRadius = '50%';
-                    else if (tipo === 'elipse') cubaElement.style.borderRadius = '40%';
-                    else cubaElement.style.borderRadius = '0';
-                }
-                
-                // Adicionar classe selecionavel se o modo de seleção estiver ativo
-                if (this.modoSelecaoAtivo) {
-                    cubaElement.classList.add('selecionavel');
-                }
-                
-                const grupo = this.encontrarGrupoNaPosicao(x, y);
-                if (grupo) {
-                    grupo.appendChild(cubaElement);
-                } else {
-                    this.drawingArea.appendChild(cubaElement);
-                }
-                
-                // MODIFICADO: Configurar interatividade sem limite mínimo
-                this.configurarInteratividadeCuba(cubaElement);
-                
-                this.salvarEstadoHistorico('Adicionar Cuba');
-                
-                return cubaElement;
-            }
+           criarCuba(x, y, tipo, largura = 80, altura = 50) {
+    const cubaElement = document.createElement('div');
+    cubaElement.className = `cuba ${tipo}`;
+    cubaElement.style.left = `${x}px`;
+    cubaElement.style.top = `${y}px`;
+    
+    if (tipo === 'circulo') {
+        const tamanho = Math.max(largura, altura);
+        cubaElement.style.width = `${tamanho}px`;
+        cubaElement.style.height = `${tamanho}px`;
+        cubaElement.style.borderRadius = '50%';
+    } else {
+        cubaElement.style.width = `${largura}px`;
+        cubaElement.style.height = `${altura}px`;
+        if (tipo === 'oval') cubaElement.style.borderRadius = '50%';
+        else if (tipo === 'elipse') cubaElement.style.borderRadius = '40%';
+        else cubaElement.style.borderRadius = '0';
+    }
+    
+    // CORREÇÃO: Sempre adicionar diretamente na área de desenho
+    this.drawingArea.appendChild(cubaElement);
+    
+    // Configurar interatividade
+    this.configurarInteratividadeCuba(cubaElement);
+    
+    this.salvarEstadoHistorico('Adicionar Cuba');
+    
+    return cubaElement;
+}
 
             // 🔥 CORREÇÃO: Método melhorado para configurar interatividade de Cuba
             configurarInteratividadeCuba(elemento) {
@@ -2099,57 +2089,44 @@
                 });
             }
 
-            // MODIFICADO: Criar texto com largura reduzida e transparente ao mover
-            criarTexto(x, y, textoInicial = "") {
-                const textoElement = document.createElement('textarea');
-                textoElement.className = 'texto-legenda';
-                textoElement.style.left = `${x}px`;
-                textoElement.style.top = `${y}px`;
-                textoElement.value = textoInicial;
-                textoElement.rows = 1;
-                textoElement.placeholder = "Digite seu texto";
-                
-                // MODIFICADO: Largura reduzida
-                textoElement.style.width = '120px';
-                textoElement.style.minWidth = '120px';
-                textoElement.style.maxWidth = '300px';
-                
-                // Adicionar classe selecionavel se o modo de seleção estiver ativo
-                if (this.modoSelecaoAtivo) {
-                    textoElement.classList.add('selecionavel');
-                }
-                
-                const grupo = this.encontrarGrupoNaPosicao(x, y);
-                if (grupo) {
-                    grupo.appendChild(textoElement);
-                } else {
-                    this.drawingArea.appendChild(textoElement);
-                }
-                
-                textoElement.focus();
-                
-                textoElement.addEventListener('input', () => {
-                    textoElement.style.height = 'auto';
-                    textoElement.style.height = (textoElement.scrollHeight) + 'px';
-                });
-                
-                // MODIFICADO: Salvar histórico individualmente para cada texto
-                textoElement.addEventListener('blur', () => {
-                    if (textoElement.value.trim() === '') {
-                        textoElement.remove();
-                        this.salvarEstadoHistorico('Remover Texto Vazio');
-                    } else {
-                        this.salvarEstadoHistorico('Editar Texto: ' + textoElement.value.substring(0, 20));
-                    }
-                });
+           criarTexto(x, y, textoInicial = "") {
+    const textoElement = document.createElement('textarea');
+    textoElement.className = 'texto-legenda';
+    textoElement.style.left = `${x}px`;
+    textoElement.style.top = `${y}px`;
+    textoElement.value = textoInicial;
+    textoElement.rows = 1;
+    textoElement.placeholder = "Digite seu texto";
+    
+    textoElement.style.width = '120px';
+    textoElement.style.minWidth = '120px';
+    textoElement.style.maxWidth = '300px';
+    
+    // CORREÇÃO: Sempre adicionar diretamente na área de desenho
+    this.drawingArea.appendChild(textoElement);
+    
+    textoElement.focus();
+    
+    textoElement.addEventListener('input', () => {
+        textoElement.style.height = 'auto';
+        textoElement.style.height = (textoElement.scrollHeight) + 'px';
+    });
+    
+    textoElement.addEventListener('blur', () => {
+        if (textoElement.value.trim() === '') {
+            textoElement.remove();
+            this.salvarEstadoHistorico('Remover Texto Vazio');
+        } else {
+            this.salvarEstadoHistorico('Editar Texto: ' + textoElement.value.substring(0, 20));
+        }
+    });
 
-                // MODIFICADO: Configurar interatividade com transparência ao mover
-                this.configurarInteratividadeTexto(textoElement);
-                
-                this.salvarEstadoHistorico('Adicionar Texto');
-                
-                return textoElement;
-            }
+    this.configurarInteratividadeTexto(textoElement);
+    
+    this.salvarEstadoHistorico('Adicionar Texto');
+    
+    return textoElement;
+}
 
             // NOVO: Configurar interatividade do texto com transparência ao mover
             configurarInteratividadeTexto(elemento) {
@@ -2193,61 +2170,49 @@
             }
 
             criarLegendaSimplificada(x, y, simbolo = "C", descricao = "Acabamento") {
-                const legendaElement = document.createElement('div');
-                legendaElement.className = 'legenda-simplificada';
-                legendaElement.style.left = `${x}px`;
-                legendaElement.style.top = `${y}px`;
-                legendaElement.innerHTML = `
-                    <span class="legenda-simbolo-inline">${simbolo}</span> = <span class="legenda-descricao-inline" contenteditable="true">${descricao}</span>
-                `;
-                
-                // Adicionar classe selecionavel se o modo de seleção estiver ativo
-                if (this.modoSelecaoAtivo) {
-                    legendaElement.classList.add('selecionavel');
-                }
-                
-                legendaElement.addEventListener('dblclick', () => {
-                    const spanDescricao = legendaElement.querySelector('.legenda-descricao-inline');
-                    spanDescricao.focus();
-                });
-                
-                const grupo = this.encontrarGrupoNaPosicao(x, y);
-                if (grupo) {
-                    grupo.appendChild(legendaElement);
-                } else {
-                    this.drawingArea.appendChild(legendaElement);
-                }
-                
-                this.salvarEstadoHistorico('Adicionar Legenda');
-                
-                return legendaElement;
-            }
-
+    const legendaElement = document.createElement('div');
+    legendaElement.className = 'legenda-simplificada';
+    legendaElement.style.left = `${x}px`;
+    legendaElement.style.top = `${y}px`;
+    legendaElement.innerHTML = `
+        <span class="legenda-simbolo-inline">${simbolo}</span> = <span class="legenda-descricao-inline" contenteditable="true">${descricao}</span>
+    `;
+    
+    // CORREÇÃO: Sempre adicionar diretamente na área de desenho
+    this.drawingArea.appendChild(legendaElement);
+    
+    legendaElement.addEventListener('dblclick', () => {
+        const spanDescricao = legendaElement.querySelector('.legenda-descricao-inline');
+        spanDescricao.focus();
+    });
+    
+    this.salvarEstadoHistorico('Adicionar Legenda');
+    
+    return legendaElement;
+}
             encontrarGrupoNaPosicao(x, y) {
-                const grupos = this.drawingArea.querySelectorAll('.area-pecas');
-                for (const grupo of grupos) {
-                    const rect = grupo.getBoundingClientRect();
-                    const drawingAreaRect = this.drawingArea.getBoundingClientRect();
-                    
-                    const grupoLeft = rect.left - drawingAreaRect.left;
-                    const grupoTop = rect.top - drawingAreaRect.top;
-                    const grupoRight = grupoLeft + rect.width;
-                    const grupoBottom = grupoTop + rect.height;
-                    
-                    if (x >= grupoLeft && x <= grupoRight && y >= grupoTop && y <= grupoBottom) {
-                        return grupo;
-                    }
-                }
-                return null;
-            }
+    // CORREÇÃO: Sempre retornar null para movimento livre
+    return null;
+}
 
             criarDimensoes(pecaElement, peca, width, height) {
-                const dimensoesTop = document.createElement('div');
-                dimensoesTop.className = 'dimensoes dimensoes-top';
-                dimensoesTop.textContent = `${peca.comprimento}cm`;
-                dimensoesTop.style.top = `${-35}px`;
-                dimensoesTop.style.left = `${width / 2}px`;
-                pecaElement.appendChild(dimensoesTop);
+    const dimensoesTop = document.createElement('div');
+    dimensoesTop.className = 'dimensoes dimensoes-top';
+    dimensoesTop.textContent = `${peca.comprimento}cm`;
+    
+    // CORREÇÃO: Posicionar relativo à área de desenho, não à peça
+    const pecaRect = pecaElement.getBoundingClientRect();
+    const drawingRect = this.drawingArea.getBoundingClientRect();
+    
+    const pecaLeft = parseFloat(pecaElement.style.left);
+    const pecaTop = parseFloat(pecaElement.style.top);
+    
+    dimensoesTop.style.position = 'absolute';
+    dimensoesTop.style.left = `${pecaLeft + (width / 2)}px`;
+    dimensoesTop.style.top = `${pecaTop - 35}px`;
+    dimensoesTop.style.transform = 'translateX(-50%)';
+    
+    this.drawingArea.appendChild(dimensoesTop); // LIVRE: na área de desenho
                 
                 setTimeout(() => {
                     const drawingRect = this.drawingArea.getBoundingClientRect();
@@ -2269,12 +2234,21 @@
             }
 
             criarQuantidade(pecaElement, quantidade) {
-                const quantidadeElement = document.createElement('div');
-                quantidadeElement.className = 'quantidade-peca';
-                quantidadeElement.textContent = `${quantidade}x`;
-                quantidadeElement.style.left = '-45px';
-                pecaElement.appendChild(quantidadeElement);
-            }
+    const quantidadeElement = document.createElement('div');
+    quantidadeElement.className = 'quantidade-peca';
+    quantidadeElement.textContent = `${quantidade}x`;
+    
+    // CORREÇÃO: Posicionar relativo à área de desenho
+    const pecaLeft = parseFloat(pecaElement.style.left);
+    const pecaTop = parseFloat(pecaElement.style.top);
+    
+    quantidadeElement.style.position = 'absolute';
+    quantidadeElement.style.left = `${pecaLeft - 45}px`;
+    quantidadeElement.style.top = `${pecaTop + (parseFloat(pecaElement.style.height) / 2)}px`;
+    quantidadeElement.style.transform = 'translateY(-50%)';
+    
+    this.drawingArea.appendChild(quantidadeElement); // LIVRE: na área de desenho
+}
 
             // 🔥 CORREÇÃO: Método melhorado para criar linhas da peça (para elementos duplicados)
             criarLinhasPeca(pecaElement, pecaId, width, height) {
@@ -2316,87 +2290,76 @@
                 });
             }
 
-            // 🔥 CORREÇÃO: Método melhorado para criar símbolo (usa o peca-id correto)
-            criarSimboloLinha(linhaElement, simboloData, simboloExistente = null) {
-                const simboloElement = document.createElement('div');
-                simboloElement.className = 'simbolo-linha';
-                simboloElement.textContent = simboloData.texto;
-                
-                // 🔥 CORREÇÃO: Usar o data-peca-id da linha (que já é o correto para duplicados)
-                const pecaId = linhaElement.getAttribute('data-peca-id');
-                
-                simboloElement.setAttribute('data-rotacao', simboloData.rotacao);
-                simboloElement.setAttribute('data-peca-id', pecaId);
-                simboloElement.setAttribute('data-lado', linhaElement.getAttribute('data-lado'));
-                simboloElement.setAttribute('data-rotate', '0');
-                
-                console.log('🔧 Criando símbolo para peca-id:', pecaId);
-                
-                // Adicionar classe selecionavel se o modo de seleção estiver ativo
-                if (this.modoSelecaoAtivo) {
-                    simboloElement.classList.add('selecionavel');
-                }
-                
-                // 🔥 CORREÇÃO: Encontrar a peça pelo NOVO ID (para duplicados)
-                const pecaElement = this.drawingArea.querySelector(`[data-peca-id="${pecaId}"]`);
-                
-                if (pecaElement) {
-                    const rotation = parseFloat(pecaElement.getAttribute('data-rotate')) || 0;
-                    const pecaWidth = parseFloat(pecaElement.style.width);
-                    const pecaHeight = parseFloat(pecaElement.style.height);
-                    
-                    let left, top;
-                    const lado = linhaElement.getAttribute('data-lado');
-                    
-                    const centerX = pecaWidth / 2;
-                    const centerY = pecaHeight / 2;
-                    
-                    switch(lado) {
-                        case 'top':
-                            left = centerX;
-                            top = 0;
-                            simboloElement.style.transform = `translate(-50%, -50%) rotate(${simboloData.rotacao}deg)`;
-                            break;
-                        case 'bottom':
-                            left = centerX;
-                            top = pecaHeight;
-                            simboloElement.style.transform = `translate(-50%, -50%) rotate(${simboloData.rotacao}deg)`;
-                            break;
-                        case 'left':
-                            left = 0;
-                            top = centerY;
-                            simboloElement.style.transform = `translate(-50%, -50%) rotate(${simboloData.rotacao}deg)`;
-                            break;
-                        case 'right':
-                            left = pecaWidth;
-                            top = centerY;
-                            simboloElement.style.transform = `translate(-50%, -50%) rotate(${simboloData.rotacao}deg)`;
-                            break;
-                    }
-                    
-                    simboloElement.style.left = `${left}px`;
-                    simboloElement.style.top = `${top}px`;
-                    simboloElement.style.transformOrigin = 'center center';
-                    
-                    pecaElement.appendChild(simboloElement);
-                    
-                    this.configurarInteratividadeSimbolo(simboloElement);
-                    
-                    if (simboloExistente && simboloExistente !== simboloElement) {
-                        simboloExistente.remove();
-                    }
-                    
-                    if (simboloExistente) {
-                        this.salvarEstadoHistorico('Editar Símbolo');
-                    } else {
-                        this.salvarEstadoHistorico('Adicionar Símbolo');
-                    }
-                    
-                    return simboloElement;
-                } else {
-                    console.error('❌ Peça não encontrada para o data-peca-id:', pecaId);
-                }
-            }
+           criarSimboloLinha(linhaElement, simboloData, simboloExistente = null) {
+    const simboloElement = document.createElement('div');
+    simboloElement.className = 'simbolo-linha';
+    simboloElement.textContent = simboloData.texto;
+    
+    const pecaId = linhaElement.getAttribute('data-peca-id');
+    const lado = linhaElement.getAttribute('data-lado');
+    
+    simboloElement.setAttribute('data-rotacao', simboloData.rotacao);
+    simboloElement.setAttribute('data-peca-id', pecaId);
+    simboloElement.setAttribute('data-lado', lado);
+    simboloElement.setAttribute('data-rotate', '0');
+    
+    const pecaElement = this.drawingArea.querySelector(`[data-peca-id="${pecaId}"]`);
+    
+    if (pecaElement) {
+        const rotation = parseFloat(pecaElement.getAttribute('data-rotate')) || 0;
+        const pecaWidth = parseFloat(pecaElement.style.width);
+        const pecaHeight = parseFloat(pecaElement.style.height);
+        const pecaLeft = parseFloat(pecaElement.style.left);
+        const pecaTop = parseFloat(pecaElement.style.top);
+        
+        let left, top;
+        const centerX = pecaWidth / 2;
+        const centerY = pecaHeight / 2;
+        
+        switch(lado) {
+            case 'top':
+                left = pecaLeft + centerX;
+                top = pecaTop;
+                break;
+            case 'bottom':
+                left = pecaLeft + centerX;
+                top = pecaTop + pecaHeight;
+                break;
+            case 'left':
+                left = pecaLeft;
+                top = pecaTop + centerY;
+                break;
+            case 'right':
+                left = pecaLeft + pecaWidth;
+                top = pecaTop + centerY;
+                break;
+        }
+        
+        // CORREÇÃO: Posicionar na área de desenho, não dentro da peça
+        simboloElement.style.position = 'absolute';
+        simboloElement.style.left = `${left}px`;
+        simboloElement.style.top = `${top}px`;
+        simboloElement.style.transform = `translate(-50%, -50%) rotate(${simboloData.rotacao}deg)`;
+        simboloElement.style.transformOrigin = 'center center';
+        
+        // CORREÇÃO: Adicionar na área de desenho, não na peça
+        this.drawingArea.appendChild(simboloElement);
+        
+        this.configurarInteratividadeSimbolo(simboloElement);
+        
+        if (simboloExistente && simboloExistente !== simboloElement) {
+            simboloExistente.remove();
+        }
+        
+        if (simboloExistente) {
+            this.salvarEstadoHistorico('Editar Símbolo');
+        } else {
+            this.salvarEstadoHistorico('Adicionar Símbolo');
+        }
+        
+        return simboloElement;
+    }
+}
 
             // 🔥 CORREÇÃO: Método melhorado para configurar interatividade (resolve movimento/rotação)
             configurarInteratividade(elemento) {
@@ -3113,48 +3076,50 @@
             }
 
             atualizarPosicaoSimbolos(elemento) {
-                const pecaId = elemento.getAttribute('data-peca-id');
-                if (!pecaId) return;
+    const pecaId = elemento.getAttribute('data-peca-id');
+    if (!pecaId) return;
 
-                const simbolos = elemento.querySelectorAll(`.simbolo-linha[data-peca-id="${pecaId}"]`);
-                
-                const pecaWidth = parseFloat(elemento.style.width);
-                const pecaHeight = parseFloat(elemento.style.height);
-                
-                simbolos.forEach(simbolo => {
-                    const lado = simbolo.getAttribute('data-lado');
-                    const rotacaoSimbolo = simbolo.getAttribute('data-rotacao') || 0;
-                    
-                    let left, top;
-                    const centerX = pecaWidth / 2;
-                    const centerY = pecaHeight / 2;
-                    
-                    switch(lado) {
-                        case 'top':
-                            left = centerX;
-                            top = 0;
-                            break;
-                        case 'bottom':
-                            left = centerX;
-                            top = pecaHeight;
-                            break;
-                        case 'left':
-                            left = 0;
-                            top = centerY;
-                            break;
-                        case 'right':
-                            left = pecaWidth;
-                            top = centerY;
-                            break;
-                    }
-                    
-                    simbolo.style.left = `${left}px`;
-                    simbolo.style.top = `${top}px`;
-                    simbolo.style.transform = `translate(-50%, -50%) rotate(${rotacaoSimbolo}deg)`;
-                    simbolo.style.transformOrigin = 'center center';
-                });
-            }
+    // CORREÇÃO: Buscar símbolos na área de desenho, não dentro da peça
+    const simbolos = this.drawingArea.querySelectorAll(`.simbolo-linha[data-peca-id="${pecaId}"]`);
+    
+    const pecaLeft = parseFloat(elemento.style.left);
+    const pecaTop = parseFloat(elemento.style.top);
+    const pecaWidth = parseFloat(elemento.style.width);
+    const pecaHeight = parseFloat(elemento.style.height);
+    
+    simbolos.forEach(simbolo => {
+        const lado = simbolo.getAttribute('data-lado');
+        const rotacaoSimbolo = simbolo.getAttribute('data-rotacao') || 0;
+        
+        let left, top;
+        const centerX = pecaWidth / 2;
+        const centerY = pecaHeight / 2;
+        
+        switch(lado) {
+            case 'top':
+                left = pecaLeft + centerX;
+                top = pecaTop;
+                break;
+            case 'bottom':
+                left = pecaLeft + centerX;
+                top = pecaTop + pecaHeight;
+                break;
+            case 'left':
+                left = pecaLeft;
+                top = pecaTop + centerY;
+                break;
+            case 'right':
+                left = pecaLeft + pecaWidth;
+                top = pecaTop + centerY;
+                break;
         }
+        
+        simbolo.style.left = `${left}px`;
+        simbolo.style.top = `${top}px`;
+        simbolo.style.transform = `translate(-50%, -50%) rotate(${rotacaoSimbolo}deg)`;
+        simbolo.style.transformOrigin = 'center center';
+    });
+}
 
         // =============================================
         // INICIALIZAÇÃO DA APLICAÇÃO
