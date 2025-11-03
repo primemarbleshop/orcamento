@@ -2954,35 +2954,34 @@ if (!isDimensao) {
                 }
             }
 
-          configurarInteratividadeSimbolo(elemento) {
+         configurarInteratividadeSimbolo(elemento) {
     // Remover interações anteriores
     this.removerInteratividade(elemento);
     
-    // 🔥 CORREÇÃO: Configurar interação sempre, não apenas quando selecionado
-    interact(elemento).draggable({
-        listeners: {
-            start: () => {
-                elemento.style.zIndex = '1000';
-            },
-            move: (event) => {
-                // 🔥 CORREÇÃO: Movimentação livre sem restrições de posição relativa
-                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-                const rotate = parseFloat(elemento.getAttribute('data-rotate')) || 0;
-
-                elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
-                elemento.setAttribute('data-x', x);
-                elemento.setAttribute('data-y', y);
-            },
-            end: () => {
-                elemento.style.zIndex = '';
-                this.salvarEstadoHistorico('Mover Símbolo');
-            }
-        }
-    });
-    
-    // 🔥 CORREÇÃO ADICIONAL: Permitir que símbolos sejam selecionados e tenham handles
+    // 🔥 CORREÇÃO: Configurar interação para símbolos quando selecionados
     if (elemento.classList.contains('elemento-selecionado')) {
+        interact(elemento).draggable({
+            listeners: {
+                start: () => {
+                    elemento.style.zIndex = '1000';
+                },
+                move: (event) => {
+                    let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                    let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                    const rotate = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+
+                    elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
+                    elemento.setAttribute('data-x', x);
+                    elemento.setAttribute('data-y', y);
+                },
+                end: () => {
+                    elemento.style.zIndex = '';
+                    this.salvarEstadoHistorico('Mover Símbolo');
+                }
+            }
+        });
+        
+        // 🔥 CORREÇÃO: Criar handles para símbolos quando selecionados
         this.criarHandles(elemento);
     }
 }
