@@ -2015,55 +2015,65 @@ atualizarEstadoVisualBotoes(botaoAtivo = null, tipoAtivo = null) {
 }
 
             configurarHandleRotacao(handle, elemento) {
-                let initialAngle = parseFloat(elemento.getAttribute('data-rotate')) || 0;
-                let initialX, initialY;
-                
-                const angulosFixos = [0, 90, 180, 270];
-                const SNAP_THRESHOLD = 15;
+    let initialAngle = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+    let initialX, initialY;
+    
+    const angulosFixos = [0, 90, 180, 270];
+    const SNAP_THRESHOLD = 15;
 
-                interact(handle).draggable({
-                    listeners: {
-                        start: (event) => {
-                            const rect = elemento.getBoundingClientRect();
-                            const centerX = rect.left + rect.width / 2;
-                            const centerY = rect.top + rect.height / 2;
-                            initialX = event.clientX;
-                            initialY = event.clientY;
-                            handle.style.cursor = 'grabbing';
-                        },
-                        move: (event) => {
-                            const rect = elemento.getBoundingClientRect();
-                            const centerX = rect.left + rect.width / 2;
-                            const centerY = rect.top + rect.height / 2;
-                            
-                            const deltaX = event.clientX - centerX;
-                            const deltaY = event.clientY - centerY;
-                            let angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI) + 90;
-                            
-                            if (angle < 0) angle += 360;
-                            if (angle >= 360) angle -= 360;
-                            
-                            let snappedAngle = angle;
-                            for (const fixedAngle of angulosFixos) {
-                                if (Math.abs(angle - fixedAngle) < SNAP_THRESHOLD) {
-                                    snappedAngle = fixedAngle;
-                                    break;
-                                }
-                            }
-                            
-                            elemento.style.transform = `rotate(${snappedAngle}deg)`;
-                            elemento.setAttribute('data-rotate', snappedAngle);
-                            
-                            this.atualizarLinhasESimbolos(elemento);
-                            this.atualizarHandles();
-                        },
-                        end: () => {
-                            handle.style.cursor = 'grab';
-                            this.salvarEstadoHistorico('Rotacionar Elemento');
-                        }
+    interact(handle).draggable({
+        listeners: {
+            start: (event) => {
+                // Salvar a transformação atual (translação + rotação)
+                const transform = elemento.style.transform || '';
+                elemento.setAttribute('data-initial-transform', transform);
+                
+                const rect = elemento.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                initialX = event.clientX;
+                initialY = event.clientY;
+                handle.style.cursor = 'grabbing';
+            },
+            move: (event) => {
+                const rect = elemento.getBoundingClientRect();
+                const centerX = rect.left + rect.width / 2;
+                const centerY = rect.top + rect.height / 2;
+                
+                const deltaX = event.clientX - centerX;
+                const deltaY = event.clientY - centerY;
+                let angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI) + 90;
+                
+                if (angle < 0) angle += 360;
+                if (angle >= 360) angle -= 360;
+                
+                let snappedAngle = angle;
+                for (const fixedAngle of angulosFixos) {
+                    if (Math.abs(angle - fixedAngle) < SNAP_THRESHOLD) {
+                        snappedAngle = fixedAngle;
+                        break;
                     }
-                });
+                }
+                
+                // MANTER a transformação de translação existente e adicionar rotação
+                const initialTransform = elemento.getAttribute('data-initial-transform') || '';
+                const translateMatch = initialTransform.match(/translate\(([^)]+)\)/);
+                const translatePart = translateMatch ? `translate(${translateMatch[1]})` : '';
+                
+                elemento.style.transform = `${translatePart} rotate(${snappedAngle}deg)`;
+                elemento.setAttribute('data-rotate', snappedAngle);
+                
+                this.atualizarLinhasESimbolos(elemento);
+                this.atualizarHandles();
+            },
+            end: () => {
+                elemento.removeAttribute('data-initial-transform');
+                handle.style.cursor = 'grab';
+                this.salvarEstadoHistorico('Rotacionar Elemento');
             }
+        }
+    });
+}
 
             removerHandles() {
                 this.handles.forEach(handle => {
@@ -2163,8 +2173,7 @@ atualizarEstadoVisualBotoes(botaoAtivo = null, tipoAtivo = null) {
         simbolo.style.transformOrigin = 'center center';
     });
 }
-           // MODIFICADO: Duplicar elemento criando um novo objeto com todos os dados
-duplicarElemento() {
+          duplicarElemento() {
     const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
     if (!elementoAlvo) return;
     
@@ -2182,29 +2191,35 @@ duplicarElemento() {
         clone.classList.remove('selecionavel');
     }
     
-    // MODIFICADO: Gerar novo ID único para evitar conflitos
+    // 🔥 CORREÇÃO: Gerar novo ID único E novo data-peca-id para evitar conflitos
+    const novoPecaId = 'copy-' + Date.now();
     if (clone.id) {
         clone.id = clone.id + '-copy-' + Date.now();
+    }
+    
+    // 🔥 CORREÇÃO CRÍTICA: Atualizar o data-peca-id ANTES de recriar as linhas
+    if (clone.classList.contains('peca')) {
+        clone.setAttribute('data-peca-id', novoPecaId);
+        clone.id = `peca-${novoPecaId}`;
     }
     
     // 🔥 CORREÇÃO: Remover as linhas antigas do clone para recriá-las
     const linhasAntigas = clone.querySelectorAll('.linha-peca');
     linhasAntigas.forEach(linha => linha.remove());
     
+    // 🔥 CORREÇÃO: Remover símbolos antigos do clone
+    const simbolosAntigos = clone.querySelectorAll('.simbolo-linha');
+    simbolosAntigos.forEach(simbolo => simbolo.remove());
+    
     this.drawingArea.appendChild(clone);
     
     // 🔥 CORREÇÃO: Recriar as linhas da peça com os event listeners
     if (clone.classList.contains('peca')) {
-        const pecaId = clone.getAttribute('data-peca-id') || 'copy-' + Date.now();
         const width = parseFloat(clone.style.width);
         const height = parseFloat(clone.style.height);
         
-        // Atualizar ID da peça se necessário
-        clone.setAttribute('data-peca-id', pecaId);
-        clone.id = `peca-${pecaId}`;
-        
-        // Recriar as linhas
-        this.criarLinhasPeca(clone, pecaId, width, height);
+        // Recriar as linhas com o NOVO ID
+        this.criarLinhasPeca(clone, novoPecaId, width, height);
     }
     
     // MODIFICADO: Reconfigurar completamente a interatividade
@@ -2688,49 +2703,41 @@ duplicarElemento() {
     const pecaElement = this.drawingArea.querySelector(`#peca-${pecaId}`);
     
     if (pecaElement) {
-        // ✅ CORREÇÃO: Considera a rotação atual da peça
-        const rotation = parseFloat(pecaElement.getAttribute('data-rotate')) || 0;
-        const pecaWidth = parseFloat(pecaElement.style.width);
-        const pecaHeight = parseFloat(pecaElement.style.height);
+        // 🔥 CORREÇÃO: Posicionar símbolo na área de desenho, não como filho da peça
+        const pecaRect = pecaElement.getBoundingClientRect();
+        const drawingRect = this.drawingArea.getBoundingClientRect();
         
+        // Calcular posição absoluta na área de desenho
         let left, top;
         const lado = linhaElement.getAttribute('data-lado');
         
-        // ✅ CORREÇÃO: Posicionamento que considera rotação
-        // Usamos coordenadas do centro e aplicamos transformação
-        const centerX = pecaWidth / 2;
-        const centerY = pecaHeight / 2;
-        
         switch(lado) {
             case 'top':
-                left = centerX;
-                top = 0;
-                // Aplica rotação para manter símbolo no topo independente da rotação da peça
-                simboloElement.style.transform = `translate(-50%, -50%) rotate(${simboloData.rotacao}deg)`;
+                left = pecaRect.left - drawingRect.left + pecaRect.width / 2;
+                top = pecaRect.top - drawingRect.top;
                 break;
             case 'bottom':
-                left = centerX;
-                top = pecaHeight;
-                simboloElement.style.transform = `translate(-50%, -50%) rotate(${simboloData.rotacao}deg)`;
+                left = pecaRect.left - drawingRect.left + pecaRect.width / 2;
+                top = pecaRect.top - drawingRect.top + pecaRect.height;
                 break;
             case 'left':
-                left = 0;
-                top = centerY;
-                simboloElement.style.transform = `translate(-50%, -50%) rotate(${simboloData.rotacao}deg)`;
+                left = pecaRect.left - drawingRect.left;
+                top = pecaRect.top - drawingRect.top + pecaRect.height / 2;
                 break;
             case 'right':
-                left = pecaWidth;
-                top = centerY;
-                simboloElement.style.transform = `translate(-50%, -50%) rotate(${simboloData.rotacao}deg)`;
+                left = pecaRect.left - drawingRect.left + pecaRect.width;
+                top = pecaRect.top - drawingRect.top + pecaRect.height / 2;
                 break;
         }
         
         simboloElement.style.left = `${left}px`;
         simboloElement.style.top = `${top}px`;
+        simboloElement.style.transform = `translate(-50%, -50%) rotate(${simboloData.rotacao}deg)`;
         simboloElement.style.transformOrigin = 'center center';
+        simboloElement.style.position = 'absolute';
         
-        // ✅ Símbolo adicionado como filho da peça
-        pecaElement.appendChild(simboloElement);
+        // 🔥 CORREÇÃO: Adicionar símbolo diretamente na área de desenho
+        this.drawingArea.appendChild(simboloElement);
         
         this.configurarInteratividadeSimbolo(simboloElement);
         
@@ -2803,56 +2810,38 @@ duplicarElemento() {
                 }
             }
 
-            // MODIFICADO: Configurar interatividade de símbolos apenas quando selecionados
-            configurarInteratividadeSimbolo(elemento) {
-                // Remover interações anteriores
-                this.removerInteratividade(elemento);
-                
-                // Configurar nova interação apenas se o elemento estiver selecionado
-                if (elemento.classList.contains('elemento-selecionado')) {
-                    interact(elemento).draggable({
-                        listeners: {
-                            start: () => {
-                                elemento.style.zIndex = '1000';
-                            },
-                            move: (event) => {
-                                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-                                const rotate = elemento.getAttribute('data-rotate') || 0;
+          configurarInteratividadeSimbolo(elemento) {
+    // Remover interações anteriores
+    this.removerInteratividade(elemento);
+    
+    // 🔥 CORREÇÃO: Configurar interação sempre, não apenas quando selecionado
+    interact(elemento).draggable({
+        listeners: {
+            start: () => {
+                elemento.style.zIndex = '1000';
+            },
+            move: (event) => {
+                // 🔥 CORREÇÃO: Movimentação livre sem restrições de posição relativa
+                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                const rotate = parseFloat(elemento.getAttribute('data-rotate')) || 0;
 
-                                const drawingRect = this.drawingArea.getBoundingClientRect();
-                                const elementRect = elemento.getBoundingClientRect();
-
-                                let leftBase = 0;
-                                if (elemento.style.left && elemento.style.left.endsWith('px')) {
-                                    leftBase = parseFloat(elemento.style.left) || 0;
-                                } else {
-                                    leftBase = elementRect.left - drawingRect.left;
-                                }
-
-                                const absLeftProposto = leftBase + x;
-                                const margemDireita = 60;
-                                const maxLeftAllowed = drawingRect.width - elementRect.width - margemDireita;
-                                const minLeftAllowed = 0;
-
-                                let leftCorrigido = absLeftProposto;
-                                if (leftCorrigido > maxLeftAllowed) leftCorrigido = maxLeftAllowed;
-                                if (leftCorrigido < minLeftAllowed) leftCorrigido = minLeftAllowed;
-
-                                const xCorrigido = leftCorrigido - leftBase;
-
-                                elemento.style.transform = `translate(${xCorrigido}px, ${y}px) rotate(${rotate}deg)`;
-                                elemento.setAttribute('data-x', xCorrigido);
-                                elemento.setAttribute('data-y', y);
-                            },
-                            end: () => {
-                                elemento.style.zIndex = '';
-                                this.salvarEstadoHistorico('Mover Símbolo');
-                            }
-                        }
-                    });
-                }
+                elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
+                elemento.setAttribute('data-x', x);
+                elemento.setAttribute('data-y', y);
+            },
+            end: () => {
+                elemento.style.zIndex = '';
+                this.salvarEstadoHistorico('Mover Símbolo');
             }
+        }
+    });
+    
+    // 🔥 CORREÇÃO ADICIONAL: Permitir que símbolos sejam selecionados e tenham handles
+    if (elemento.classList.contains('elemento-selecionado')) {
+        this.criarHandles(elemento);
+    }
+}
 
             // NOVO: Método para remover interatividade de um elemento
             removerInteratividade(elemento) {
