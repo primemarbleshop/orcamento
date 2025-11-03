@@ -2168,49 +2168,7 @@ atualizarLinhasESimbolos(elemento) {
 } // ← AQUI FECHA O MÉTODO atualizarLinhasESimbolos
 
          
-           atualizarPosicaoSimbolos(elemento) {
-    const pecaId = elemento.getAttribute('data-peca-id');
-    if (!pecaId) return;
-
-    const simbolos = elemento.querySelectorAll(`.simbolo-linha[data-peca-id="${pecaId}"]`);
-    
-    const pecaWidth = parseFloat(elemento.style.width);
-    const pecaHeight = parseFloat(elemento.style.height);
-    
-    simbolos.forEach(simbolo => {
-        const lado = simbolo.getAttribute('data-lado');
-        const rotacaoSimbolo = simbolo.getAttribute('data-rotacao') || 0;
-        
-        let left, top;
-        const centerX = pecaWidth / 2;
-        const centerY = pecaHeight / 2;
-        
-        switch(lado) {
-            case 'top':
-                left = centerX;
-                top = 0;
-                break;
-            case 'bottom':
-                left = centerX;
-                top = pecaHeight;
-                break;
-            case 'left':
-                left = 0;
-                top = centerY;
-                break;
-            case 'right':
-                left = pecaWidth;
-                top = centerY;
-                break;
-        }
-        
-        simbolo.style.left = `${left}px`;
-        simbolo.style.top = `${top}px`;
-        // ✅ CORREÇÃO: Mantém a transformação do símbolo
-        simbolo.style.transform = `translate(-50%, -50%) rotate(${rotacaoSimbolo}deg)`;
-        simbolo.style.transformOrigin = 'center center';
-    });
-}
+           
           duplicarElemento() {
     const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
     if (!elementoAlvo) return;
@@ -2792,7 +2750,6 @@ atualizarLinhasESimbolos(elemento) {
     }
 }
 
-// 🔥 CORREÇÃO: Atualizar método para manter símbolos girando com a peça
 atualizarPosicaoSimbolos(elemento) {
     const pecaId = elemento.getAttribute('data-peca-id');
     if (!pecaId) return;
