@@ -3343,31 +3343,32 @@ atualizarPosicaoSimbolos(elemento) {
             }
         }
 
-// 🔥 CORREÇÃO: Método para restaurar símbolo à peça original se necessário
-restaurarSimboloAPeca(simboloElement) {
-    const pecaOriginalId = simboloElement.getAttribute('data-peca-original');
-    if (pecaOriginalId) {
-        const pecaOriginal = document.getElementById(pecaOriginalId);
-        if (pecaOriginal) {
-            // Calcular posição relativa
-            const pecaRect = pecaOriginal.getBoundingClientRect();
-            const drawingRect = this.drawingArea.getBoundingClientRect();
-            const simboloRect = simboloElement.getBoundingClientRect();
-            
-            const leftRel = simboloRect.left - pecaRect.left;
-            const topRel = simboloRect.top - pecaRect.top;
-            
-            // Mover de volta para a peça
-            this.drawingArea.removeChild(simboloElement);
-            pecaOriginal.appendChild(simboloElement);
-            
-            // Aplicar posição relativa
-            simboloElement.style.left = `${leftRel}px`;
-            simboloElement.style.top = `${topRel}px`;
-            simboloElement.removeAttribute('data-peca-original');
+  // 🔥 CORREÇÃO: Método para restaurar símbolo à peça original se necessário
+            restaurarSimboloAPeca(simboloElement) {
+                const pecaOriginalId = simboloElement.getAttribute('data-peca-original');
+                if (pecaOriginalId) {
+                    const pecaOriginal = document.getElementById(pecaOriginalId);
+                    if (pecaOriginal) {
+                        // Calcular posição relativa
+                        const pecaRect = pecaOriginal.getBoundingClientRect();
+                        const drawingRect = this.drawingArea.getBoundingClientRect();
+                        const simboloRect = simboloElement.getBoundingClientRect();
+                        
+                        const leftRel = simboloRect.left - pecaRect.left;
+                        const topRel = simboloRect.top - pecaRect.top;
+                        
+                        // Mover de volta para a peça
+                        this.drawingArea.removeChild(simboloElement);
+                        pecaOriginal.appendChild(simboloElement);
+                        
+                        // Aplicar posição relativa
+                        simboloElement.style.left = `${leftRel}px`;
+                        simboloElement.style.top = `${topRel}px`;
+                        simboloElement.removeAttribute('data-peca-original');
+                    }
+                }
+            }
         }
-    }
-}
 
         // =============================================
         // INICIALIZAÇÃO DA APLICAÇÃO
