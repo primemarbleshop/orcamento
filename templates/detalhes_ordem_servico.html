@@ -1591,24 +1591,23 @@ obterPosicaoComScroll(elemento) {
 }
 
 selecionarElemento(elemento, event) {
-    // Desselecionar elemento atual primeiro
     this.desselecionarElemento();
     
     this.elementoSelecionado = elemento;
     elemento.classList.add('elemento-selecionado');
     
-    console.log('🔧 Selecionando elemento:', elemento.className);
+    console.log('🔧 Selecionando elemento:', elemento.className, elemento.classList.contains('simbolo-linha'));
     
-    // Desabilitar cliques nas linhas quando handle está selecionado
     this.desabilitarLinhasPecas();
     
-    // 🔥 CORREÇÃO: Criar handles para TODOS os elementos, incluindo símbolos
-    this.criarHandles(elemento);
+    // ✅ CORREÇÃO: Criar handles APENAS para elementos que não são símbolos
+    if (!elemento.classList.contains('simbolo-linha')) {
+        this.criarHandles(elemento);
+    }
     
-    // Configurar interatividade para o elemento selecionado
+    // ✅ CORREÇÃO: Configurar interatividade para TODOS os elementos
     this.configurarInteratividade(elemento);
     
-    // Atualizar estado dos botões
     this.atualizarEstadoBotoes();
 }
 
@@ -3123,96 +3122,113 @@ atualizarPosicaoSimbolos(elemento) {
         simbolo.style.transformOrigin = 'center center';
     });
 }
-            // MODIFICADO: Configurar interatividade apenas quando elemento está selecionado
             configurarInteratividade(elemento) {
-                // Remover interações anteriores
-                this.removerInteratividade(elemento);
-                
-                // Configurar nova interação apenas se o elemento estiver selecionado
-                if (elemento.classList.contains('elemento-selecionado')) {
-                    interact(elemento).draggable({
-                        listeners: {
-                            start: () => {
-                                elemento.style.zIndex = '1000';
-                            },
-                            move: (event) => {
-                                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-                                const rotate = elemento.getAttribute('data-rotate') || 0;
-
-                                const drawingRect = this.drawingArea.getBoundingClientRect();
-                                const elementRect = elemento.getBoundingClientRect();
-
-                                let leftBase = 0;
-                                if (elemento.style.left && elemento.style.left.endsWith('px')) {
-                                    leftBase = parseFloat(elemento.style.left) || 0;
-                                } else {
-                                    leftBase = elementRect.left - drawingRect.left;
-                                }
-
-                                const absLeftProposto = leftBase + x;
-
-// 🔥 CORREÇÃO: REMOVER as verificações de limite esquerdo para dimensões e quantidade
-const isDimensao = elemento.classList.contains('dimensoes') || 
-                  elemento.classList.contains('quantidade-peca');
-
-let leftCorrigido = absLeftProposto;
-
-// 🔥 APENAS para elementos que NÃO são dimensões ou quantidade, manter os limites
-if (!isDimensao) {
-    const margemDireita = 60;
-    const maxLeftAllowed = drawingRect.width - elementRect.width - margemDireita;
-    const minLeftAllowed = 20;
-
-    if (leftCorrigido > maxLeftAllowed) leftCorrigido = maxLeftAllowed;
-    if (leftCorrigido < minLeftAllowed) leftCorrigido = minLeftAllowed;
-}
-
-                                const xCorrigido = leftCorrigido - leftBase;
-
-                                elemento.style.transform = `translate(${xCorrigido}px, ${y}px) rotate(${rotate}deg)`;
-                                elemento.setAttribute('data-x', xCorrigido);
-                                elemento.setAttribute('data-y', y);
-
-                                this.atualizarLinhasESimbolos(elemento);
-                                this.atualizarHandles();
-                            },
-                            end: () => {
-                                elemento.style.zIndex = '';
-                                this.salvarEstadoHistorico('Mover Elemento');
-                            }
-                        }
-                    });
-                }
-            }
-
-         configurarInteratividadeSimbolo(elemento) {
     // Remover interações anteriores
     this.removerInteratividade(elemento);
     
-    // 🔥 CORREÇÃO: Configurar interação para símbolos quando selecionados
-    if (this.modoSelecaoAtivo && elemento.classList.contains('elemento-selecionado')) {
-        interact(elemento).draggable({
-            listeners: {
-                start: () => {
-                    elemento.style.zIndex = '1000';
-                },
-                move: (event) => {
-                    let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                    let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-                    const rotate = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+    // Configurar nova interação apenas se o elemento estiver selecionado
+    if (elemento.classList.contains('elemento-selecionado')) {
+        
+        // ✅ CORREÇÃO: Configuração ESPECÍFICA para símbolos
+        if (elemento.classList.contains('simbolo-linha')) {
+            this.configurarInteratividadeSimbolo(elemento);
+        } else {
+            // Configuração normal para outros elementos
+            interact(elemento).draggable({
+                listeners: {
+                    start: () => {
+                        elemento.style.zIndex = '1000';
+                    },
+                    move: (event) => {
+                        let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                        let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                        const rotate = elemento.getAttribute('data-rotate') || 0;
 
-                    elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
-                    elemento.setAttribute('data-x', x);
-                    elemento.setAttribute('data-y', y);
-                },
-                end: () => {
-                    elemento.style.zIndex = '';
-                    this.salvarEstadoHistorico('Mover Símbolo');
+                        const drawingRect = this.drawingArea.getBoundingClientRect();
+                        const elementRect = elemento.getBoundingClientRect();
+
+                        let leftBase = 0;
+                        if (elemento.style.left && elemento.style.left.endsWith('px')) {
+                            leftBase = parseFloat(elemento.style.left) || 0;
+                        } else {
+                            leftBase = elementRect.left - drawingRect.left;
+                        }
+
+                        const absLeftProposto = leftBase + x;
+
+                        // ✅ CORREÇÃO: Adicionar símbolos na exceção de limites
+                        const isDimensao = elemento.classList.contains('dimensoes') || 
+                                          elemento.classList.contains('quantidade-peca') ||
+                                          elemento.classList.contains('simbolo-linha'); // 🔥 NOVO
+
+                        let leftCorrigido = absLeftProposto;
+
+                        // ✅ CORREÇÃO: Aplicar limites APENAS para elementos que não são dimensões, quantidade OU símbolos
+                        if (!isDimensao) {
+                            const margemDireita = 60;
+                            const maxLeftAllowed = drawingRect.width - elementRect.width - margemDireita;
+                            const minLeftAllowed = 20;
+
+                            if (leftCorrigido > maxLeftAllowed) leftCorrigido = maxLeftAllowed;
+                            if (leftCorrigido < minLeftAllowed) leftCorrigido = minLeftAllowed;
+                        }
+
+                        const xCorrigido = leftCorrigido - leftBase;
+
+                        elemento.style.transform = `translate(${xCorrigido}px, ${y}px) rotate(${rotate}deg)`;
+                        elemento.setAttribute('data-x', xCorrigido);
+                        elemento.setAttribute('data-y', y);
+
+                        // ✅ CORREÇÃO: Atualizar apenas se for peça (não símbolo)
+                        if (elemento.classList.contains('peca')) {
+                            this.atualizarLinhasESimbolos(elemento);
+                        }
+                        
+                        // ✅ CORREÇÃO: Atualizar handles apenas se não for símbolo
+                        if (!elemento.classList.contains('simbolo-linha')) {
+                            this.atualizarHandles();
+                        }
+                    },
+                    end: () => {
+                        elemento.style.zIndex = '';
+                        this.salvarEstadoHistorico('Mover Elemento');
+                    }
                 }
-            }
-        });
+            });
+        }
     }
+}
+
+
+        configurarInteratividadeSimbolo(elemento) {
+    console.log('🔧 Configurando interatividade para símbolo:', elemento);
+    
+    interact(elemento).draggable({
+        listeners: {
+            start: () => {
+                elemento.style.zIndex = '1000';
+                console.log('🔧 Iniciando movimento do símbolo');
+            },
+            move: (event) => {
+                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                
+                // ✅ CORREÇÃO: Movimento livre para símbolos sem verificações complexas
+                const rotate = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+                
+                elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
+                elemento.setAttribute('data-x', x);
+                elemento.setAttribute('data-y', y);
+                
+                console.log(`🔧 Movendo símbolo: x=${x}, y=${y}`);
+            },
+            end: () => {
+                elemento.style.zIndex = '';
+                this.salvarEstadoHistorico('Mover Símbolo');
+                console.log('🔧 Movimento do símbolo concluído');
+            }
+        }
+    });
 }
 
             // NOVO: Método para remover interatividade de um elemento
