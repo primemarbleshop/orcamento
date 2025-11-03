@@ -512,6 +512,24 @@
     transform: translateY(-2px);
 }
 
+
+
+/* 🔥 NOVO: Estilo para linha reta */
+.cuba.linha-reta {
+    background-color: #333 !important;
+    border: none !important;
+    border-radius: 0;
+    transform-origin: center center;
+    height: 2px !important;
+    min-height: 2px !important;
+}
+
+/* 🔥 CORREÇÃO: Remover limite mínimo de redimensionamento */
+.cuba {
+    min-width: 0 !important;
+    min-height: 0 !important;
+}
+
         /* ======================== MOBILE - APENAS ÍCONES ======================== */
         @media (max-width: 1400px) {
             .action-buttons-container .btn-text {
@@ -1594,6 +1612,165 @@ selecionarElemento(elemento, event) {
     this.atualizarEstadoBotoes();
 }
 
+// 🔥 NOVO: Método específico para configurar handles da linha reta
+configurarHandlesLinhaReta(elemento) {
+    // Criar apenas dois handles nas extremidades + handle de rotação
+    this.criarHandlesLinhaReta(elemento);
+    
+    // Configurar redimensionamento manual para linha reta
+    this.configurarRedimensionamentoLinhaReta(elemento);
+}
+
+// 🔥 NOVO: Criar handles específicos para linha reta
+criarHandlesLinhaReta(elemento) {
+    const pos = this.obterPosicaoComScroll(elemento);
+    const left = pos.left;
+    const top = pos.top;
+    const width = pos.width;
+    const height = pos.height;
+
+    const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+    const rad = rotation * Math.PI / 180;
+    
+    const centerX = left + width / 2;
+    const centerY = top + height / 2;
+
+    // 🔥 APENAS 2 handles nas extremidades + 1 de rotação
+    const relativeHandles = [
+        { class: 'handle-w', relX: -width / 2, relY: 0 }, // Handle esquerdo
+        { class: 'handle-e', relX: width / 2, relY: 0 }   // Handle direito
+    ];
+
+    const handles = relativeHandles.map(handle => {
+        const rotatedX = handle.relX * Math.cos(rad) - handle.relY * Math.sin(rad);
+        const rotatedY = handle.relX * Math.sin(rad) + handle.relY * Math.cos(rad);
+        
+        return {
+            class: handle.class,
+            x: centerX + rotatedX,
+            y: centerY + rotatedY
+        };
+    });
+
+    // Limpar handles existentes
+    this.removerHandles();
+
+    // Criar handles das extremidades
+    handles.forEach(handle => {
+        const handleElement = document.createElement('div');
+        handleElement.className = `handle ${handle.class}`;
+        handleElement.style.left = `${handle.x}px`;
+        handleElement.style.top = `${handle.y}px`;
+        handleElement.style.zIndex = '1002';
+        handleElement.style.position = 'absolute';
+        
+        this.drawingArea.appendChild(handleElement);
+        this.handles.push(handleElement);
+        
+        this.configurarHandleLinhaReta(handleElement, elemento, handle.class);
+    });
+
+    // Handle de rotação (acima da linha)
+    const handleRotacaoRelY = -40; // Acima da linha
+    const handleRotacaoX = 0 * Math.cos(rad) - handleRotacaoRelY * Math.sin(rad);
+    const handleRotacaoY = 0 * Math.sin(rad) + handleRotacaoRelY * Math.cos(rad);
+
+    const handleRotacao = document.createElement('div');
+    handleRotacao.className = 'handle handle-rotacao';
+    handleRotacao.style.left = `${centerX + handleRotacaoX}px`;
+    handleRotacao.style.top = `${centerY + handleRotacaoY}px`;
+    handleRotacao.style.zIndex = '1002';
+    handleRotacao.style.position = 'absolute';
+    
+    this.drawingArea.appendChild(handleRotacao);
+    this.handles.push(handleRotacao);
+    
+    this.configurarHandleRotacao(handleRotacao, elemento);
+}
+
+// 🔥 NOVO: Configurar handle específico para linha reta
+configurarHandleLinhaReta(handle, elemento, handleClass) {
+    let initialX, initialY;
+    let initialWidth, initialLeft;
+
+    // Prevenir eventos de touch
+    handle.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+    }, { passive: false });
+
+    handle.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+    }, { passive: false });
+
+    interact(handle).draggable({
+        preventDefault: 'always',
+        
+        listeners: {
+            start: (event) => {
+                if (event.type.includes('touch')) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                
+                const style = window.getComputedStyle(elemento);
+                initialWidth = parseFloat(style.width);
+                initialLeft = parseFloat(style.left);
+                
+                initialX = event.clientX || (event.touches && event.touches[0].clientX);
+                initialY = event.clientY || (event.touches && event.touches[0].clientY);
+
+                handle.style.cursor = 'grabbing';
+            },
+            move: (event) => {
+                if (event.type.includes('touch')) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+
+                const currentX = event.clientX || (event.touches && event.touches[0].clientX);
+                const currentY = event.clientY || (event.touches && event.touches[0].clientY);
+                
+                const deltaX = currentX - initialX;
+                const isLeftHandle = handleClass.includes('w');
+                const isRightHandle = handleClass.includes('e');
+
+                let newWidth = initialWidth;
+                let newLeft = initialLeft;
+
+                if (isLeftHandle) {
+                    // Handle esquerdo - muda largura e posição
+                    newWidth = Math.max(initialWidth - deltaX, 10); // Mínimo 10px
+                    newLeft = initialLeft + deltaX;
+                } else if (isRightHandle) {
+                    // Handle direito - muda apenas largura
+                    newWidth = Math.max(initialWidth + deltaX, 10); // Mínimo 10px
+                }
+
+                // Aplicar novas dimensões
+                elemento.style.width = `${newWidth}px`;
+                
+                if (isLeftHandle) {
+                    elemento.style.left = `${newLeft}px`;
+                }
+
+                this.atualizarHandles();
+            },
+            end: () => {
+                handle.style.cursor = 'grab';
+                this.salvarEstadoHistorico('Redimensionar Linha');
+            }
+        }
+    });
+}
+
+// 🔥 NOVO: Configurar redimensionamento manual para linha reta
+configurarRedimensionamentoLinhaReta(elemento) {
+    // Para linha reta, não usar o resizable do interact
+    // Já estamos controlando o redimensionamento manualmente com os handles
+}
+
 // 🔥 CORREÇÃO: Método melhorado para criar handles - REMOVER a verificação que impede símbolos
 criarHandles(elemento) {
     console.log('🔧 Criando handles para:', elemento.className);
@@ -2523,97 +2700,102 @@ atualizarEstadoVisualBotoes(botaoAtivo = null, tipoAtivo = null) {
                     areaPecas: areaPecas
                 };
             }
+criarCuba(x, y, tipo, largura = 80, altura = 50) {
+    const cubaElement = document.createElement('div');
+    cubaElement.className = `cuba ${tipo}`;
+    cubaElement.style.left = `${x}px`;
+    cubaElement.style.top = `${y}px`;
+    
+    // 🔥 CORREÇÃO: Tratamento especial para linha reta
+    if (tipo === 'linha-reta') {
+        // Para linha reta, criar uma linha fina horizontal
+        cubaElement.style.width = `${Math.max(largura, 100)}px`;
+        cubaElement.style.height = '2px'; // Linha muito fina
+        cubaElement.style.backgroundColor = '#333'; // Cor da linha
+        cubaElement.style.border = 'none'; // Remover borda
+    } else if (tipo === 'circulo') {
+        const tamanho = Math.max(largura, altura);
+        cubaElement.style.width = `${tamanho}px`;
+        cubaElement.style.height = `${tamanho}px`;
+        cubaElement.style.borderRadius = '50%';
+    } else {
+        cubaElement.style.width = `${largura}px`;
+        cubaElement.style.height = `${altura}px`;
+        if (tipo === 'oval') cubaElement.style.borderRadius = '50%';
+        else if (tipo === 'elipse') cubaElement.style.borderRadius = '40%';
+        else cubaElement.style.borderRadius = '0';
+    }
+    
+    // Adicionar classe selecionavel se o modo de seleção estiver ativo
+    if (this.modoSelecaoAtivo) {
+        cubaElement.classList.add('selecionavel');
+    }
+    
+    const grupo = this.encontrarGrupoNaPosicao(x, y);
+    if (grupo) {
+        grupo.appendChild(cubaElement);
+    } else {
+        this.drawingArea.appendChild(cubaElement);
+    }
+    
+    // MODIFICADO: Configurar interatividade especial para linha reta
+    this.configurarInteratividadeCuba(cubaElement, tipo);
+    
+    this.salvarEstadoHistorico('Adicionar Cuba');
+    
+    return cubaElement;
+}
 
-           criarCuba(x, y, tipo, largura = 80, altura = 50) {
-                const cubaElement = document.createElement('div');
-                cubaElement.className = `cuba ${tipo}`;
-                cubaElement.style.left = `${x}px`;
-                cubaElement.style.top = `${y}px`;
-                
-                // 🔥 NOVO: Tratamento especial para linha reta
-                if (tipo === 'linha-reta') {
-                    // Para linha reta, usar altura mínima e largura maior
-                    cubaElement.style.width = `${Math.max(largura, 100)}px`; // Largura mínima maior para linha
-                    cubaElement.style.height = '2px'; // Altura mínima para linha
-                } else if (tipo === 'circulo') {
-                    const tamanho = Math.max(largura, altura);
-                    cubaElement.style.width = `${tamanho}px`;
-                    cubaElement.style.height = `${tamanho}px`;
-                    cubaElement.style.borderRadius = '50%';
-                } else {
-                    cubaElement.style.width = `${largura}px`;
-                    cubaElement.style.height = `${altura}px`;
-                    if (tipo === 'oval') cubaElement.style.borderRadius = '50%';
-                    else if (tipo === 'elipse') cubaElement.style.borderRadius = '40%';
-                    else cubaElement.style.borderRadius = '0';
-                }
-                
-                // Adicionar classe selecionavel se o modo de seleção estiver ativo
-                if (this.modoSelecaoAtivo) {
-                    cubaElement.classList.add('selecionavel');
-                }
-                
-                const grupo = this.encontrarGrupoNaPosicao(x, y);
-                if (grupo) {
-                    grupo.appendChild(cubaElement);
-                } else {
-                    this.drawingArea.appendChild(cubaElement);
-                }
-                
-                // MODIFICADO: Configurar interatividade sem limite mínimo
-                this.configurarInteratividadeCuba(cubaElement);
-                
-                this.salvarEstadoHistorico('Adicionar Cuba');
-                
-                return cubaElement;
+// 🔥 MODIFICADO: Configurar interatividade com handles especiais para linha reta
+configurarInteratividadeCuba(elemento, tipo) {
+    interact(elemento).draggable({
+        listeners: {
+            start: () => {
+                elemento.style.zIndex = '1000';
+            },
+            move: (event) => {
+                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                const rotate = elemento.getAttribute('data-rotate') || 0;
+
+                elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
+                elemento.setAttribute('data-x', x);
+                elemento.setAttribute('data-y', y);
+            },
+            end: () => {
+                elemento.style.zIndex = '';
+                this.salvarEstadoHistorico('Mover Cuba');
             }
+        }
+    });
 
-            // 🔥 MODIFICADO: Configurar interatividade da cuba sem limites mínimos
-            configurarInteratividadeCuba(elemento) {
-                interact(elemento).draggable({
-                    listeners: {
-                        start: () => {
-                            elemento.style.zIndex = '1000';
-                        },
-                        move: (event) => {
-                            let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                            let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-                            const rotate = elemento.getAttribute('data-rotate') || 0;
+    // 🔥 CORREÇÃO: Configuração especial para linha reta
+    if (tipo === 'linha-reta') {
+        this.configurarHandlesLinhaReta(elemento);
+    } else {
+        // Para outros tipos, usar redimensionamento normal
+        interact(elemento).resizable({
+            edges: { left: true, right: true, bottom: true, top: true },
+            listeners: {
+                move: function (event) {
+                    let { x, y } = event.deltaRect;
 
-                            elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
-                            elemento.setAttribute('data-x', x);
-                            elemento.setAttribute('data-y', y);
-                        },
-                        end: () => {
-                            elemento.style.zIndex = '';
-                            this.salvarEstadoHistorico('Mover Cuba');
-                        }
-                    }
-                });
+                    Object.assign(event.target.style, {
+                        width: `${event.rect.width}px`,
+                        height: `${event.rect.height}px`
+                    });
 
-                // 🔥 MODIFICADO: Remover completamente os limites mínimos do redimensionamento
-                interact(elemento).resizable({
-                    edges: { left: true, right: true, bottom: true, top: true },
-                    listeners: {
-                        move: function (event) {
-                            let { x, y } = event.deltaRect;
+                    Object.assign(event.target.style, {
+                        transform: `translate(${(parseFloat(event.target.getAttribute('data-x')) || 0) + x}px, ${(parseFloat(event.target.getAttribute('data-y')) || 0) + y}px)`
+                    });
 
-                            Object.assign(event.target.style, {
-                                width: `${event.rect.width}px`,
-                                height: `${event.rect.height}px`
-                            });
-
-                            Object.assign(event.target.style, {
-                                transform: `translate(${(parseFloat(event.target.getAttribute('data-x')) || 0) + x}px, ${(parseFloat(event.target.getAttribute('data-y')) || 0) + y}px)`
-                            });
-
-                            event.target.setAttribute('data-x', (parseFloat(event.target.getAttribute('data-x')) || 0) + x);
-                            event.target.setAttribute('data-y', (parseFloat(event.target.getAttribute('data-y')) || 0) + y);
-                        }
-                    }
-                    // REMOVIDO: Modificadores de limite mínimo
-                });
+                    event.target.setAttribute('data-x', (parseFloat(event.target.getAttribute('data-x')) || 0) + x);
+                    event.target.setAttribute('data-y', (parseFloat(event.target.getAttribute('data-y')) || 0) + y);
+                }
             }
+        });
+    }
+}
 
             criarTexto(x, y, textoInicial = "") {
     const textoElement = document.createElement('textarea');
