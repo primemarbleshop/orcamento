@@ -1083,6 +1083,7 @@ excluirElemento() {
     }
 }
 
+// 🔥 NOVO: Método para restaurar elementos de texto
 restaurarElementosTexto() {
     const elementosTexto = this.drawingArea.querySelectorAll('.texto-legenda');
     
@@ -1178,9 +1179,6 @@ reconfigurarElementosAposHistorico() {
         } else if (elemento.classList.contains('texto-legenda')) {
             this.configurarInteratividadeTexto(elemento);
         }
-} else if (elemento.classList.contains('legenda-simplificada')) {
-    this.configurarInteratividadeLegenda(elemento);
-}
     });
 
     const linhas = this.drawingArea.querySelectorAll('.linha-peca');
@@ -2844,26 +2842,20 @@ configurarInteratividadeCuba(elemento, tipo) {
     }
 }
 
-            criarTexto(x, y, textoInicial = "") {
+           criarTexto(x, y, textoInicial = "") {
     const textoElement = document.createElement('textarea');
     textoElement.className = 'texto-legenda';
-    
-    // 🔥 CORREÇÃO: Usar posicionamento absoluto direto sem transform
-    textoElement.style.position = 'absolute';
     textoElement.style.left = `${x}px`;
     textoElement.style.top = `${y}px`;
-    
     textoElement.value = textoInicial;
+    
+    // 🔥 CORREÇÃO: Salvar o valor também no atributo data-valor
     textoElement.setAttribute('data-valor', textoInicial);
+    
     textoElement.rows = 1;
     textoElement.placeholder = "Digite seu texto";
     
-    // 🔥 CORREÇÃO: Resetar transform para evitar deslocamento
-    textoElement.style.transform = 'none';
-    textoElement.setAttribute('data-x', '0');
-    textoElement.setAttribute('data-y', '0');
-    
-    // Largura reduzida
+    // MODIFICADO: Largura reduzida
     textoElement.style.width = '120px';
     textoElement.style.minWidth = '120px';
     textoElement.style.maxWidth = '300px';
@@ -2882,14 +2874,17 @@ configurarInteratividadeCuba(elemento, tipo) {
     
     textoElement.focus();
     
-    // Resto do método permanece igual...
     textoElement.addEventListener('input', () => {
         textoElement.style.height = 'auto';
         textoElement.style.height = (textoElement.scrollHeight) + 'px';
+        
+        // 🔥 CORREÇÃO: Atualizar também o atributo data-valor em tempo real
         textoElement.setAttribute('data-valor', textoElement.value);
     });
     
+    // MODIFICADO: Salvar histórico individualmente para cada texto
     textoElement.addEventListener('blur', () => {
+        // 🔥 CORREÇÃO: Atualizar data-valor no blur também
         textoElement.setAttribute('data-valor', textoElement.value);
         
         if (textoElement.value.trim() === '') {
@@ -2900,7 +2895,9 @@ configurarInteratividadeCuba(elemento, tipo) {
         }
     });
 
+    // MODIFICADO: Configurar interatividade com transparência ao mover
     this.configurarInteratividadeTexto(textoElement);
+    
     this.salvarEstadoHistorico('Adicionar Texto');
     
     return textoElement;
