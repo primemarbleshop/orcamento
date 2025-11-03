@@ -2130,6 +2130,43 @@ atualizarEstadoVisualBotoes(botaoAtivo = null, tipoAtivo = null) {
                 this.criarHandles(this.elementoSelecionado);
             }
 
+atualizarLinhasESimbolos(elemento) {
+    const width = parseFloat(elemento.style.width);
+    const height = parseFloat(elemento.style.height);
+    
+    // Atualizar linhas
+    const linhas = elemento.querySelectorAll('.linha-peca');
+    linhas.forEach(linha => {
+        const lado = linha.getAttribute('data-lado');
+        
+        switch(lado) {
+            case 'top':
+                linha.style.width = `${width}px`;
+                linha.style.left = '0px';
+                linha.style.top = '0px';
+                break;
+            case 'bottom':
+                linha.style.width = `${width}px`;
+                linha.style.left = '0px';
+                linha.style.top = `${height}px`;
+                break;
+            case 'left':
+                linha.style.height = `${height}px`;
+                linha.style.left = '0px';
+                linha.style.top = '0px';
+                break;
+            case 'right':
+                linha.style.height = `${height}px`;
+                linha.style.left = `${width}px`;
+                linha.style.top = '0px';
+                break;
+        }
+    });
+
+    // 🔥 CORREÇÃO: Chamar método atualizado
+    this.atualizarPosicaoSimbolos(elemento);
+} // ← AQUI FECHA O MÉTODO atualizarLinhasESimbolos
+
          
            atualizarPosicaoSimbolos(elemento) {
     const pecaId = elemento.getAttribute('data-peca-id');
