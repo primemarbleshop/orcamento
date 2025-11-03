@@ -875,7 +875,7 @@
         // CLASSE PRINCIPAL - GERENCIADOR DE DESENHO
         // =============================================
         class GerenciadorDesenho {
-            constructor() {
+           constructor() {
     this.drawingArea = document.getElementById('drawingArea');
     this.gruposPecas = this.carregarDadosPecas();
     this.modoInsercaoAtivo = null;
@@ -908,7 +908,7 @@
     this.ultimoSalvamentoHistorico = 0;
     this.ultimaDescricaoHistorico = '';
 
-    // 🔥 NOVO: Controle de arrasto no mobile
+    // 🔥🔥🔥 ADICIONE ESTAS PROPRIEDADES NO CONSTRUTOR:
     this.touchStartX = 0;
     this.touchStartY = 0;
     this.touchMoveThreshold = 10; // pixels de movimento para considerar como arrasto
@@ -1276,7 +1276,7 @@
             // =============================================
             // CONFIGURAÇÃO DE EVENTOS - MODIFICADA
             // =============================================
-            configurarEventos() {
+         configurarEventos() {
     console.log('🔧 Configurando eventos...');
     
     // CORREÇÃO: Prevenir apenas zoom duplo toque, não clique único
@@ -1360,8 +1360,7 @@
         // Salvar posição inicial do toque
         this.touchStartX = e.touches[0].clientX;
         this.touchStartY = e.touches[0].clientY;
-        
-        // Não desselecionar imediatamente - vamos verificar no touchend se foi arrasto
+        this.wasTouchDrag = false; // Resetar flag no início de cada toque
     });
 
     document.addEventListener('touchend', (e) => {
@@ -1374,9 +1373,6 @@
             !e.target.closest('.top-buttons-container')) {
             this.desselecionarElemento();
         }
-        
-        // Resetar flag de arrasto
-        this.wasTouchDrag = false;
     });
 
     // 🔥 CORREÇÃO: Detectar movimento de touch para identificar arrasto
@@ -1423,7 +1419,7 @@
     console.log('✅ Eventos configurados com sucesso!');
 }
 
-            configurarEventosAreaDesenho() {
+configurarEventosAreaDesenho() {
     // Evento para desselecionar ao clicar na área vazia
     this.drawingArea.addEventListener('click', (e) => {
         if (e.target === this.drawingArea && this.modoSelecaoAtivo) {
@@ -1436,6 +1432,7 @@
         // Salvar posição inicial
         this.touchStartX = e.touches[0].clientX;
         this.touchStartY = e.touches[0].clientY;
+        this.wasTouchDrag = false; // Resetar flag no início de cada toque
     });
 
     this.drawingArea.addEventListener('touchend', (e) => {
@@ -1443,9 +1440,6 @@
         if (!this.wasTouchDrag && e.target === this.drawingArea && this.modoSelecaoAtivo) {
             this.desselecionarElemento();
         }
-        
-        // Resetar flag
-        this.wasTouchDrag = false;
     });
 
     // 🔥 CORREÇÃO: Detectar movimento na área de desenho também
