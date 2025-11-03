@@ -1365,7 +1365,14 @@ atualizarBotoesHistorico() {
 configurarEventos() {
     console.log('🔧 Configurando eventos...');
     
-    // CORREÇÃO: Prevenir apenas zoom duplo toque, não clique único
+    // ✅ CORREÇÃO: Array botoes declarado UMA VEZ
+    const botoes = [
+        'btnSelecionar', 'btnDesfazer', 'btnRefazer', 'btnAdicionarTexto',
+        'btnAdicionarCuba', 'btnLegendaSimplificada', 'btnDuplicar', 
+        'btnExcluir', 'btnSalvar', 'btnImprimir'
+    ];
+
+    // ✅ CORREÇÃO: Prevenir apenas zoom duplo toque, não clique único
     const prevenirZoomDuploToque = (e) => {
         // Só prevenir se for toque duplo ou múltiplo
         if (e.touches && e.touches.length > 1) {
@@ -1374,13 +1381,7 @@ configurarEventos() {
         }
     };
 
-    // Configurar todos os botões
-    const botoes = [
-        'btnSelecionar', 'btnDesfazer', 'btnRefazer', 'btnAdicionarTexto',
-        'btnAdicionarCuba', 'btnLegendaSimplificada', 'btnDuplicar', 
-        'btnExcluir', 'btnSalvar', 'btnImprimir'
-    ];
-
+    // ✅ CORREÇÃO: Loop ÚNICO configurando todos os eventos
     botoes.forEach(botaoId => {
         const botao = document.getElementById(botaoId);
         if (botao) {
@@ -1406,8 +1407,6 @@ configurarEventos() {
             // CORREÇÃO: Prevenir apenas eventos de touch que causam zoom duplo
             botao.addEventListener('touchstart', prevenirZoomDuploToque, { passive: false });
             botao.addEventListener('touchmove', prevenirZoomDuploToque, { passive: false });
-            
-            // REMOVIDO: touchend com prevenção total (estava bloqueando os cliques)
         }
     });
 
@@ -1420,40 +1419,27 @@ configurarEventos() {
         }
     });
     
-    // CORREÇÃO: Permitir zoom e movimentação livre na área de desenho
-this.drawingArea.addEventListener('touchstart', (e) => {
-    // NÃO prevenir eventos de touch - permitir zoom e scroll livre
-    // Apenas adicionar lógica de seleção se necessário
-    if (this.modoSelecaoAtivo && e.touches && e.touches.length === 1) {
-        // Lógica de seleção pode ser adicionada aqui se necessário
-    }
-}, { passive: true }); // MUDADO para passive: true
-
-this.drawingArea.addEventListener('touchmove', (e) => {
-    // NÃO prevenir movimento - permitir zoom e scroll livre
-}, { passive: true }); // MUDADO para passive: true
-
     // CORREÇÃO: Evento global para desselecionar ao clicar fora, mas ignorar botões de ação
-document.addEventListener('click', (e) => {
-    // Não desselecionar se clicar em botões de ação ou handles
-    if (!e.target.closest('#drawingArea') && 
-        !e.target.closest('.handle') &&
-        !e.target.closest('.action-buttons-container') &&
-        !e.target.closest('.top-buttons-container')) {
-        this.desselecionarElemento();
-    }
-});
+    document.addEventListener('click', (e) => {
+        // Não desselecionar se clicar em botões de ação ou handles
+        if (!e.target.closest('#drawingArea') && 
+            !e.target.closest('.handle') &&
+            !e.target.closest('.action-buttons-container') &&
+            !e.target.closest('.top-buttons-container')) {
+            this.desselecionarElemento();
+        }
+    });
 
-// CORREÇÃO: Evento de touch para desselecionar no mobile, ignorando botões
-document.addEventListener('touchstart', (e) => {
-    // Não desselecionar se tocar em botões de ação ou handles
-    if (!e.target.closest('#drawingArea') && 
-        !e.target.closest('.handle') &&
-        !e.target.closest('.action-buttons-container') &&
-        !e.target.closest('.top-buttons-container')) {
-        this.desselecionarElemento();
-    }
-});
+    // CORREÇÃO: Evento de touch para desselecionar no mobile, ignorando botões
+    document.addEventListener('touchstart', (e) => {
+        // Não desselecionar se tocar em botões de ação ou handles
+        if (!e.target.closest('#drawingArea') && 
+            !e.target.closest('.handle') &&
+            !e.target.closest('.action-buttons-container') &&
+            !e.target.closest('.top-buttons-container')) {
+            this.desselecionarElemento();
+        }
+    });
 
     // Eventos de teclado para desfazer/refazer
     document.addEventListener('keydown', (e) => {
@@ -1476,6 +1462,7 @@ document.addEventListener('touchstart', (e) => {
     
     console.log('✅ Eventos configurados com sucesso!');
 }
+
 
 configurarEventosAreaDesenho() {
     // Evento para desselecionar ao clicar na área vazia
@@ -3536,19 +3523,27 @@ atualizarPosicaoSimbolos(elemento) {
                 document.body.style.overflow = '';
             }
 
-            // MODIFICADO: Atualizar método de ativação de modo inserção para legenda
             ativarModoInsercao(tipo) {
-                this.modoInsercaoAtivo = tipo;
-                
-                if (tipo === 'legenda') {
-                    // Para legenda, não mudamos o cursor - o modal será aberto no clique
-                    this.drawingArea.style.cursor = 'crosshair';
-                } else {
-                    this.drawingArea.style.cursor = tipo === 'texto' ? 'text' : 'crosshair';
-                }
-                
-                console.log(`🔧 Modo inserção ativado: ${tipo}`);
-            }
+    this.modoInsercaoAtivo = tipo;
+    
+    if (tipo === 'legenda') {
+        // ✅ CORREÇÃO: Para legenda, mostrar o seletor IMEDIATAMENTE
+        this.mostrarSeletorLegenda(100, 100); // Posição padrão
+        this.modoInsercaoAtivo = null; // Resetar modo
+        this.drawingArea.style.cursor = 'default';
+    } 
+    else if (tipo === 'cuba') {
+        // ✅ CORREÇÃO: Para cuba, mostrar o seletor IMEDIATAMENTE  
+        this.mostrarSeletorCuba(100, 100); // Posição padrão
+        this.modoInsercaoAtivo = null; // Resetar modo
+        this.drawingArea.style.cursor = 'default';
+    }
+    else {
+        this.drawingArea.style.cursor = tipo === 'texto' ? 'text' : 'crosshair';
+    }
+    
+    console.log(`🔧 Modo inserção ativado: ${tipo}`);
+}
 
             manipularCliqueInsercao(e) {
     if (!this.modoInsercaoAtivo) return;
@@ -3559,35 +3554,52 @@ atualizarPosicaoSimbolos(elemento) {
     
     console.log(`🎯 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y}`);
 
-    if (this.modoInsercaoAtivo === 'texto') {
-        // 🔥 CRIAÇÃO DIRETA E IMEDIATA do elemento de texto
-        const textoElement = document.createElement('textarea');
-        textoElement.className = 'texto-legenda';
-        textoElement.style.position = 'absolute';
-        textoElement.style.left = x + 'px';
-        textoElement.style.top = y + 'px';
-        textoElement.style.width = '120px';
-        textoElement.style.minWidth = '120px';
-        textoElement.style.zIndex = '1000';
-        textoElement.placeholder = "Digite seu texto";
-        
-        // Adicionar à área de desenho IMEDIATAMENTE
-        this.drawingArea.appendChild(textoElement);
-        
-        // Focar
-        textoElement.focus();
-        
-        // Configurar evento de salvamento
-        textoElement.addEventListener('blur', () => {
-            if (textoElement.value.trim() === '') {
-                textoElement.remove();
-            }
-            this.salvarEstadoHistorico('Adicionar Texto');
-        });
-        
-        console.log('✅ Caixa de texto criada com sucesso!');
+    // ✅ CORREÇÃO: Adicionados todos os casos com switch
+    switch(this.modoInsercaoAtivo) {
+        case 'texto':
+            // 🔥 CRIAÇÃO DIRETA E IMEDIATA do elemento de texto
+            const textoElement = document.createElement('textarea');
+            textoElement.className = 'texto-legenda';
+            textoElement.style.position = 'absolute';
+            textoElement.style.left = x + 'px';
+            textoElement.style.top = y + 'px';
+            textoElement.style.width = '120px';
+            textoElement.style.minWidth = '120px';
+            textoElement.style.zIndex = '1000';
+            textoElement.placeholder = "Digite seu texto";
+            
+            // Adicionar à área de desenho IMEDIATAMENTE
+            this.drawingArea.appendChild(textoElement);
+            
+            // Focar
+            textoElement.focus();
+            
+            // Configurar evento de salvamento
+            textoElement.addEventListener('blur', () => {
+                if (textoElement.value.trim() === '') {
+                    textoElement.remove();
+                }
+                this.salvarEstadoHistorico('Adicionar Texto');
+            });
+            
+            console.log('✅ Caixa de texto criada com sucesso!');
+            break;
+
+        case 'cuba':
+            // ✅ CORREÇÃO: Mostrar seletor de cuba na posição clicada
+            console.log('📝 Abrindo seletor de cuba...');
+            this.mostrarSeletorCuba(x, y);
+            break;
+
+        case 'legenda':
+            // ✅ CORREÇÃO: Mostrar seletor de legenda na posição clicada
+            console.log('🏷️ Abrindo seletor de legenda...');
+            this.mostrarSeletorLegenda(x, y);
+            break;
+
+        default:
+            console.warn('⚠️ Modo de inserção desconhecido:', this.modoInsercaoAtivo);
     }
-    // ... outros casos (cuba, legenda) ...
     
     this.modoInsercaoAtivo = null;
     this.drawingArea.style.cursor = 'default';
