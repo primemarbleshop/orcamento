@@ -310,41 +310,54 @@
             border-radius: 40%; 
         }
         
-               .texto-legenda { 
+       .texto-legenda { 
     position: absolute; 
     background: transparent; 
     border: none; 
     outline: none; 
-    resize: none; /* 🔥 REMOVIDO: redimensionamento manual */
-    overflow: hidden; /* 🔥 ALTERADO: esconde overflow */
+    resize: none; 
     font-size: 14px; 
-    text-align: left; 
+    text-align: LEFT; 
     z-index: 10; 
     cursor: default; 
-    min-width: 60px; /* 🔥 AUMENTADO: largura mínima */
-    min-height: 20px; /* 🔥 AUMENTADO: altura mínima */
-    max-width: none;
-    max-height: none;
+    min-width: 80px; 
+    min-height: 20px; 
     font-weight: bold; 
     touch-action: none; 
     padding: 2px; 
-    box-sizing: border-box; /* 🔥 ADICIONADO: inclui padding no cálculo */
-    white-space: pre-wrap; /* 🔥 ADICIONADO: permite quebra de linha */
-    word-wrap: break-word; /* 🔥 ADICIONADO: quebra palavras longas */
-    line-height: 1.2; /* 🔥 ADICIONADO: altura de linha adequada */
+    /* ADICIONE ESTAS LINHAS PARA REMOVER A BARRA DE ROLAGEM */
+    overflow: hidden; /* Remove a barra de rolagem */
+    -ms-overflow-style: none; /* Para Internet Explorer e Edge */
+    scrollbar-width: none; /* Para Firefox */
+} 
+
+/* Para Chrome, Safari e Opera */
+.texto-legenda::-webkit-scrollbar {
+    display: none;
+}
+
+.texto-legenda:focus { 
+    background: white; 
+    border: 1px solid #ccc; 
+    border-radius: 4px; 
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+    padding: 5px; 
+    /* MANTENHA O OVERFLOW HIDDEN NO FOCO TAMBÉM */
+    overflow: hidden;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+} 
+
+/* Para Chrome, Safari e Opera no estado de foco */
+.texto-legenda:focus::-webkit-scrollbar {
+    display: none;
 }
         
         .texto-legenda.selecionavel {
             cursor: pointer;
         }
         
-        .texto-legenda:focus { 
-            background: white; 
-            border: 1px solid #ccc; 
-            border-radius: 4px; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
-            padding: 5px; 
-        }
+        
         
         .legenda-simplificada { 
             position: absolute; 
@@ -1013,8 +1026,6 @@
                 
                 texto.style.height = 'auto';
                 texto.style.height = (texto.scrollHeight) + 'px';
-texto.style.width = 'auto';
-texto.style.width = texto.scrollWidth + 10 + 'px';
             });
         }
 
@@ -1115,40 +1126,29 @@ texto.style.width = texto.scrollWidth + 10 + 'px';
             });
 
             const textosEditaveis = this.drawingArea.querySelectorAll('.texto-legenda');
-textosEditaveis.forEach(texto => {
-    let valorOriginal = texto.value;
-
-    // ✅ Função unificada de ajuste de tamanho automático
-    const ajustarTamanhoTexto = () => {
-        texto.style.height = 'auto';
-        texto.style.width = 'auto';
-        texto.style.height = texto.scrollHeight + 'px';
-        texto.style.width = texto.scrollWidth + 10 + 'px'; // +10px de folga lateral
-        texto.setAttribute('data-valor', texto.value);
-    };
-
-    // ✅ Atualiza tamanho em tempo real
-    texto.addEventListener('input', ajustarTamanhoTexto);
-    texto.addEventListener('focus', ajustarTamanhoTexto);
-    texto.addEventListener('blur', ajustarTamanhoTexto);
-
-    texto.addEventListener('blur', () => {
-        texto.setAttribute('data-valor', texto.value);
-        
-        if (texto.value !== valorOriginal) {
-            if (texto.value.trim() === '') {
-                texto.remove();
-                this.salvarEstadoHistorico('Remover Texto Vazio');
-            } else {
-                this.salvarEstadoHistorico('Editar Texto');
-            }
-            valorOriginal = texto.value;
-        }
-    });
-
-    // ✅ Ajusta tamanho logo na inicialização também
-    ajustarTamanhoTexto();
-});
+            textosEditaveis.forEach(texto => {
+                let valorOriginal = texto.value;
+                
+                texto.addEventListener('input', () => {
+                    texto.style.height = 'auto';
+                    texto.style.height = (texto.scrollHeight) + 'px';
+                    texto.setAttribute('data-valor', texto.value);
+                });
+                
+                texto.addEventListener('blur', () => {
+                    texto.setAttribute('data-valor', texto.value);
+                    
+                    if (texto.value !== valorOriginal) {
+                        if (texto.value.trim() === '') {
+                            texto.remove();
+                            this.salvarEstadoHistorico('Remover Texto Vazio');
+                        } else {
+                            this.salvarEstadoHistorico('Editar Texto');
+                        }
+                        valorOriginal = texto.value;
+                    }
+                });
+            });
 
             const legendasEditaveis = this.drawingArea.querySelectorAll('.legenda-simplificada');
             legendasEditaveis.forEach(legenda => {
@@ -2413,101 +2413,81 @@ textosEditaveis.forEach(texto => {
             textoElement.style.top = `${y}px`;
             textoElement.value = textoInicial;
             
-           textoElement.setAttribute('data-valor', textoInicial);
+            textoElement.setAttribute('data-valor', textoInicial);
             textoElement.rows = 1;
-            textoElement.placeholder = " ";
-            textoElement.style.width = '60px'; // ✅ Caixa pequena inicial
-            textoElement.style.height = '20px'; // ✅ Altura pequena inicial
-            textoElement.style.minWidth = '20px'; // ✅ Mínimo muito pequeno
-            textoElement.style.minHeight = '15px'; // ✅ Mínimo muito pequeno
-            textoElement.style.maxWidth = 'none'; // ✅ Sem limite máximo
-            textoElement.style.maxWidth = 'none';
-    textoElement.style.maxHeight = 'none';
+            textoElement.placeholder = "Digite seu texto";
+            textoElement.style.width = '120px';
+            textoElement.style.minWidth = '120px';
+            textoElement.style.maxWidth = '300px';
+    
+            // ✅ CORREÇÃO: Alinhar texto à esquerda
+            textoElement.style.textAlign = 'left';
+            textoElement.style.justifyContent = 'flex-start';
+            textoElement.style.alignItems = 'flex-start';
+            
+            if (this.modoSelecaoAtivo) {
+                textoElement.classList.add('selecionavel');
+            }
+            
+            const grupo = this.encontrarGrupoNaPosicao(x, y);
+            if (grupo) {
+                grupo.appendChild(textoElement);
+            } else {
+                this.drawingArea.appendChild(textoElement);
+            }
+            
+            this.salvarEstadoImediato('Adicionar Caixa de Texto');
+            
+            textoElement.focus();
+            
+            textoElement.addEventListener('input', () => {
+                textoElement.style.height = 'auto';
+                textoElement.style.height = (textoElement.scrollHeight) + 'px';
+                textoElement.setAttribute('data-valor', textoElement.value);
+            });
+            
+            textoElement.addEventListener('blur', () => {
+                textoElement.setAttribute('data-valor', textoElement.value);
+                
+                if (textoElement.value.trim() === '') {
+                    textoElement.remove();
+                    this.salvarEstadoImediato('Remover Texto Vazio');
+                } else {
+                    this.salvarEstadoImediato('Editar Texto: ' + textoElement.value.substring(0, 20));
+                }
+            });
 
-       
-    if (this.modoSelecaoAtivo) {
-        textoElement.classList.add('selecionavel');
-    }
-    
-    const grupo = this.encontrarGrupoNaPosicao(x, y);
-    if (grupo) {
-        grupo.appendChild(textoElement);
-    } else {
-        this.drawingArea.appendChild(textoElement);
-    }
-    
-    this.salvarEstadoImediato('Adicionar Caixa de Texto');
-    
-    // ✅ AUTO-AJUSTE IMEDIATO (APENAS UMA VEZ)
-    this.autoAjustarTexto(textoElement);
-    
-    textoElement.focus();
-    
-    // ✅ EVENTO DE INPUT CORRIGIDO
-    textoElement.addEventListener('input', () => {
-        this.autoAjustarTexto(textoElement);
-    });
-    
-    textoElement.addEventListener('blur', () => {
-        textoElement.setAttribute('data-valor', textoElement.value);
-        
-        if (textoElement.value.trim() === '') {
-            textoElement.remove();
-            this.salvarEstadoImediato('Remover Texto Vazio');
-        } else {
-            this.salvarEstadoImediato('Editar Texto: ' + textoElement.value.substring(0, 20));
+            this.configurarInteratividadeTexto(textoElement);
+            
+            return textoElement;
         }
-    });
-
-    this.configurarInteratividadeTexto(textoElement);
-    
-    return textoElement;
-}
 
         configurarInteratividadeTexto(elemento) {
-    let originalBackground = elemento.style.backgroundColor;
-    
-    interact(elemento).draggable({
-        listeners: {
-            start: () => {
-                elemento.style.zIndex = '1000';
-                elemento.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
-            },
-            move: (event) => {
-                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-                const rotacao = parseFloat(elemento.getAttribute('data-rotacao')) || 0;
+            let originalBackground = elemento.style.backgroundColor;
+            
+            interact(elemento).draggable({
+                listeners: {
+                    start: () => {
+                        elemento.style.zIndex = '1000';
+                        elemento.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+                    },
+                    move: (event) => {
+    let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+    let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+    const rotacao = parseFloat(elemento.getAttribute('data-rotacao')) || 0;
 
-                elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotacao}deg)`;
-                elemento.setAttribute('data-x', x);
-                elemento.setAttribute('data-y', y);
-            },
-            end: () => {
-                elemento.style.zIndex = '';
-                elemento.style.backgroundColor = originalBackground;
-                this.salvarEstadoHistorico('Mover Texto');
-            }
+    elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotacao}deg)`;
+    elemento.setAttribute('data-x', x);
+    elemento.setAttribute('data-y', y);
+},
+                    end: () => {
+                        elemento.style.zIndex = '';
+                        elemento.style.backgroundColor = originalBackground;
+                        this.salvarEstadoHistorico('Mover Texto');
+                    }
+                }
+            });
         }
-    });
-    
-    // ✅ ADICIONAR: Configurar redimensionamento com handles
-    interact(elemento).resizable({
-        edges: { left: true, right: true, bottom: true, top: true },
-        modifiers: [
-            interact.modifiers.restrictEdges({
-                outer: 'parent'
-            })
-        ],
-        listeners: {
-            move: function (event) {
-                Object.assign(event.target.style, {
-                    width: `${event.rect.width}px`,
-                    height: `${event.rect.height}px`
-                });
-            }
-        }
-    });
-}
 
         criarLegendaSimplificada(x, y, simbolo = "C", descricao = "Acabamento") {
             const legendaElement = document.createElement('div');
@@ -3245,87 +3225,48 @@ const y = e.clientY - drawingRect.top + this.drawingArea.scrollTop;
             
             console.log(`🎯 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y}`);
 
-            switch (this.modoInsercaoAtivo) {
-    case 'texto':
-const textoElement = document.createElement('textarea');
-textoElement.className = 'texto-legenda';
-textoElement.style.position = 'absolute';
-textoElement.style.left = x + 'px';
-textoElement.style.top = y + 'px';
-textoElement.style.width = '20px';         // largura inicial
-textoElement.style.height = '20px';        // altura inicial
-textoElement.style.minWidth = '10px';
-textoElement.style.minHeight = '10px';
-textoElement.style.maxWidth = 'none';
-textoElement.style.maxHeight = 'none';
-textoElement.style.overflow = 'hidden';
-textoElement.style.zIndex = '1000';
-textoElement.style.textAlign = 'left';
-textoElement.placeholder = " ";
-textoElement.style.resize = 'none';
-textoElement.style.boxSizing = 'border-box';
-textoElement.style.whiteSpace = 'pre';
-textoElement.style.wordWrap = 'normal';
-textoElement.style.lineHeight = '1.2';
-textoElement.style.font = '14px Arial, sans-serif';
+            switch(this.modoInsercaoAtivo) {
+                case 'texto':
+                    const textoElement = document.createElement('textarea');
+                    textoElement.className = 'texto-legenda';
+                    textoElement.style.position = 'absolute';
+                    textoElement.style.left = x + 'px';
+                    textoElement.style.top = y + 'px';
+                    textoElement.style.width = '120px';
+                    textoElement.style.minWidth = '120px';
+                    textoElement.style.zIndex = '1000';
+                    textoElement.placeholder = "Digite seu texto";
+                    
+                    this.drawingArea.appendChild(textoElement);
+                    textoElement.focus();
+                    
+                    textoElement.addEventListener('blur', () => {
+                        if (textoElement.value.trim() === '') {
+                            textoElement.remove();
+                        }
+                        this.salvarEstadoHistorico('Adicionar Texto');
+                    });
+                    
+                    console.log('✅ Caixa de texto criada com sucesso!');
+                    break;
 
-this.drawingArea.appendChild(textoElement);
-textoElement.focus();
+                case 'cuba':
+                    console.log('📝 Abrindo seletor de cuba...');
+                    this.mostrarSeletorCuba(x, y);
+                    break;
 
-// ✅ Função que ajusta primeiro na horizontal, depois na vertical se precisar
-const ajustarTamanhoTexto = () => {
-    textoElement.style.height = 'auto';
-    textoElement.style.width = 'auto';
+                case 'legenda':
+                    console.log('🏷️ Abrindo seletor de legenda...');
+                    this.mostrarSeletorLegenda(x, y);
+                    break;
 
-    // 🔹 ajusta largura pelo scrollWidth
-    textoElement.style.width = textoElement.scrollWidth + 10 + 'px';
-
-    // 🔹 se houver múltiplas linhas (Enter), aumenta também a altura
-    const linhas = textoElement.value.split('\n').length;
-    if (linhas > 1) {
-        textoElement.style.whiteSpace = 'pre-wrap';
-        textoElement.style.height = textoElement.scrollHeight + 'px';
-    } else {
-        textoElement.style.whiteSpace = 'pre';
-        textoElement.style.height = '20px';
-    }
-};
-
-// ✅ CORREÇÃO: APENAS input (REMOVER o focus)
-textoElement.addEventListener('input', ajustarTamanhoTexto);
-
-ajustarTamanhoTexto();
-
-textoElement.addEventListener('blur', () => {
-    if (textoElement.value.trim() === '') {
-        textoElement.remove();
-    } else {
-        textoElement.setAttribute('data-valor', textoElement.value);
-        this.salvarEstadoHistorico('Adicionar Texto');
-    }
-});
-
-console.log('✅ Caixa de texto criada e ajustando horizontalmente!');
-break;
-
-
-    case 'cuba':
-        console.log('📝 Abrindo seletor de cuba...');
-        this.mostrarSeletorCuba(x, y);
-        break;
-
-    case 'legenda':
-        console.log('🏷️ Abrindo seletor de legenda...');
-        this.mostrarSeletorLegenda(x, y);
-        break;
-
-    default:
-        console.warn('⚠️ Modo de inserção desconhecido:', this.modoInsercaoAtivo);
-}
-
-this.modoInsercaoAtivo = null;
-this.drawingArea.style.cursor = 'default';
-}
+                default:
+                    console.warn('⚠️ Modo de inserção desconhecido:', this.modoInsercaoAtivo);
+            }
+            
+            this.modoInsercaoAtivo = null;
+            this.drawingArea.style.cursor = 'default';
+        }
 
         mostrarSeletorLegenda(x, y) {
             const botoesLegenda = CONFIG.LEGENDA_SIMPLIFICADA.map(item => 
@@ -3541,3 +3482,4 @@ let top = drawingRect.top + y - this.drawingArea.scrollTop;
 </script>
 </body>
 </html>
+
