@@ -3236,86 +3236,92 @@ configurarInteratividade(elemento) {
             console.log(`🔧 Modo inserção ativado: ${tipo}`);
         }
 
-    manipularCliqueInsercao(e) {
-    if (!this.modoInsercaoAtivo) return;
+        manipularCliqueInsercao(e) {
+            if (!this.modoInsercaoAtivo) return;
+            
+            const drawingRect = this.drawingArea.getBoundingClientRect();
+const x = e.clientX - drawingRect.left + this.drawingArea.scrollLeft;
+const y = e.clientY - drawingRect.top + this.drawingArea.scrollTop;
+            
+            console.log(`🎯 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y}`);
 
-    const drawingRect = this.drawingArea.getBoundingClientRect();
-    const x = e.clientX - drawingRect.left + this.drawingArea.scrollLeft;
-    const y = e.clientY - drawingRect.top + this.drawingArea.scrollTop;
+            switch (this.modoInsercaoAtivo) {
+    case 'texto':
+    const textoElement = document.createElement('textarea');
+    textoElement.className = 'texto-legenda';
+    textoElement.style.position = 'absolute';
+    textoElement.style.left = x + 'px';
+    textoElement.style.top = y + 'px';
+    textoElement.style.width = '20px';         // largura inicial
+    textoElement.style.height = '20px';        // altura inicial
+    textoElement.style.minWidth = '50px';
+    textoElement.style.minHeight = '10px';
+    textoElement.style.maxWidth = 'none';
+    textoElement.style.maxHeight = 'none';
+    textoElement.style.overflow = 'hidden';
+    textoElement.style.zIndex = '1000';
+    textoElement.style.textAlign = 'left';
+    textoElement.placeholder = " ";
+    textoElement.style.resize = 'none';
+    textoElement.style.boxSizing = 'border-box';
+    textoElement.style.whiteSpace = 'pre';     // ✅ não quebra linha automaticamente
+    textoElement.style.wordWrap = 'normal';
+    textoElement.style.lineHeight = '1.2';
+    textoElement.style.font = '14px Arial, sans-serif';
 
-    console.log(`🎯 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y}`);
+    this.drawingArea.appendChild(textoElement);
+    textoElement.focus();
 
-    switch (this.modoInsercaoAtivo) {
-        case 'texto':
-            const textoElement = document.createElement('textarea');
-            textoElement.className = 'texto-legenda';
-            textoElement.style.position = 'absolute';
-            textoElement.style.left = x + 'px';
-            textoElement.style.top = y + 'px';
-            textoElement.style.width = '20px';
-            textoElement.style.height = '20px';
-            textoElement.style.minWidth = '50px';
-            textoElement.style.minHeight = '10px';
-            textoElement.style.maxWidth = 'none';
-            textoElement.style.maxHeight = 'none';
-            textoElement.style.overflow = 'hidden';
-            textoElement.style.zIndex = '1000';
-            textoElement.style.textAlign = 'left';
-            textoElement.placeholder = " ";
-            textoElement.style.resize = 'none';
-            textoElement.style.boxSizing = 'border-box';
+    // ✅ Função que ajusta primeiro na horizontal, depois na vertical se precisar
+    const ajustarTamanhoTexto = () => {
+        textoElement.style.height = 'auto';
+        textoElement.style.width = 'auto';
+
+        // 🔹 ajusta largura pelo scrollWidth
+        textoElement.style.width = textoElement.scrollWidth + 10 + 'px';
+
+        // 🔹 se houver múltiplas linhas (Enter), aumenta também a altura
+        const linhas = textoElement.value.split('\n').length;
+        if (linhas > 1) {
+            textoElement.style.whiteSpace = 'pre-wrap';
+            textoElement.style.height = textoElement.scrollHeight + 'px';
+        } else {
             textoElement.style.whiteSpace = 'pre';
-            textoElement.style.wordWrap = 'normal';
-            textoElement.style.lineHeight = '1.2';
-            textoElement.style.font = '14px Arial, sans-serif';
-            textoElement.dataset.redimensionadoManual = "false";
+            textoElement.style.height = '20px';
+        }
+    };
 
-            // Autoajuste do tamanho
-            const ajustarTamanhoTexto = () => {
-                if (textoElement.dataset.redimensionadoManual === "true") return;
+    textoElement.addEventListener('input', ajustarTamanhoTexto);
+    textoElement.addEventListener('focus', ajustarTamanhoTexto);
 
-                textoElement.style.height = 'auto';
-                textoElement.style.width = 'auto';
-                textoElement.style.width = textoElement.scrollWidth + 10 + 'px';
+    ajustarTamanhoTexto();
 
-                const linhas = textoElement.value.split('\n').length;
-                if (linhas > 1) {
-                    textoElement.style.whiteSpace = 'pre-wrap';
-                    textoElement.style.height = textoElement.scrollHeight + 'px';
-                } else {
-                    textoElement.style.whiteSpace = 'pre';
-                    textoElement.style.height = '20px';
-                }
-            };
+    textoElement.addEventListener('blur', () => {
+        if (textoElement.value.trim() === '') {
+            textoElement.remove();
+        } else {
+            textoElement.setAttribute('data-valor', textoElement.value);
+            this.salvarEstadoHistorico('Adicionar Texto');
+        }
+    });
 
-            // Chama ajustarTamanhoTexto ao digitar e reseta redimensionamento manual
-            textoElement.addEventListener('input', () => {
-                if (textoElement.dataset.redimensionadoManual === "true") {
-                    textoElement.dataset.redimensionadoManual = "false";
-                }
-                ajustarTamanhoTexto();
-            });
+    console.log('✅ Caixa de texto criada e ajustando horizontalmente!');
+    break;
 
-            this.drawingArea.appendChild(textoElement);
-            textoElement.focus();
 
-            break;
+    case 'cuba':
+        console.log('📝 Abrindo seletor de cuba...');
+        this.mostrarSeletorCuba(x, y);
+        break;
 
-        case 'cuba':
-            console.log('📝 Abrindo seletor de cuba...');
-            this.mostrarSeletorCuba(x, y);
-            break;
+    case 'legenda':
+        console.log('🏷️ Abrindo seletor de legenda...');
+        this.mostrarSeletorLegenda(x, y);
+        break;
 
-        case 'legenda':
-            console.log('🏷️ Abrindo seletor de legenda...');
-            this.mostrarSeletorLegenda(x, y);
-            break;
-
-        default:
-            console.warn('⚠️ Modo de inserção desconhecido:', this.modoInsercaoAtivo);
-    }
+    default:
+        console.warn('⚠️ Modo de inserção desconhecido:', this.modoInsercaoAtivo);
 }
-
 
 this.modoInsercaoAtivo = null;
 this.drawingArea.style.cursor = 'default';
