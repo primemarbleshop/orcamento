@@ -2780,16 +2780,13 @@ configurarInteratividadeLegenda(elemento) {
     simboloElement.className = 'simbolo-linha';
     simboloElement.textContent = simboloData.texto;
 
-    // GUARDA o ângulo de rotação em ambos os atributos para compatibilidade
     const angulo = Number(simboloData.rotacao) || 0;
     simboloElement.setAttribute('data-rotacao', angulo);
-    // também gravamos data-rotate (aqui com o mesmo valor) — evita inconsistências
     simboloElement.setAttribute('data-rotate', angulo);
-
     simboloElement.setAttribute('data-peca-id', linhaElement.getAttribute('data-peca-id'));
     simboloElement.setAttribute('data-lado', linhaElement.getAttribute('data-lado'));
 
-    // ✅ CORREÇÃO: Inicializar posição relativa de arraste
+    // ✅ CORREÇÃO: Inicializar posição relativa
     simboloElement.setAttribute('data-x', '0');
     simboloElement.setAttribute('data-y', '0');
 
@@ -2836,10 +2833,7 @@ configurarInteratividadeLegenda(elemento) {
         simboloElement.style.transformOrigin = 'center center';
         simboloElement.style.position = 'absolute';
         
-        // ✅ CORREÇÃO: Adiciona ao DOM antes de configurar interatividade
         pecaElement.appendChild(simboloElement);
-        
-        // ✅ CORREÇÃO: Configura a interatividade com a nova função corrigida
         this.configurarInteratividadeSimbolo(simboloElement);
         
         if (simboloExistente && simboloExistente !== simboloElement) {
@@ -2856,8 +2850,7 @@ configurarInteratividadeLegenda(elemento) {
     }
 }
 
-
-        configurarInteratividade(elemento) {
+configurarInteratividade(elemento) {
     this.removerInteratividade(elemento);
     
     if (elemento.classList.contains('elemento-selecionado')) {
@@ -2867,41 +2860,17 @@ configurarInteratividadeLegenda(elemento) {
         } else {
             interact(elemento).draggable({
                 listeners: {
-                    start: (event) => {
+                    start: () => {
                         elemento.style.zIndex = '1000';
-                        
-                        // ✅ CORREÇÃO: Capturar posição inicial considerando rotação
-                        const rect = elemento.getBoundingClientRect();
-                        const drawingRect = this.drawingArea.getBoundingClientRect();
-                        
-                        elemento.setAttribute('data-start-x', rect.left - drawingRect.left);
-                        elemento.setAttribute('data-start-y', rect.top - drawingRect.top);
                     },
                     move: (event) => {
-                        const startX = parseFloat(elemento.getAttribute('data-start-x')) || 0;
-                        const startY = parseFloat(elemento.getAttribute('data-start-y')) || 0;
-                        
-                        // ✅ CORREÇÃO: Calcular movimento absoluto em vez de relativo
-                        const newX = startX + event.dx;
-                        const newY = startY + event.dy;
+                        let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                        let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
                         const rotate = elemento.getAttribute('data-rotate') || 0;
 
-                        // Aplicar restrições de área
-                        const drawingRect = this.drawingArea.getBoundingClientRect();
-                        const elementRect = elemento.getBoundingClientRect();
-                        
-                        const maxX = drawingRect.width - elementRect.width - 20;
-                        const minX = 20;
-                        const maxY = drawingRect.height - elementRect.height - 20;
-                        const minY = 20;
-                        
-                        const clampedX = Math.max(minX, Math.min(maxX, newX));
-                        const clampedY = Math.max(minY, Math.min(maxY, newY));
-
-                        // ✅ CORREÇÃO: Usar left/top em vez de transform para movimento
-                        elemento.style.left = clampedX + 'px';
-                        elemento.style.top = clampedY + 'px';
-                        elemento.style.transform = `rotate(${rotate}deg)`;
+                        elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
+                        elemento.setAttribute('data-x', x);
+                        elemento.setAttribute('data-y', y);
 
                         if (elemento.classList.contains('peca')) {
                             this.atualizarLinhasESimbolos(elemento);
@@ -2913,8 +2882,6 @@ configurarInteratividadeLegenda(elemento) {
                     },
                     end: () => {
                         elemento.style.zIndex = '';
-                        elemento.removeAttribute('data-start-x');
-                        elemento.removeAttribute('data-start-y');
                         this.salvarEstadoHistorico('Mover Elemento');
                     }
                 }
@@ -2923,58 +2890,29 @@ configurarInteratividadeLegenda(elemento) {
     }
 }
 
-        configurarInteratividadeSimbolo(elemento) {
+       configurarInteratividadeSimbolo(elemento) {
     console.log('🔧 Configurando interatividade para símbolo:', elemento);
     
     interact(elemento).draggable({
         listeners: {
-            start: (event) => {
+            start: () => {
                 elemento.style.zIndex = '1000';
-                
-                // ✅ CORREÇÃO PARA SÍMBOLO: Capturar posição inicial absoluta
-                const pecaPai = elemento.closest('.peca');
-                if (pecaPai) {
-                    const pecaRect = pecaPai.getBoundingClientRect();
-                    const simboloRect = elemento.getBoundingClientRect();
-                    
-                    // Calcular posição relativa atual dentro da peça
-                    const relX = simboloRect.left - pecaRect.left;
-                    const relY = simboloRect.top - pecaRect.top;
-                    
-                    elemento.setAttribute('data-initial-rel-x', relX.toString());
-                    elemento.setAttribute('data-initial-rel-y', relY.toString());
-                }
-                
                 console.log('🔧 Iniciando movimento do símbolo');
             },
             move: (event) => {
-                const pecaPai = elemento.closest('.peca');
-                if (!pecaPai) return;
-                
-                // ✅ CORREÇÃO: Usar movimento relativo à peça pai
-                const initialRelX = parseFloat(elemento.getAttribute('data-initial-rel-x')) || 0;
-                const initialRelY = parseFloat(elemento.getAttribute('data-initial-rel-y')) || 0;
-                
-                const newRelX = initialRelX + event.dx;
-                const newRelY = initialRelY + event.dy;
+                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
                 
                 const rotate = parseFloat(elemento.getAttribute('data-rotate')) || 0;
                 
-                // ✅ CORREÇÃO: Usar left/top absolutos em vez de transform
-                elemento.style.left = '50%'; // Mantém o posicionamento central
-                elemento.style.top = '50%';
-                elemento.style.transform = `translate(-50%, -50%) translate(${newRelX}px, ${newRelY}px) rotate(${rotate}deg)`;
+                elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
+                elemento.setAttribute('data-x', x);
+                elemento.setAttribute('data-y', y);
                 
-                // Atualizar atributos para persistência
-                elemento.setAttribute('data-x', newRelX.toString());
-                elemento.setAttribute('data-y', newRelY.toString());
-                
-                console.log(`🔧 Movendo símbolo: relX=${newRelX}, relY=${newRelY}`);
+                console.log(`🔧 Movendo símbolo: x=${x}, y=${y}`);
             },
             end: () => {
                 elemento.style.zIndex = '';
-                elemento.removeAttribute('data-initial-rel-x');
-                elemento.removeAttribute('data-initial-rel-y');
                 this.salvarEstadoHistorico('Mover Símbolo');
                 console.log('🔧 Movimento do símbolo concluído');
             }
