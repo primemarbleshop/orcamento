@@ -2405,26 +2405,24 @@ textosEditaveis.forEach(texto => {
                 });
             }
         }
-
-        criarTexto(x, y, textoInicial = "") {
-            const textoElement = document.createElement('textarea');
-            textoElement.className = 'texto-legenda';
-            textoElement.style.left = `${x}px`;
-            textoElement.style.top = `${y}px`;
-            textoElement.value = textoInicial;
-            
-           textoElement.setAttribute('data-valor', textoInicial);
-            textoElement.rows = 1;
-            textoElement.placeholder = " ";
-            textoElement.style.width = '60px'; // ✅ Caixa pequena inicial
-            textoElement.style.height = '20px'; // ✅ Altura pequena inicial
-            textoElement.style.minWidth = '20px'; // ✅ Mínimo muito pequeno
-            textoElement.style.minHeight = '15px'; // ✅ Mínimo muito pequeno
-            textoElement.style.maxWidth = 'none'; // ✅ Sem limite máximo
-            textoElement.style.maxWidth = 'none';
+criarTexto(x, y, textoInicial = "") {
+    const textoElement = document.createElement('textarea');
+    textoElement.className = 'texto-legenda';
+    textoElement.style.left = `${x}px`;
+    textoElement.style.top = `${y}px`;
+    textoElement.value = textoInicial;
+    
+    textoElement.setAttribute('data-valor', textoInicial);
+    textoElement.setAttribute('data-ajuste-automatico', 'true'); // ✅ FLAG para controle
+    textoElement.rows = 1;
+    textoElement.placeholder = " ";
+    textoElement.style.width = '60px';
+    textoElement.style.height = '20px';
+    textoElement.style.minWidth = '20px';
+    textoElement.style.minHeight = '15px';
+    textoElement.style.maxWidth = 'none';
     textoElement.style.maxHeight = 'none';
 
-       
     if (this.modoSelecaoAtivo) {
         textoElement.classList.add('selecionavel');
     }
@@ -2438,12 +2436,12 @@ textosEditaveis.forEach(texto => {
     
     this.salvarEstadoImediato('Adicionar Caixa de Texto');
     
-    // ✅ AUTO-AJUSTE IMEDIATO (APENAS UMA VEZ)
+    // ✅ AUTO-AJUSTE IMEDIATO
     this.autoAjustarTexto(textoElement);
     
     textoElement.focus();
     
-    // ✅ EVENTO DE INPUT CORRIGIDO
+    // ✅ EVENTO DE INPUT COM CONTROLE
     textoElement.addEventListener('input', () => {
         this.autoAjustarTexto(textoElement);
     });
@@ -2459,12 +2457,12 @@ textosEditaveis.forEach(texto => {
         }
     });
 
-    this.configurarInteratividadeTexto(textoElement);
+    this.configurarInteratividadeTextoComControle(textoElement);
     
     return textoElement;
 }
 
-        configurarInteratividadeTexto(elemento) {
+configurarInteratividadeTexto(elemento) {
     let originalBackground = elemento.style.backgroundColor;
     
     interact(elemento).draggable({
@@ -2490,7 +2488,7 @@ textosEditaveis.forEach(texto => {
         }
     });
     
-    // ✅ ADICIONAR: Configurar redimensionamento com handles
+    // ✅ Configurar redimensionamento com handles
     interact(elemento).resizable({
         edges: { left: true, right: true, bottom: true, top: true },
         modifiers: [
@@ -2509,44 +2507,133 @@ textosEditaveis.forEach(texto => {
     });
 }
 
-        criarLegendaSimplificada(x, y, simbolo = "C", descricao = "Acabamento") {
-            const legendaElement = document.createElement('div');
-            legendaElement.className = 'legenda-simplificada';
-            
-            legendaElement.style.position = 'absolute';
-            legendaElement.style.left = `${x}px`;
-            legendaElement.style.top = `${y}px`;
-            
-            legendaElement.style.transform = 'none';
-            legendaElement.setAttribute('data-x', '0');
-            legendaElement.setAttribute('data-y', '0');
-            
-            legendaElement.innerHTML = `
-                <span class="legenda-simbolo-inline">${simbolo}</span> = <span class="legenda-descricao-inline" contenteditable="true">${descricao}</span>
-            `;
-            
-            if (this.modoSelecaoAtivo) {
-                legendaElement.classList.add('selecionavel');
-            }
-            
-            legendaElement.addEventListener('dblclick', () => {
-                const spanDescricao = legendaElement.querySelector('.legenda-descricao-inline');
-                spanDescricao.focus();
-            });
-            
-            const grupo = this.encontrarGrupoNaPosicao(x, y);
-            if (grupo) {
-                grupo.appendChild(legendaElement);
-            } else {
-                this.drawingArea.appendChild(legendaElement);
-            }
-            
-            this.salvarEstadoHistorico('Adicionar Legenda');
-            
-            this.configurarInteratividadeLegenda(legendaElement);
-            
-            return legendaElement;
+// ✅ MÉTODO AUTO-AJUSTAR TEXTO (ADICIONE ESTE MÉTODO)
+autoAjustarTexto(elemento) {
+    // Só ajusta automaticamente se a flag permitir
+    if (elemento.getAttribute('data-ajuste-automatico') === 'true') {
+        elemento.style.height = 'auto';
+        elemento.style.width = 'auto';
+        elemento.style.width = elemento.scrollWidth + 10 + 'px';
+        
+        const linhas = elemento.value.split('\n').length;
+        if (linhas > 1) {
+            elemento.style.whiteSpace = 'pre-wrap';
+            elemento.style.height = elemento.scrollHeight + 'px';
+        } else {
+            elemento.style.whiteSpace = 'pre';
+            elemento.style.height = '20px';
         }
+    }
+}
+
+// ✅ MÉTODO CONFIGURAR INTERATIVIDADE COM CONTROLE (ADICIONE ESTE MÉTODO)
+configurarInteratividadeTextoComControle(elemento) {
+    let originalBackground = elemento.style.backgroundColor;
+    
+    // ✅ Desativa auto-ajuste durante interação
+    interact(elemento).draggable({
+        listeners: {
+            start: () => {
+                elemento.style.zIndex = '1000';
+                elemento.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+                elemento.setAttribute('data-ajuste-automatico', 'false');
+            },
+            move: (event) => {
+                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                const rotacao = parseFloat(elemento.getAttribute('data-rotacao')) || 0;
+
+                elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotacao}deg)`;
+                elemento.setAttribute('data-x', x);
+                elemento.setAttribute('data-y', y);
+            },
+            end: () => {
+                elemento.style.zIndex = '';
+                elemento.style.backgroundColor = originalBackground;
+                this.salvarEstadoHistorico('Mover Texto');
+            }
+        }
+    });
+    
+    // ✅ Desativa auto-ajuste durante redimensionamento
+    interact(elemento).resizable({
+        edges: { left: true, right: true, bottom: true, top: true },
+        modifiers: [
+            interact.modifiers.restrictEdges({
+                outer: 'parent'
+            })
+        ],
+        listeners: {
+            start: () => {
+                elemento.setAttribute('data-ajuste-automatico', 'false');
+            },
+            move: function (event) {
+                Object.assign(event.target.style, {
+                    width: `${event.rect.width}px`,
+                    height: `${event.rect.height}px`
+                });
+            },
+            end: () => {
+                // Mantém o auto-ajuste desativado após redimensionamento manual
+                elemento.setAttribute('data-ajuste-automatico', 'false');
+                console.log('🔧 Redimensionamento manual - auto-ajuste desativado');
+            }
+        }
+    });
+
+    // ✅ Reativa auto-ajuste quando o usuário clica para editar (duplo clique)
+    elemento.addEventListener('dblclick', () => {
+        elemento.setAttribute('data-ajuste-automatico', 'true');
+        console.log('🔧 Modo edição - auto-ajuste reativado');
+    });
+
+    // ✅ Reativa auto-ajuste quando o usuário pressiona F2
+    elemento.addEventListener('keydown', (e) => {
+        if (e.key === 'F2') {
+            elemento.setAttribute('data-ajuste-automatico', 'true');
+            console.log('🔧 F2 pressionado - auto-ajuste reativado');
+        }
+    });
+}
+
+criarLegendaSimplificada(x, y, simbolo = "C", descricao = "Acabamento") {
+    const legendaElement = document.createElement('div');
+    legendaElement.className = 'legenda-simplificada';
+    
+    legendaElement.style.position = 'absolute';
+    legendaElement.style.left = `${x}px`;
+    legendaElement.style.top = `${y}px`;
+    
+    legendaElement.style.transform = 'none';
+    legendaElement.setAttribute('data-x', '0');
+    legendaElement.setAttribute('data-y', '0');
+    
+    legendaElement.innerHTML = `
+        <span class="legenda-simbolo-inline">${simbolo}</span> = <span class="legenda-descricao-inline" contenteditable="true">${descricao}</span>
+    `;
+    
+    if (this.modoSelecaoAtivo) {
+        legendaElement.classList.add('selecionavel');
+    }
+    
+    legendaElement.addEventListener('dblclick', () => {
+        const spanDescricao = legendaElement.querySelector('.legenda-descricao-inline');
+        spanDescricao.focus();
+    });
+    
+    const grupo = this.encontrarGrupoNaPosicao(x, y);
+    if (grupo) {
+        grupo.appendChild(legendaElement);
+    } else {
+        this.drawingArea.appendChild(legendaElement);
+    }
+    
+    this.salvarEstadoHistorico('Adicionar Legenda');
+    
+    this.configurarInteratividadeLegenda(legendaElement);
+    
+    return legendaElement;
+}
 
 configurarInteratividadeLegenda(elemento) {
     // 🔥 Captura e guarda a rotação inicial (se houver)
@@ -2565,6 +2652,54 @@ configurarInteratividadeLegenda(elemento) {
             rotacaoInicial = angulo;
         }
     }
+
+    elemento.setAttribute('data-rotacao', rotacaoInicial);
+
+    interact(elemento).draggable({
+        allowFrom: '.legenda-simplificada',
+        ignoreFrom: 'input, textarea, button, select, .legenda-descricao-inline',
+        modifiers: [
+            interact.modifiers.restrictRect({
+                restriction: 'parent',
+                endOnly: true
+            })
+        ],
+        preventDefault: 'always',
+
+        listeners: {
+            start: (event) => {
+                if (event.type.includes('touch')) event.preventDefault();
+
+                elemento.style.zIndex = '1000';
+                // ✅ Garante que a rotação inicial seja reaplicada no começo
+                const rotacao = parseFloat(elemento.getAttribute('data-rotacao')) || 0;
+                elemento.style.transform = `rotate(${rotacao}deg)`;
+
+                console.log('🌀 Iniciando movimento da legenda com rotação fixa:', rotacao);
+            },
+
+            move: (event) => {
+                if (event.type.includes('touch')) event.preventDefault();
+
+                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                const rotacao = parseFloat(elemento.getAttribute('data-rotacao')) || 0;
+
+                // ✅ Mantém a rotação fixa enquanto move
+                elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotacao}deg)`;
+                elemento.setAttribute('data-x', x);
+                elemento.setAttribute('data-y', y);
+            },
+
+            end: (event) => {
+                if (event.type.includes('touch')) event.preventDefault();
+                elemento.style.zIndex = '';
+                this.salvarEstadoHistorico('Mover Legenda');
+                console.log('✅ Movimento da legenda finalizado');
+            }
+        }
+    });
+}
 
     elemento.setAttribute('data-rotacao', rotacaoInicial);
     elemento.setAttribute('data-x', '0');
@@ -3246,14 +3381,14 @@ const y = e.clientY - drawingRect.top + this.drawingArea.scrollTop;
             console.log(`🎯 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y}`);
 
             switch (this.modoInsercaoAtivo) {
-    case 'texto':
+   case 'texto':
 const textoElement = document.createElement('textarea');
 textoElement.className = 'texto-legenda';
 textoElement.style.position = 'absolute';
 textoElement.style.left = x + 'px';
 textoElement.style.top = y + 'px';
-textoElement.style.width = '20px';         // largura inicial
-textoElement.style.height = '20px';        // altura inicial
+textoElement.style.width = '20px';
+textoElement.style.height = '20px';
 textoElement.style.minWidth = '50px';
 textoElement.style.minHeight = '10px';
 textoElement.style.maxWidth = 'none';
@@ -3269,30 +3404,36 @@ textoElement.style.wordWrap = 'normal';
 textoElement.style.lineHeight = '1.2';
 textoElement.style.font = '14px Arial, sans-serif';
 
+// ✅ FLAG para controlar redimensionamento manual
+textoElement.setAttribute('data-ajuste-automatico', 'true');
+
 this.drawingArea.appendChild(textoElement);
 textoElement.focus();
 
-// ✅ Função que ajusta primeiro na horizontal, depois na vertical se precisar
+// ✅ Função de auto-ajuste CONDICIONAL
 const ajustarTamanhoTexto = () => {
-    textoElement.style.height = 'auto';
-    textoElement.style.width = 'auto';
-
-    // 🔹 ajusta largura pelo scrollWidth
-    textoElement.style.width = textoElement.scrollWidth + 10 + 'px';
-
-    // 🔹 se houver múltiplas linhas (Enter), aumenta também a altura
-    const linhas = textoElement.value.split('\n').length;
-    if (linhas > 1) {
-        textoElement.style.whiteSpace = 'pre-wrap';
-        textoElement.style.height = textoElement.scrollHeight + 'px';
-    } else {
-        textoElement.style.whiteSpace = 'pre';
-        textoElement.style.height = '20px';
+    // Só ajusta automaticamente se a flag permitir
+    if (textoElement.getAttribute('data-ajuste-automatico') === 'true') {
+        textoElement.style.height = 'auto';
+        textoElement.style.width = 'auto';
+        textoElement.style.width = textoElement.scrollWidth + 10 + 'px';
+        
+        const linhas = textoElement.value.split('\n').length;
+        if (linhas > 1) {
+            textoElement.style.whiteSpace = 'pre-wrap';
+            textoElement.style.height = textoElement.scrollHeight + 'px';
+        } else {
+            textoElement.style.whiteSpace = 'pre';
+            textoElement.style.height = '20px';
+        }
     }
 };
 
-// ✅ CORREÇÃO: APENAS input (REMOVER o focus)
+// ✅ Eventos de input (digitação)
 textoElement.addEventListener('input', ajustarTamanhoTexto);
+
+// ✅ Configurar interatividade com controle do auto-ajuste
+this.configurarInteratividadeTextoComControle(textoElement);
 
 ajustarTamanhoTexto();
 
@@ -3305,7 +3446,7 @@ textoElement.addEventListener('blur', () => {
     }
 });
 
-console.log('✅ Caixa de texto criada e ajustando horizontalmente!');
+console.log('✅ Caixa de texto criada com controle de auto-ajuste!');
 break;
 
 
