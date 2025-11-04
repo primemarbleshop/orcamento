@@ -316,7 +316,7 @@
     border: none; 
     outline: none; 
     resize: none; /* 🔥 REMOVIDO: redimensionamento manual */
-    overflow: visible;
+    overflow: hidden; /* 🔥 ALTERADO: esconde overflow */
     font-size: 14px; 
     text-align: left; 
     z-index: 10; 
@@ -1013,6 +1013,8 @@
                 
                 texto.style.height = 'auto';
                 texto.style.height = (texto.scrollHeight) + 'px';
+texto.style.width = 'auto';
+texto.style.width = texto.scrollWidth + 10 + 'px';
             });
         }
 
@@ -1113,29 +1115,40 @@
             });
 
             const textosEditaveis = this.drawingArea.querySelectorAll('.texto-legenda');
-            textosEditaveis.forEach(texto => {
-                let valorOriginal = texto.value;
-                
-                texto.addEventListener('input', () => {
-                    texto.style.height = 'auto';
-                    texto.style.height = (texto.scrollHeight) + 'px';
-                    texto.setAttribute('data-valor', texto.value);
-                });
-                
-                texto.addEventListener('blur', () => {
-                    texto.setAttribute('data-valor', texto.value);
-                    
-                    if (texto.value !== valorOriginal) {
-                        if (texto.value.trim() === '') {
-                            texto.remove();
-                            this.salvarEstadoHistorico('Remover Texto Vazio');
-                        } else {
-                            this.salvarEstadoHistorico('Editar Texto');
-                        }
-                        valorOriginal = texto.value;
-                    }
-                });
-            });
+textosEditaveis.forEach(texto => {
+    let valorOriginal = texto.value;
+
+    // ✅ Função unificada de ajuste de tamanho automático
+    const ajustarTamanhoTexto = () => {
+        texto.style.height = 'auto';
+        texto.style.width = 'auto';
+        texto.style.height = texto.scrollHeight + 'px';
+        texto.style.width = texto.scrollWidth + 10 + 'px'; // +10px de folga lateral
+        texto.setAttribute('data-valor', texto.value);
+    };
+
+    // ✅ Atualiza tamanho em tempo real
+    texto.addEventListener('input', ajustarTamanhoTexto);
+    texto.addEventListener('focus', ajustarTamanhoTexto);
+    texto.addEventListener('blur', ajustarTamanhoTexto);
+
+    texto.addEventListener('blur', () => {
+        texto.setAttribute('data-valor', texto.value);
+        
+        if (texto.value !== valorOriginal) {
+            if (texto.value.trim() === '') {
+                texto.remove();
+                this.salvarEstadoHistorico('Remover Texto Vazio');
+            } else {
+                this.salvarEstadoHistorico('Editar Texto');
+            }
+            valorOriginal = texto.value;
+        }
+    });
+
+    // ✅ Ajusta tamanho logo na inicialização também
+    ajustarTamanhoTexto();
+});
 
             const legendasEditaveis = this.drawingArea.querySelectorAll('.legenda-simplificada');
             legendasEditaveis.forEach(legenda => {
