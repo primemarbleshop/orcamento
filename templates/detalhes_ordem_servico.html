@@ -311,24 +311,28 @@
         }
         
                .texto-legenda { 
-            position: absolute; 
-            background: transparent; 
-            border: none; 
-            outline: none; 
-            resize: both; /* ✅ Permite redimensionamento manual */
-   	    overflow: auto;
-            font-size: 14px; 
-            text-align: left; 
-            z-index: 10; 
-            cursor: default; 
-            min-width: 20px;
-    	    min-height: 15px;
-    	    max-width: none;
-    	    max-height: none;
-            font-weight: bold; 
-            touch-action: none; 
-            padding: 2px; 
-        }
+    position: absolute; 
+    background: transparent; 
+    border: none; 
+    outline: none; 
+    resize: none; /* 🔥 REMOVIDO: redimensionamento manual */
+    overflow: hidden; /* 🔥 ALTERADO: esconde overflow */
+    font-size: 14px; 
+    text-align: left; 
+    z-index: 10; 
+    cursor: default; 
+    min-width: 60px; /* 🔥 AUMENTADO: largura mínima */
+    min-height: 20px; /* 🔥 AUMENTADO: altura mínima */
+    max-width: none;
+    max-height: none;
+    font-weight: bold; 
+    touch-action: none; 
+    padding: 2px; 
+    box-sizing: border-box; /* 🔥 ADICIONADO: inclui padding no cálculo */
+    white-space: pre-wrap; /* 🔥 ADICIONADO: permite quebra de linha */
+    word-wrap: break-word; /* 🔥 ADICIONADO: quebra palavras longas */
+    line-height: 1.2; /* 🔥 ADICIONADO: altura de linha adequada */
+}
         
         .texto-legenda.selecionavel {
             cursor: pointer;
@@ -2404,58 +2408,48 @@
             textoElement.style.minWidth = '20px'; // ✅ Mínimo muito pequeno
             textoElement.style.minHeight = '15px'; // ✅ Mínimo muito pequeno
             textoElement.style.maxWidth = 'none'; // ✅ Sem limite máximo
-            textoElement.style.maxHeight = 'none'; // ✅ Sem limite máximo
-    
-            // ✅ CORREÇÃO: Alinhar texto à esquerda
-            textoElement.style.textAlign = 'left';
-            textoElement.style.justifyContent = 'flex-start';
-            textoElement.style.alignItems = 'flex-start';
-            
-            if (this.modoSelecaoAtivo) {
-                textoElement.classList.add('selecionavel');
-            }
-            
-            const grupo = this.encontrarGrupoNaPosicao(x, y);
-            if (grupo) {
-                grupo.appendChild(textoElement);
-            } else {
-                this.drawingArea.appendChild(textoElement);
-            }
-            
-            this.salvarEstadoImediato('Adicionar Caixa de Texto');
-            
-            textoElement.focus();
-            
-           textoElement.addEventListener('input', () => {
-    // Auto-ajustar altura
-    textoElement.style.height = 'auto';
-    textoElement.style.height = (textoElement.scrollHeight) + 'px';
-    
-    // Auto-ajustar largura se necessário (opcional)
-    const minWidth = 60; // Largura mínima
-    const textoLength = textoElement.value.length;
-    const novaWidth = Math.max(minWidth, textoLength * 8 + 20); // Calcula largura baseada no texto
-    
-    textoElement.style.width = novaWidth + 'px';
-    
-    textoElement.setAttribute('data-valor', textoElement.value);
-});
-            
-            textoElement.addEventListener('blur', () => {
-                textoElement.setAttribute('data-valor', textoElement.value);
-                
-                if (textoElement.value.trim() === '') {
-                    textoElement.remove();
-                    this.salvarEstadoImediato('Remover Texto Vazio');
-                } else {
-                    this.salvarEstadoImediato('Editar Texto: ' + textoElement.value.substring(0, 20));
-                }
-            });
+            textoElement.style.maxWidth = 'none';
+    textoElement.style.maxHeight = 'none';
 
-            this.configurarInteratividadeTexto(textoElement);
-            
-            return textoElement;
+       
+    if (this.modoSelecaoAtivo) {
+        textoElement.classList.add('selecionavel');
+    }
+    
+    const grupo = this.encontrarGrupoNaPosicao(x, y);
+    if (grupo) {
+        grupo.appendChild(textoElement);
+    } else {
+        this.drawingArea.appendChild(textoElement);
+    }
+    
+    this.salvarEstadoImediato('Adicionar Caixa de Texto');
+    
+    // ✅ AUTO-AJUSTE IMEDIATO (APENAS UMA VEZ)
+    this.autoAjustarTexto(textoElement);
+    
+    textoElement.focus();
+    
+    // ✅ EVENTO DE INPUT CORRIGIDO
+    textoElement.addEventListener('input', () => {
+        this.autoAjustarTexto(textoElement);
+    });
+    
+    textoElement.addEventListener('blur', () => {
+        textoElement.setAttribute('data-valor', textoElement.value);
+        
+        if (textoElement.value.trim() === '') {
+            textoElement.remove();
+            this.salvarEstadoImediato('Remover Texto Vazio');
+        } else {
+            this.salvarEstadoImediato('Editar Texto: ' + textoElement.value.substring(0, 20));
         }
+    });
+
+    this.configurarInteratividadeTexto(textoElement);
+    
+    return textoElement;
+}
 
         configurarInteratividadeTexto(elemento) {
     let originalBackground = elemento.style.backgroundColor;
