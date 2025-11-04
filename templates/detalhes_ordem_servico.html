@@ -946,6 +946,139 @@
             this.inicializar();
         }
 
+ transformarCoordenadasParaLocal(dx, dy, rotacaoGraus) {
+        // Converter graus para radianos
+        const radianos = -rotacaoGraus * (Math.PI / 180); // Negativo porque CSS rotate é sentido horário
+        
+        // Aplicar matriz de rotação inversa
+        const dxLocal = dx * Math.cos(radianos) - dy * Math.sin(radianos);
+        const dyLocal = dx * Math.sin(radianos) + dy * Math.cos(radianos);
+        
+        return { dx: dxLocal, dy: dyLocal };
+    }
+
+ atualizarPosicaoSimbolos(elemento) {
+        const pecaId = elemento.getAttribute('data-peca-id');
+        if (!pecaId) return;
+
+        const simbolos = elemento.querySelectorAll(`.simbolo-linha[data-peca-id="${pecaId}"]`);
+        
+        const pecaWidth = parseFloat(elemento.style.width);
+        const pecaHeight = parseFloat(elemento.style.height);
+        
+        simbolos.forEach(simbolo => {
+            const lado = simbolo.getAttribute('data-lado');
+            const rotacaoSimbolo = simbolo.getAttribute('data-rotacao') || 0;
+            
+            let left, top;
+            const centerX = pecaWidth / 2;
+            const centerY = pecaHeight / 2;
+            
+            switch(lado) {
+                case 'top':
+                    left = centerX;
+                    top = 0;
+                    break;
+                case 'bottom':
+                    left = centerX;
+                    top = pecaHeight;
+                    break;
+                case 'left':
+                    left = 0;
+                    top = centerY;
+                    break;
+                case 'right':
+                    left = pecaWidth;
+                    top = centerY;
+                    break;
+            }
+            
+            simbolo.style.left = `${left}px`;
+            simbolo.style.top = `${top}px`;
+            simbolo.style.transform = `translate(-50%, -50%) rotate(${rotacaoSimbolo}deg)`;
+            simbolo.style.transformOrigin = 'center center';
+        });
+    }
+
+    // ✅ ADICIONE O MÉTODO atualizarPosicaoDimensoes AQUI:
+    atualizarPosicaoDimensoes(pecaElement) {
+        const pecaId = pecaElement.getAttribute('data-peca-id');
+        
+        // Buscar elementos de dimensão dentro da peça
+        const dimensoesTop = pecaElement.querySelector('.dimensoes-top');
+        const dimensoesRight = pecaElement.querySelector('.dimensoes-right');
+        
+        if (!dimensoesTop || !dimensoesRight) return;
+        
+        const pecaWidth = parseFloat(pecaElement.style.width);
+        const pecaHeight = parseFloat(pecaElement.style.height);
+        
+        // 🔥 OBTER OFFSETS (se existirem)
+        const offsetTopX = parseFloat(dimensoesTop.getAttribute('data-x')) || 0;
+        const offsetTopY = parseFloat(dimensoesTop.getAttribute('data-y')) || 0;
+        const offsetRightX = parseFloat(dimensoesRight.getAttribute('data-x')) || 0;
+        const offsetRightY = parseFloat(dimensoesRight.getAttribute('data-y')) || 0;
+        
+        // Posicionar dimensão superior COM OFFSETS
+        dimensoesTop.style.left = `${(pecaWidth / 2) + offsetTopX}px`;
+        dimensoesTop.style.top = `${-35 + offsetTopY}px`;
+        dimensoesTop.style.transform = 'translateX(-50%)';
+        
+        // Posicionar dimensão direita COM OFFSETS  
+        dimensoesRight.style.right = `${-35 + offsetRightX}px`;
+        dimensoesRight.style.top = `${(pecaHeight / 2) + offsetRightY}px`;
+        dimensoesRight.style.transform = 'translateY(-50%)';
+        
+        console.log(`🔧 Dimensões atualizadas - Top: ${dimensoesTop.style.left}, ${dimensoesTop.style.top} | Right: ${dimensoesRight.style.right}, ${dimensoesRight.style.top}`);
+    }
+
+// 🔥 ADICIONE ESTE MÉTODO NOVO NA CLASSE
+configurarInteratividadeDimensao(dimensaoElement) {
+    console.log('🔧 Configurando interatividade para dimensão:', dimensaoElement);
+    
+    interact(dimensaoElement).draggable({
+        modifiers: [
+            interact.modifiers.restrict({
+                restriction: 'parent',
+                endOnly: false
+            })
+        ],
+        listeners: {
+            start: (event) => {
+                dimensaoElement.style.zIndex = '1000';
+                console.log('🔧 Iniciando movimento da dimensão');
+            },
+            move: (event) => {
+                // 🔥 OBTER ROTAÇÃO DA PEÇA PAI
+                const pecaId = dimensaoElement.getAttribute('data-peca-id');
+                const pecaElement = this.drawingArea.querySelector(`#peca-${pecaId}`);
+                const rotacaoPeca = pecaElement ? parseFloat(pecaElement.getAttribute('data-rotate')) || 0 : 0;
+                
+                // 🔥 COMPENSAÇÃO: Transformar coordenadas do mouse para sistema local da peça
+                const coordenadasCompensadas = this.transformarCoordenadasParaLocal(event.dx, event.dy, rotacaoPeca);
+                
+                let x = (parseFloat(dimensaoElement.getAttribute('data-x')) || 0) + coordenadasCompensadas.dx;
+                let y = (parseFloat(dimensaoElement.getAttribute('data-y')) || 0) + coordenadasCompensadas.dy;
+                
+                // Para dimensões, não temos rotação própria, só a compensação do movimento
+                dimensaoElement.setAttribute('data-x', x);
+                dimensaoElement.setAttribute('data-y', y);
+                
+                // Atualizar posição visual
+                if (pecaElement) {
+                    this.atualizarPosicaoDimensoes(pecaElement);
+                }
+                
+                console.log(`🔧 Movendo dimensão - Global: dx=${event.dx}, dy=${event.dy} | Local: dx=${coordenadasCompensadas.dx}, dy=${coordenadasCompensadas.dy} | Rotação: ${rotacaoPeca}°`);
+            },
+            end: () => {
+                dimensaoElement.style.zIndex = '';
+                this.salvarEstadoHistorico('Mover Dimensão');
+                console.log('✅ Movimento da dimensão concluído');
+            }
+        }
+    });
+}
         carregarDadosPecas() {
             const grupos = {};
             {% for material_nome, produtos in materiais_agrupados.items() %}
@@ -2045,9 +2178,9 @@
             }
         }
 
-        atualizarLinhasESimbolos(elemento) {
-            const width = parseFloat(elemento.style.width);
-            const height = parseFloat(elemento.style.height);
+       atualizarLinhasESimbolos(elemento) {
+    const width = parseFloat(elemento.style.width);
+    const height = parseFloat(elemento.style.height);
             
             const linhas = elemento.querySelectorAll('.linha-peca');
             linhas.forEach(linha => {
@@ -2077,8 +2210,11 @@
                 }
             });
 
-            this.atualizarPosicaoSimbolos(elemento);
-        }
+         this.atualizarPosicaoSimbolos(elemento);
+    this.atualizarPosicaoDimensoes(elemento); // 🔥 LINHA IMPORTANTE!
+    
+    this.atualizarHandles();
+}
 
         atualizarPosicaoSimbolos(elemento) {
             const pecaId = elemento.getAttribute('data-peca-id');
@@ -2727,32 +2863,58 @@ configurarInteratividadeLegenda(elemento) {
             return null;
         }
 
-        criarDimensoes(pecaElement, peca, width, height) {
-            const dimensoesTop = document.createElement('div');
-            dimensoesTop.className = 'dimensoes dimensoes-top';
-            dimensoesTop.textContent = `${peca.comprimento}cm`;
-            dimensoesTop.style.top = `${-35}px`;
-            dimensoesTop.style.left = `${width / 2}px`;
-            pecaElement.appendChild(dimensoesTop);
-            
-            setTimeout(() => {
-                const drawingRect = this.drawingArea.getBoundingClientRect();
+       criarDimensoes(pecaElement, peca, width, height) {
+    const pecaId = pecaElement.getAttribute('data-peca-id');
+    
+    // Dimensão superior
+    const dimensoesTop = document.createElement('div');
+    dimensoesTop.className = 'dimensoes dimensoes-top';
+    dimensoesTop.textContent = `${peca.comprimento}cm`;
+    dimensoesTop.style.top = `${-35}px`;
+    dimensoesTop.style.left = `${width / 2}px`;
+    
+    // 🔥 ADICIONAR ATRIBUTOS DE IDENTIFICAÇÃO E POSIÇÃO
+    dimensoesTop.setAttribute('data-peca-id', pecaId);
+    dimensoesTop.setAttribute('data-tipo', 'dimensao-top');
+    dimensoesTop.setAttribute('data-x', '0');
+    dimensoesTop.setAttribute('data-y', '0');
+    
+    pecaElement.appendChild(dimensoesTop);
+    
+    // Dimensão direita
+    const dimensoesRight = document.createElement('div');
+    dimensoesRight.className = 'dimensoes dimensoes-right';
+    dimensoesRight.textContent = `${peca.largura}cm`;
+    dimensoesRight.style.right = `${-35}px`;
+    dimensoesRight.style.top = `${height / 2}px`;
+    
+    // 🔥 ADICIONAR ATRIBUTOS DE IDENTIFICAÇÃO E POSIÇÃO
+    dimensoesRight.setAttribute('data-peca-id', pecaId);
+    dimensoesRight.setAttribute('data-tipo', 'dimensao-right');
+    dimensoesRight.setAttribute('data-x', '0');
+    dimensoesRight.setAttribute('data-y', '0');
+    
+    pecaElement.appendChild(dimensoesRight);
 
-                const topRect = dimensoesTop.getBoundingClientRect();
-                if (topRect.right > drawingRect.right - 10) {
-                    const excesso = topRect.right - (drawingRect.right - 10);
-                    const atualLeft = parseFloat(dimensoesTop.style.left || (width/2)) || (width/2);
-                    dimensoesTop.style.left = `${atualLeft - excesso}px`;
-                }
-            }, 0);
+    // 🔥 CONFIGURAR INTERATIVIDADE SE MODO SELEÇÃO ESTIVER ATIVO
+    if (this.modoSelecaoAtivo) {
+        dimensoesTop.classList.add('selecionavel');
+        dimensoesRight.classList.add('selecionavel');
+        this.configurarInteratividadeDimensao(dimensoesTop);
+        this.configurarInteratividadeDimensao(dimensoesRight);
+    }
+    
+    setTimeout(() => {
+        const drawingRect = this.drawingArea.getBoundingClientRect();
 
-            const dimensoesRight = document.createElement('div');
-            dimensoesRight.className = 'dimensoes dimensoes-right';
-            dimensoesRight.textContent = `${peca.largura}cm`;
-            dimensoesRight.style.right = `${-35}px`;
-            dimensoesRight.style.top = `${height / 2}px`;
-            pecaElement.appendChild(dimensoesRight);
+        const topRect = dimensoesTop.getBoundingClientRect();
+        if (topRect.right > drawingRect.right - 10) {
+            const excesso = topRect.right - (drawingRect.right - 10);
+            const atualLeft = parseFloat(dimensoesTop.style.left || (width/2)) || (width/2);
+            dimensoesTop.style.left = `${atualLeft - excesso}px`;
         }
+    }, 0);
+}
 
         criarQuantidade(pecaElement, quantidade) {
             const quantidadeElement = document.createElement('div');
@@ -2914,18 +3076,26 @@ configurarInteratividade(elemento) {
     }
 }
 
-       configurarInteratividadeSimbolo(elemento) {
+      configurarInteratividadeSimbolo(elemento) {
     console.log('🔧 Configurando interatividade para símbolo:', elemento);
     
     interact(elemento).draggable({
         listeners: {
-            start: () => {
+            start: (event) => {
                 elemento.style.zIndex = '1000';
                 console.log('🔧 Iniciando movimento do símbolo');
             },
             move: (event) => {
-                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                // 🔥 OBTER ROTAÇÃO DA PEÇA PAI
+                const pecaId = elemento.getAttribute('data-peca-id');
+                const pecaElement = this.drawingArea.querySelector(`#peca-${pecaId}`);
+                const rotacaoPeca = pecaElement ? parseFloat(pecaElement.getAttribute('data-rotate')) || 0 : 0;
+                
+                // 🔥 COMPENSAÇÃO: Transformar coordenadas do mouse para sistema local da peça
+                const coordenadasCompensadas = this.transformarCoordenadasParaLocal(event.dx, event.dy, rotacaoPeca);
+                
+                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + coordenadasCompensadas.dx;
+                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + coordenadasCompensadas.dy;
                 
                 const rotate = parseFloat(elemento.getAttribute('data-rotate')) || 0;
                 
@@ -2933,7 +3103,7 @@ configurarInteratividade(elemento) {
                 elemento.setAttribute('data-x', x);
                 elemento.setAttribute('data-y', y);
                 
-                console.log(`🔧 Movendo símbolo: x=${x}, y=${y}`);
+                console.log(`🔧 Movendo símbolo - Global: dx=${event.dx}, dy=${event.dy} | Local: dx=${coordenadasCompensadas.dx}, dy=${coordenadasCompensadas.dy} | Rotação: ${rotacaoPeca}°`);
             },
             end: () => {
                 elemento.style.zIndex = '';
