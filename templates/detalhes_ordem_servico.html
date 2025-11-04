@@ -3247,58 +3247,67 @@ const y = e.clientY - drawingRect.top + this.drawingArea.scrollTop;
 
             switch (this.modoInsercaoAtivo) {
     case 'texto':
-        const textoElement = document.createElement('textarea');
-        textoElement.className = 'texto-legenda';
-        textoElement.style.position = 'absolute';
-        textoElement.style.left = x + 'px';
-        textoElement.style.top = y + 'px';
-        textoElement.style.width = '60px';         // Largura inicial pequena
-        textoElement.style.height = '20px';        // Altura inicial pequena
-        textoElement.style.minWidth = '20px';
-        textoElement.style.minHeight = '15px';
-        textoElement.style.maxWidth = 'none';
-        textoElement.style.maxHeight = 'none';
-        textoElement.style.overflow = 'hidden';    // ✅ evita barra interna
-        textoElement.style.zIndex = '1000';
-        textoElement.style.textAlign = 'left';
-        textoElement.placeholder = " ";
-        textoElement.style.resize = 'none';        // ✅ impede redimensionamento manual
-        textoElement.style.boxSizing = 'border-box';
-        textoElement.style.whiteSpace = 'pre-wrap';
-        textoElement.style.wordWrap = 'break-word';
-        textoElement.style.lineHeight = '1.2';
+    const textoElement = document.createElement('textarea');
+    textoElement.className = 'texto-legenda';
+    textoElement.style.position = 'absolute';
+    textoElement.style.left = x + 'px';
+    textoElement.style.top = y + 'px';
+    textoElement.style.width = '20px';         // largura inicial
+    textoElement.style.height = '20px';        // altura inicial
+    textoElement.style.minWidth = '50px';
+    textoElement.style.minHeight = '10px';
+    textoElement.style.maxWidth = 'none';
+    textoElement.style.maxHeight = 'none';
+    textoElement.style.overflow = 'hidden';
+    textoElement.style.zIndex = '1000';
+    textoElement.style.textAlign = 'left';
+    textoElement.placeholder = " ";
+    textoElement.style.resize = 'none';
+    textoElement.style.boxSizing = 'border-box';
+    textoElement.style.whiteSpace = 'pre';     // ✅ não quebra linha automaticamente
+    textoElement.style.wordWrap = 'normal';
+    textoElement.style.lineHeight = '1.2';
+    textoElement.style.font = '14px Arial, sans-serif';
 
-        this.drawingArea.appendChild(textoElement);
-        textoElement.focus();
+    this.drawingArea.appendChild(textoElement);
+    textoElement.focus();
 
-        // ✅ Função que ajusta tamanho automaticamente
-        const ajustarTamanhoTexto = () => {
-            textoElement.style.height = 'auto';
-            textoElement.style.width = 'auto';
+    // ✅ Função que ajusta primeiro na horizontal, depois na vertical se precisar
+    const ajustarTamanhoTexto = () => {
+        textoElement.style.height = 'auto';
+        textoElement.style.width = 'auto';
 
-            // calcula novamente a altura/largura conforme o conteúdo
+        // 🔹 ajusta largura pelo scrollWidth
+        textoElement.style.width = textoElement.scrollWidth + 10 + 'px';
+
+        // 🔹 se houver múltiplas linhas (Enter), aumenta também a altura
+        const linhas = textoElement.value.split('\n').length;
+        if (linhas > 1) {
+            textoElement.style.whiteSpace = 'pre-wrap';
             textoElement.style.height = textoElement.scrollHeight + 'px';
-            textoElement.style.width = textoElement.scrollWidth + 10 + 'px';
-        };
+        } else {
+            textoElement.style.whiteSpace = 'pre';
+            textoElement.style.height = '20px';
+        }
+    };
 
-        // ✅ Atualiza tamanho enquanto digita
-        textoElement.addEventListener('input', ajustarTamanhoTexto);
-        textoElement.addEventListener('focus', ajustarTamanhoTexto);
+    textoElement.addEventListener('input', ajustarTamanhoTexto);
+    textoElement.addEventListener('focus', ajustarTamanhoTexto);
 
-        // ✅ Ajuste inicial (placeholder/texto vazio)
-        ajustarTamanhoTexto();
+    ajustarTamanhoTexto();
 
-        textoElement.addEventListener('blur', () => {
-            if (textoElement.value.trim() === '') {
-                textoElement.remove();
-            } else {
-                textoElement.setAttribute('data-valor', textoElement.value);
-                this.salvarEstadoHistorico('Adicionar Texto');
-            }
-        });
+    textoElement.addEventListener('blur', () => {
+        if (textoElement.value.trim() === '') {
+            textoElement.remove();
+        } else {
+            textoElement.setAttribute('data-valor', textoElement.value);
+            this.salvarEstadoHistorico('Adicionar Texto');
+        }
+    });
 
-        console.log('✅ Caixa de texto criada e com autoajuste!');
-        break;
+    console.log('✅ Caixa de texto criada e ajustando horizontalmente!');
+    break;
+
 
     case 'cuba':
         console.log('📝 Abrindo seletor de cuba...');
