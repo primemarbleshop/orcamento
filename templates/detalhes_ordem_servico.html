@@ -2872,26 +2872,28 @@ atualizarOrdemEmpilhamento() {
         }
 
         atualizarEstadoBotoes() {
-            const temElementoSelecionado = this.elementoSelecionado !== null;
-            
-            document.getElementById('btnDuplicar').disabled = !temElementoSelecionado;
-            document.getElementById('btnExcluir').disabled = !temElementoSelecionado;
-        }
-
-        atualizarEstadoVisualBotoes(botaoAtivo = null, tipoAtivo = null) {
-            const todosBotoes = document.querySelectorAll('.action-buttons-container .btn');
-            todosBotoes.forEach(botao => {
-                botao.classList.remove('btn-selecao-ativo', 'btn-modo-ativo');
-            });
-            
-            if (botaoAtivo) {
-                if (tipoAtivo === 'selecao') {
-                    botaoAtivo.classList.add('btn-selecao-ativo');
-                } else if (tipoAtivo === 'modo') {
-                    botaoAtivo.classList.add('btn-modo-ativo');
-                }
-            }
-        }
+    const temElementoSelecionado = this.elementoSelecionado !== null;
+    
+    // 🔥 CORREÇÃO: Verificar se é grupo temporário ou modo laço ativo
+    const isGrupoTemporario = this.elementoSelecionado && 
+                              this.elementoSelecionado.classList.contains('grupo-temporario');
+    const isModoLacoAtivo = this.modoLacoAtivo;
+    
+    // Desabilitar botões se for grupo temporário ou modo laço ativo
+    const desabilitarBotoes = isGrupoTemporario || isModoLacoAtivo;
+    
+    document.getElementById('btnDuplicar').disabled = !temElementoSelecionado || desabilitarBotoes;
+    document.getElementById('btnExcluir').disabled = !temElementoSelecionado || desabilitarBotoes;
+    
+    // 🔥 CORREÇÃO: Atualizar tooltips para indicar o motivo do desabilitado
+    if (desabilitarBotoes) {
+        document.getElementById('btnDuplicar').title = 'Ação não disponível para grupo temporário';
+        document.getElementById('btnExcluir').title = 'Ação não disponível para grupo temporário';
+    } else {
+        document.getElementById('btnDuplicar').title = 'Duplicar Elemento Selecionado';
+        document.getElementById('btnExcluir').title = 'Excluir Elemento Selecionado';
+    }
+}
 
        atualizarLinhasESimbolos(elemento) {
     const width = parseFloat(elemento.style.width);
