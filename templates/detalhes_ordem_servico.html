@@ -2039,17 +2039,106 @@ restaurarEstadoHistorico(estado) {
 }
 
 
-       _configurarInteratividadeGrupo(grupo, elementos) {
-    // Mover grupo
+      // =============================================
+// CORREÇÃO DO MOVIMENTO DO GRUPO NO CELULAR
+// =============================================
+
+_configurarInteratividadeGrupo(grupo, elementos) {
+    // 🔥 CORREÇÃO: Separar elementos raiz dos elementos filhos (símbolos)
+    const elementosRaiz = [];
+    const elementosFilhos = [];
+    
+    elementos.forEach(elemento => {
+        if (elemento.classList.contains('simbolo-linha') || 
+            elemento.classList.contains('dimensoes') ||
+            elemento.classList.contains('quantidade-peca')) {
+            elementosFilhos.push(elemento);
+        } else {
+            elementosRaiz.push(elemento);
+        }
+    });
+
+    console.log(`🔧 Grupo: ${elementosRaiz.length} elementos raiz, ${elementosFilhos.length} elementos filhos`);
+
+    // 🔥 CORREÇÃO: Armazenar separadamente no grupo
+    grupo.setAttribute('data-elementos-raiz', JSON.stringify(
+        elementosRaiz.map(el => ({
+            elemento: el,
+            left: parseFloat(el.style.left) || 0,
+            top: parseFloat(el.style.top) || 0,
+            transform: el.style.transform || '',
+            dataX: parseFloat(el.getAttribute('data-x')) || 0,
+            dataY: parseFloat(el.getAttribute('data-y')) || 0
+        }))
+    ));
+
+    grupo.setAttribute('data-elementos-filhos', JSON.stringify(
+        elementosFilhos.map(el => ({
+            elemento: el,
+            parentId: this._obterPecaPaiId(el),
+            dataX: parseFloat(el.getAttribute('data-x')) || 0,
+            dataY: parseFloat(el.getAttribute('data-y')) || 0
+        }))
+    ));
+
+    // Configurar interatividade apenas para elementos raiz
+    this._configurarInteratividadeGrupoRaiz(grupo, elementosRaiz, elementosFilhos);
+}
+
+// 🔥 NOVO MÉTODO: Obter ID da peça pai de um elemento filho
+_obterPecaPaiId(elementoFilho) {
+    if (elementoFilho.classList.contains('simbolo-linha')) {
+        return elementoFilho.getAttribute('data-peca-id');
+    }
+    
+    // Para outros elementos filhos (dimensoes, quantidade), buscar peça pai
+    let parent = elementoFilho.parentElement;
+    while (parent && !parent.classList.contains('peca')) {
+        parent = parent.parentElement;
+    }
+    return parent ? parent.getAttribute('data-peca-id') : null;
+}
+
+// 🔥 NOVO MÉTODO: Configurar interatividade apenas para elementos raiz
+_configurarInteratividadeGrupoRaiz(grupo, elementosRaiz, elementosFilhos) {
+    grupo.style.touchAction = 'none';
+    
     interact(grupo).draggable({
+        allowFrom: '.grupo-temporario',
+        ignoreFrom: 'input, textarea, button, select',
+        modifiers: [
+            interact.modifiers.restrictRect({
+                restriction: 'parent',
+                endOnly: true
+            })
+        ],
+        preventDefault: 'auto',
+
         listeners: {
-            start: () => {
+            start: (event) => {
+                if (event.type.includes('touch')) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+
                 grupo.style.zIndex = '1001';
-                // 🔹 Armazena posição inicial para saber se houve movimento
+                
+                // 🔥 CORREÇÃO: Armazenar posições iniciais de TODOS os elementos
                 grupo.setAttribute('data-x-inicial', grupo.getAttribute('data-x') || 0);
                 grupo.setAttribute('data-y-inicial', grupo.getAttribute('data-y') || 0);
+                
+                // Armazenar posições iniciais dos elementos filhos
+                elementosFilhos.forEach(filho => {
+                    filho.setAttribute('data-x-inicial', filho.getAttribute('data-x') || 0);
+                    filho.setAttribute('data-y-inicial', filho.getAttribute('data-y') || 0);
+                });
             },
             move: (event) => {
+                if (event.type.includes('touch')) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+
                 const x = (parseFloat(grupo.getAttribute('data-x')) || 0) + event.dx;
                 const y = (parseFloat(grupo.getAttribute('data-y')) || 0) + event.dy;
                 const rotate = grupo.getAttribute('data-rotate') || 0;
@@ -2058,8 +2147,8 @@ restaurarEstadoHistorico(estado) {
                 grupo.setAttribute('data-x', x);
                 grupo.setAttribute('data-y', y);
                 
-                // 🔹 Mover elementos filhos relativamente
-                elementos.forEach(elemento => {
+                // 🔥 CORREÇÃO: Mover apenas elementos raiz
+                elementosRaiz.forEach(elemento => {
                     const currentX = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
                     const currentY = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
                     const elementRotate = elemento.getAttribute('data-rotate') || 0;
@@ -2067,12 +2156,25 @@ restaurarEstadoHistorico(estado) {
                     elemento.style.transform = `translate(${currentX}px, ${currentY}px) rotate(${elementRotate}deg)`;
                     elemento.setAttribute('data-x', currentX);
                     elemento.setAttribute('data-y', currentY);
+                    
+                    // 🔥 ATUALIZAR SÍMBOLOS DA PEÇA automaticamente
+                    if (elemento.classList.contains('peca')) {
+                        this.atualizarPosicaoSimbolos(elemento);
+                        this.atualizarPosicaoDimensoes(elemento);
+                    }
                 });
+
+                // 🔥 CORREÇÃO: NÃO mover elementos filhos individualmente
+                // Eles serão movidos automaticamente pela atualização da peça pai
             },
-            end: () => {
+            end: (event) => {
+                if (event.type.includes('touch')) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                
                 grupo.style.zIndex = '1000';
                 
-                // ✅ Salva histórico APENAS se realmente houve movimento
                 const xInicial = parseFloat(grupo.getAttribute('data-x-inicial')) || 0;
                 const yInicial = parseFloat(grupo.getAttribute('data-y-inicial')) || 0;
                 const xAtual = parseFloat(grupo.getAttribute('data-x')) || 0;
@@ -2083,14 +2185,19 @@ restaurarEstadoHistorico(estado) {
                 if (movimentoSignificativo) {
                     console.log('💾 Salvando histórico: Mover Grupo');
                     this.salvarEstadoHistorico('Mover Grupo');
-                } else {
-                    console.log('⚪ Nenhum movimento significativo — não salva histórico');
                 }
             }
         }
     });
-}
 
+    grupo.addEventListener('touchstart', (e) => {
+        e.stopPropagation();
+    }, { passive: false });
+
+    grupo.addEventListener('touchmove', (e) => {
+        e.stopPropagation();
+    }, { passive: false });
+}
 
    
 
@@ -3577,7 +3684,7 @@ configurarInteratividadeLegenda(elemento) {
     simboloElement.setAttribute('data-peca-id', linhaElement.getAttribute('data-peca-id'));
     simboloElement.setAttribute('data-lado', linhaElement.getAttribute('data-lado'));
 
-    // ✅ CORREÇÃO: Inicializar posição relativa
+    // 🔥 CORREÇÃO: Inicializar posição como zero
     simboloElement.setAttribute('data-x', '0');
     simboloElement.setAttribute('data-y', '0');
 
@@ -3617,7 +3724,7 @@ configurarInteratividadeLegenda(elemento) {
         simboloElement.style.left = left;
         simboloElement.style.top = top;
         
-        // ✅ CORREÇÃO: Aplicar transformação inicial considerando data-x/data-y
+        // 🔥 CORREÇÃO: Aplicar transformação inicial correta
         const currentX = parseFloat(simboloElement.getAttribute('data-x')) || 0;
         const currentY = parseFloat(simboloElement.getAttribute('data-y')) || 0;
         simboloElement.style.transform = `translate(-50%, -50%) translate(${currentX}px, ${currentY}px) rotate(${angulo}deg)`;
@@ -3644,7 +3751,6 @@ configurarInteratividadeLegenda(elemento) {
 configurarInteratividade(elemento) {
     this.removerInteratividade(elemento);
     
-    // 🔥 CORREÇÃO: Não configurar interatividade drag para grupo temporário
     if (elemento.classList.contains('elemento-selecionado') && !elemento.classList.contains('grupo-temporario')) {
         
         if (elemento.classList.contains('simbolo-linha')) {
@@ -3664,8 +3770,9 @@ configurarInteratividade(elemento) {
                         elemento.setAttribute('data-x', x);
                         elemento.setAttribute('data-y', y);
 
+                        // 🔥 CORREÇÃO: Atualizar símbolos quando a peça se move
                         if (elemento.classList.contains('peca')) {
-                            this.atualizarLinhasESimbolos(elemento);
+                            this.atualizarPosicaoSimbolos(elemento);
                         }
                         
                         if (!elemento.classList.contains('simbolo-linha')) {
@@ -3682,35 +3789,42 @@ configurarInteratividade(elemento) {
     }
 }
 
-
-      configurarInteratividadeSimbolo(elemento) {
+     configurarInteratividadeSimbolo(elemento) {
     console.log('🔧 Configurando interatividade para símbolo:', elemento);
     
+    // 🔥 CORREÇÃO: Obter referência da peça pai ANTES de configurar interatividade
+    const pecaId = elemento.getAttribute('data-peca-id');
+    const pecaElement = this.drawingArea.querySelector(`#peca-${pecaId}`);
+    
+    if (!pecaElement) {
+        console.error('❌ Peça pai não encontrada para o símbolo');
+        return;
+    }
+
     interact(elemento).draggable({
+        // 🔥 CORREÇÃO: Permitir apenas do símbolo, não da área interna
+        allowFrom: '.simbolo-linha',
+        ignoreFrom: 'input, textarea, button, select',
+        
         listeners: {
             start: (event) => {
                 elemento.style.zIndex = '1000';
                 console.log('🔧 Iniciando movimento do símbolo');
             },
             move: (event) => {
-                // 🔥 OBTER ROTAÇÃO DA PEÇA PAI
-                const pecaId = elemento.getAttribute('data-peca-id');
-                const pecaElement = this.drawingArea.querySelector(`#peca-${pecaId}`);
-                const rotacaoPeca = pecaElement ? parseFloat(pecaElement.getAttribute('data-rotate')) || 0 : 0;
+                // 🔥 CORREÇÃO CRÍTICA: Usar sistema de coordenadas LOCAL (relativo à peça)
+                // Em vez de transformar coordenadas, usar movimento relativo simples
                 
-                // 🔥 COMPENSAÇÃO: Transformar coordenadas do mouse para sistema local da peça
-                const coordenadasCompensadas = this.transformarCoordenadasParaLocal(event.dx, event.dy, rotacaoPeca);
-                
-                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + coordenadasCompensadas.dx;
-                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + coordenadasCompensadas.dy;
-                
+                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
                 const rotate = parseFloat(elemento.getAttribute('data-rotate')) || 0;
                 
-                elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
+                // 🔥 CORREÇÃO: Aplicar transformação mantendo o translate(-50%, -50%) para centralização
+                elemento.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px) rotate(${rotate}deg)`;
                 elemento.setAttribute('data-x', x);
                 elemento.setAttribute('data-y', y);
                 
-                console.log(`🔧 Movendo símbolo - Global: dx=${event.dx}, dy=${event.dy} | Local: dx=${coordenadasCompensadas.dx}, dy=${coordenadasCompensadas.dy} | Rotação: ${rotacaoPeca}°`);
+                console.log(`🔧 Movendo símbolo - dx=${event.dx}, dy=${event.dy} | Pos: x=${x}, y=${y}`);
             },
             end: () => {
                 elemento.style.zIndex = '';
@@ -3718,6 +3832,17 @@ configurarInteratividade(elemento) {
                 console.log('🔧 Movimento do símbolo concluído');
             }
         }
+    });
+
+    // 🔥 CORREÇÃO ADICIONAL: Resetar posição do símbolo com duplo clique
+    elemento.addEventListener('dblclick', (e) => {
+        e.stopPropagation();
+        elemento.setAttribute('data-x', 0);
+        elemento.setAttribute('data-y', 0);
+        const rotate = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+        elemento.style.transform = `translate(-50%, -50%) rotate(${rotate}deg)`;
+        this.salvarEstadoHistorico('Resetar Posição do Símbolo');
+        console.log('🔄 Posição do símbolo resetada');
     });
 }
 
