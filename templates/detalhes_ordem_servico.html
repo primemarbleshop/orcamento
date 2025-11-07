@@ -6,7 +6,7 @@
     <title>Ordem de Serviço - {{ codigo_orcamento }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
+     <style>
         .main-container { 
             width: 1400px; 
             margin: 0 auto; 
@@ -83,25 +83,28 @@
             box-sizing: border-box; 
             user-select: none; 
             touch-action: none; 
+            /* 🔥 CORREÇÃO: Permitir interação entre grupos */
+            pointer-events: auto;
+            z-index: 2; /* Acima do container */
         }
         
         .peca.selecionavel {
             cursor: pointer;
+            z-index: 3; /* Mais alto quando selecionável */
         }
         
         .dimensoes { 
-        position: absolute; 
-        font-size: 14px; /* Alterado de 12px para 14px */
-        
-        background: transparent; /* Alterado de white para transparent */
-        padding: 2px 4px; 
-        border: none; /* Alterado de 1px solid #ccc para none */
-        border-radius: 3px; 
-        z-index: 5; 
-        cursor: default; 
-        touch-action: none; 
-        user-select: none; 
-    }
+            position: absolute; 
+            font-size: 14px;
+            background: transparent;
+            padding: 2px 4px; 
+            border: none;
+            border-radius: 3px; 
+            z-index: 5; 
+            cursor: default; 
+            touch-action: none; 
+            user-select: none; 
+        }
         
         .dimensoes-top { 
             top: -35px; 
@@ -113,14 +116,36 @@
             right: -35px; 
             top: 50%; 
             transform: translateY(-50%); 
-            /*writing-mode: vertical-rl;*/ 
-            /*text-orientation: mixed;*/
+        }
+
+        /* 🔥 ESTILOS PARA MODO LAÇO */
+        .laco-overlay {
+            z-index: 999;
+            pointer-events: none;
+        }
+        
+        .laco-polygon {
+            fill: rgba(46, 89, 217, 0.1);
+            stroke: #2e59d9;
+            stroke-width: 2;
+            stroke-dasharray: 5, 5;
+            pointer-events: none;
+        }
+        
+        .grupo-temporario {
+            border: 2px dashed rgba(46, 89, 217, 0.8);
+            background: rgba(46, 89, 217, 0.05);
+            pointer-events: auto;
+            z-index: 1000;
+        }
+        
+        .elemento-em-grupo {
+            filter: brightness(0.95);
         }
         
         .quantidade-peca { 
             position: absolute; 
             font-size: 14px;
-            
             left: -35px; 
             top: 50%; 
             transform: translateY(-50%); 
@@ -191,7 +216,7 @@
             padding: 15px;
             background-color: #f8f9fa;
             border-radius: 8px;
-            }
+        }
         
         /* BOTÃO VOLTAR NO TOPO */
         .top-buttons-container { 
@@ -210,7 +235,7 @@
             padding: 10px 15px;
             border-radius: 5px;
             position: absolute;
-            z-index: 10;
+            z-index: 1; /* 🔥 ABAIXO das peças */
             cursor: default;
             background-color: rgba(255, 255, 255, 0.95);
             border: 2px solid #4e73df;
@@ -222,6 +247,7 @@
             white-space: nowrap;
             user-select: none;
             touch-action: none;
+            pointer-events: auto; /* Título ainda é clicável */
         }
 
         .titulo-grupo.selecionavel {
@@ -235,7 +261,7 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
 
-        /* REMOVER CARDS DE AGRUPAMENTO */
+        /* 🔥 CORREÇÃO: Container de grupos não bloqueia eventos */
         .grupo-material {
             all: unset;
             display: block;
@@ -248,6 +274,9 @@
             margin-top: 10px;
             display: block;
             min-height: 200px;
+            /* 🔥 CORREÇÃO: Permitir que peças sejam clicáveis mesmo fora da área do grupo */
+            pointer-events: none; /* Container não bloqueia eventos */
+            z-index: 1; /* Camada base */
         }
         
         .linha-peca { 
@@ -267,7 +296,6 @@
         .simbolo-linha { 
             position: absolute; 
             font-size: 18px; 
-            
             color: #000; 
             background-color: transparent !important; 
             cursor: default; 
@@ -311,54 +339,48 @@
             border-radius: 40%; 
         }
         
-       .texto-legenda { 
-    position: absolute; 
-    background: transparent; 
-    border: none; 
-    outline: none; 
-    resize: none; 
-    font-size: 16px; 
-    text-align: left; 
-    z-index: 10; 
-    cursor: default; 
-    min-width: 20px; 
-    min-height: 20px; 
-    
-    touch-action: none; 
-    padding: 2px; 
-    /* ADICIONE ESTAS LINHAS PARA REMOVER A BARRA DE ROLAGEM */
-    overflow: hidden; /* Remove a barra de rolagem */
-    -ms-overflow-style: none; /* Para Internet Explorer e Edge */
-    scrollbar-width: none; /* Para Firefox */
-} 
+        .texto-legenda { 
+            position: absolute; 
+            background: transparent; 
+            border: none; 
+            outline: none; 
+            resize: none; 
+            font-size: 16px; 
+            text-align: left; 
+            z-index: 10; 
+            cursor: default; 
+            min-width: 20px; 
+            min-height: 20px; 
+            touch-action: none; 
+            padding: 2px; 
+            overflow: hidden;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        } 
 
-/* Para Chrome, Safari e Opera */
-.texto-legenda::-webkit-scrollbar {
-    display: none;
-}
+        .texto-legenda::-webkit-scrollbar {
+            display: none;
+        }
 
-.texto-legenda:focus { 
-    background: white; 
-    border: 1px solid #ccc; 
-    border-radius: 4px; 
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
-    padding: 5px; 
-    /* MANTENHA O OVERFLOW HIDDEN NO FOCO TAMBÉM */
-    overflow: hidden;
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-} 
+        .texto-legenda:focus { 
+            background: white; 
+            border: 1px solid #ccc; 
+            border-radius: 4px; 
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+            padding: 5px; 
+            overflow: hidden;
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        } 
 
-/* Para Chrome, Safari e Opera no estado de foco */
-.texto-legenda:focus::-webkit-scrollbar {
-    display: none;
-}
+        .texto-legenda:focus::-webkit-scrollbar {
+            display: none;
+        }
         
         .texto-legenda.selecionavel {
             cursor: pointer;
         }
         
-               
         .legenda-simplificada { 
             position: absolute; 
             background: transparent; 
@@ -389,11 +411,12 @@
             font-weight: bold; 
         }
 
-        /* NOVOS ESTILOS PARA SELEÇÃO E CONTROLES */
+        /* 🔥 CORREÇÃO: Elemento selecionado deve ter prioridade máxima */
         .elemento-selecionado { 
             outline: 3px solid #4e73df !important; 
             outline-offset: 2px; 
             z-index: 1000 !important; 
+            pointer-events: auto !important;
         }
         
         .handles-container {
@@ -403,42 +426,38 @@
         }
         
         .handle {
-    position: absolute;
-    width: 12px;
-    height: 12px;
-    background-color: #4e73df;
-    border: 1px solid white;
-    border-radius: 50%;
-    pointer-events: all;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-    transform: translate(-50%, -50%);
-    z-index: 1002;
-    /* NOVO: Prevenir zoom e scroll no mobile */
-    touch-action: none;
-    -webkit-user-select: none;
-    user-select: none;
-}
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background-color: #4e73df;
+            border: 1px solid white;
+            border-radius: 50%;
+            pointer-events: all;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            transform: translate(-50%, -50%);
+            z-index: 1002;
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
 
-.handle-rotacao {
-    /* NOVO: Prevenir zoom e scroll no mobile */
-    touch-action: none;
-    -webkit-user-select: none;
-    user-select: none;
-}
+        .handle-rotacao {
+            touch-action: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
 
-/* NOVO: Prevenir zoom em botões no mobile */
-.action-buttons-container .btn {
-    touch-action: manipulation;
-    -webkit-user-select: none;
-    user-select: none;
-}
+        .action-buttons-container .btn {
+            touch-action: manipulation;
+            -webkit-user-select: none;
+            user-select: none;
+        }
 
-.drawing-area {
-    /* ... outros estilos ... */
-    touch-action: auto; /* PERMITE TUDO: pan, pinch-zoom, etc */
-    -webkit-user-select: none;
-    user-select: none;
-}
+        .drawing-area {
+            touch-action: auto;
+            -webkit-user-select: none;
+            user-select: none;
+        }
         
         .handle-rotacao {
             position: absolute;
@@ -486,7 +505,6 @@
             cursor: sw-resize;
         }
         
-        /* NOVO: Estilo para botão ativo de seleção */
         .btn-selecao-ativo {
             background-color: #2e59d9 !important;
             border-color: #2e59d9 !important;
@@ -494,60 +512,52 @@
             box-shadow: 0 0 0 0.2rem rgba(46, 89, 217, 0.25);
         }
         
-        /* Ajuste para os novos botões na barra de ação */
         .action-buttons-container {
             gap: 8px;
         }
 
-/* 🔥 NOVO: Botões fixos e melhor feedback visual */
-.action-buttons-container { 
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    background: linear-gradient(to bottom, #f8f9fa 90%, transparent);
-    backdrop-filter: blur(10px);
-    border-bottom: 2px solid #dee2e6;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
+        .action-buttons-container { 
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: linear-gradient(to bottom, #f8f9fa 90%, transparent);
+            backdrop-filter: blur(10px);
+            border-bottom: 2px solid #dee2e6;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
 
-/* 🔥 NOVO: Feedback visual melhorado */
-.btn-selecao-ativo {
-    box-shadow: 
-        0 0 0 0.2rem rgba(46, 89, 217, 0.25),
-        0 0 0 3px #ffffff,
-        0 0 0 5px #2e59d9 !important;
-    transform: translateY(-2px);
-}
+        .btn-selecao-ativo {
+            box-shadow: 
+                0 0 0 0.2rem rgba(46, 89, 217, 0.25),
+                0 0 0 3px #ffffff,
+                0 0 0 5px #2e59d9 !important;
+            transform: translateY(-2px);
+        }
 
-/* 🔥 NOVO: Estilo para botões de inserção ativos */
-.btn-modo-ativo {
-    background-color: #1cc88a !important;
-    border-color: #1cc88a !important;
-    color: white !important;
-    box-shadow: 
-        0 0 0 0.2rem rgba(28, 200, 138, 0.25),
-        0 0 0 3px #ffffff,
-        0 0 0 5px #1cc88a !important;
-    transform: translateY(-2px);
-}
+        .btn-modo-ativo {
+            background-color: #1cc88a !important;
+            border-color: #1cc88a !important;
+            color: white !important;
+            box-shadow: 
+                0 0 0 0.2rem rgba(28, 200, 138, 0.25),
+                0 0 0 3px #ffffff,
+                0 0 0 5px #1cc88a !important;
+            transform: translateY(-2px);
+        }
 
+        .cuba.linha-reta {
+            background-color: #333 !important;
+            border: none !important;
+            border-radius: 0;
+            transform-origin: center center;
+            height: 2px !important;
+            min-height: 2px !important;
+        }
 
-
-/* 🔥 NOVO: Estilo para linha reta */
-.cuba.linha-reta {
-    background-color: #333 !important;
-    border: none !important;
-    border-radius: 0;
-    transform-origin: center center;
-    height: 2px !important;
-    min-height: 2px !important;
-}
-
-/* 🔥 CORREÇÃO: Remover limite mínimo de redimensionamento */
-.cuba {
-    min-width: 0 !important;
-    min-height: 0 !important;
-}
+        .cuba {
+            min-width: 0 !important;
+            min-height: 0 !important;
+        }
 
         /* ======================== MOBILE - APENAS ÍCONES ======================== */
         @media (max-width: 1400px) {
@@ -584,29 +594,26 @@
           overflow-y: hidden;
         }
 
-        /* 🔥 CORREÇÃO: LARGURA FIXA PARA TODOS OS DISPOSITIVOS */
         .drawing-area {
           position: relative;
-          width: 1000px; /* LARGURA FIXA - ajuste este valor se necessário */
+          width: 1000px;
           min-height: 1200px;
           border: 2px solid #ccc;
           background-color: white;
-          margin: 20px auto; /* Centralizado */
+          margin: 20px auto;
           overflow: auto;
           cursor: default;
           touch-action: manipulation;
           box-sizing: border-box;
         }
 
-        /* 🔥 CORREÇÃO: Mobile com mesma largura fixa e scroll */
         @media (max-width: 768px) {
             .drawing-area {
-                width: 1000px !important; /* MESMA LARGURA FIXA */
+                width: 1000px !important;
                 margin: 20px auto !important;
-                overflow-x: auto !important; /* Scroll horizontal no mobile */
+                overflow-x: auto !important;
             }
             
-            /* Melhorar scroll no mobile */
             .drawing-container {
                 overflow-x: auto;
                 -webkit-overflow-scrolling: touch;
@@ -617,10 +624,9 @@
         .drawing-area .cuba,
         .drawing-area .texto-legenda,
         .drawing-area .legenda-simplificada {
-          position: absolute; /* Mantém posicionamento absoluto */
+          position: absolute;
         }
 
-        /* 🔥 CORREÇÃO: Melhorias específicas para mobile */
         @media (max-width: 768px) {
             .modal-controles {
                 max-width: 95vw !important;
@@ -647,14 +653,12 @@
                 font-size: 1rem !important;
             }
             
-            /* 🔥 CORREÇÃO: Container dos botões com scroll interno */
             .modal-controles > div:nth-child(4) {
                 max-height: 40vh !important;
                 overflow-y: auto !important;
                 padding-right: 5px;
             }
             
-            /* Scrollbar customizada para mobile */
             .modal-controles > div:nth-child(4)::-webkit-scrollbar {
                 width: 4px;
             }
@@ -665,11 +669,10 @@
             }
         }
 
-        /* 🔥 CORREÇÃO: Prevenir zoom em inputs no iOS */
         @media (max-width: 768px) {
             .modal-controles input, 
             .modal-controles textarea {
-                font-size: 16px !important; /* Previne zoom no iOS */
+                font-size: 16px !important;
                 padding: 8px 10px !important;
             }
         }
@@ -682,120 +685,112 @@
             height: 100%;
             background: rgba(0,0,0,0.5);
             z-index: 1999;
-            pointer-events: none; /* 🔥 Permite gestos de zoom e pan */
-            touch-action: none;   /* 🔥 Evita interferência com rolagem do modal */
+            pointer-events: none;
+            touch-action: none;
         }
 
         /* ======================== IMPRESSÃO ======================== */
         @media print {
-
-        @page {
-            size: A4 portrait;
-            margin: 5mm; /* REDUZIDO: era 10mm - dá mais espaço útil */
-        }
-        
-        /* CORREÇÃO: Fundo branco na impressão */
-        body {
-            background: white !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            font-size: 15px !important;
-            line-height: 1.2 !important;
-        }
-        
-        body * {
-            visibility: hidden;
-        }
-        
-        .main-container, .main-container * {
-            visibility: visible;
-        }
-        
-        .main-container {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100% !important;
-            max-width: 100% !important;
-            margin: 0 !important;
-            padding: 10px !important;
-            font-size: 18px !important;
-            background: white !important;
-            box-shadow: none !important;
-        }
-
-              /* 🔥 CORREÇÃO: Garantir que elementos não quebrem */
-    .peca, .cuba, .texto-legenda, .legenda-simplificada, 
-    .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-    }
+            @page {
+                size: A4 portrait;
+                margin: 5mm;
+            }
             
-        .top-buttons-container,
-        .action-buttons-container,
-        .mobile-buttons-container,
-        .zoom-controls,
-        .handles-container,
-        .handle,
-        .handle-rotacao,
-        .elemento-selecionado,
-        .modal-controles,
-        .modal-backdrop { 
-            display: none !important; 
-        }
+            body {
+                background: white !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                font-size: 15px !important;
+                line-height: 1.2 !important;
+            }
+            
+            body * {
+                visibility: hidden;
+            }
+            
+            .main-container, .main-container * {
+                visibility: visible;
+            }
+            
+            .main-container {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100% !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 10px !important;
+                font-size: 18px !important;
+                background: white !important;
+                box-shadow: none !important;
+            }
 
-        /* 🔥 CORREÇÃO: Impressão com MESMA LARGURA FIXA */
-        .drawing-area {
-            width: 1000px !important; /* MESMA LARGURA FIXA DA TELA */
-            height: auto !important;
-            min-height: auto !important;
-            max-height: none !important;
-            border: 1px solid #ccc !important;
-            background: white !important;
-            margin: 0 auto !important;
-            padding: 0px !important;
-            overflow: visible !important;
-            box-shadow: none !important;
-            position: relative !important;
-            page-break-inside: avoid;
-            /* REMOVIDO transform scale - impressão fiel à tela */
-        }
-        
-        .dimensoes-right {
-            right: -35px !important; /* força afastamento maior */
-        }
+            .peca, .cuba, .texto-legenda, .legenda-simplificada, 
+            .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            
+            .top-buttons-container,
+            .action-buttons-container,
+            .mobile-buttons-container,
+            .zoom-controls,
+            .handles-container,
+            .handle,
+            .handle-rotacao,
+            .elemento-selecionado,
+            .modal-controles,
+            .modal-backdrop { 
+                display: none !important; 
+            }
 
-        .peca, .cuba, .texto-legenda, .legenda-simplificada, 
-        .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
-            position: absolute !important;
-            page-break-inside: avoid;
-            break-inside: avoid;
-        }
+            .drawing-area {
+                width: 1000px !important;
+                height: auto !important;
+                min-height: auto !important;
+                max-height: none !important;
+                border: 1px solid #ccc !important;
+                background: white !important;
+                margin: 0 auto !important;
+                padding: 0px !important;
+                overflow: visible !important;
+                box-shadow: none !important;
+                position: relative !important;
+                page-break-inside: avoid;
+            }
+            
+            .dimensoes-right {
+                right: -35px !important;
+            }
 
-        .logo-empresa {
-            position: absolute !important;
-            right: 10px !important;
-            top: 10px !important;
-            max-width: 200px !important;
-            height: auto !important;
-        }
+            .peca, .cuba, .texto-legenda, .legenda-simplificada, 
+            .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
+                position: absolute !important;
+                page-break-inside: avoid;
+                break-inside: avoid;
+            }
 
-        /* Garantir que textos editáveis apareçam corretamente */
-        .texto-legenda, .legenda-simplificada {
-            background: transparent !important;
-        }
-        
-        /* 🔥 CORREÇÃO: Garantir que as peças sejam visíveis */
-        .peca {
-            border: 2px solid #000 !important;
-            background: white !important;
-        }
-        
-        /* 🔥 CORREÇÃO: Cuba visível na impressão */
-        .cuba {
-            border: 2px solid #333 !important;
-            background: white !important;
-        }
+            .logo-empresa {
+                position: absolute !important;
+                right: 10px !important;
+                top: 10px !important;
+                max-width: 200px !important;
+                height: auto !important;
+            }
+
+            .texto-legenda, .legenda-simplificada {
+                background: transparent !important;
+            }
+            
+            .peca {
+                border: 2px solid #000 !important;
+                background: white !important;
+            }
+            
+            .cuba {
+                border: 2px solid #333 !important;
+                background: white !important;
+            }
         }
     </style>
 </head>
@@ -842,6 +837,10 @@
         <div class="action-buttons-container">
             <button id="btnSelecionar" class="btn btn-custom-primary" title="Selecionar Objeto">
                 <i class="fas fa-mouse-pointer me-1"></i> <span class="btn-text">Selecionar</span>
+            </button>
+            <!-- 🔥 NOVO: Botão Laço -->
+            <button id="btnLaco" class="btn btn-custom-primary" title="Laço (Selecionar área)">
+                <i class="fas fa-draw-polygon me-1"></i> <span class="btn-text">Laço</span>
             </button>
             <button id="btnDesfazer" class="btn btn-custom-primary" title="Desfazer (Ctrl+Z)">
                 <i class="fas fa-undo me-1"></i> <span class="btn-text">Desfazer</span>
@@ -921,6 +920,14 @@
             this.pecasCriadas = false;
             this.elementoSelecionado = null;
             this.handles = [];
+ 	    this.modoLacoAtivo = false;
+    	    this.lacoPontos = [];
+    	    this.svgOverlay = null;
+    	    this.grupoTemporario = null;
+    	    this._lacoMouseDownHandler = null;
+    	    this._lacoMoveHandler = null;
+    	    this._lacoUpHandler = null;
+    	    this._lacoPolygonElement = null;
             
             this.ultimoElementoClicado = null;
             
@@ -1103,23 +1110,29 @@ configurarInteratividadeDimensao(dimensaoElement) {
             return grupos;
         }
 
-        inicializar() {
-            console.log('🚀 Inicializando Gerenciador de Desenho...');
-            
-            this.configurarEventos();
-            this.configurarEventosTouchInsercao();
-            
-            if (this.desenhoSalvo && this.desenhoSalvo !== 'None' && this.desenhoSalvo !== '') {
-                console.log('📁 Carregando desenho salvo...');
-                this.carregarDesenhoSalvo();
-            } else {
-                console.log('📝 Criando novo desenho...');
-                this.criarPecasBase();
-            }
-            
-            this.salvarEstadoHistorico('Estado Inicial');
-            console.log('✅ Gerenciador de Desenho inicializado com sucesso!');
-        }
+      inicializar() {
+    console.log('🚀 Inicializando Gerenciador de Desenho...');
+    
+    this.configurarEventos();
+    this.configurarEventosTouchInsercao();
+    
+    this.modoLacoAtivo = false;
+    this.lacoPontos = [];
+    
+    if (this.desenhoSalvo && this.desenhoSalvo !== 'None' && this.desenhoSalvo !== '') {
+        console.log('📁 Carregando desenho salvo...');
+        this.carregarDesenhoSalvo();
+    } else {
+        console.log('📝 Criando novo desenho...');
+        this.criarPecasBase();
+    }
+    
+    // 🔥 CORREÇÃO: Atualizar ordem de empilhamento
+    this.atualizarOrdemEmpilhamento();
+    
+    this.salvarEstadoHistorico('Estado Inicial');
+    console.log('✅ Gerenciador de Desenho inicializado com sucesso!');
+}
 
        excluirElemento() {
     const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
@@ -1194,17 +1207,37 @@ configurarInteratividadeDimensao(dimensaoElement) {
             console.log(`💾 Histórico salvo: ${descricao} (${this.historico.length} estados, índice: ${this.indiceHistorico})`);
         }
 
-        obterEstadoAtual() {
-            const elementosTexto = this.drawingArea.querySelectorAll('.texto-legenda');
-            elementosTexto.forEach(texto => {
-                texto.setAttribute('data-valor', texto.value);
-            });
-            
-            return {
-                drawingAreaHTML: this.drawingArea.innerHTML,
-                gruposPecas: JSON.parse(JSON.stringify(this.gruposPecas))
-            };
-        }
+      obterEstadoAtual() {
+    // Atualiza textos
+    const elementosTexto = this.drawingArea.querySelectorAll('.texto-legenda');
+    elementosTexto.forEach(texto => {
+        texto.setAttribute('data-valor', texto.value);
+    });
+
+    // Clona área
+    const clone = this.drawingArea.cloneNode(true);
+
+    // 🔹 Remove APENAS elementos temporários do laço
+    // (não remove linhas/polígonos desenhados pelo usuário)
+    const temporarios = clone.querySelectorAll('#laco-selecao, .laco-temporario, .linha-temporaria, .preview-laco');
+    temporarios.forEach(el => el.remove());
+
+    // 🔹 Remove grupos temporários e overlays
+    const grupoTemp = clone.querySelector('.grupo-temporario');
+    if (grupoTemp) grupoTemp.remove();
+
+    // 🔹 Remove classes de seleção temporárias
+    const selecoes = clone.querySelectorAll('.selecionado, .laco-ativo, .modo-laco');
+    selecoes.forEach(s => s.classList.remove('selecionado', 'laco-ativo', 'modo-laco'));
+
+    // Retorna estado limpo
+    return {
+        drawingAreaHTML: clone.innerHTML,
+        gruposPecas: JSON.parse(JSON.stringify(this.gruposPecas))
+    };
+}
+
+
 
         salvarEstadoImediato(descricao) {
             this.salvarEstadoHistorico(descricao, true);
@@ -1322,23 +1355,35 @@ configurarInteratividadeDimensao(dimensaoElement) {
             this.elementoSelecionado = null;
         }
 
-        desselecionarElemento() {
-            this.removerTodosOsHandles();
-            
-            if (this.elementoSelecionado) {
-                this.removerInteratividade(this.elementoSelecionado);
-                
-                if (!this.modoSelecaoAtivo) {
-                    this.reabilitarLinhasPecas();
-                }
-                
-                this.elementoSelecionado = null;
-            }
-            
-            this.atualizarEstadoBotoes();
-            
-            this.ultimoElementoClicado = null;
+      // MODIFICAR o método desselecionarElemento para NÃO remover o grupo temporário automaticamente
+desselecionarElemento() {
+    this.removerTodosOsHandles();
+    
+    if (this.elementoSelecionado) {
+        this.removerInteratividade(this.elementoSelecionado);
+        
+        // 🔥 CORREÇÃO: Restaurar z-index normal
+        if (this.elementoSelecionado.classList.contains('peca')) {
+            this.elementoSelecionado.style.zIndex = '2';
+        } else if (this.elementoSelecionado.classList.contains('titulo-grupo')) {
+            this.elementoSelecionado.style.zIndex = '1';
+        } else {
+            this.elementoSelecionado.style.zIndex = '';
         }
+        
+        this.elementoSelecionado.classList.remove('elemento-selecionado');
+        
+        if (!this.modoSelecaoAtivo) {
+            this.reabilitarLinhasPecas();
+        }
+        
+        this.elementoSelecionado = null;
+    }
+    
+    this.atualizarEstadoBotoes();
+    this.ultimoElementoClicado = null;
+}
+
 
         desfazer() {
             if (this.indiceHistorico > 0) {
@@ -1458,41 +1503,42 @@ configurarInteratividadeDimensao(dimensaoElement) {
             }, 500);
         }
 
-        configurarEventos() {
-            console.log('🔧 Configurando eventos...');
-            
-            const botoes = [
-                'btnSelecionar', 'btnDesfazer', 'btnRefazer', 'btnAdicionarTexto',
-                'btnAdicionarCuba', 'btnLegendaSimplificada', 'btnDuplicar', 
-                'btnExcluir', 'btnSalvar', 'btnImprimir'
-            ];
+       configurarEventos() {
+    console.log('🔧 Configurando eventos...');
+    
+    const botoes = [
+        'btnSelecionar', 'btnLaco', 'btnDesfazer', 'btnRefazer', 'btnAdicionarTexto',
+        'btnAdicionarCuba', 'btnLegendaSimplificada', 'btnDuplicar', 
+        'btnExcluir', 'btnSalvar', 'btnImprimir'
+    ];
 
-            const prevenirZoomDuploToque = (e) => {
-                if (e.touches && e.touches.length > 1) {
-                    e.preventDefault();
-                    e.stopPropagation();
+    const prevenirZoomDuploToque = (e) => {
+        if (e.touches && e.touches.length > 1) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+    };
+
+    botoes.forEach(botaoId => {
+        const botao = document.getElementById(botaoId);
+        if (botao) {
+            botao.addEventListener('click', (e) => {
+                console.log(`🖱️ Botão ${botaoId} clicado`);
+                
+                switch(botaoId) {
+                    case 'btnSelecionar': this.toggleModoSelecao(); break;
+                    case 'btnLaco': this.toggleModoLaco(); break; // ✅ CORREÇÃO AQUI
+                    case 'btnAdicionarTexto': this.ativarModoInsercao('texto'); break;
+                    case 'btnAdicionarCuba': this.ativarModoInsercao('cuba'); break;
+                    case 'btnLegendaSimplificada': this.ativarModoInsercao('legenda'); break;
+                    case 'btnDuplicar': this.duplicarElemento(); break;
+                    case 'btnExcluir': this.excluirElemento(); break;
+                    case 'btnSalvar': this.salvarDesenho(); break;
+                    case 'btnImprimir': this.imprimirDesenho(); break;
+                    case 'btnDesfazer': this.desfazer(); break;
+                    case 'btnRefazer': this.refazer(); break;
                 }
-            };
-
-            botoes.forEach(botaoId => {
-                const botao = document.getElementById(botaoId);
-                if (botao) {
-                    botao.addEventListener('click', (e) => {
-                        console.log(`🖱️ Botão ${botaoId} clicado`);
-                        
-                        switch(botaoId) {
-                            case 'btnSelecionar': this.toggleModoSelecao(); break;
-                            case 'btnAdicionarTexto': this.ativarModoInsercao('texto'); break;
-                            case 'btnAdicionarCuba': this.ativarModoInsercao('cuba'); break;
-                            case 'btnLegendaSimplificada': this.ativarModoInsercao('legenda'); break;
-                            case 'btnDuplicar': this.duplicarElemento(); break;
-                            case 'btnExcluir': this.excluirElemento(); break;
-                            case 'btnSalvar': this.salvarDesenho(); break;
-                            case 'btnImprimir': this.imprimirDesenho(); break;
-                            case 'btnDesfazer': this.desfazer(); break;
-                            case 'btnRefazer': this.refazer(); break;
-                        }
-                    });
+            });
 
                     botao.addEventListener('touchstart', prevenirZoomDuploToque, { passive: false });
                     botao.addEventListener('touchmove', prevenirZoomDuploToque, { passive: false });
@@ -1508,22 +1554,34 @@ configurarInteratividadeDimensao(dimensaoElement) {
             });
             
             document.addEventListener('click', (e) => {
-                if (!e.target.closest('#drawingArea') && 
-                    !e.target.closest('.handle') &&
-                    !e.target.closest('.action-buttons-container') &&
-                    !e.target.closest('.top-buttons-container')) {
-                    this.desselecionarElemento();
-                }
-            });
+    const isDrawingArea = e.target.closest('#drawingArea');
+    const isHandle = e.target.closest('.handle');
+    const isActionButton = e.target.closest('.action-buttons-container');
+    const isTopButton = e.target.closest('.top-buttons-container');
+    
+    if (!isDrawingArea && !isHandle && !isActionButton && !isTopButton) {
+        // 🔥 CORREÇÃO: Limpar grupo temporário ao clicar fora da área de desenho
+        if (gerenciadorDesenho.grupoTemporario) {
+            gerenciadorDesenho.limparGrupoTemporario();
+        }
+        gerenciadorDesenho.desselecionarElemento();
+    }
+});
 
-            document.addEventListener('touchstart', (e) => {
-                if (!e.target.closest('#drawingArea') && 
-                    !e.target.closest('.handle') &&
-                    !e.target.closest('.action-buttons-container') &&
-                    !e.target.closest('.top-buttons-container')) {
-                    this.desselecionarElemento();
-                }
-            });
+document.addEventListener('touchstart', (e) => {
+    const isDrawingArea = e.target.closest('#drawingArea');
+    const isHandle = e.target.closest('.handle');
+    const isActionButton = e.target.closest('.action-buttons-container');
+    const isTopButton = e.target.closest('.top-buttons-container');
+    
+    if (!isDrawingArea && !isHandle && !isActionButton && !isTopButton) {
+        // 🔥 CORREÇÃO: Limpar grupo temporário ao tocar fora da área de desenho
+        if (gerenciadorDesenho.grupoTemporario) {
+            gerenciadorDesenho.limparGrupoTemporario();
+        }
+        gerenciadorDesenho.desselecionarElemento();
+    }
+});
 
             document.addEventListener('keydown', (e) => {
                 if (e.ctrlKey || e.metaKey) {
@@ -1546,19 +1604,33 @@ configurarInteratividadeDimensao(dimensaoElement) {
             console.log('✅ Eventos configurados com sucesso!');
         }
 
-        configurarEventosAreaDesenho() {
-            this.drawingArea.addEventListener('click', (e) => {
-                if (e.target === this.drawingArea && this.modoSelecaoAtivo) {
-                    this.desselecionarElemento();
+       configurarEventosAreaDesenho() {
+    this.drawingArea.addEventListener('click', (e) => {
+        // Se clicou diretamente na área de desenho (não em um elemento)
+        if (e.target === this.drawingArea) {
+            if (this.modoLacoAtivo) {
+                console.log('❌ Laço cancelado - clique na área vazia');
+                this.desativarModoLaco();
+            } else if (this.modoSelecaoAtivo) {
+                if (this.grupoTemporario) {
+                    console.log('🗑️ Clicou na área vazia - removendo grupo temporário');
+                    this.limparGrupoTemporario();
                 }
-            });
-
-            this.drawingArea.addEventListener('touchstart', (e) => {
-                if (e.target === this.drawingArea && this.modoSelecaoAtivo) {
-                    this.desselecionarElemento();
-                }
-            });
+                this.desselecionarElemento();
+            }
         }
+    });
+
+    this.drawingArea.addEventListener('touchstart', (e) => {
+        if (e.target === this.drawingArea && this.modoSelecaoAtivo) {
+            if (this.grupoTemporario) {
+                console.log('🗑️ Tocou na área vazia - removendo grupo temporário');
+                this.limparGrupoTemporario();
+            }
+            this.desselecionarElemento();
+        }
+    });
+}
 
         toggleModoSelecao() {
             if (this.modoSelecaoAtivo) {
@@ -1568,6 +1640,506 @@ configurarInteratividadeDimensao(dimensaoElement) {
             }
         }
 
+        // =============================================
+        // MÉTODOS DO MODO LAÇO (BOUNDING BOX INTERSECTION)
+        // =============================================
+
+        toggleModoLaco() {
+            if (this.modoLacoAtivo) {
+                this.desativarModoLaco();
+            } else {
+                this.ativarModoLaco();
+            }
+        }
+
+        ativarModoLaco() {
+            console.log('🔵 Ativando modo laço...');
+            this.modoLacoAtivo = true;
+            this.modoSelecaoAtivo = false;
+            this.desselecionarElemento();
+            this.drawingArea.style.cursor = 'crosshair';
+            
+            const btnLaco = document.getElementById('btnLaco');
+            if (btnLaco) btnLaco.classList.add('btn-modo-ativo');
+            
+            this.lacoPontos = [];
+            
+            // Criar overlay SVG para desenho do laço
+            if (!this.svgOverlay) {
+                const svgns = "http://www.w3.org/2000/svg";
+                const svg = document.createElementNS(svgns, 'svg');
+                svg.setAttribute('class', 'laco-overlay');
+                svg.style.position = 'absolute';
+                svg.style.left = '0';
+                svg.style.top = '0';
+                svg.style.width = '100%';
+                svg.style.height = '100%';
+                svg.style.pointerEvents = 'none';
+                svg.style.zIndex = '999';
+                this.drawingArea.appendChild(svg);
+                this.svgOverlay = svg;
+            }
+            
+            // Configurar event listeners
+            this._lacoMouseDownHandler = (e) => this._iniciarLaco(e);
+            this._lacoMoveHandler = (e) => this._atualizarLaco(e);
+            this._lacoUpHandler = (e) => this._finalizarLaco(e);
+
+            this.drawingArea.addEventListener('mousedown', this._lacoMouseDownHandler);
+            this.drawingArea.addEventListener('mousemove', this._lacoMoveHandler);
+            this.drawingArea.addEventListener('mouseup', this._lacoUpHandler);
+            
+            // Suporte touch
+            this.drawingArea.addEventListener('touchstart', this._lacoMouseDownHandler, { passive: false });
+            this.drawingArea.addEventListener('touchmove', this._lacoMoveHandler, { passive: false });
+            this.drawingArea.addEventListener('touchend', this._lacoUpHandler, { passive: false });
+            
+            console.log('✅ Modo laço ativado');
+        }
+
+       desativarModoLaco() {
+    console.log('🔵 Desativando modo laço...');
+    this.modoLacoAtivo = false;
+    this.drawingArea.style.cursor = 'default';
+    
+    const btnLaco = document.getElementById('btnLaco');
+    if (btnLaco) btnLaco.classList.remove('btn-modo-ativo');
+    
+    // Usar limpeza completa
+    this.limparModoLacoCompletamente();
+    
+    console.log('✅ Modo laço desativado');
+}
+
+restaurarEstadoHistorico(estado) {
+    // 🔥 CORREÇÃO: Limpar modo laço completamente ao restaurar estado
+    this.limparModoLacoCompletamente();
+    this.limparGrupoTemporario();
+    this.removerTodosOsHandles();
+    
+    this.drawingArea.innerHTML = estado.drawingAreaHTML;
+    this.gruposPecas = JSON.parse(JSON.stringify(estado.gruposPecas));
+    
+    this.restaurarElementosTexto();
+    this.reconfigurarElementosAposHistorico();
+}
+
+
+
+        _iniciarLaco(e) {
+            if (!this.modoLacoAtivo) return;
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const coords = this._obterCoordenadasLaco(e);
+            this.lacoPontos = [coords];
+            
+            // Criar elemento visual do laço
+            if (this.svgOverlay) {
+                this.svgOverlay.innerHTML = '';
+                const svgns = "http://www.w3.org/2000/svg";
+                const poly = document.createElementNS(svgns, 'polygon');
+                poly.setAttribute('class', 'laco-polygon');
+                poly.setAttribute('fill', 'rgba(46, 89, 217, 0.1)');
+                poly.setAttribute('stroke', '#2e59d9');
+                poly.setAttribute('stroke-width', '2');
+                poly.setAttribute('stroke-dasharray', '5,5');
+                poly.setAttribute('points', `${coords.x},${coords.y}`);
+                this.svgOverlay.appendChild(poly);
+                this._lacoPolygonElement = poly;
+            }
+            
+            console.log('🎯 Iniciando laço...');
+        }
+
+        _atualizarLaco(e) {
+            if (!this.modoLacoAtivo || !this._lacoPolygonElement) return;
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const coords = this._obterCoordenadasLaco(e);
+            
+            // Só adicionar ponto se mover o suficiente (performance)
+            const ultimoPonto = this.lacoPontos[this.lacoPontos.length - 1];
+            if (!ultimoPonto || Math.hypot(coords.x - ultimoPonto.x, coords.y - ultimoPonto.y) > 5) {
+                this.lacoPontos.push(coords);
+                
+                // Atualizar polígono visual
+                const pointsStr = this.lacoPontos.map(p => `${p.x},${p.y}`).join(' ');
+                this._lacoPolygonElement.setAttribute('points', pointsStr);
+            }
+        }
+
+        _finalizarLaco(e) {
+    if (!this.modoLacoAtivo || !this._lacoPolygonElement) return;
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Fechar o polígono (conectar último ponto com o primeiro)
+    if (this.lacoPontos.length > 2) {
+        this.lacoPontos.push(this.lacoPontos[0]);
+        const pointsStr = this.lacoPontos.map(p => `${p.x},${p.y}`).join(' ');
+        this._lacoPolygonElement.setAttribute('points', pointsStr);
+        
+        // Buscar elementos que intersectam com o polígono
+        const elementosSelecionados = this._buscarElementosPorPoligono(this.lacoPontos);
+        
+        if (elementosSelecionados.length > 0) {
+            console.log(`🎯 ${elementosSelecionados.length} elementos selecionados`);
+            this._criarGrupoTemporario(elementosSelecionados);
+            
+            
+        } else {
+            console.log('⚠️ Nenhum elemento encontrado na área selecionada');
+        }
+    }
+    
+    this.desativarModoLaco();
+}
+
+        _obterCoordenadasLaco(e) {
+            const rect = this.drawingArea.getBoundingClientRect();
+            let clientX, clientY;
+            
+            if (e.touches && e.touches[0]) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            
+            return {
+                x: clientX - rect.left + this.drawingArea.scrollLeft,
+                y: clientY - rect.top + this.drawingArea.scrollTop
+            };
+        }
+
+        _removerOverlayLaco() {
+            if (this.svgOverlay) {
+                this.svgOverlay.innerHTML = '';
+            }
+        }
+
+        // 🔥 MÉTODO MELHORADO: Busca elementos por INTERSEÇÃO DE BOUNDING BOX
+        _buscarElementosPorPoligono(polygon) {
+            if (!polygon || polygon.length < 3) return [];
+            
+            const elementosCandidatos = this.drawingArea.querySelectorAll(
+                '.peca, .cuba, .texto-legenda, .legenda-simplificada, .titulo-grupo, .simbolo-linha'
+            );
+            
+            const elementosSelecionados = [];
+            
+            elementosCandidatos.forEach(elemento => {
+                if (this._elementoIntersectaPoligono(elemento, polygon)) {
+                    elementosSelecionados.push(elemento);
+                }
+            });
+            
+            return elementosSelecionados;
+        }
+
+        // 🔥 MÉTODO NOVO: Verifica interseção entre elemento e polígono (BOUNDING BOX)
+        _elementoIntersectaPoligono(elemento, polygon) {
+            const bbox = this._obterBoundingBoxAbsoluta(elemento);
+            
+            // 1. Verificar se algum vértice da bounding box está dentro do polígono
+            const vertices = [
+                { x: bbox.left, y: bbox.top },
+                { x: bbox.right, y: bbox.top },
+                { x: bbox.right, y: bbox.bottom },
+                { x: bbox.left, y: bbox.bottom }
+            ];
+            
+            for (const vertice of vertices) {
+                if (this._pontoDentroPoligono(vertice, polygon)) {
+                    return true;
+                }
+            }
+            
+            // 2. Verificar se alguma aresta do polígono intersecta a bounding box
+            for (let i = 0; i < polygon.length - 1; i++) {
+                const p1 = polygon[i];
+                const p2 = polygon[i + 1];
+                
+                if (this._segmentoIntersectaRetangulo(p1, p2, bbox)) {
+                    return true;
+                }
+            }
+            
+            // 3. Verificar se o polígono está completamente dentro da bounding box
+            // (caso o usuário desenhe um laço pequeno dentro de um elemento grande)
+            const centroPoligono = this._calcularCentroPoligono(polygon);
+            if (this._pontoDentroRetangulo(centroPoligono, bbox)) {
+                return true;
+            }
+            
+            return false;
+        }
+
+        _obterBoundingBoxAbsoluta(elemento) {
+            const rect = elemento.getBoundingClientRect();
+            const drawingRect = this.drawingArea.getBoundingClientRect();
+            
+            return {
+                left: rect.left - drawingRect.left + this.drawingArea.scrollLeft,
+                top: rect.top - drawingRect.top + this.drawingArea.scrollTop,
+                right: rect.right - drawingRect.left + this.drawingArea.scrollLeft,
+                bottom: rect.bottom - drawingRect.top + this.drawingArea.scrollTop,
+                width: rect.width,
+                height: rect.height
+            };
+        }
+
+        _pontoDentroPoligono(ponto, polygon) {
+            let dentro = false;
+            for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
+                const xi = polygon[i].x, yi = polygon[i].y;
+                const xj = polygon[j].x, yj = polygon[j].y;
+                
+                const intersect = ((yi > ponto.y) !== (yj > ponto.y)) &&
+                    (ponto.x < (xj - xi) * (ponto.y - yi) / (yj - yi + 0.0000001) + xi);
+                
+                if (intersect) dentro = !dentro;
+            }
+            return dentro;
+        }
+
+        _segmentoIntersectaRetangulo(p1, p2, rect) {
+            // Verificar se o segmento intersecta qualquer um dos lados do retângulo
+            const lados = [
+                [{ x: rect.left, y: rect.top }, { x: rect.right, y: rect.top }],    // Topo
+                [{ x: rect.right, y: rect.top }, { x: rect.right, y: rect.bottom }], // Direita
+                [{ x: rect.right, y: rect.bottom }, { x: rect.left, y: rect.bottom }], // Base
+                [{ x: rect.left, y: rect.bottom }, { x: rect.left, y: rect.top }]    // Esquerda
+            ];
+            
+            for (const lado of lados) {
+                if (this._segmentosSeIntersectam(p1, p2, lado[0], lado[1])) {
+                    return true;
+                }
+            }
+            
+            return false;
+        }
+
+        _segmentosSeIntersectam(a, b, c, d) {
+            function orientacao(p, q, r) {
+                const val = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
+                if (val === 0) return 0;  // Colinear
+                return (val > 0) ? 1 : 2; // Horário ou anti-horário
+            }
+            
+            function noSegmento(p, q, r) {
+                return (q.x <= Math.max(p.x, r.x) && q.x >= Math.min(p.x, r.x) &&
+                        q.y <= Math.max(p.y, r.y) && q.y >= Math.min(p.y, r.y));
+            }
+            
+            const o1 = orientacao(a, b, c);
+            const o2 = orientacao(a, b, d);
+            const o3 = orientacao(c, d, a);
+            const o4 = orientacao(c, d, b);
+            
+            // Caso geral
+            if (o1 !== o2 && o3 !== o4) return true;
+            
+            // Casos especiais (colineares)
+            if (o1 === 0 && noSegmento(a, c, b)) return true;
+            if (o2 === 0 && noSegmento(a, d, b)) return true;
+            if (o3 === 0 && noSegmento(c, a, d)) return true;
+            if (o4 === 0 && noSegmento(c, b, d)) return true;
+            
+            return false;
+        }
+
+        _pontoDentroRetangulo(ponto, rect) {
+            return ponto.x >= rect.left && ponto.x <= rect.right &&
+                   ponto.y >= rect.top && ponto.y <= rect.bottom;
+        }
+
+        _calcularCentroPoligono(polygon) {
+            let somaX = 0, somaY = 0;
+            for (const ponto of polygon) {
+                somaX += ponto.x;
+                somaY += ponto.y;
+            }
+            return {
+                x: somaX / polygon.length,
+                y: somaY / polygon.length
+            };
+        }
+
+       _criarGrupoTemporario(elementos) {
+    if (!elementos || elementos.length === 0) return;
+
+    // 🚫 NÃO SALVAR HISTÓRICO AQUI — grupo temporário não faz parte do histórico
+    console.log(`🔹 Criando grupo temporário (sem salvar no histórico) com ${elementos.length} elementos`);
+    
+    // Calcular bounding box do grupo
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+
+    
+    elementos.forEach(elemento => {
+        const bbox = this._obterBoundingBoxAbsoluta(elemento);
+        minX = Math.min(minX, bbox.left);
+        minY = Math.min(minY, bbox.top);
+        maxX = Math.max(maxX, bbox.right);
+        maxY = Math.max(maxY, bbox.bottom);
+    });
+    
+    const padding = 10;
+    const grupoLeft = minX - padding;
+    const grupoTop = minY - padding;
+    const grupoWidth = (maxX - minX) + (2 * padding);
+    const grupoHeight = (maxY - minY) + (2 * padding);
+    
+    // Criar container do grupo
+    const grupo = document.createElement('div');
+    grupo.className = 'grupo-temporario';
+    grupo.style.position = 'absolute';
+    grupo.style.left = `${grupoLeft}px`;
+    grupo.style.top = `${grupoTop}px`;
+    grupo.style.width = `${grupoWidth}px`;
+    grupo.style.height = `${grupoHeight}px`;
+    grupo.style.zIndex = '1000';
+    grupo.style.pointerEvents = 'auto';
+    
+    // Armazenar referência aos elementos originais
+    grupo.setAttribute('data-elementos', JSON.stringify(
+        elementos.map(el => ({
+            elemento: el,
+            left: parseFloat(el.style.left) || 0,
+            top: parseFloat(el.style.top) || 0,
+            transform: el.style.transform || ''
+        }))
+    ));
+    
+    this.drawingArea.appendChild(grupo);
+    this.grupoTemporario = grupo;
+    
+    // Selecionar o grupo
+    this.desselecionarElemento();
+    this.elementoSelecionado = grupo;
+    grupo.classList.add('elemento-selecionado');
+    
+    // 🔥 CORREÇÃO: NÃO CRIAR HANDLES PARA GRUPO TEMPORÁRIO
+    // this.criarHandles(grupo); // REMOVIDO
+    
+    // Configurar interatividade do grupo
+    this._configurarInteratividadeGrupo(grupo, elementos);
+    
+    this.atualizarEstadoBotoes();
+    
+    
+    console.log('✅ Grupo temporário criado com sucesso (sem handles)');
+}
+
+
+       _configurarInteratividadeGrupo(grupo, elementos) {
+    // Mover grupo
+    interact(grupo).draggable({
+        listeners: {
+            start: () => {
+                grupo.style.zIndex = '1001';
+                // 🔹 Armazena posição inicial para saber se houve movimento
+                grupo.setAttribute('data-x-inicial', grupo.getAttribute('data-x') || 0);
+                grupo.setAttribute('data-y-inicial', grupo.getAttribute('data-y') || 0);
+            },
+            move: (event) => {
+                const x = (parseFloat(grupo.getAttribute('data-x')) || 0) + event.dx;
+                const y = (parseFloat(grupo.getAttribute('data-y')) || 0) + event.dy;
+                const rotate = grupo.getAttribute('data-rotate') || 0;
+                
+                grupo.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
+                grupo.setAttribute('data-x', x);
+                grupo.setAttribute('data-y', y);
+                
+                // 🔹 Mover elementos filhos relativamente
+                elementos.forEach(elemento => {
+                    const currentX = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                    const currentY = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                    const elementRotate = elemento.getAttribute('data-rotate') || 0;
+                    
+                    elemento.style.transform = `translate(${currentX}px, ${currentY}px) rotate(${elementRotate}deg)`;
+                    elemento.setAttribute('data-x', currentX);
+                    elemento.setAttribute('data-y', currentY);
+                });
+            },
+            end: () => {
+                grupo.style.zIndex = '1000';
+                
+                // ✅ Salva histórico APENAS se realmente houve movimento
+                const xInicial = parseFloat(grupo.getAttribute('data-x-inicial')) || 0;
+                const yInicial = parseFloat(grupo.getAttribute('data-y-inicial')) || 0;
+                const xAtual = parseFloat(grupo.getAttribute('data-x')) || 0;
+                const yAtual = parseFloat(grupo.getAttribute('data-y')) || 0;
+                
+                const movimentoSignificativo = Math.hypot(xAtual - xInicial, yAtual - yInicial) > 1;
+                
+                if (movimentoSignificativo) {
+                    console.log('💾 Salvando histórico: Mover Grupo');
+                    this.salvarEstadoHistorico('Mover Grupo');
+                } else {
+                    console.log('⚪ Nenhum movimento significativo — não salva histórico');
+                }
+            }
+        }
+    });
+}
+
+
+   
+
+limparModoLacoCompletamente() {
+    // Remover overlay SVG
+    if (this.svgOverlay && this.svgOverlay.parentNode) {
+        this.svgOverlay.parentNode.removeChild(this.svgOverlay);
+        this.svgOverlay = null;
+    }
+    
+    // Limpar polígono
+    this._lacoPolygonElement = null;
+    this.lacoPontos = [];
+    
+    // Remover event listeners se ainda existirem
+    if (this._lacoMouseDownHandler) {
+        this.drawingArea.removeEventListener('mousedown', this._lacoMouseDownHandler);
+    }
+    if (this._lacoMoveHandler) {
+        this.drawingArea.removeEventListener('mousemove', this._lacoMoveHandler);
+    }
+    if (this._lacoUpHandler) {
+        this.drawingArea.removeEventListener('mouseup', this._lacoUpHandler);
+    }
+    
+    // Limpar referências
+    this._lacoMouseDownHandler = null;
+    this._lacoMoveHandler = null;
+    this._lacoUpHandler = null;
+}
+
+limparGrupoTemporario() {
+    if (this.grupoTemporario && this.grupoTemporario.parentNode) {
+        // 🔥 Remover a classe dos elementos que estavam no grupo
+        const elementosData = JSON.parse(this.grupoTemporario.getAttribute('data-elementos') || '[]');
+        elementosData.forEach(data => {
+            if (data.elemento && data.elemento.classList) {
+                data.elemento.classList.remove('elemento-em-grupo');
+            }
+        });
+        
+        this.grupoTemporario.remove();
+        this.grupoTemporario = null;
+        console.log('🗑️ Grupo temporário removido');
+        
+        // 🔥 Atualizar estado dos botões
+        this.atualizarEstadoBotoes();
+    }
+}
         ativarModoSelecao() {
             this.modoSelecaoAtivo = true;
             this.desselecionarElemento();
@@ -1596,37 +2168,56 @@ configurarInteratividadeDimensao(dimensaoElement) {
             console.log('🔧 Modo seleção desativado - linhas reabilitadas');
         }
 
-        tornarElementosSelecionaveis(selecionavel) {
-            const elementos = this.drawingArea.querySelectorAll(
-                '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca'
-            );
-            
-            elementos.forEach(elemento => {
-                if (selecionavel) {
-                    elemento.classList.add('selecionavel');
-                    if (elemento.classList.contains('simbolo-linha')) {
-                        this.configurarInteratividadeSimbolo(elemento);
-                    } else if (elemento.classList.contains('legenda-simplificada')) {
-                        this.configurarInteratividadeLegenda(elemento);
-                    }
-                } else {
-                    elemento.classList.remove('selecionavel');
-                    this.removerInteratividade(elemento);
-                }
-            });
+       tornarElementosSelecionaveis(selecionavel) {
+    const elementos = this.drawingArea.querySelectorAll(
+        '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca, .grupo-temporario' // 🔥 ADICIONADO
+    );
+    
+    elementos.forEach(elemento => {
+        if (selecionavel) {
+            elemento.classList.add('selecionavel');
+            if (elemento.classList.contains('simbolo-linha')) {
+                this.configurarInteratividadeSimbolo(elemento);
+            } else if (elemento.classList.contains('legenda-simplificada')) {
+                this.configurarInteratividadeLegenda(elemento);
+            } else if (elemento.classList.contains('grupo-temporario')) {
+                // 🔥 Configurar interatividade específica para grupo temporário
+                this._configurarInteratividadeGrupo(elemento, []);
+            }
+        } else {
+            elemento.classList.remove('selecionavel');
+            this.removerInteratividade(elemento);
         }
+    });
+}
 
         manipularCliqueSelecao(e) {
-            if (e.target.classList.contains('handle')) return;
-            
-            const elemento = e.target.closest('.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca');
-            
-            if (elemento && elemento.classList.contains('selecionavel')) {
-                this.selecionarElemento(elemento, e);
-            } else {
-                this.desselecionarElemento();
-            }
+    if (e.target.classList.contains('handle')) return;
+    
+    // 🔥 CORREÇÃO: Buscar por qualquer elemento clicável, incluindo peças
+    const elemento = e.target.closest('.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca, .grupo-temporario');
+    
+    // 🔥 CORREÇÃO: Se clicou em área vazia, desselecionar
+    if (!elemento) {
+        if (this.grupoTemporario) {
+            console.log('🗑️ Clicou fora - removendo grupo temporário');
+            this.limparGrupoTemporario();
         }
+        this.desselecionarElemento();
+        return;
+    }
+    
+    // 🔥 CORREÇÃO: Verificar se elemento é selecionável
+    if (elemento.classList.contains('selecionavel') || 
+        elemento.classList.contains('peca') || 
+        elemento.classList.contains('grupo-temporario')) {
+        this.selecionarElemento(elemento, e);
+    } else {
+        this.desselecionarElemento();
+    }
+}
+    
+   
 
         obterPosicaoComScroll(elemento) {
             const rect = elemento.getBoundingClientRect();
@@ -1640,23 +2231,40 @@ configurarInteratividadeDimensao(dimensaoElement) {
             };
         }
 
+// 🔥 ADICIONE ESTE MÉTODO À CLASSE GerenciadorDesenho
+atualizarOrdemEmpilhamento() {
+    // Garantir que peças fiquem acima dos containers de grupo
+    const todasPecas = this.drawingArea.querySelectorAll('.peca');
+    const todosGrupos = this.drawingArea.querySelectorAll('.area-pecas');
+    
+    todosGrupos.forEach((grupo, index) => {
+        grupo.style.zIndex = 1;
+    });
+    
+    todasPecas.forEach((peca, index) => {
+        peca.style.zIndex = 2;
+    });
+}
+
+
         selecionarElemento(elemento, event) {
     this.desselecionarElemento();
     
     this.elementoSelecionado = elemento;
     elemento.classList.add('elemento-selecionado');
     
+    // 🔥 CORREÇÃO: Trazer elemento selecionado para frente
+    elemento.style.zIndex = '1000';
+    
     console.log('🔧 Selecionando elemento:', elemento.className, elemento.classList.contains('simbolo-linha'));
     
     this.desabilitarLinhasPecas();
     
-    // ✅ CORREÇÃO: Permitir handles para todos os elementos, exceto símbolos de linha
-    if (!elemento.classList.contains('simbolo-linha')) {
+    if (!elemento.classList.contains('simbolo-linha') && !elemento.classList.contains('grupo-temporario')) {
         this.criarHandles(elemento);
     }
     
     this.configurarInteratividade(elemento);
-    
     this.atualizarEstadoBotoes();
 }
 
@@ -3036,7 +3644,8 @@ configurarInteratividadeLegenda(elemento) {
 configurarInteratividade(elemento) {
     this.removerInteratividade(elemento);
     
-    if (elemento.classList.contains('elemento-selecionado')) {
+    // 🔥 CORREÇÃO: Não configurar interatividade drag para grupo temporário
+    if (elemento.classList.contains('elemento-selecionado') && !elemento.classList.contains('grupo-temporario')) {
         
         if (elemento.classList.contains('simbolo-linha')) {
             this.configurarInteratividadeSimbolo(elemento);
@@ -3072,6 +3681,7 @@ configurarInteratividade(elemento) {
         }
     }
 }
+
 
       configurarInteratividadeSimbolo(elemento) {
     console.log('🔧 Configurando interatividade para símbolo:', elemento);
