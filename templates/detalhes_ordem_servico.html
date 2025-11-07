@@ -2296,32 +2296,39 @@ limparGrupoTemporario() {
     }
 }
         ativarModoSelecao() {
-            this.modoSelecaoAtivo = true;
-            this.desselecionarElemento();
-            this.drawingArea.style.cursor = 'pointer';
-            
-            const btnSelecionar = document.getElementById('btnSelecionar');
-            btnSelecionar.classList.add('btn-selecao-ativo');
-            
-            this.tornarElementosSelecionaveis(true);
-            this.desabilitarLinhasPecas();
-            
-            console.log('🔧 Modo seleção ativado - linhas desabilitadas');
-        }
+    this.modoSelecaoAtivo = true;
+    this.desselecionarElemento();
+    this.drawingArea.style.cursor = 'pointer';
+    
+    const btnSelecionar = document.getElementById('btnSelecionar');
+    btnSelecionar.classList.add('btn-selecao-ativo');
+    
+    this.tornarElementosSelecionaveis(true);
+    this.desabilitarLinhasPecas();
+    
+    // 🔥 ADICIONADO: Atualizar interatividade dos textos
+    this.atualizarInteratividadeTextos();
+    
+    console.log('🔧 Modo seleção ativado - linhas desabilitadas');
+}
+
 
         desativarModoSelecao() {
-            this.modoSelecaoAtivo = false;
-            this.desselecionarElemento();
-            this.drawingArea.style.cursor = 'default';
-            
-            const btnSelecionar = document.getElementById('btnSelecionar');
-            btnSelecionar.classList.remove('btn-selecao-ativo');
-            
-            this.tornarElementosSelecionaveis(false);
-            this.reabilitarLinhasPecas();
-            
-            console.log('🔧 Modo seleção desativado - linhas reabilitadas');
-        }
+    this.modoSelecaoAtivo = false;
+    this.desselecionarElemento();
+    this.drawingArea.style.cursor = 'default';
+    
+    const btnSelecionar = document.getElementById('btnSelecionar');
+    btnSelecionar.classList.remove('btn-selecao-ativo');
+    
+    this.tornarElementosSelecionaveis(false);
+    this.reabilitarLinhasPecas();
+    
+    // 🔥 ADICIONADO: Atualizar interatividade dos textos
+    this.atualizarInteratividadeTextos();
+    
+    console.log('🔧 Modo seleção desativado - linhas reabilitadas');
+}
 
        tornarElementosSelecionaveis(selecionavel) {
     const elementos = this.drawingArea.querySelectorAll(
@@ -3313,85 +3320,113 @@ atualizarOrdemEmpilhamento() {
             }
         }
 
-        criarTexto(x, y, textoInicial = "") {
-            const textoElement = document.createElement('textarea');
-            textoElement.className = 'texto-legenda';
-            textoElement.style.left = `${x}px`;
-            textoElement.style.top = `${y}px`;
-            textoElement.value = textoInicial;
-            
-            textoElement.setAttribute('data-valor', textoInicial);
-            textoElement.rows = 1;
-            textoElement.placeholder = "Digite seu texto";
-          
-            // ✅ CORREÇÃO: Alinhar texto à esquerda
-            textoElement.style.textAlign = 'left';
-            textoElement.style.justifyContent = 'flex-start';
-            textoElement.style.alignItems = 'flex-start';
-            
-            if (this.modoSelecaoAtivo) {
-                textoElement.classList.add('selecionavel');
-            }
-            
-            const grupo = this.encontrarGrupoNaPosicao(x, y);
-            if (grupo) {
-                grupo.appendChild(textoElement);
-            } else {
-                this.drawingArea.appendChild(textoElement);
-            }
-            
-            this.salvarEstadoImediato('Adicionar Caixa de Texto');
-            
-            textoElement.focus();
-            
-            textoElement.addEventListener('input', () => {
-                textoElement.style.height = 'auto';
-                textoElement.style.height = (textoElement.scrollHeight) + 'px';
-                textoElement.setAttribute('data-valor', textoElement.value);
-            });
-            
-            textoElement.addEventListener('blur', () => {
-                textoElement.setAttribute('data-valor', textoElement.value);
-                
-                if (textoElement.value.trim() === '') {
-                    textoElement.remove();
-                    this.salvarEstadoImediato('Remover Texto Vazio');
-                } else {
-                    this.salvarEstadoImediato('Editar Texto: ' + textoElement.value.substring(0, 20));
-                }
-            });
-
-            this.configurarInteratividadeTexto(textoElement);
-            
-            return textoElement;
+       criarTexto(x, y, textoInicial = "") {
+    const textoElement = document.createElement('textarea');
+    textoElement.className = 'texto-legenda';
+    textoElement.style.left = `${x}px`;
+    textoElement.style.top = `${y}px`;
+    textoElement.value = textoInicial;
+    
+    textoElement.setAttribute('data-valor', textoInicial);
+    textoElement.rows = 1;
+    textoElement.placeholder = "Digite seu texto";
+  
+    // ✅ CORREÇÃO: Alinhar texto à esquerda
+    textoElement.style.textAlign = 'left';
+    textoElement.style.justifyContent = 'flex-start';
+    textoElement.style.alignItems = 'flex-start';
+    
+    // 🔥 MODIFICADO: Só adicionar classe selecionavel se modo seleção estiver ativo
+    if (this.modoSelecaoAtivo) {
+        textoElement.classList.add('selecionavel');
+    }
+    
+    const grupo = this.encontrarGrupoNaPosicao(x, y);
+    if (grupo) {
+        grupo.appendChild(textoElement);
+    } else {
+        this.drawingArea.appendChild(textoElement);
+    }
+    
+    this.salvarEstadoImediato('Adicionar Caixa de Texto');
+    
+    textoElement.focus();
+    
+    textoElement.addEventListener('input', () => {
+        textoElement.style.height = 'auto';
+        textoElement.style.height = (textoElement.scrollHeight) + 'px';
+        textoElement.setAttribute('data-valor', textoElement.value);
+    });
+    
+    textoElement.addEventListener('blur', () => {
+        textoElement.setAttribute('data-valor', textoElement.value);
+        
+        if (textoElement.value.trim() === '') {
+            textoElement.remove();
+            this.salvarEstadoImediato('Remover Texto Vazio');
+        } else {
+            this.salvarEstadoImediato('Editar Texto: ' + textoElement.value.substring(0, 20));
         }
+    });
 
-        configurarInteratividadeTexto(elemento) {
-            let originalBackground = elemento.style.backgroundColor;
-            
-            interact(elemento).draggable({
-                listeners: {
-                    start: () => {
-                        elemento.style.zIndex = '1000';
-                        elemento.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
-                    },
-                    move: (event) => {
-    let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-    let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-    const rotacao = parseFloat(elemento.getAttribute('data-rotacao')) || 0;
+    // 🔥 MODIFICADO: Só configurar interatividade se modo seleção estiver ativo
+    if (this.modoSelecaoAtivo) {
+        this.configurarInteratividadeTexto(textoElement);
+    }
+    
+    return textoElement;
+}
 
-    elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotacao}deg)`;
-    elemento.setAttribute('data-x', x);
-    elemento.setAttribute('data-y', y);
-},
-                    end: () => {
-                        elemento.style.zIndex = '';
-                        elemento.style.backgroundColor = originalBackground;
-                        this.salvarEstadoHistorico('Mover Texto');
+       configurarInteratividadeTexto(elemento) {
+    // Remover interação existente primeiro
+    this.removerInteratividade(elemento);
+    
+    // 🔥 CORREÇÃO: Só configurar arrasto se modo seleção estiver ativo
+    if (this.modoSelecaoAtivo) {
+        let originalBackground = elemento.style.backgroundColor;
+        
+        interact(elemento).draggable({
+            allowFrom: '.texto-legenda',
+            ignoreFrom: 'input, textarea, button, select',
+            modifiers: [
+                interact.modifiers.restrictRect({
+                    restriction: 'parent',
+                    endOnly: true
+                })
+            ],
+            preventDefault: 'always',
+
+            listeners: {
+                start: (event) => {
+                    if (event.type.includes('touch')) {
+                        event.preventDefault();
                     }
+
+                    elemento.style.zIndex = '1000';
+                    elemento.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+                },
+                move: (event) => {
+                    if (event.type.includes('touch')) {
+                        event.preventDefault();
+                    }
+
+                    let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                    let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                    const rotacao = parseFloat(elemento.getAttribute('data-rotacao')) || 0;
+
+                    elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotacao}deg)`;
+                    elemento.setAttribute('data-x', x);
+                    elemento.setAttribute('data-y', y);
+                },
+                end: () => {
+                    elemento.style.zIndex = '';
+                    elemento.style.backgroundColor = originalBackground;
+                    this.salvarEstadoHistorico('Mover Texto');
                 }
-            });
-        }
+            }
+        });
+    }
+}
 
         criarLegendaSimplificada(x, y, simbolo = "C", descricao = "Acabamento") {
             const legendaElement = document.createElement('div');
