@@ -587,6 +587,33 @@
             }
         }
 
+.btn-desabilitado-mobile {
+    pointer-events: none !important;
+    touch-action: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+}
+
+/* Garantir que os botões desabilitados no container de ações tenham o estilo correto */
+.action-buttons-container .btn:disabled,
+.action-buttons-container .btn-desabilitado-mobile {
+    background-color: #6c757d !important;
+    border-color: #6c757d !important;
+    pointer-events: none !important;
+    touch-action: none !important;
+}
+
+/* 🔥 PREVENIR EVENTOS DE TOQUE EM BOTÕES DESABILITADOS */
+.action-buttons-container .btn:disabled:active,
+.action-buttons-container .btn-desabilitado-mobile:active,
+.action-buttons-container .btn:disabled:focus,
+.action-buttons-container .btn-desabilitado-mobile:focus {
+    transform: none !important;
+    box-shadow: none !important;
+}
+
         /* ======================== AJUSTE DE LAYOUT RESPONSIVO ======================== */
         .drawing-container {
           width: 100%;
@@ -1601,6 +1628,27 @@ document.addEventListener('touchstart', (e) => {
             
             this.configurarEventosAreaDesenho();
             
+
+ const prevenirCliqueBotaoDesabilitado = (e) => {
+        const botao = e.target.closest('.btn');
+        if (botao && (botao.disabled || botao.classList.contains('btn-desabilitado-mobile'))) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            console.log('🚫 Botão desabilitado - ação prevenida');
+            return false;
+        }
+    };
+
+    // Aplicar a todos os botões de ação
+    const botoesAcao = document.querySelectorAll('.action-buttons-container .btn');
+    botoesAcao.forEach(botao => {
+        botao.addEventListener('click', prevenirCliqueBotaoDesabilitado, true);
+        botao.addEventListener('touchstart', prevenirCliqueBotaoDesabilitado, true);
+        botao.addEventListener('touchend', prevenirCliqueBotaoDesabilitado, true);
+    });
+
+
             console.log('✅ Eventos configurados com sucesso!');
         }
 
@@ -2882,16 +2930,23 @@ atualizarOrdemEmpilhamento() {
     // Desabilitar botões se for grupo temporário ou modo laço ativo
     const desabilitarBotoes = isGrupoTemporario || isModoLacoAtivo;
     
-    document.getElementById('btnDuplicar').disabled = !temElementoSelecionado || desabilitarBotoes;
-    document.getElementById('btnExcluir').disabled = !temElementoSelecionado || desabilitarBotoes;
+    const btnDuplicar = document.getElementById('btnDuplicar');
+    const btnExcluir = document.getElementById('btnExcluir');
     
-    // 🔥 CORREÇÃO: Atualizar tooltips para indicar o motivo do desabilitado
+    btnDuplicar.disabled = !temElementoSelecionado || desabilitarBotoes;
+    btnExcluir.disabled = !temElementoSelecionado || desabilitarBotoes;
+    
+    // 🔥 CORREÇÃO ADICIONAL: Adicionar/remover classes CSS para mobile
     if (desabilitarBotoes) {
-        document.getElementById('btnDuplicar').title = 'Ação não disponível para grupo temporário';
-        document.getElementById('btnExcluir').title = 'Ação não disponível para grupo temporário';
+        btnDuplicar.classList.add('btn-desabilitado-mobile');
+        btnExcluir.classList.add('btn-desabilitado-mobile');
+        btnDuplicar.title = 'Ação não disponível para grupo temporário';
+        btnExcluir.title = 'Ação não disponível para grupo temporário';
     } else {
-        document.getElementById('btnDuplicar').title = 'Duplicar Elemento Selecionado';
-        document.getElementById('btnExcluir').title = 'Excluir Elemento Selecionado';
+        btnDuplicar.classList.remove('btn-desabilitado-mobile');
+        btnExcluir.classList.remove('btn-desabilitado-mobile');
+        btnDuplicar.title = 'Duplicar Elemento Selecionado';
+        btnExcluir.title = 'Excluir Elemento Selecionado';
     }
 }
 
