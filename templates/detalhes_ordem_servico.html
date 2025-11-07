@@ -169,6 +169,68 @@
             border-color: #2e59d9; 
             color: white; 
         }
+
+         .modo-borracha .drawing-area {
+            cursor: none;
+        }
+
+        /* 🔥 ESTILOS PARA BOTÕES ATIVOS */
+        .btn-modo-ativo {
+            background-color: #4e73df !important;
+            border-color: #4e73df !important;
+            color: white !important;
+            box-shadow: 
+                0 0 0 0.2rem rgba(78, 115, 223, 0.25),
+                0 0 0 3px #ffffff,
+                0 0 0 5px #4e73df !important;
+            transform: translateY(-2px);
+        }
+
+        .btn-selecao-ativo {
+            background-color: #ffc107 !important;
+            border-color: #ffc107 !important;
+            color: #000 !important;
+            box-shadow: 
+                0 0 0 0.2rem rgba(255, 193, 7, 0.25),
+                0 0 0 3px #ffffff,
+                0 0 0 5px #ffc107 !important;
+            transform: translateY(-2px);
+        }
+        
+        .btn-borracha-ativo {
+            background-color: #ffc107 !important;
+            border-color: #ffc107 !important;
+            color: #000 !important;
+            box-shadow: 
+                 0 0 0 0.2rem rgba(255, 193, 7, 0.25),
+                0 0 0 3px #ffffff,
+                0 0 0 5px #ffc107 !important;
+
+            transform: translateY(-2px);
+        }             
+        
+        .cursor-borracha {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background-color: rgba(255, 255, 255, 0.7);
+            border: 2px solid #333;
+            border-radius: 3px;
+            pointer-events: none;
+            z-index: 10000;
+            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        }
+        
+       .pintura-borracha {
+    position: absolute;
+    background-color: white;
+    border: none; /* CORREÇÃO: Remove a borda visível */
+    pointer-events: none;
+    z-index: 999;
+}
+
+        
+        
         
         .btn-custom-success { 
             background-color: #1cc88a; 
@@ -295,7 +357,7 @@
         
         .simbolo-linha { 
             position: absolute; 
-            font-size: 18px; 
+            font-size: 16px; 
             color: #000; 
             background-color: transparent !important; 
             cursor: default; 
@@ -505,13 +567,6 @@
             cursor: sw-resize;
         }
         
-        .btn-selecao-ativo {
-            background-color: #2e59d9 !important;
-            border-color: #2e59d9 !important;
-            color: white !important;
-            box-shadow: 0 0 0 0.2rem rgba(46, 89, 217, 0.25);
-        }
-        
         .action-buttons-container {
             gap: 8px;
         }
@@ -526,37 +581,31 @@
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
 
-        .btn-selecao-ativo {
-            box-shadow: 
-                0 0 0 0.2rem rgba(46, 89, 217, 0.25),
-                0 0 0 3px #ffffff,
-                0 0 0 5px #2e59d9 !important;
-            transform: translateY(-2px);
+        .btn-desabilitado-mobile {
+            pointer-events: none !important;
+            touch-action: none !important;
+            -webkit-user-select: none !important;
+            user-select: none !important;
+            opacity: 0.5 !important;
+            cursor: not-allowed !important;
         }
 
-        .btn-modo-ativo {
-            background-color: #1cc88a !important;
-            border-color: #1cc88a !important;
-            color: white !important;
-            box-shadow: 
-                0 0 0 0.2rem rgba(28, 200, 138, 0.25),
-                0 0 0 3px #ffffff,
-                0 0 0 5px #1cc88a !important;
-            transform: translateY(-2px);
+        /* Garantir que os botões desabilitados no container de ações tenham o estilo correto */
+        .action-buttons-container .btn:disabled,
+        .action-buttons-container .btn-desabilitado-mobile {
+            background-color: #FFFFFF !important;
+            border-color: #6c757d !important;
+            pointer-events: none !important;
+            touch-action: none !important;
         }
 
-        .cuba.linha-reta {
-            background-color: #333 !important;
-            border: none !important;
-            border-radius: 0;
-            transform-origin: center center;
-            height: 2px !important;
-            min-height: 2px !important;
-        }
-
-        .cuba {
-            min-width: 0 !important;
-            min-height: 0 !important;
+        /* 🔥 PREVENIR EVENTOS DE TOQUE EM BOTÕES DESABILITADOS */
+        .action-buttons-container .btn:disabled:active,
+        .action-buttons-container .btn-desabilitado-mobile:active,
+        .action-buttons-container .btn:disabled:focus,
+        .action-buttons-container .btn-desabilitado-mobile:focus {
+            transform: none !important;
+            box-shadow: none !important;
         }
 
         /* ======================== MOBILE - APENAS ÍCONES ======================== */
@@ -587,34 +636,6 @@
             }
         }
 
-.btn-desabilitado-mobile {
-    pointer-events: none !important;
-    touch-action: none !important;
-    -webkit-user-select: none !important;
-    user-select: none !important;
-    opacity: 0.5 !important;
-    cursor: not-allowed !important;
-}
-
-/* Garantir que os botões desabilitados no container de ações tenham o estilo correto */
-.action-buttons-container .btn:disabled,
-.action-buttons-container .btn-desabilitado-mobile {
-    background-color: #FFFFFF !important;
-    border-color: #6c757d !important;
-    pointer-events: none !important;
-    touch-action: none !important;
-}
-
-/* 🔥 PREVENIR EVENTOS DE TOQUE EM BOTÕES DESABILITADOS */
-.action-buttons-container .btn:disabled:active,
-.action-buttons-container .btn-desabilitado-mobile:active,
-.action-buttons-container .btn:disabled:focus,
-.action-buttons-container .btn-desabilitado-mobile:focus {
-    transform: none !important;
-    box-shadow: none !important;
-}
-
-        /* ======================== AJUSTE DE LAYOUT RESPONSIVO ======================== */
         .drawing-container {
           width: 100%;
           overflow-x: auto;
@@ -819,6 +840,8 @@
                 background: white !important;
             }
         }
+
+       
     </style>
 </head>
 <body>
@@ -860,27 +883,31 @@
             <strong>Data:</strong> {{ data_salvo.strftime('%d/%m/%Y') }}
         </p>
 
-        <!-- MODIFICADO: Container para botões de ação com os novos botões -->
+        <!-- Container para botões de ação com sistema de modos exclusivos -->
         <div class="action-buttons-container">
+<button id="btnDesfazer" class="btn btn-custom-primary" title="Desfazer (Ctrl+Z)">
+                <i class="fas fa-undo me-1"></i> <span class="btn-text"></span>
+            </button>
+            <button id="btnRefazer" class="btn btn-custom-primary" title="Refazer (Ctrl+Y)">
+                <i class="fas fa-redo me-1"></i> <span class="btn-text"></span>
+            </button>
+
             <button id="btnSelecionar" class="btn btn-custom-primary" title="Selecionar Objeto">
                 <i class="fas fa-mouse-pointer me-1"></i> <span class="btn-text">Selecionar</span>
             </button>
-            <!-- 🔥 NOVO: Botão Laço -->
+            <button id="btnBorracha" class="btn btn-custom-primary" title="Borracha (Pintar de branco)">
+                <i class="fas fa-eraser me-1"></i> <span class="btn-text">Borracha</span>
+            </button>
             <button id="btnLaco" class="btn btn-custom-primary" title="Laço (Selecionar área)">
                 <i class="fas fa-draw-polygon me-1"></i> <span class="btn-text">Laço</span>
             </button>
-            <button id="btnDesfazer" class="btn btn-custom-primary" title="Desfazer (Ctrl+Z)">
-                <i class="fas fa-undo me-1"></i> <span class="btn-text">Desfazer</span>
-            </button>
-            <button id="btnRefazer" class="btn btn-custom-primary" title="Refazer (Ctrl+Y)">
-                <i class="fas fa-redo me-1"></i> <span class="btn-text">Refazer</span>
-            </button>
+            
             <button id="btnAdicionarTexto" class="btn btn-custom-primary">
                 <i class="fas fa-font me-1"></i> <span class="btn-text">Texto</span>
             </button>
             <button id="btnAdicionarCuba" class="btn btn-custom-primary">
-    <i class="fas fa-pencil-ruler me-1"></i> <span class="btn-text">Desenhos</span>
-</button>
+                <i class="fas fa-pencil-ruler me-1"></i> <span class="btn-text">Desenhos</span>
+            </button>
             <button id="btnLegendaSimplificada" class="btn btn-custom-primary">
                 <i class="fas fa-tag me-1"></i> <span class="btn-text">Legenda</span>
             </button>
@@ -912,7 +939,7 @@
 
     <script>
     // =============================================
-    // CONFIGURAÇÕES E CONSTANTES - MODIFICADO
+    // CONFIGURAÇÕES E CONSTANTES
     // =============================================
     const CONFIG = {
         ESCALA_PADRAO: 1.5, 
@@ -944,17 +971,24 @@
             this.gruposPecas = this.carregarDadosPecas();
             this.modoInsercaoAtivo = null;
             this.modoSelecaoAtivo = false;
+            this.modoBorrachaAtivo = false;
             this.pecasCriadas = false;
             this.elementoSelecionado = null;
             this.handles = [];
- 	    this.modoLacoAtivo = false;
-    	    this.lacoPontos = [];
-    	    this.svgOverlay = null;
-    	    this.grupoTemporario = null;
-    	    this._lacoMouseDownHandler = null;
-    	    this._lacoMoveHandler = null;
-    	    this._lacoUpHandler = null;
-    	    this._lacoPolygonElement = null;
+            this.modoLacoAtivo = false;
+            this.lacoPontos = [];
+            this.svgOverlay = null;
+            this.grupoTemporario = null;
+            this._lacoMouseDownHandler = null;
+            this._lacoMoveHandler = null;
+            this._lacoUpHandler = null;
+            this._lacoPolygonElement = null;
+            
+            // Variáveis para o modo borracha
+            this.borrachaCursor = null;
+            this.borrachaPressionada = false;
+            this.ultimaPosicaoBorracha = null;
+            this.tamanhoBorracha = 10;
             
             this.ultimoElementoClicado = null;
             
@@ -980,139 +1014,152 @@
             this.inicializar();
         }
 
- transformarCoordenadasParaLocal(dx, dy, rotacaoGraus) {
-        // Converter graus para radianos
-        const radianos = -rotacaoGraus * (Math.PI / 180); // Negativo porque CSS rotate é sentido horário
-        
-        // Aplicar matriz de rotação inversa
-        const dxLocal = dx * Math.cos(radianos) - dy * Math.sin(radianos);
-        const dyLocal = dx * Math.sin(radianos) + dy * Math.cos(radianos);
-        
-        return { dx: dxLocal, dy: dyLocal };
-    }
-
- atualizarPosicaoSimbolos(elemento) {
-        const pecaId = elemento.getAttribute('data-peca-id');
-        if (!pecaId) return;
-
-        const simbolos = elemento.querySelectorAll(`.simbolo-linha[data-peca-id="${pecaId}"]`);
-        
-        const pecaWidth = parseFloat(elemento.style.width);
-        const pecaHeight = parseFloat(elemento.style.height);
-        
-        simbolos.forEach(simbolo => {
-            const lado = simbolo.getAttribute('data-lado');
-            const rotacaoSimbolo = simbolo.getAttribute('data-rotacao') || 0;
+        // 🔥 NOVO MÉTODO: Desativar todos os modos
+        desativarTodosOsModos() {
+            console.log('🔧 Desativando todos os modos...');
             
-            let left, top;
-            const centerX = pecaWidth / 2;
-            const centerY = pecaHeight / 2;
+            // Desativar modos funcionais
+            if (this.modoSelecaoAtivo) this.desativarModoSelecao();
+            if (this.modoBorrachaAtivo) this.desativarModoBorracha();
+            if (this.modoLacoAtivo) this.desativarModoLaco();
             
-            switch(lado) {
-                case 'top':
-                    left = centerX;
-                    top = 0;
-                    break;
-                case 'bottom':
-                    left = centerX;
-                    top = pecaHeight;
-                    break;
-                case 'left':
-                    left = 0;
-                    top = centerY;
-                    break;
-                case 'right':
-                    left = pecaWidth;
-                    top = centerY;
-                    break;
-            }
+            // Desativar modo de inserção
+            this.modoInsercaoAtivo = null;
+            this.drawingArea.style.cursor = 'default';
             
-            simbolo.style.left = `${left}px`;
-            simbolo.style.top = `${top}px`;
-            simbolo.style.transform = `translate(-50%, -50%) rotate(${rotacaoSimbolo}deg)`;
-            simbolo.style.transformOrigin = 'center center';
-        });
-    }
+            // Remover classes visuais de todos os botões de modo
+            const botoesModo = [
+                'btnSelecionar', 'btnBorracha', 'btnLaco', 
+                'btnAdicionarTexto', 'btnAdicionarCuba', 'btnLegendaSimplificada'
+            ];
+            
+            botoesModo.forEach(botaoId => {
+                const botao = document.getElementById(botaoId);
+                if (botao) {
+                    botao.classList.remove('btn-selecao-ativo', 'btn-borracha-ativo', 'btn-modo-ativo');
+                }
+            });
+            
+            console.log('✅ Todos os modos desativados');
+        }
 
-    // ✅ ADICIONE O MÉTODO atualizarPosicaoDimensoes AQUI:
-    atualizarPosicaoDimensoes(pecaElement) {
-        const pecaId = pecaElement.getAttribute('data-peca-id');
-        
-        // Buscar elementos de dimensão dentro da peça
-        const dimensoesTop = pecaElement.querySelector('.dimensoes-top');
-        const dimensoesRight = pecaElement.querySelector('.dimensoes-right');
-        
-        if (!dimensoesTop || !dimensoesRight) return;
-        
-        const pecaWidth = parseFloat(pecaElement.style.width);
-        const pecaHeight = parseFloat(pecaElement.style.height);
-        
-        // 🔥 OBTER OFFSETS (se existirem)
-        const offsetTopX = parseFloat(dimensoesTop.getAttribute('data-x')) || 0;
-        const offsetTopY = parseFloat(dimensoesTop.getAttribute('data-y')) || 0;
-        const offsetRightX = parseFloat(dimensoesRight.getAttribute('data-x')) || 0;
-        const offsetRightY = parseFloat(dimensoesRight.getAttribute('data-y')) || 0;
-        
-        // Posicionar dimensão superior COM OFFSETS
-        dimensoesTop.style.left = `${(pecaWidth / 2) + offsetTopX}px`;
-        dimensoesTop.style.top = `${-35 + offsetTopY}px`;
-        dimensoesTop.style.transform = 'translateX(-50%)';
-        
-        // Posicionar dimensão direita COM OFFSETS  
-        dimensoesRight.style.right = `${-35 + offsetRightX}px`;
-        dimensoesRight.style.top = `${(pecaHeight / 2) + offsetRightY}px`;
-        dimensoesRight.style.transform = 'translateY(-50%)';
-        
-        console.log(`🔧 Dimensões atualizadas - Top: ${dimensoesTop.style.left}, ${dimensoesTop.style.top} | Right: ${dimensoesRight.style.right}, ${dimensoesRight.style.top}`);
-    }
+        transformarCoordenadasParaLocal(dx, dy, rotacaoGraus) {
+            const radianos = -rotacaoGraus * (Math.PI / 180);
+            const dxLocal = dx * Math.cos(radianos) - dy * Math.sin(radianos);
+            const dyLocal = dx * Math.sin(radianos) + dy * Math.cos(radianos);
+            
+            return { dx: dxLocal, dy: dyLocal };
+        }
 
-// 🔥 ADICIONE ESTE MÉTODO NOVO NA CLASSE
-configurarInteratividadeDimensao(dimensaoElement) {
-    console.log('🔧 Configurando interatividade para dimensão:', dimensaoElement);
-    
-    interact(dimensaoElement).draggable({
-        modifiers: [
-            interact.modifiers.restrict({
-                restriction: 'parent',
-                endOnly: false
-            })
-        ],
-        listeners: {
-            start: (event) => {
-                dimensaoElement.style.zIndex = '1000';
-                console.log('🔧 Iniciando movimento da dimensão');
-            },
-            move: (event) => {
-                // 🔥 OBTER ROTAÇÃO DA PEÇA PAI
-                const pecaId = dimensaoElement.getAttribute('data-peca-id');
-                const pecaElement = this.drawingArea.querySelector(`#peca-${pecaId}`);
-                const rotacaoPeca = pecaElement ? parseFloat(pecaElement.getAttribute('data-rotate')) || 0 : 0;
+        atualizarPosicaoSimbolos(elemento) {
+            const pecaId = elemento.getAttribute('data-peca-id');
+            if (!pecaId) return;
+
+            const simbolos = elemento.querySelectorAll(`.simbolo-linha[data-peca-id="${pecaId}"]`);
+            
+            const pecaWidth = parseFloat(elemento.style.width);
+            const pecaHeight = parseFloat(elemento.style.height);
+            
+            simbolos.forEach(simbolo => {
+                const lado = simbolo.getAttribute('data-lado');
+                const rotacaoSimbolo = simbolo.getAttribute('data-rotacao') || 0;
                 
-                // 🔥 COMPENSAÇÃO: Transformar coordenadas do mouse para sistema local da peça
-                const coordenadasCompensadas = this.transformarCoordenadasParaLocal(event.dx, event.dy, rotacaoPeca);
+                let left, top;
+                const centerX = pecaWidth / 2;
+                const centerY = pecaHeight / 2;
                 
-                let x = (parseFloat(dimensaoElement.getAttribute('data-x')) || 0) + coordenadasCompensadas.dx;
-                let y = (parseFloat(dimensaoElement.getAttribute('data-y')) || 0) + coordenadasCompensadas.dy;
-                
-                // Para dimensões, não temos rotação própria, só a compensação do movimento
-                dimensaoElement.setAttribute('data-x', x);
-                dimensaoElement.setAttribute('data-y', y);
-                
-                // Atualizar posição visual
-                if (pecaElement) {
-                    this.atualizarPosicaoDimensoes(pecaElement);
+                switch(lado) {
+                    case 'top':
+                        left = centerX;
+                        top = 0;
+                        break;
+                    case 'bottom':
+                        left = centerX;
+                        top = pecaHeight;
+                        break;
+                    case 'left':
+                        left = 0;
+                        top = centerY;
+                        break;
+                    case 'right':
+                        left = pecaWidth;
+                        top = centerY;
+                        break;
                 }
                 
-                console.log(`🔧 Movendo dimensão - Global: dx=${event.dx}, dy=${event.dy} | Local: dx=${coordenadasCompensadas.dx}, dy=${coordenadasCompensadas.dy} | Rotação: ${rotacaoPeca}°`);
-            },
-            end: () => {
-                dimensaoElement.style.zIndex = '';
-                this.salvarEstadoHistorico('Mover Dimensão');
-                console.log('✅ Movimento da dimensão concluído');
-            }
+                simbolo.style.left = `${left}px`;
+                simbolo.style.top = `${top}px`;
+                simbolo.style.transform = `translate(-50%, -50%) rotate(${rotacaoSimbolo}deg)`;
+                simbolo.style.transformOrigin = 'center center';
+            });
         }
-    });
-}
+
+        atualizarPosicaoDimensoes(pecaElement) {
+            const pecaId = pecaElement.getAttribute('data-peca-id');
+            
+            const dimensoesTop = pecaElement.querySelector('.dimensoes-top');
+            const dimensoesRight = pecaElement.querySelector('.dimensoes-right');
+            
+            if (!dimensoesTop || !dimensoesRight) return;
+            
+            const pecaWidth = parseFloat(pecaElement.style.width);
+            const pecaHeight = parseFloat(pecaElement.style.height);
+            
+            const offsetTopX = parseFloat(dimensoesTop.getAttribute('data-x')) || 0;
+            const offsetTopY = parseFloat(dimensoesTop.getAttribute('data-y')) || 0;
+            const offsetRightX = parseFloat(dimensoesRight.getAttribute('data-x')) || 0;
+            const offsetRightY = parseFloat(dimensoesRight.getAttribute('data-y')) || 0;
+            
+            dimensoesTop.style.left = `${(pecaWidth / 2) + offsetTopX}px`;
+            dimensoesTop.style.top = `${-35 + offsetTopY}px`;
+            dimensoesTop.style.transform = 'translateX(-50%)';
+            
+            dimensoesRight.style.right = `${-35 + offsetRightX}px`;
+            dimensoesRight.style.top = `${(pecaHeight / 2) + offsetRightY}px`;
+            dimensoesRight.style.transform = 'translateY(-50%)';
+        }
+
+        configurarInteratividadeDimensao(dimensaoElement) {
+            console.log('🔧 Configurando interatividade para dimensão:', dimensaoElement);
+            
+            interact(dimensaoElement).draggable({
+                modifiers: [
+                    interact.modifiers.restrict({
+                        restriction: 'parent',
+                        endOnly: false
+                    })
+                ],
+                listeners: {
+                    start: (event) => {
+                        dimensaoElement.style.zIndex = '1000';
+                        console.log('🔧 Iniciando movimento da dimensão');
+                    },
+                    move: (event) => {
+                        const pecaId = dimensaoElement.getAttribute('data-peca-id');
+                        const pecaElement = this.drawingArea.querySelector(`#peca-${pecaId}`);
+                        const rotacaoPeca = pecaElement ? parseFloat(pecaElement.getAttribute('data-rotate')) || 0 : 0;
+                        
+                        const coordenadasCompensadas = this.transformarCoordenadasParaLocal(event.dx, event.dy, rotacaoPeca);
+                        
+                        let x = (parseFloat(dimensaoElement.getAttribute('data-x')) || 0) + coordenadasCompensadas.dx;
+                        let y = (parseFloat(dimensaoElement.getAttribute('data-y')) || 0) + coordenadasCompensadas.dy;
+                        
+                        dimensaoElement.setAttribute('data-x', x);
+                        dimensaoElement.setAttribute('data-y', y);
+                        
+                        if (pecaElement) {
+                            this.atualizarPosicaoDimensoes(pecaElement);
+                        }
+                    },
+                    end: () => {
+                        dimensaoElement.style.zIndex = '';
+                        this.salvarEstadoHistorico('Mover Dimensão');
+                        console.log('✅ Movimento da dimensão concluído');
+                    }
+                }
+            });
+        }
+
         carregarDadosPecas() {
             const grupos = {};
             {% for material_nome, produtos in materiais_agrupados.items() %}
@@ -1137,39 +1184,235 @@ configurarInteratividadeDimensao(dimensaoElement) {
             return grupos;
         }
 
-      inicializar() {
-    console.log('🚀 Inicializando Gerenciador de Desenho...');
-    
-    this.configurarEventos();
-    this.configurarEventosTouchInsercao();
-    
-    this.modoLacoAtivo = false;
-    this.lacoPontos = [];
-    
-    if (this.desenhoSalvo && this.desenhoSalvo !== 'None' && this.desenhoSalvo !== '') {
-        console.log('📁 Carregando desenho salvo...');
-        this.carregarDesenhoSalvo();
-    } else {
-        console.log('📝 Criando novo desenho...');
-        this.criarPecasBase();
+        inicializar() {
+            console.log('🚀 Inicializando Gerenciador de Desenho...');
+            
+            this.configurarEventos();
+            this.configurarEventosTouchInsercao();
+            this.configurarEventosBorracha();
+            
+            this.modoLacoAtivo = false;
+            this.lacoPontos = [];
+            
+            if (this.desenhoSalvo && this.desenhoSalvo !== 'None' && this.desenhoSalvo !== '') {
+                console.log('📁 Carregando desenho salvo...');
+                this.carregarDesenhoSalvo();
+            } else {
+                console.log('📝 Criando novo desenho...');
+                this.criarPecasBase();
+            }
+            
+            this.atualizarOrdemEmpilhamento();
+            
+            this.salvarEstadoHistorico('Estado Inicial');
+            console.log('✅ Gerenciador de Desenho inicializado com sucesso!');
+        }
+
+        configurarEventosBorracha() {
+            this.drawingArea.addEventListener('mousedown', (e) => {
+                if (this.modoBorrachaAtivo && e.button === 0) {
+                    this.iniciarPinturaBorracha(e);
+                }
+            });
+            
+            this.drawingArea.addEventListener('mousemove', (e) => {
+                if (this.modoBorrachaAtivo) {
+                    this.atualizarCursorBorracha(e);
+                    if (this.borrachaPressionada) {
+                        this.pintarComBorracha(e);
+                    }
+                }
+            });
+            
+            this.drawingArea.addEventListener('mouseup', (e) => {
+                if (this.modoBorrachaAtivo && e.button === 0) {
+                    this.pararPinturaBorracha();
+                }
+            });
+            
+            this.drawingArea.addEventListener('mouseleave', () => {
+                if (this.modoBorrachaAtivo) {
+                    this.ocultarCursorBorracha();
+                }
+            });
+            
+            this.drawingArea.addEventListener('touchstart', (e) => {
+                if (this.modoBorrachaAtivo) {
+                    e.preventDefault();
+                    this.iniciarPinturaBorracha(e);
+                }
+            }, { passive: false });
+            
+            this.drawingArea.addEventListener('touchmove', (e) => {
+                if (this.modoBorrachaAtivo) {
+                    e.preventDefault();
+                    this.atualizarCursorBorracha(e);
+                    if (this.borrachaPressionada) {
+                        this.pintarComBorracha(e);
+                    }
+                }
+            }, { passive: false });
+            
+            this.drawingArea.addEventListener('touchend', (e) => {
+                if (this.modoBorrachaAtivo) {
+                    e.preventDefault();
+                    this.pararPinturaBorracha();
+                }
+            }, { passive: false });
+        }
+
+        iniciarPinturaBorracha(e) {
+            this.borrachaPressionada = true;
+            this.ultimaPosicaoBorracha = null;
+            this.pintarComBorracha(e);
+            console.log('🔧 Iniciando pintura com borracha');
+        }
+
+        pararPinturaBorracha() {
+            this.borrachaPressionada = false;
+            this.ultimaPosicaoBorracha = null;
+            if (this.modoBorrachaAtivo) {
+                this.salvarEstadoHistorico('Pintar com Borracha');
+            }
+            console.log('🔧 Parando pintura com borracha');
+        }
+
+        atualizarCursorBorracha(e) {
+    if (!this.borrachaCursor) {
+        this.borrachaCursor = document.createElement('div');
+        this.borrachaCursor.className = 'cursor-borracha';
+        this.drawingArea.appendChild(this.borrachaCursor);
     }
     
-    // 🔥 CORREÇÃO: Atualizar ordem de empilhamento
-    this.atualizarOrdemEmpilhamento();
+    const coords = this.obterCoordenadasBorracha(e);
+    this.borrachaCursor.style.left = `${coords.x - this.tamanhoBorracha/2}px`;
+    this.borrachaCursor.style.top = `${coords.y - this.tamanhoBorracha/2}px`;
+    this.borrachaCursor.style.display = 'block';
     
-    this.salvarEstadoHistorico('Estado Inicial');
-    console.log('✅ Gerenciador de Desenho inicializado com sucesso!');
+    // 🔥 NOVO: Garantir que o cursor padrão esteja oculto
+    if (this.modoBorrachaAtivo) {
+        this.drawingArea.style.cursor = 'none';
+    }
+}
+       ocultarCursorBorracha() {
+    if (this.borrachaCursor) {
+        this.borrachaCursor.style.display = 'none';
+    }
 }
 
-       excluirElemento() {
-    const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
-    if (!elementoAlvo) return;
+        obterCoordenadasBorracha(e) {
+            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
+            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
+            const rect = this.drawingArea.getBoundingClientRect();
+            
+            return { 
+                x: clientX - rect.left + this.drawingArea.scrollLeft, 
+                y: clientY - rect.top + this.drawingArea.scrollTop 
+            }; 
+        }
 
-    elementoAlvo.remove();
+        pintarComBorracha(e) {
+            if (!this.borrachaPressionada) return;
+            
+            const coords = this.obterCoordenadasBorracha(e);
+            
+            const pintura = document.createElement('div');
+            pintura.className = 'pintura-borracha';
+            pintura.style.left = `${coords.x - this.tamanhoBorracha/2}px`;
+            pintura.style.top = `${coords.y - this.tamanhoBorracha/2}px`;
+            pintura.style.width = `${this.tamanhoBorracha}px`;
+            pintura.style.height = `${this.tamanhoBorracha}px`;
+            
+            this.drawingArea.appendChild(pintura);
+            
+            if (this.ultimaPosicaoBorracha) {
+                this.preencherEspacoBorracha(this.ultimaPosicaoBorracha, coords);
+            }
+            
+            this.ultimaPosicaoBorracha = coords;
+        }
+
+        preencherEspacoBorracha(inicio, fim) {
+            const distancia = Math.sqrt(Math.pow(fim.x - inicio.x, 2) + Math.pow(fim.y - inicio.y, 2));
+            const passos = Math.ceil(distancia / (this.tamanhoBorracha / 2));
+            
+            for (let i = 1; i < passos; i++) {
+                const t = i / passos;
+                const x = inicio.x + (fim.x - inicio.x) * t;
+                const y = inicio.y + (fim.y - inicio.y) * t;
+                
+                const pintura = document.createElement('div');
+                pintura.className = 'pintura-borracha';
+                pintura.style.left = `${x - this.tamanhoBorracha/2}px`;
+                pintura.style.top = `${y - this.tamanhoBorracha/2}px`;
+                pintura.style.width = `${this.tamanhoBorracha}px`;
+                pintura.style.height = `${this.tamanhoBorracha}px`;
+                
+                this.drawingArea.appendChild(pintura);
+            }
+        }
+
+        // 🔥 MODIFICADO: Toggle do modo borracha
+        toggleModoBorracha() {
+            if (this.modoBorrachaAtivo) {
+                this.desativarModoBorracha();
+            } else {
+                this.ativarModoBorracha();
+            }
+        }
+
+       ativarModoBorracha() {
+    this.desativarTodosOsModos();
+    console.log('🔵 Ativando modo borracha...');
+    
+    this.modoBorrachaAtivo = true;
     this.desselecionarElemento();
-    this.salvarEstadoHistorico('Excluir Elemento: ' + (elementoAlvo.className || 'Elemento'));
+    
+    document.body.classList.add('modo-borracha');
+    
+    // 🔥 GARANTIR que o cursor padrão esteja oculto
+    this.drawingArea.style.cursor = 'none';
+    
+    // 🔥 FORÇAR a criação do cursor da borracha
+    this.borrachaCursor = null; // Isso fará com que seja recriado no próximo movimento
+    
+    const btnBorracha = document.getElementById('btnBorracha');
+    if (btnBorracha) {
+        btnBorracha.classList.add('btn-borracha-ativo');
+    }
+    
+    console.log('✅ Modo borracha ativado - cursor será restaurado no movimento do mouse');
 }
 
+      desativarModoBorracha() {
+    console.log('🔵 Desativando modo borracha...');
+    this.modoBorrachaAtivo = false;
+    this.borrachaPressionada = false;
+    this.ultimaPosicaoBorracha = null;
+    
+    document.body.classList.remove('modo-borracha');
+    
+    // 🔥 NOVO: Restaurar cursor padrão
+    this.drawingArea.style.cursor = 'default';
+    
+    this.ocultarCursorBorracha();
+    
+    const btnBorracha = document.getElementById('btnBorracha');
+    if (btnBorracha) {
+        btnBorracha.classList.remove('btn-borracha-ativo');
+    }
+    
+    console.log('✅ Modo borracha desativado - cursor padrão restaurado');
+}
+
+        excluirElemento() {
+            const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
+            if (!elementoAlvo) return;
+
+            elementoAlvo.remove();
+            this.desselecionarElemento();
+            this.salvarEstadoHistorico('Excluir Elemento: ' + (elementoAlvo.className || 'Elemento'));
+        }
 
         carregarDesenhoSalvo() {
             try {
@@ -1201,84 +1444,94 @@ configurarInteratividadeDimensao(dimensaoElement) {
             });
         }
 
-        salvarEstadoHistorico(descricao, forcarSalvamento = false) {
-            const agora = Date.now();
-            const tempoDesdeUltimoSalvamento = agora - (this.ultimoSalvamentoHistorico || 0);
-            
-            if (!forcarSalvamento && tempoDesdeUltimoSalvamento < 200) {
-                console.log(`⏱️  Ação rápida ignorada temporariamente: ${descricao}`);
-                return;
-            }
-            
-            if (this.indiceHistorico < this.historico.length - 1) {
-                this.historico = this.historico.slice(0, this.indiceHistorico + 1);
-            }
+       salvarEstadoHistorico(descricao, forcarSalvamento = false) {
+    const agora = Date.now();
+    const tempoDesdeUltimoSalvamento = agora - (this.ultimoSalvamentoHistorico || 0);
 
-            const snapshot = {
-                descricao: descricao,
-                timestamp: new Date(),
-                data: this.obterEstadoAtual()
-            };
+    if (!forcarSalvamento && tempoDesdeUltimoSalvamento < 200) {
+        console.log(`⏱️ Ação rápida ignorada temporariamente: ${descricao}`);
+        return;
+    }
 
-            this.historico.push(snapshot);
-            this.indiceHistorico++;
+    if (this.indiceHistorico < this.historico.length - 1) {
+        this.historico = this.historico.slice(0, this.indiceHistorico + 1);
+    }
+    
+    // 🔥 CORREÇÃO: Preservar cursor da borracha durante o salvamento
+    let displayOriginal;
+    if (this.borrachaCursor) {
+        displayOriginal = this.borrachaCursor.style.display;
+        this.borrachaCursor.style.display = 'none';
+    }
 
-            if (this.historico.length > this.maximoHistorico) {
-                this.historico.shift();
-                this.indiceHistorico--;
-            }
+    const snapshot = { descricao: descricao, timestamp: new Date(), data: this.obterEstadoAtual() };
+    this.historico.push(snapshot);
+    this.indiceHistorico++;
+    
+    // 🔥 CORREÇÃO: Restaurar display do cursor após salvamento
+    if (this.borrachaCursor) {
+        this.borrachaCursor.style.display = displayOriginal || 'block';
+    }
 
-            this.ultimoSalvamentoHistorico = agora;
-            
-            this.atualizarBotoesHistorico();
-            console.log(`💾 Histórico salvo: ${descricao} (${this.historico.length} estados, índice: ${this.indiceHistorico})`);
-        }
+    if (this.historico.length > this.maximoHistorico) {
+        this.historico.shift();
+        this.indiceHistorico--;
+    }
+    this.ultimoSalvamentoHistorico = agora;
+    this.atualizarBotoesHistorico();
+    console.log(`💾 Histórico salvo: ${descricao} (${this.historico.length} estados, índice: ${this.indiceHistorico})`);
+}
 
-      obterEstadoAtual() {
-    // Atualiza textos
+       obterEstadoAtual() {
     const elementosTexto = this.drawingArea.querySelectorAll('.texto-legenda');
     elementosTexto.forEach(texto => {
         texto.setAttribute('data-valor', texto.value);
     });
 
-    // Clona área
     const clone = this.drawingArea.cloneNode(true);
 
-    // 🔹 Remove APENAS elementos temporários do laço
-    // (não remove linhas/polígonos desenhados pelo usuário)
-    const temporarios = clone.querySelectorAll('#laco-selecao, .laco-temporario, .linha-temporaria, .preview-laco');
+    // 🔥 CORREÇÃO: Remover elementos temporários do snapshot do histórico
+    const temporarios = clone.querySelectorAll('#laco-selecao, .laco-temporario, .linha-temporaria, .preview-laco, .cursor-borracha, .pintura-borracha');
     temporarios.forEach(el => el.remove());
 
-    // 🔹 Remove grupos temporários e overlays
     const grupoTemp = clone.querySelector('.grupo-temporario');
     if (grupoTemp) grupoTemp.remove();
 
-    // 🔹 Remove classes de seleção temporárias
     const selecoes = clone.querySelectorAll('.selecionado, .laco-ativo, .modo-laco');
     selecoes.forEach(s => s.classList.remove('selecionado', 'laco-ativo', 'modo-laco'));
 
-    // Retorna estado limpo
     return {
         drawingAreaHTML: clone.innerHTML,
         gruposPecas: JSON.parse(JSON.stringify(this.gruposPecas))
     };
 }
 
-
-
         salvarEstadoImediato(descricao) {
             this.salvarEstadoHistorico(descricao, true);
         }
 
         restaurarEstadoHistorico(estado) {
-            this.removerTodosOsHandles();
-            
-            this.drawingArea.innerHTML = estado.drawingAreaHTML;
-            this.gruposPecas = JSON.parse(JSON.stringify(estado.gruposPecas));
-            
-            this.restaurarElementosTexto();
-            this.reconfigurarElementosAposHistorico();
-        }
+    // 🔥 CORREÇÃO: Preservar cursor da borracha se o modo estiver ativo
+    const borrachaAtiva = this.modoBorrachaAtivo;
+    const cursorAtual = this.borrachaCursor;
+    
+    this.removerTodosOsHandles();
+    this.limparModoLacoCompletamente();
+    this.limparGrupoTemporario();
+    
+    this.drawingArea.innerHTML = estado.drawingAreaHTML;
+    this.gruposPecas = JSON.parse(JSON.stringify(estado.gruposPecas));
+    
+    // 🔥 CORREÇÃO: Restaurar cursor da borracha se necessário
+    if (borrachaAtiva && cursorAtual) {
+        this.borrachaCursor = cursorAtual;
+        this.drawingArea.appendChild(this.borrachaCursor);
+    }
+    
+    this.restaurarElementosTexto();
+    this.reconfigurarElementosAposHistorico();
+}
+
 
         reconfigurarElementosAposHistorico() {
             this.removerTodosOsHandles();
@@ -1382,50 +1635,93 @@ configurarInteratividadeDimensao(dimensaoElement) {
             this.elementoSelecionado = null;
         }
 
-      // MODIFICAR o método desselecionarElemento para NÃO remover o grupo temporário automaticamente
-desselecionarElemento() {
-    this.removerTodosOsHandles();
-    
-    if (this.elementoSelecionado) {
-        this.removerInteratividade(this.elementoSelecionado);
-        
-        // 🔥 CORREÇÃO: Restaurar z-index normal
-        if (this.elementoSelecionado.classList.contains('peca')) {
-            this.elementoSelecionado.style.zIndex = '2';
-        } else if (this.elementoSelecionado.classList.contains('titulo-grupo')) {
-            this.elementoSelecionado.style.zIndex = '1';
-        } else {
-            this.elementoSelecionado.style.zIndex = '';
+        desselecionarElemento() {
+            this.removerTodosOsHandles();
+            
+            if (this.elementoSelecionado) {
+                this.removerInteratividade(this.elementoSelecionado);
+                
+                if (this.elementoSelecionado.classList.contains('peca')) {
+                    this.elementoSelecionado.style.zIndex = '2';
+                } else if (this.elementoSelecionado.classList.contains('titulo-grupo')) {
+                    this.elementoSelecionado.style.zIndex = '1';
+                } else {
+                    this.elementoSelecionado.style.zIndex = '';
+                }
+                
+                this.elementoSelecionado.classList.remove('elemento-selecionado');
+                
+                if (!this.modoSelecaoAtivo) {
+                    this.reabilitarLinhasPecas();
+                }
+                
+                this.elementoSelecionado = null;
+            }
+            
+            this.atualizarEstadoBotoes();
+            this.ultimoElementoClicado = null;
         }
+
+      desfazer() {
+    if (this.indiceHistorico > 0) {
+        this.removerTodosOsHandles();
         
-        this.elementoSelecionado.classList.remove('elemento-selecionado');
+        this.indiceHistorico--;
+        const estadoAnterior = this.historico[this.indiceHistorico];
+
+if (this.modoBorrachaAtivo) {
+    this.desativarModoBorracha();
+}
         
-        if (!this.modoSelecaoAtivo) {
-            this.reabilitarLinhasPecas();
+        // 🔥 CORREÇÃO: Preservar estado do modo borracha antes de restaurar
+        const modoBorrachaAtivoAntes = this.modoBorrachaAtivo;
+        
+        this.restaurarEstadoHistorico(estadoAnterior.data);
+        console.log('🔧 Desfazer executado - Estado:', this.indiceHistorico);
+
+        // 🔥 CORREÇÃO: Restaurar modo borracha se estava ativo antes
+        if (modoBorrachaAtivoAntes) {
+            // Reativar o modo borracha sem desativar todos os modos primeiro
+            this.modoBorrachaAtivo = true;
+            document.body.classList.add('modo-borracha');
+            this.drawingArea.style.cursor = 'none';
+            
+            const btnBorracha = document.getElementById('btnBorracha');
+            if (btnBorracha) {
+                btnBorracha.classList.add('btn-borracha-ativo');
+            }
+            
+            // Recriar o cursor da borracha
+            this.borrachaCursor = null;
+            console.log('✅ Modo borracha restaurado após desfazer');
         }
-        
-        this.elementoSelecionado = null;
+    } else {
+        console.log('🔧 Não há ações para desfazer');
     }
-    
-    this.atualizarEstadoBotoes();
-    this.ultimoElementoClicado = null;
+    this.atualizarBotoesHistorico();
 }
 
+refazer() {
+    if (this.indiceHistorico < this.historico.length - 1) {
+        this.removerTodosOsHandles();
+        
+        this.indiceHistorico++;
+        const estadoFuturo = this.historico[this.indiceHistorico];
+        this.restaurarEstadoHistorico(estadoFuturo.data);
+        console.log('🔧 Refazer executado - Estado:', this.indiceHistorico);
 
-        desfazer() {
-            if (this.indiceHistorico > 0) {
-                this.removerTodosOsHandles();
-                
-                this.indiceHistorico--;
-                const estadoAnterior = this.historico[this.indiceHistorico];
-                this.restaurarEstadoHistorico(estadoAnterior.data);
-                console.log('🔧 Desfazer executado - Estado:', this.indiceHistorico);
-            } else {
-                console.log('🔧 Não há ações para desfazer');
-            }
-            this.atualizarBotoesHistorico();
+        // 🔥 CORREÇÃO: Desativar modo borracha e restaurar cursor
+        if (this.modoBorrachaAtivo) {
+            this.desativarModoBorracha();
+        } else {
+            // Garantir que o cursor padrão esteja visível
+            this.drawingArea.style.cursor = 'default';
         }
-
+    } else {
+        console.log('🔧 Não há ações para refazer');
+    }
+    this.atualizarBotoesHistorico();
+}
         refazer() {
             if (this.indiceHistorico < this.historico.length - 1) {
                 this.removerTodosOsHandles();
@@ -1530,42 +1826,43 @@ desselecionarElemento() {
             }, 500);
         }
 
-       configurarEventos() {
-    console.log('🔧 Configurando eventos...');
-    
-    const botoes = [
-        'btnSelecionar', 'btnLaco', 'btnDesfazer', 'btnRefazer', 'btnAdicionarTexto',
-        'btnAdicionarCuba', 'btnLegendaSimplificada', 'btnDuplicar', 
-        'btnExcluir', 'btnSalvar', 'btnImprimir'
-    ];
+        configurarEventos() {
+            console.log('🔧 Configurando eventos...');
+            
+            const botoes = [
+                'btnSelecionar', 'btnBorracha', 'btnLaco', 'btnDesfazer', 'btnRefazer', 'btnAdicionarTexto',
+                'btnAdicionarCuba', 'btnLegendaSimplificada', 'btnDuplicar', 
+                'btnExcluir', 'btnSalvar', 'btnImprimir'
+            ];
 
-    const prevenirZoomDuploToque = (e) => {
-        if (e.touches && e.touches.length > 1) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-    };
-
-    botoes.forEach(botaoId => {
-        const botao = document.getElementById(botaoId);
-        if (botao) {
-            botao.addEventListener('click', (e) => {
-                console.log(`🖱️ Botão ${botaoId} clicado`);
-                
-                switch(botaoId) {
-                    case 'btnSelecionar': this.toggleModoSelecao(); break;
-                    case 'btnLaco': this.toggleModoLaco(); break; // ✅ CORREÇÃO AQUI
-                    case 'btnAdicionarTexto': this.ativarModoInsercao('texto'); break;
-                    case 'btnAdicionarCuba': this.ativarModoInsercao('cuba'); break;
-                    case 'btnLegendaSimplificada': this.ativarModoInsercao('legenda'); break;
-                    case 'btnDuplicar': this.duplicarElemento(); break;
-                    case 'btnExcluir': this.excluirElemento(); break;
-                    case 'btnSalvar': this.salvarDesenho(); break;
-                    case 'btnImprimir': this.imprimirDesenho(); break;
-                    case 'btnDesfazer': this.desfazer(); break;
-                    case 'btnRefazer': this.refazer(); break;
+            const prevenirZoomDuploToque = (e) => {
+                if (e.touches && e.touches.length > 1) {
+                    e.preventDefault();
+                    e.stopPropagation();
                 }
-            });
+            };
+
+            botoes.forEach(botaoId => {
+                const botao = document.getElementById(botaoId);
+                if (botao) {
+                    botao.addEventListener('click', (e) => {
+                        console.log(`🖱️ Botão ${botaoId} clicado`);
+                        
+                        switch(botaoId) {
+                            case 'btnSelecionar': this.toggleModoSelecao(); break;
+                            case 'btnBorracha': this.toggleModoBorracha(); break;
+                            case 'btnLaco': this.toggleModoLaco(); break;
+                            case 'btnAdicionarTexto': this.ativarModoTexto(); break; // 🔥 MODIFICADO
+                            case 'btnAdicionarCuba': this.ativarModoDesenhos(); break; // 🔥 MODIFICADO
+                            case 'btnLegendaSimplificada': this.ativarModoLegenda(); break; // 🔥 MODIFICADO
+                            case 'btnDuplicar': this.duplicarElemento(); break;
+                            case 'btnExcluir': this.excluirElemento(); break;
+                            case 'btnSalvar': this.salvarDesenho(); break;
+                            case 'btnImprimir': this.imprimirDesenho(); break;
+                            case 'btnDesfazer': this.desfazer(); break;
+                            case 'btnRefazer': this.refazer(); break;
+                        }
+                    });
 
                     botao.addEventListener('touchstart', prevenirZoomDuploToque, { passive: false });
                     botao.addEventListener('touchmove', prevenirZoomDuploToque, { passive: false });
@@ -1581,34 +1878,32 @@ desselecionarElemento() {
             });
             
             document.addEventListener('click', (e) => {
-    const isDrawingArea = e.target.closest('#drawingArea');
-    const isHandle = e.target.closest('.handle');
-    const isActionButton = e.target.closest('.action-buttons-container');
-    const isTopButton = e.target.closest('.top-buttons-container');
-    
-    if (!isDrawingArea && !isHandle && !isActionButton && !isTopButton) {
-        // 🔥 CORREÇÃO: Limpar grupo temporário ao clicar fora da área de desenho
-        if (gerenciadorDesenho.grupoTemporario) {
-            gerenciadorDesenho.limparGrupoTemporario();
-        }
-        gerenciadorDesenho.desselecionarElemento();
-    }
-});
+                const isDrawingArea = e.target.closest('#drawingArea');
+                const isHandle = e.target.closest('.handle');
+                const isActionButton = e.target.closest('.action-buttons-container');
+                const isTopButton = e.target.closest('.top-buttons-container');
+                
+                if (!isDrawingArea && !isHandle && !isActionButton && !isTopButton) {
+                    if (gerenciadorDesenho.grupoTemporario) {
+                        gerenciadorDesenho.limparGrupoTemporario();
+                    }
+                    gerenciadorDesenho.desselecionarElemento();
+                }
+            });
 
-document.addEventListener('touchstart', (e) => {
-    const isDrawingArea = e.target.closest('#drawingArea');
-    const isHandle = e.target.closest('.handle');
-    const isActionButton = e.target.closest('.action-buttons-container');
-    const isTopButton = e.target.closest('.top-buttons-container');
-    
-    if (!isDrawingArea && !isHandle && !isActionButton && !isTopButton) {
-        // 🔥 CORREÇÃO: Limpar grupo temporário ao tocar fora da área de desenho
-        if (gerenciadorDesenho.grupoTemporario) {
-            gerenciadorDesenho.limparGrupoTemporario();
-        }
-        gerenciadorDesenho.desselecionarElemento();
-    }
-});
+            document.addEventListener('touchstart', (e) => {
+                const isDrawingArea = e.target.closest('#drawingArea');
+                const isHandle = e.target.closest('.handle');
+                const isActionButton = e.target.closest('.action-buttons-container');
+                const isTopButton = e.target.closest('.top-buttons-container');
+                
+                if (!isDrawingArea && !isHandle && !isActionButton && !isTopButton) {
+                    if (gerenciadorDesenho.grupoTemporario) {
+                        gerenciadorDesenho.limparGrupoTemporario();
+                    }
+                    gerenciadorDesenho.desselecionarElemento();
+                }
+            });
 
             document.addEventListener('keydown', (e) => {
                 if (e.ctrlKey || e.metaKey) {
@@ -1629,57 +1924,55 @@ document.addEventListener('touchstart', (e) => {
             this.configurarEventosAreaDesenho();
             
 
- const prevenirCliqueBotaoDesabilitado = (e) => {
-        const botao = e.target.closest('.btn');
-        if (botao && (botao.disabled || botao.classList.contains('btn-desabilitado-mobile'))) {
-            e.preventDefault();
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-            console.log('🚫 Botão desabilitado - ação prevenida');
-            return false;
-        }
-    };
+            const prevenirCliqueBotaoDesabilitado = (e) => {
+                const botao = e.target.closest('.btn');
+                if (botao && (botao.disabled || botao.classList.contains('btn-desabilitado-mobile'))) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    console.log('🚫 Botão desabilitado - ação prevenida');
+                    return false;
+                }
+            };
 
-    // Aplicar a todos os botões de ação
-    const botoesAcao = document.querySelectorAll('.action-buttons-container .btn');
-    botoesAcao.forEach(botao => {
-        botao.addEventListener('click', prevenirCliqueBotaoDesabilitado, true);
-        botao.addEventListener('touchstart', prevenirCliqueBotaoDesabilitado, true);
-        botao.addEventListener('touchend', prevenirCliqueBotaoDesabilitado, true);
-    });
-
+            const botoesAcao = document.querySelectorAll('.action-buttons-container .btn');
+            botoesAcao.forEach(botao => {
+                botao.addEventListener('click', prevenirCliqueBotaoDesabilitado, true);
+                botao.addEventListener('touchstart', prevenirCliqueBotaoDesabilitado, true);
+                botao.addEventListener('touchend', prevenirCliqueBotaoDesabilitado, true);
+            });
 
             console.log('✅ Eventos configurados com sucesso!');
         }
 
-       configurarEventosAreaDesenho() {
-    this.drawingArea.addEventListener('click', (e) => {
-        // Se clicou diretamente na área de desenho (não em um elemento)
-        if (e.target === this.drawingArea) {
-            if (this.modoLacoAtivo) {
-                console.log('❌ Laço cancelado - clique na área vazia');
-                this.desativarModoLaco();
-            } else if (this.modoSelecaoAtivo) {
-                if (this.grupoTemporario) {
-                    console.log('🗑️ Clicou na área vazia - removendo grupo temporário');
-                    this.limparGrupoTemporario();
+        configurarEventosAreaDesenho() {
+            this.drawingArea.addEventListener('click', (e) => {
+                if (e.target === this.drawingArea) {
+                    if (this.modoLacoAtivo) {
+                        console.log('❌ Laço cancelado - clique na área vazia');
+                        this.desativarModoLaco();
+                    } else if (this.modoSelecaoAtivo) {
+                        if (this.grupoTemporario) {
+                            console.log('🗑️ Clicou na área vazia - removendo grupo temporário');
+                            this.limparGrupoTemporario();
+                        }
+                        this.desselecionarElemento();
+                    }
                 }
-                this.desselecionarElemento();
-            }
-        }
-    });
+            });
 
-    this.drawingArea.addEventListener('touchstart', (e) => {
-        if (e.target === this.drawingArea && this.modoSelecaoAtivo) {
-            if (this.grupoTemporario) {
-                console.log('🗑️ Tocou na área vazia - removendo grupo temporário');
-                this.limparGrupoTemporario();
-            }
-            this.desselecionarElemento();
+            this.drawingArea.addEventListener('touchstart', (e) => {
+                if (e.target === this.drawingArea && this.modoSelecaoAtivo) {
+                    if (this.grupoTemporario) {
+                        console.log('🗑️ Tocou na área vazia - removendo grupo temporário');
+                        this.limparGrupoTemporario();
+                    }
+                    this.desselecionarElemento();
+                }
+            });
         }
-    });
-}
 
+        // 🔥 MODIFICADO: Toggle do modo seleção
         toggleModoSelecao() {
             if (this.modoSelecaoAtivo) {
                 this.desativarModoSelecao();
@@ -1688,10 +1981,47 @@ document.addEventListener('touchstart', (e) => {
             }
         }
 
+        // 🔥 MODIFICADO: Ativar modo seleção
+        ativarModoSelecao() {
+            this.desativarTodosOsModos();
+            console.log('🔵 Ativando modo seleção...');
+            
+            this.modoSelecaoAtivo = true;
+            this.desselecionarElemento();
+            this.drawingArea.style.cursor = 'pointer';
+            
+            const btnSelecionar = document.getElementById('btnSelecionar');
+            if (btnSelecionar) btnSelecionar.classList.add('btn-selecao-ativo');
+            
+            this.tornarElementosSelecionaveis(true);
+            this.desabilitarLinhasPecas();
+            this.atualizarInteratividadeTextos();
+            
+            console.log('✅ Modo seleção ativado');
+        }
+
+        // 🔥 MODIFICADO: Desativar modo seleção
+        desativarModoSelecao() {
+            console.log('🔵 Desativando modo seleção...');
+            this.modoSelecaoAtivo = false;
+            this.desselecionarElemento();
+            this.drawingArea.style.cursor = 'default';
+            
+            const btnSelecionar = document.getElementById('btnSelecionar');
+            if (btnSelecionar) btnSelecionar.classList.remove('btn-selecao-ativo');
+            
+            this.tornarElementosSelecionaveis(false);
+            this.reabilitarLinhasPecas();
+            this.atualizarInteratividadeTextos();
+            
+            console.log('✅ Modo seleção desativado');
+        }
+
         // =============================================
         // MÉTODOS DO MODO LAÇO (BOUNDING BOX INTERSECTION)
         // =============================================
 
+        // 🔥 MODIFICADO: Toggle do modo laço
         toggleModoLaco() {
             if (this.modoLacoAtivo) {
                 this.desativarModoLaco();
@@ -1700,10 +2030,12 @@ document.addEventListener('touchstart', (e) => {
             }
         }
 
+        // 🔥 MODIFICADO: Ativar modo laço
         ativarModoLaco() {
+            this.desativarTodosOsModos();
             console.log('🔵 Ativando modo laço...');
+            
             this.modoLacoAtivo = true;
-            this.modoSelecaoAtivo = false;
             this.desselecionarElemento();
             this.drawingArea.style.cursor = 'crosshair';
             
@@ -1712,7 +2044,6 @@ document.addEventListener('touchstart', (e) => {
             
             this.lacoPontos = [];
             
-            // Criar overlay SVG para desenho do laço
             if (!this.svgOverlay) {
                 const svgns = "http://www.w3.org/2000/svg";
                 const svg = document.createElementNS(svgns, 'svg');
@@ -1728,7 +2059,6 @@ document.addEventListener('touchstart', (e) => {
                 this.svgOverlay = svg;
             }
             
-            // Configurar event listeners
             this._lacoMouseDownHandler = (e) => this._iniciarLaco(e);
             this._lacoMoveHandler = (e) => this._atualizarLaco(e);
             this._lacoUpHandler = (e) => this._finalizarLaco(e);
@@ -1737,7 +2067,6 @@ document.addEventListener('touchstart', (e) => {
             this.drawingArea.addEventListener('mousemove', this._lacoMoveHandler);
             this.drawingArea.addEventListener('mouseup', this._lacoUpHandler);
             
-            // Suporte touch
             this.drawingArea.addEventListener('touchstart', this._lacoMouseDownHandler, { passive: false });
             this.drawingArea.addEventListener('touchmove', this._lacoMoveHandler, { passive: false });
             this.drawingArea.addEventListener('touchend', this._lacoUpHandler, { passive: false });
@@ -1745,34 +2074,73 @@ document.addEventListener('touchstart', (e) => {
             console.log('✅ Modo laço ativado');
         }
 
-       desativarModoLaco() {
-    console.log('🔵 Desativando modo laço...');
-    this.modoLacoAtivo = false;
-    this.drawingArea.style.cursor = 'default';
-    
-    const btnLaco = document.getElementById('btnLaco');
-    if (btnLaco) btnLaco.classList.remove('btn-modo-ativo');
-    
-    // Usar limpeza completa
-    this.limparModoLacoCompletamente();
-    
-    console.log('✅ Modo laço desativado');
-}
+        // 🔥 MODIFICADO: Desativar modo laço
+        desativarModoLaco() {
+            console.log('🔵 Desativando modo laço...');
+            this.modoLacoAtivo = false;
+            this.drawingArea.style.cursor = 'default';
+            
+            const btnLaco = document.getElementById('btnLaco');
+            if (btnLaco) btnLaco.classList.remove('btn-modo-ativo');
+            
+            this.limparModoLacoCompletamente();
+            
+            console.log('✅ Modo laço desativado');
+        }
 
-restaurarEstadoHistorico(estado) {
-    // 🔥 CORREÇÃO: Limpar modo laço completamente ao restaurar estado
-    this.limparModoLacoCompletamente();
-    this.limparGrupoTemporario();
-    this.removerTodosOsHandles();
-    
-    this.drawingArea.innerHTML = estado.drawingAreaHTML;
-    this.gruposPecas = JSON.parse(JSON.stringify(estado.gruposPecas));
-    
-    this.restaurarElementosTexto();
-    this.reconfigurarElementosAposHistorico();
-}
+        // 🔥 NOVO: Ativar modo texto
+        ativarModoTexto() {
+            this.desativarTodosOsModos();
+            console.log('🔵 Ativando modo texto...');
+            
+            this.modoInsercaoAtivo = 'texto';
+            this.drawingArea.style.cursor = 'text';
+            
+            const btnTexto = document.getElementById('btnAdicionarTexto');
+            if (btnTexto) btnTexto.classList.add('btn-modo-ativo');
+            
+            console.log('✅ Modo texto ativado - clique na área para adicionar texto');
+        }
 
+        // 🔥 NOVO: Ativar modo desenhos
+        ativarModoDesenhos() {
+            this.desativarTodosOsModos();
+            console.log('🔵 Ativando modo desenhos...');
+            
+            this.modoInsercaoAtivo = 'cuba';
+            this.drawingArea.style.cursor = 'crosshair';
+            
+            const btnDesenhos = document.getElementById('btnAdicionarCuba');
+            if (btnDesenhos) btnDesenhos.classList.add('btn-modo-ativo');
+            
+            console.log('✅ Modo desenhos ativado - clique na área para adicionar desenho');
+        }
 
+        // 🔥 NOVO: Ativar modo legenda
+        ativarModoLegenda() {
+            this.desativarTodosOsModos();
+            console.log('🔵 Ativando modo legenda...');
+            
+            this.modoInsercaoAtivo = 'legenda';
+            this.drawingArea.style.cursor = 'crosshair';
+            
+            const btnLegenda = document.getElementById('btnLegendaSimplificada');
+            if (btnLegenda) btnLegenda.classList.add('btn-modo-ativo');
+            
+            console.log('✅ Modo legenda ativado - clique na área para adicionar legenda');
+        }
+
+        restaurarEstadoHistorico(estado) {
+            this.limparModoLacoCompletamente();
+            this.limparGrupoTemporario();
+            this.removerTodosOsHandles();
+            
+            this.drawingArea.innerHTML = estado.drawingAreaHTML;
+            this.gruposPecas = JSON.parse(JSON.stringify(estado.gruposPecas));
+            
+            this.restaurarElementosTexto();
+            this.reconfigurarElementosAposHistorico();
+        }
 
         _iniciarLaco(e) {
             if (!this.modoLacoAtivo) return;
@@ -1783,7 +2151,6 @@ restaurarEstadoHistorico(estado) {
             const coords = this._obterCoordenadasLaco(e);
             this.lacoPontos = [coords];
             
-            // Criar elemento visual do laço
             if (this.svgOverlay) {
                 this.svgOverlay.innerHTML = '';
                 const svgns = "http://www.w3.org/2000/svg";
@@ -1809,44 +2176,38 @@ restaurarEstadoHistorico(estado) {
             
             const coords = this._obterCoordenadasLaco(e);
             
-            // Só adicionar ponto se mover o suficiente (performance)
             const ultimoPonto = this.lacoPontos[this.lacoPontos.length - 1];
             if (!ultimoPonto || Math.hypot(coords.x - ultimoPonto.x, coords.y - ultimoPonto.y) > 5) {
                 this.lacoPontos.push(coords);
                 
-                // Atualizar polígono visual
                 const pointsStr = this.lacoPontos.map(p => `${p.x},${p.y}`).join(' ');
                 this._lacoPolygonElement.setAttribute('points', pointsStr);
             }
         }
 
         _finalizarLaco(e) {
-    if (!this.modoLacoAtivo || !this._lacoPolygonElement) return;
-    
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // Fechar o polígono (conectar último ponto com o primeiro)
-    if (this.lacoPontos.length > 2) {
-        this.lacoPontos.push(this.lacoPontos[0]);
-        const pointsStr = this.lacoPontos.map(p => `${p.x},${p.y}`).join(' ');
-        this._lacoPolygonElement.setAttribute('points', pointsStr);
-        
-        // Buscar elementos que intersectam com o polígono
-        const elementosSelecionados = this._buscarElementosPorPoligono(this.lacoPontos);
-        
-        if (elementosSelecionados.length > 0) {
-            console.log(`🎯 ${elementosSelecionados.length} elementos selecionados`);
-            this._criarGrupoTemporario(elementosSelecionados);
+            if (!this.modoLacoAtivo || !this._lacoPolygonElement) return;
             
+            e.preventDefault();
+            e.stopPropagation();
             
-        } else {
-            console.log('⚠️ Nenhum elemento encontrado na área selecionada');
+            if (this.lacoPontos.length > 2) {
+                this.lacoPontos.push(this.lacoPontos[0]);
+                const pointsStr = this.lacoPontos.map(p => `${p.x},${p.y}`).join(' ');
+                this._lacoPolygonElement.setAttribute('points', pointsStr);
+                
+                const elementosSelecionados = this._buscarElementosPorPoligono(this.lacoPontos);
+                
+                if (elementosSelecionados.length > 0) {
+                    console.log(`🎯 ${elementosSelecionados.length} elementos selecionados`);
+                    this._criarGrupoTemporario(elementosSelecionados);
+                } else {
+                    console.log('⚠️ Nenhum elemento encontrado na área selecionada');
+                }
+            }
+            
+            this.desativarModoLaco();
         }
-    }
-    
-    this.desativarModoLaco();
-}
 
         _obterCoordenadasLaco(e) {
             const rect = this.drawingArea.getBoundingClientRect();
@@ -1872,7 +2233,6 @@ restaurarEstadoHistorico(estado) {
             }
         }
 
-        // 🔥 MÉTODO MELHORADO: Busca elementos por INTERSEÇÃO DE BOUNDING BOX
         _buscarElementosPorPoligono(polygon) {
             if (!polygon || polygon.length < 3) return [];
             
@@ -1891,11 +2251,9 @@ restaurarEstadoHistorico(estado) {
             return elementosSelecionados;
         }
 
-        // 🔥 MÉTODO NOVO: Verifica interseção entre elemento e polígono (BOUNDING BOX)
         _elementoIntersectaPoligono(elemento, polygon) {
             const bbox = this._obterBoundingBoxAbsoluta(elemento);
             
-            // 1. Verificar se algum vértice da bounding box está dentro do polígono
             const vertices = [
                 { x: bbox.left, y: bbox.top },
                 { x: bbox.right, y: bbox.top },
@@ -1909,7 +2267,6 @@ restaurarEstadoHistorico(estado) {
                 }
             }
             
-            // 2. Verificar se alguma aresta do polígono intersecta a bounding box
             for (let i = 0; i < polygon.length - 1; i++) {
                 const p1 = polygon[i];
                 const p2 = polygon[i + 1];
@@ -1919,8 +2276,6 @@ restaurarEstadoHistorico(estado) {
                 }
             }
             
-            // 3. Verificar se o polígono está completamente dentro da bounding box
-            // (caso o usuário desenhe um laço pequeno dentro de um elemento grande)
             const centroPoligono = this._calcularCentroPoligono(polygon);
             if (this._pontoDentroRetangulo(centroPoligono, bbox)) {
                 return true;
@@ -1958,12 +2313,11 @@ restaurarEstadoHistorico(estado) {
         }
 
         _segmentoIntersectaRetangulo(p1, p2, rect) {
-            // Verificar se o segmento intersecta qualquer um dos lados do retângulo
             const lados = [
-                [{ x: rect.left, y: rect.top }, { x: rect.right, y: rect.top }],    // Topo
-                [{ x: rect.right, y: rect.top }, { x: rect.right, y: rect.bottom }], // Direita
-                [{ x: rect.right, y: rect.bottom }, { x: rect.left, y: rect.bottom }], // Base
-                [{ x: rect.left, y: rect.bottom }, { x: rect.left, y: rect.top }]    // Esquerda
+                [{ x: rect.left, y: rect.top }, { x: rect.right, y: rect.top }],
+                [{ x: rect.right, y: rect.top }, { x: rect.right, y: rect.bottom }],
+                [{ x: rect.right, y: rect.bottom }, { x: rect.left, y: rect.bottom }],
+                [{ x: rect.left, y: rect.bottom }, { x: rect.left, y: rect.top }]
             ];
             
             for (const lado of lados) {
@@ -1978,8 +2332,8 @@ restaurarEstadoHistorico(estado) {
         _segmentosSeIntersectam(a, b, c, d) {
             function orientacao(p, q, r) {
                 const val = (q.y - p.y) * (r.x - q.x) - (q.x - p.x) * (r.y - q.y);
-                if (val === 0) return 0;  // Colinear
-                return (val > 0) ? 1 : 2; // Horário ou anti-horário
+                if (val === 0) return 0;
+                return (val > 0) ? 1 : 2;
             }
             
             function noSegmento(p, q, r) {
@@ -1992,10 +2346,8 @@ restaurarEstadoHistorico(estado) {
             const o3 = orientacao(c, d, a);
             const o4 = orientacao(c, d, b);
             
-            // Caso geral
             if (o1 !== o2 && o3 !== o4) return true;
             
-            // Casos especiais (colineares)
             if (o1 === 0 && noSegmento(a, c, b)) return true;
             if (o2 === 0 && noSegmento(a, d, b)) return true;
             if (o3 === 0 && noSegmento(c, a, d)) return true;
@@ -2021,366 +2373,290 @@ restaurarEstadoHistorico(estado) {
             };
         }
 
-       _criarGrupoTemporario(elementos) {
-    if (!elementos || elementos.length === 0) return;
+        _criarGrupoTemporario(elementos) {
+            if (!elementos || elementos.length === 0) return;
 
-    // 🚫 NÃO SALVAR HISTÓRICO AQUI — grupo temporário não faz parte do histórico
-    console.log(`🔹 Criando grupo temporário (sem salvar no histórico) com ${elementos.length} elementos`);
-    
-    // Calcular bounding box do grupo
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            console.log(`🔹 Criando grupo temporário (sem salvar no histórico) com ${elementos.length} elementos`);
+            
+            let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
 
-    
-    elementos.forEach(elemento => {
-        const bbox = this._obterBoundingBoxAbsoluta(elemento);
-        minX = Math.min(minX, bbox.left);
-        minY = Math.min(minY, bbox.top);
-        maxX = Math.max(maxX, bbox.right);
-        maxY = Math.max(maxY, bbox.bottom);
-    });
-    
-    const padding = 10;
-    const grupoLeft = minX - padding;
-    const grupoTop = minY - padding;
-    const grupoWidth = (maxX - minX) + (2 * padding);
-    const grupoHeight = (maxY - minY) + (2 * padding);
-    
-    // Criar container do grupo
-    const grupo = document.createElement('div');
-    grupo.className = 'grupo-temporario';
-    grupo.style.position = 'absolute';
-    grupo.style.left = `${grupoLeft}px`;
-    grupo.style.top = `${grupoTop}px`;
-    grupo.style.width = `${grupoWidth}px`;
-    grupo.style.height = `${grupoHeight}px`;
-    grupo.style.zIndex = '1000';
-    grupo.style.pointerEvents = 'auto';
-    
-    // Armazenar referência aos elementos originais
-    grupo.setAttribute('data-elementos', JSON.stringify(
-        elementos.map(el => ({
-            elemento: el,
-            left: parseFloat(el.style.left) || 0,
-            top: parseFloat(el.style.top) || 0,
-            transform: el.style.transform || ''
-        }))
-    ));
-    
-    this.drawingArea.appendChild(grupo);
-    this.grupoTemporario = grupo;
-    
-    // Selecionar o grupo
-    this.desselecionarElemento();
-    this.elementoSelecionado = grupo;
-    grupo.classList.add('elemento-selecionado');
-    
-    // 🔥 CORREÇÃO: NÃO CRIAR HANDLES PARA GRUPO TEMPORÁRIO
-    // this.criarHandles(grupo); // REMOVIDO
-    
-    // Configurar interatividade do grupo
-    this._configurarInteratividadeGrupo(grupo, elementos);
-    
-    this.atualizarEstadoBotoes();
-    
-    
-    console.log('✅ Grupo temporário criado com sucesso (sem handles)');
-}
-
-
-      // =============================================
-// CORREÇÃO DO MOVIMENTO DO GRUPO NO CELULAR
-// =============================================
-
-_configurarInteratividadeGrupo(grupo, elementos) {
-    // 🔥 CORREÇÃO: Separar elementos raiz dos elementos filhos (símbolos)
-    const elementosRaiz = [];
-    const elementosFilhos = [];
-    
-    elementos.forEach(elemento => {
-        if (elemento.classList.contains('simbolo-linha') || 
-            elemento.classList.contains('dimensoes') ||
-            elemento.classList.contains('quantidade-peca')) {
-            elementosFilhos.push(elemento);
-        } else {
-            elementosRaiz.push(elemento);
+            
+            elementos.forEach(elemento => {
+                const bbox = this._obterBoundingBoxAbsoluta(elemento);
+                minX = Math.min(minX, bbox.left);
+                minY = Math.min(minY, bbox.top);
+                maxX = Math.max(maxX, bbox.right);
+                maxY = Math.max(maxY, bbox.bottom);
+            });
+            
+            const padding = 10;
+            const grupoLeft = minX - padding;
+            const grupoTop = minY - padding;
+            const grupoWidth = (maxX - minX) + (2 * padding);
+            const grupoHeight = (maxY - minY) + (2 * padding);
+            
+            const grupo = document.createElement('div');
+            grupo.className = 'grupo-temporario';
+            grupo.style.position = 'absolute';
+            grupo.style.left = `${grupoLeft}px`;
+            grupo.style.top = `${grupoTop}px`;
+            grupo.style.width = `${grupoWidth}px`;
+            grupo.style.height = `${grupoHeight}px`;
+            grupo.style.zIndex = '1000';
+            grupo.style.pointerEvents = 'auto';
+            
+            grupo.setAttribute('data-elementos', JSON.stringify(
+                elementos.map(el => ({
+                    elemento: el,
+                    left: parseFloat(el.style.left) || 0,
+                    top: parseFloat(el.style.top) || 0,
+                    transform: el.style.transform || ''
+                }))
+            ));
+            
+            this.drawingArea.appendChild(grupo);
+            this.grupoTemporario = grupo;
+            
+            this.desselecionarElemento();
+            this.elementoSelecionado = grupo;
+            grupo.classList.add('elemento-selecionado');
+            
+            this._configurarInteratividadeGrupo(grupo, elementos);
+            
+            this.atualizarEstadoBotoes();
+            
+            console.log('✅ Grupo temporário criado com sucesso (sem handles)');
         }
-    });
 
-    console.log(`🔧 Grupo: ${elementosRaiz.length} elementos raiz, ${elementosFilhos.length} elementos filhos`);
-
-    // 🔥 CORREÇÃO: Armazenar separadamente no grupo
-    grupo.setAttribute('data-elementos-raiz', JSON.stringify(
-        elementosRaiz.map(el => ({
-            elemento: el,
-            left: parseFloat(el.style.left) || 0,
-            top: parseFloat(el.style.top) || 0,
-            transform: el.style.transform || '',
-            dataX: parseFloat(el.getAttribute('data-x')) || 0,
-            dataY: parseFloat(el.getAttribute('data-y')) || 0
-        }))
-    ));
-
-    grupo.setAttribute('data-elementos-filhos', JSON.stringify(
-        elementosFilhos.map(el => ({
-            elemento: el,
-            parentId: this._obterPecaPaiId(el),
-            dataX: parseFloat(el.getAttribute('data-x')) || 0,
-            dataY: parseFloat(el.getAttribute('data-y')) || 0
-        }))
-    ));
-
-    // Configurar interatividade apenas para elementos raiz
-    this._configurarInteratividadeGrupoRaiz(grupo, elementosRaiz, elementosFilhos);
-}
-
-// 🔥 NOVO MÉTODO: Obter ID da peça pai de um elemento filho
-_obterPecaPaiId(elementoFilho) {
-    if (elementoFilho.classList.contains('simbolo-linha')) {
-        return elementoFilho.getAttribute('data-peca-id');
-    }
-    
-    // Para outros elementos filhos (dimensoes, quantidade), buscar peça pai
-    let parent = elementoFilho.parentElement;
-    while (parent && !parent.classList.contains('peca')) {
-        parent = parent.parentElement;
-    }
-    return parent ? parent.getAttribute('data-peca-id') : null;
-}
-
-// 🔥 NOVO MÉTODO: Configurar interatividade apenas para elementos raiz
-_configurarInteratividadeGrupoRaiz(grupo, elementosRaiz, elementosFilhos) {
-    grupo.style.touchAction = 'none';
-    
-    interact(grupo).draggable({
-        allowFrom: '.grupo-temporario',
-        ignoreFrom: 'input, textarea, button, select',
-        modifiers: [
-            interact.modifiers.restrictRect({
-                restriction: 'parent',
-                endOnly: true
-            })
-        ],
-        preventDefault: 'auto',
-
-        listeners: {
-            start: (event) => {
-                if (event.type.includes('touch')) {
-                    event.preventDefault();
-                    event.stopPropagation();
+        _configurarInteratividadeGrupo(grupo, elementos) {
+            const elementosRaiz = [];
+            const elementosFilhos = [];
+            
+            elementos.forEach(elemento => {
+                if (elemento.classList.contains('simbolo-linha') || 
+                    elemento.classList.contains('dimensoes') ||
+                    elemento.classList.contains('quantidade-peca')) {
+                    elementosFilhos.push(elemento);
+                } else {
+                    elementosRaiz.push(elemento);
                 }
+            });
 
-                grupo.style.zIndex = '1001';
-                
-                // 🔥 CORREÇÃO: Armazenar posições iniciais de TODOS os elementos
-                grupo.setAttribute('data-x-inicial', grupo.getAttribute('data-x') || 0);
-                grupo.setAttribute('data-y-inicial', grupo.getAttribute('data-y') || 0);
-                
-                // Armazenar posições iniciais dos elementos filhos
-                elementosFilhos.forEach(filho => {
-                    filho.setAttribute('data-x-inicial', filho.getAttribute('data-x') || 0);
-                    filho.setAttribute('data-y-inicial', filho.getAttribute('data-y') || 0);
-                });
-            },
-            move: (event) => {
-                if (event.type.includes('touch')) {
-                    event.preventDefault();
-                    event.stopPropagation();
+            console.log(`🔧 Grupo: ${elementosRaiz.length} elementos raiz, ${elementosFilhos.length} elementos filhos`);
+
+            grupo.setAttribute('data-elementos-raiz', JSON.stringify(
+                elementosRaiz.map(el => ({
+                    elemento: el,
+                    left: parseFloat(el.style.left) || 0,
+                    top: parseFloat(el.style.top) || 0,
+                    transform: el.style.transform || '',
+                    dataX: parseFloat(el.getAttribute('data-x')) || 0,
+                    dataY: parseFloat(el.getAttribute('data-y')) || 0
+                }))
+            ));
+
+            grupo.setAttribute('data-elementos-filhos', JSON.stringify(
+                elementosFilhos.map(el => ({
+                    elemento: el,
+                    parentId: this._obterPecaPaiId(el),
+                    dataX: parseFloat(el.getAttribute('data-x')) || 0,
+                    dataY: parseFloat(el.getAttribute('data-y')) || 0
+                }))
+            ));
+
+            this._configurarInteratividadeGrupoRaiz(grupo, elementosRaiz, elementosFilhos);
+        }
+
+        _obterPecaPaiId(elementoFilho) {
+            if (elementoFilho.classList.contains('simbolo-linha')) {
+                return elementoFilho.getAttribute('data-peca-id');
+            }
+            
+            let parent = elementoFilho.parentElement;
+            while (parent && !parent.classList.contains('peca')) {
+                parent = parent.parentElement;
+            }
+            return parent ? parent.getAttribute('data-peca-id') : null;
+        }
+
+        _configurarInteratividadeGrupoRaiz(grupo, elementosRaiz, elementosFilhos) {
+            grupo.style.touchAction = 'none';
+            
+            interact(grupo).draggable({
+                allowFrom: '.grupo-temporario',
+                ignoreFrom: 'input, textarea, button, select',
+                modifiers: [
+                    interact.modifiers.restrictRect({
+                        restriction: 'parent',
+                        endOnly: true
+                    })
+                ],
+                preventDefault: 'auto',
+
+                listeners: {
+                    start: (event) => {
+                        if (event.type.includes('touch')) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+
+                        grupo.style.zIndex = '1001';
+                        
+                        grupo.setAttribute('data-x-inicial', grupo.getAttribute('data-x') || 0);
+                        grupo.setAttribute('data-y-inicial', grupo.getAttribute('data-y') || 0);
+                        
+                        elementosFilhos.forEach(filho => {
+                            filho.setAttribute('data-x-inicial', filho.getAttribute('data-x') || 0);
+                            filho.setAttribute('data-y-inicial', filho.getAttribute('data-y') || 0);
+                        });
+                    },
+                    move: (event) => {
+                        if (event.type.includes('touch')) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+
+                        const x = (parseFloat(grupo.getAttribute('data-x')) || 0) + event.dx;
+                        const y = (parseFloat(grupo.getAttribute('data-y')) || 0) + event.dy;
+                        const rotate = grupo.getAttribute('data-rotate') || 0;
+                        
+                        grupo.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
+                        grupo.setAttribute('data-x', x);
+                        grupo.setAttribute('data-y', y);
+                        
+                        elementosRaiz.forEach(elemento => {
+                            const currentX = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                            const currentY = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                            const elementRotate = elemento.getAttribute('data-rotate') || 0;
+                            
+                            elemento.style.transform = `translate(${currentX}px, ${currentY}px) rotate(${elementRotate}deg)`;
+                            elemento.setAttribute('data-x', currentX);
+                            elemento.setAttribute('data-y', currentY);
+                            
+                            if (elemento.classList.contains('peca')) {
+                                this.atualizarPosicaoSimbolos(elemento);
+                                this.atualizarPosicaoDimensoes(elemento);
+                            }
+                        });
+                    },
+                    end: (event) => {
+                        if (event.type.includes('touch')) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+                        
+                        grupo.style.zIndex = '1000';
+                        
+                        const xInicial = parseFloat(grupo.getAttribute('data-x-inicial')) || 0;
+                        const yInicial = parseFloat(grupo.getAttribute('data-y-inicial')) || 0;
+                        const xAtual = parseFloat(grupo.getAttribute('data-x')) || 0;
+                        const yAtual = parseFloat(grupo.getAttribute('data-y')) || 0;
+                        
+                        const movimentoSignificativo = Math.hypot(xAtual - xInicial, yAtual - yInicial) > 1;
+                        
+                        if (movimentoSignificativo) {
+                            console.log('💾 Salvando histórico: Mover Grupo');
+                            this.salvarEstadoHistorico('Mover Grupo');
+                        }
+                    }
                 }
+            });
 
-                const x = (parseFloat(grupo.getAttribute('data-x')) || 0) + event.dx;
-                const y = (parseFloat(grupo.getAttribute('data-y')) || 0) + event.dy;
-                const rotate = grupo.getAttribute('data-rotate') || 0;
-                
-                grupo.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
-                grupo.setAttribute('data-x', x);
-                grupo.setAttribute('data-y', y);
-                
-                // 🔥 CORREÇÃO: Mover apenas elementos raiz
-                elementosRaiz.forEach(elemento => {
-                    const currentX = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                    const currentY = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-                    const elementRotate = elemento.getAttribute('data-rotate') || 0;
-                    
-                    elemento.style.transform = `translate(${currentX}px, ${currentY}px) rotate(${elementRotate}deg)`;
-                    elemento.setAttribute('data-x', currentX);
-                    elemento.setAttribute('data-y', currentY);
-                    
-                    // 🔥 ATUALIZAR SÍMBOLOS DA PEÇA automaticamente
-                    if (elemento.classList.contains('peca')) {
-                        this.atualizarPosicaoSimbolos(elemento);
-                        this.atualizarPosicaoDimensoes(elemento);
+            grupo.addEventListener('touchstart', (e) => {
+                e.stopPropagation();
+            }, { passive: false });
+
+            grupo.addEventListener('touchmove', (e) => {
+                e.stopPropagation();
+            }, { passive: false });
+        }
+
+        limparModoLacoCompletamente() {
+            if (this.svgOverlay && this.svgOverlay.parentNode) {
+                this.svgOverlay.parentNode.removeChild(this.svgOverlay);
+                this.svgOverlay = null;
+            }
+            
+            this._lacoPolygonElement = null;
+            this.lacoPontos = [];
+            
+            if (this._lacoMouseDownHandler) {
+                this.drawingArea.removeEventListener('mousedown', this._lacoMouseDownHandler);
+            }
+            if (this._lacoMoveHandler) {
+                this.drawingArea.removeEventListener('mousemove', this._lacoMoveHandler);
+            }
+            if (this._lacoUpHandler) {
+                this.drawingArea.removeEventListener('mouseup', this._lacoUpHandler);
+            }
+            
+            this._lacoMouseDownHandler = null;
+            this._lacoMoveHandler = null;
+            this._lacoUpHandler = null;
+        }
+
+        limparGrupoTemporario() {
+            if (this.grupoTemporario && this.grupoTemporario.parentNode) {
+                const elementosData = JSON.parse(this.grupoTemporario.getAttribute('data-elementos') || '[]');
+                elementosData.forEach(data => {
+                    if (data.elemento && data.elemento.classList) {
+                        data.elemento.classList.remove('elemento-em-grupo');
                     }
                 });
-
-                // 🔥 CORREÇÃO: NÃO mover elementos filhos individualmente
-                // Eles serão movidos automaticamente pela atualização da peça pai
-            },
-            end: (event) => {
-                if (event.type.includes('touch')) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
                 
-                grupo.style.zIndex = '1000';
+                this.grupoTemporario.remove();
+                this.grupoTemporario = null;
+                console.log('🗑️ Grupo temporário removido');
                 
-                const xInicial = parseFloat(grupo.getAttribute('data-x-inicial')) || 0;
-                const yInicial = parseFloat(grupo.getAttribute('data-y-inicial')) || 0;
-                const xAtual = parseFloat(grupo.getAttribute('data-x')) || 0;
-                const yAtual = parseFloat(grupo.getAttribute('data-y')) || 0;
-                
-                const movimentoSignificativo = Math.hypot(xAtual - xInicial, yAtual - yInicial) > 1;
-                
-                if (movimentoSignificativo) {
-                    console.log('💾 Salvando histórico: Mover Grupo');
-                    this.salvarEstadoHistorico('Mover Grupo');
-                }
+                this.atualizarEstadoBotoes();
             }
         }
-    });
 
-    grupo.addEventListener('touchstart', (e) => {
-        e.stopPropagation();
-    }, { passive: false });
-
-    grupo.addEventListener('touchmove', (e) => {
-        e.stopPropagation();
-    }, { passive: false });
-}
-
-   
-
-limparModoLacoCompletamente() {
-    // Remover overlay SVG
-    if (this.svgOverlay && this.svgOverlay.parentNode) {
-        this.svgOverlay.parentNode.removeChild(this.svgOverlay);
-        this.svgOverlay = null;
-    }
-    
-    // Limpar polígono
-    this._lacoPolygonElement = null;
-    this.lacoPontos = [];
-    
-    // Remover event listeners se ainda existirem
-    if (this._lacoMouseDownHandler) {
-        this.drawingArea.removeEventListener('mousedown', this._lacoMouseDownHandler);
-    }
-    if (this._lacoMoveHandler) {
-        this.drawingArea.removeEventListener('mousemove', this._lacoMoveHandler);
-    }
-    if (this._lacoUpHandler) {
-        this.drawingArea.removeEventListener('mouseup', this._lacoUpHandler);
-    }
-    
-    // Limpar referências
-    this._lacoMouseDownHandler = null;
-    this._lacoMoveHandler = null;
-    this._lacoUpHandler = null;
-}
-
-limparGrupoTemporario() {
-    if (this.grupoTemporario && this.grupoTemporario.parentNode) {
-        // 🔥 Remover a classe dos elementos que estavam no grupo
-        const elementosData = JSON.parse(this.grupoTemporario.getAttribute('data-elementos') || '[]');
-        elementosData.forEach(data => {
-            if (data.elemento && data.elemento.classList) {
-                data.elemento.classList.remove('elemento-em-grupo');
-            }
-        });
-        
-        this.grupoTemporario.remove();
-        this.grupoTemporario = null;
-        console.log('🗑️ Grupo temporário removido');
-        
-        // 🔥 Atualizar estado dos botões
-        this.atualizarEstadoBotoes();
-    }
-}
-        ativarModoSelecao() {
-    this.modoSelecaoAtivo = true;
-    this.desselecionarElemento();
-    this.drawingArea.style.cursor = 'pointer';
-    
-    const btnSelecionar = document.getElementById('btnSelecionar');
-    btnSelecionar.classList.add('btn-selecao-ativo');
-    
-    this.tornarElementosSelecionaveis(true);
-    this.desabilitarLinhasPecas();
-    
-    // 🔥 ADICIONADO: Atualizar interatividade dos textos
-    this.atualizarInteratividadeTextos();
-    
-    console.log('🔧 Modo seleção ativado - linhas desabilitadas');
-}
-
-
-        desativarModoSelecao() {
-    this.modoSelecaoAtivo = false;
-    this.desselecionarElemento();
-    this.drawingArea.style.cursor = 'default';
-    
-    const btnSelecionar = document.getElementById('btnSelecionar');
-    btnSelecionar.classList.remove('btn-selecao-ativo');
-    
-    this.tornarElementosSelecionaveis(false);
-    this.reabilitarLinhasPecas();
-    
-    // 🔥 ADICIONADO: Atualizar interatividade dos textos
-    this.atualizarInteratividadeTextos();
-    
-    console.log('🔧 Modo seleção desativado - linhas reabilitadas');
-}
-
-       tornarElementosSelecionaveis(selecionavel) {
-    const elementos = this.drawingArea.querySelectorAll(
-        '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca, .grupo-temporario' // 🔥 ADICIONADO
-    );
-    
-    elementos.forEach(elemento => {
-        if (selecionavel) {
-            elemento.classList.add('selecionavel');
-            if (elemento.classList.contains('simbolo-linha')) {
-                this.configurarInteratividadeSimbolo(elemento);
-            } else if (elemento.classList.contains('legenda-simplificada')) {
-                this.configurarInteratividadeLegenda(elemento);
-            } else if (elemento.classList.contains('grupo-temporario')) {
-                // 🔥 Configurar interatividade específica para grupo temporário
-                this._configurarInteratividadeGrupo(elemento, []);
-            }
-        } else {
-            elemento.classList.remove('selecionavel');
-            this.removerInteratividade(elemento);
+        tornarElementosSelecionaveis(selecionavel) {
+            const elementos = this.drawingArea.querySelectorAll(
+                '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca, .grupo-temporario'
+            );
+            
+            elementos.forEach(elemento => {
+                if (selecionavel) {
+                    elemento.classList.add('selecionavel');
+                    if (elemento.classList.contains('simbolo-linha')) {
+                        this.configurarInteratividadeSimbolo(elemento);
+                    } else if (elemento.classList.contains('legenda-simplificada')) {
+                        this.configurarInteratividadeLegenda(elemento);
+                    } else if (elemento.classList.contains('grupo-temporario')) {
+                        this._configurarInteratividadeGrupo(elemento, []);
+                    }
+                } else {
+                    elemento.classList.remove('selecionavel');
+                    this.removerInteratividade(elemento);
+                }
+            });
         }
-    });
-}
 
         manipularCliqueSelecao(e) {
-    if (e.target.classList.contains('handle')) return;
-    
-    // 🔥 CORREÇÃO: Buscar por qualquer elemento clicável, incluindo peças
-    const elemento = e.target.closest('.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca, .grupo-temporario');
-    
-    // 🔥 CORREÇÃO: Se clicou em área vazia, desselecionar
-    if (!elemento) {
-        if (this.grupoTemporario) {
-            console.log('🗑️ Clicou fora - removendo grupo temporário');
-            this.limparGrupoTemporario();
+            if (e.target.classList.contains('handle')) return;
+            
+            const elemento = e.target.closest('.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca, .grupo-temporario');
+            
+            if (!elemento) {
+                if (this.grupoTemporario) {
+                    console.log('🗑️ Clicou fora - removendo grupo temporário');
+                    this.limparGrupoTemporario();
+                }
+                this.desselecionarElemento();
+                return;
+            }
+            
+            if (elemento.classList.contains('selecionavel') || 
+                elemento.classList.contains('peca') || 
+                elemento.classList.contains('grupo-temporario')) {
+                this.selecionarElemento(elemento, e);
+            } else {
+                this.desselecionarElemento();
+            }
         }
-        this.desselecionarElemento();
-        return;
-    }
-    
-    // 🔥 CORREÇÃO: Verificar se elemento é selecionável
-    if (elemento.classList.contains('selecionavel') || 
-        elemento.classList.contains('peca') || 
-        elemento.classList.contains('grupo-temporario')) {
-        this.selecionarElemento(elemento, e);
-    } else {
-        this.desselecionarElemento();
-    }
-}
-    
-   
-
+        
         obterPosicaoComScroll(elemento) {
             const rect = elemento.getBoundingClientRect();
             const drawingAreaRect = this.drawingArea.getBoundingClientRect();
@@ -2393,42 +2669,38 @@ limparGrupoTemporario() {
             };
         }
 
-// 🔥 ADICIONE ESTE MÉTODO À CLASSE GerenciadorDesenho
-atualizarOrdemEmpilhamento() {
-    // Garantir que peças fiquem acima dos containers de grupo
-    const todasPecas = this.drawingArea.querySelectorAll('.peca');
-    const todosGrupos = this.drawingArea.querySelectorAll('.area-pecas');
-    
-    todosGrupos.forEach((grupo, index) => {
-        grupo.style.zIndex = 1;
-    });
-    
-    todasPecas.forEach((peca, index) => {
-        peca.style.zIndex = 2;
-    });
-}
-
+        atualizarOrdemEmpilhamento() {
+            const todasPecas = this.drawingArea.querySelectorAll('.peca');
+            const todosGrupos = this.drawingArea.querySelectorAll('.area-pecas');
+            
+            todosGrupos.forEach((grupo, index) => {
+                grupo.style.zIndex = 1;
+            });
+            
+            todasPecas.forEach((peca, index) => {
+                peca.style.zIndex = 2;
+            });
+        }
 
         selecionarElemento(elemento, event) {
-    this.desselecionarElemento();
-    
-    this.elementoSelecionado = elemento;
-    elemento.classList.add('elemento-selecionado');
-    
-    // 🔥 CORREÇÃO: Trazer elemento selecionado para frente
-    elemento.style.zIndex = '1000';
-    
-    console.log('🔧 Selecionando elemento:', elemento.className, elemento.classList.contains('simbolo-linha'));
-    
-    this.desabilitarLinhasPecas();
-    
-    if (!elemento.classList.contains('simbolo-linha') && !elemento.classList.contains('grupo-temporario')) {
-        this.criarHandles(elemento);
-    }
-    
-    this.configurarInteratividade(elemento);
-    this.atualizarEstadoBotoes();
-}
+            this.desselecionarElemento();
+            
+            this.elementoSelecionado = elemento;
+            elemento.classList.add('elemento-selecionado');
+            
+            elemento.style.zIndex = '1000';
+            
+            console.log('🔧 Selecionando elemento:', elemento.className, elemento.classList.contains('simbolo-linha'));
+            
+            this.desabilitarLinhasPecas();
+            
+            if (!elemento.classList.contains('simbolo-linha') && !elemento.classList.contains('grupo-temporario')) {
+                this.criarHandles(elemento);
+            }
+            
+            this.configurarInteratividade(elemento);
+            this.atualizarEstadoBotoes();
+        }
 
         configurarHandlesLinhaReta(elemento) {
             this.criarHandlesLinhaReta(elemento);
@@ -2571,25 +2843,24 @@ atualizarOrdemEmpilhamento() {
 
         configurarRedimensionamentoLinhaReta(elemento) {
             // Para linha reta, não usar o resizable do interact
-            // Já estamos controlando o redimensionamento manualmente com os handles
         }
 
         criarHandles(elemento) {
             console.log('🔧 Criando handles para:', elemento.className);
             
-             const pos = this.obterPosicaoComScroll(elemento);
-    const left = pos.left;
-    const top = pos.top;
-    const width = pos.width;
-    const height = pos.height;
+            const pos = this.obterPosicaoComScroll(elemento);
+            const left = pos.left;
+            const top = pos.top;
+            const width = pos.width;
+            const height = pos.height;
 
-    const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
-    const rad = rotation * Math.PI / 180;
-    
-    const centerX = left + width / 2;
-    const centerY = top + height / 2;
+            const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+            const rad = rotation * Math.PI / 180;
+            
+            const centerX = left + width / 2;
+            const centerY = top + height / 2;
 
-    console.log(`🔧 Posição: left=${left}, top=${top}, width=${width}, height=${height}, rotation=${rotation}`);
+            console.log(`🔧 Posição: left=${left}, top=${top}, width=${width}, height=${height}, rotation=${rotation}`);
 
             const relativeHandles = [
                 { class: 'handle-n', relX: 0, relY: -height / 2 },
@@ -2927,39 +3198,36 @@ atualizarOrdemEmpilhamento() {
         }
 
         atualizarEstadoBotoes() {
-    const temElementoSelecionado = this.elementoSelecionado !== null;
-    
-    // 🔥 CORREÇÃO: Verificar se é grupo temporário ou modo laço ativo
-    const isGrupoTemporario = this.elementoSelecionado && 
-                              this.elementoSelecionado.classList.contains('grupo-temporario');
-    const isModoLacoAtivo = this.modoLacoAtivo;
-    
-    // Desabilitar botões se for grupo temporário ou modo laço ativo
-    const desabilitarBotoes = isGrupoTemporario || isModoLacoAtivo;
-    
-    const btnDuplicar = document.getElementById('btnDuplicar');
-    const btnExcluir = document.getElementById('btnExcluir');
-    
-    btnDuplicar.disabled = !temElementoSelecionado || desabilitarBotoes;
-    btnExcluir.disabled = !temElementoSelecionado || desabilitarBotoes;
-    
-    // 🔥 CORREÇÃO ADICIONAL: Adicionar/remover classes CSS para mobile
-    if (desabilitarBotoes) {
-        btnDuplicar.classList.add('btn-desabilitado-mobile');
-        btnExcluir.classList.add('btn-desabilitado-mobile');
-        btnDuplicar.title = 'Ação não disponível para grupo temporário';
-        btnExcluir.title = 'Ação não disponível para grupo temporário';
-    } else {
-        btnDuplicar.classList.remove('btn-desabilitado-mobile');
-        btnExcluir.classList.remove('btn-desabilitado-mobile');
-        btnDuplicar.title = 'Duplicar Elemento Selecionado';
-        btnExcluir.title = 'Excluir Elemento Selecionado';
-    }
-}
+            const temElementoSelecionado = this.elementoSelecionado !== null;
+            
+            const isGrupoTemporario = this.elementoSelecionado && 
+                                    this.elementoSelecionado.classList.contains('grupo-temporario');
+            const isModoLacoAtivo = this.modoLacoAtivo;
+            
+            const desabilitarBotoes = isGrupoTemporario || isModoLacoAtivo;
+            
+            const btnDuplicar = document.getElementById('btnDuplicar');
+            const btnExcluir = document.getElementById('btnExcluir');
+            
+            btnDuplicar.disabled = !temElementoSelecionado || desabilitarBotoes;
+            btnExcluir.disabled = !temElementoSelecionado || desabilitarBotoes;
+            
+            if (desabilitarBotoes) {
+                btnDuplicar.classList.add('btn-desabilitado-mobile');
+                btnExcluir.classList.add('btn-desabilitado-mobile');
+                btnDuplicar.title = 'Ação não disponível para grupo temporário';
+                btnExcluir.title = 'Ação não disponível para grupo temporário';
+            } else {
+                btnDuplicar.classList.remove('btn-desabilitado-mobile');
+                btnExcluir.classList.remove('btn-desabilitado-mobile');
+                btnDuplicar.title = 'Duplicar Elemento Selecionado';
+                btnExcluir.title = 'Excluir Elemento Selecionado';
+            }
+        }
 
-       atualizarLinhasESimbolos(elemento) {
-    const width = parseFloat(elemento.style.width);
-    const height = parseFloat(elemento.style.height);
+        atualizarLinhasESimbolos(elemento) {
+            const width = parseFloat(elemento.style.width);
+            const height = parseFloat(elemento.style.height);
             
             const linhas = elemento.querySelectorAll('.linha-peca');
             linhas.forEach(linha => {
@@ -2989,53 +3257,10 @@ atualizarOrdemEmpilhamento() {
                 }
             });
 
-         this.atualizarPosicaoSimbolos(elemento);
-    this.atualizarPosicaoDimensoes(elemento); // 🔥 LINHA IMPORTANTE!
-    
-    this.atualizarHandles();
-}
-
-        atualizarPosicaoSimbolos(elemento) {
-            const pecaId = elemento.getAttribute('data-peca-id');
-            if (!pecaId) return;
-
-            const simbolos = elemento.querySelectorAll(`.simbolo-linha[data-peca-id="${pecaId}"]`);
+            this.atualizarPosicaoSimbolos(elemento);
+            this.atualizarPosicaoDimensoes(elemento);
             
-            const pecaWidth = parseFloat(elemento.style.width);
-            const pecaHeight = parseFloat(elemento.style.height);
-            
-            simbolos.forEach(simbolo => {
-                const lado = simbolo.getAttribute('data-lado');
-                const rotacaoSimbolo = simbolo.getAttribute('data-rotacao') || 0;
-                
-                let left, top;
-                const centerX = pecaWidth / 2;
-                const centerY = pecaHeight / 2;
-                
-                switch(lado) {
-                    case 'top':
-                        left = centerX;
-                        top = 0;
-                        break;
-                    case 'bottom':
-                        left = centerX;
-                        top = pecaHeight;
-                        break;
-                    case 'left':
-                        left = 0;
-                        top = centerY;
-                        break;
-                    case 'right':
-                        left = pecaWidth;
-                        top = centerY;
-                        break;
-                }
-                
-                simbolo.style.left = `${left}px`;
-                simbolo.style.top = `${top}px`;
-                simbolo.style.transform = `translate(-50%, -50%) rotate(${rotacaoSimbolo}deg)`;
-                simbolo.style.transformOrigin = 'center center';
-            });
+            this.atualizarHandles();
         }
 
         duplicarElemento() {
@@ -3234,43 +3459,41 @@ atualizarOrdemEmpilhamento() {
             };
         }
 
-       criarCuba(x, y, tipo, largura = 80, altura = 50) {
-    const cubaElement = document.createElement('div');
-    cubaElement.className = `cuba ${tipo}`;
-    cubaElement.style.position = 'absolute';
-    cubaElement.style.left = `${x}px`;
-    cubaElement.style.top = `${y}px`;
-    
-    if (tipo === 'linha-reta') {
-        cubaElement.style.width = `${Math.max(largura, 100)}px`;
-        cubaElement.style.height = '2px';
-        cubaElement.style.backgroundColor = '#333';
-        cubaElement.style.border = 'none';
-    } else if (tipo === 'circulo') {
-        const tamanho = Math.max(largura, altura);
-        cubaElement.style.width = `${tamanho}px`;
-        cubaElement.style.height = `${tamanho}px`;
-        cubaElement.style.borderRadius = '50%';
-    } else {
-        cubaElement.style.width = `${largura}px`;
-        cubaElement.style.height = `${altura}px`;
-        if (tipo === 'oval') cubaElement.style.borderRadius = '50%';
-        else if (tipo === 'elipse') cubaElement.style.borderRadius = '40%';
-        else cubaElement.style.borderRadius = '0';
-    }
+        criarCuba(x, y, tipo, largura = 80, altura = 50) {
+            const cubaElement = document.createElement('div');
+            cubaElement.className = `cuba ${tipo}`;
+            cubaElement.style.position = 'absolute';
+            cubaElement.style.left = `${x}px`;
+            cubaElement.style.top = `${y}px`;
+            
+            if (tipo === 'linha-reta') {
+                cubaElement.style.width = `${Math.max(largura, 100)}px`;
+                cubaElement.style.height = '2px';
+                cubaElement.style.backgroundColor = '#333';
+                cubaElement.style.border = 'none';
+            } else if (tipo === 'circulo') {
+                const tamanho = Math.max(largura, altura);
+                cubaElement.style.width = `${tamanho}px`;
+                cubaElement.style.height = `${tamanho}px`;
+                cubaElement.style.borderRadius = '50%';
+            } else {
+                cubaElement.style.width = `${largura}px`;
+                cubaElement.style.height = `${altura}px`;
+                if (tipo === 'oval') cubaElement.style.borderRadius = '50%';
+                else if (tipo === 'elipse') cubaElement.style.borderRadius = '40%';
+                else cubaElement.style.borderRadius = '0';
+            }
 
-    if (this.modoSelecaoAtivo) cubaElement.classList.add('selecionavel');
+            if (this.modoSelecaoAtivo) cubaElement.classList.add('selecionavel');
 
-    const grupo = this.encontrarGrupoNaPosicao(x, y);
-    if (grupo) grupo.appendChild(cubaElement);
-    else this.drawingArea.appendChild(cubaElement);
+            const grupo = this.encontrarGrupoNaPosicao(x, y);
+            if (grupo) grupo.appendChild(cubaElement);
+            else this.drawingArea.appendChild(cubaElement);
 
-    this.configurarInteratividadeCuba(cubaElement, tipo);
-    this.salvarEstadoHistorico('Adicionar Cuba');
-    return cubaElement;
-}
-
-
+            this.configurarInteratividadeCuba(cubaElement, tipo);
+            this.salvarEstadoHistorico('Adicionar Cuba');
+            return cubaElement;
+        }
 
         configurarInteratividadeCuba(elemento, tipo) {
             interact(elemento).draggable({
@@ -3320,113 +3543,136 @@ atualizarOrdemEmpilhamento() {
             }
         }
 
-       criarTexto(x, y, textoInicial = "") {
-    const textoElement = document.createElement('textarea');
-    textoElement.className = 'texto-legenda';
-    textoElement.style.left = `${x}px`;
-    textoElement.style.top = `${y}px`;
-    textoElement.value = textoInicial;
-    
-    textoElement.setAttribute('data-valor', textoInicial);
-    textoElement.rows = 1;
-    textoElement.placeholder = "Digite seu texto";
-  
-    // ✅ CORREÇÃO: Alinhar texto à esquerda
-    textoElement.style.textAlign = 'left';
-    textoElement.style.justifyContent = 'flex-start';
-    textoElement.style.alignItems = 'flex-start';
-    
-    // 🔥 MODIFICADO: Só adicionar classe selecionavel se modo seleção estiver ativo
-    if (this.modoSelecaoAtivo) {
-        textoElement.classList.add('selecionavel');
-    }
-    
-    const grupo = this.encontrarGrupoNaPosicao(x, y);
-    if (grupo) {
-        grupo.appendChild(textoElement);
-    } else {
-        this.drawingArea.appendChild(textoElement);
-    }
-    
-    this.salvarEstadoImediato('Adicionar Caixa de Texto');
-    
-    textoElement.focus();
-    
-    textoElement.addEventListener('input', () => {
-        textoElement.style.height = 'auto';
-        textoElement.style.height = (textoElement.scrollHeight) + 'px';
-        textoElement.setAttribute('data-valor', textoElement.value);
-    });
-    
-    textoElement.addEventListener('blur', () => {
-        textoElement.setAttribute('data-valor', textoElement.value);
-        
-        if (textoElement.value.trim() === '') {
-            textoElement.remove();
-            this.salvarEstadoImediato('Remover Texto Vazio');
-        } else {
-            this.salvarEstadoImediato('Editar Texto: ' + textoElement.value.substring(0, 20));
-        }
-    });
+        // 🔥 MODIFICADO: Manipular clique de inserção
+        manipularCliqueInsercao(e) {
+            if (!this.modoInsercaoAtivo) return;
+            
+            const drawingRect = this.drawingArea.getBoundingClientRect();
+            const x = e.clientX - drawingRect.left + this.drawingArea.scrollLeft;
+            const y = e.clientY - drawingRect.top + this.drawingArea.scrollTop;
+            
+            console.log(`🎯 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y}`);
 
-    // 🔥 MODIFICADO: Só configurar interatividade se modo seleção estiver ativo
-    if (this.modoSelecaoAtivo) {
-        this.configurarInteratividadeTexto(textoElement);
-    }
-    
-    return textoElement;
-}
-
-       configurarInteratividadeTexto(elemento) {
-    // Remover interação existente primeiro
-    this.removerInteratividade(elemento);
-    
-    // 🔥 CORREÇÃO: Só configurar arrasto se modo seleção estiver ativo
-    if (this.modoSelecaoAtivo) {
-        let originalBackground = elemento.style.backgroundColor;
-        
-        interact(elemento).draggable({
-            allowFrom: '.texto-legenda',
-            ignoreFrom: 'input, textarea, button, select',
-            modifiers: [
-                interact.modifiers.restrictRect({
-                    restriction: 'parent',
-                    endOnly: true
-                })
-            ],
-            preventDefault: 'always',
-
-            listeners: {
-                start: (event) => {
-                    if (event.type.includes('touch')) {
-                        event.preventDefault();
-                    }
-
-                    elemento.style.zIndex = '1000';
-                    elemento.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
-                },
-                move: (event) => {
-                    if (event.type.includes('touch')) {
-                        event.preventDefault();
-                    }
-
-                    let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                    let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-                    const rotacao = parseFloat(elemento.getAttribute('data-rotacao')) || 0;
-
-                    elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotacao}deg)`;
-                    elemento.setAttribute('data-x', x);
-                    elemento.setAttribute('data-y', y);
-                },
-                end: () => {
-                    elemento.style.zIndex = '';
-                    elemento.style.backgroundColor = originalBackground;
-                    this.salvarEstadoHistorico('Mover Texto');
-                }
+            switch(this.modoInsercaoAtivo) {
+                case 'texto':
+                    this.criarTexto(x, y, '');
+                    break;
+                case 'cuba':
+                    this.mostrarSeletorCuba(x, y);
+                    break;
+                case 'legenda':
+                    this.mostrarSeletorLegenda(x, y);
+                    break;
+                default:
+                    console.warn('⚠️ Modo de inserção desconhecido:', this.modoInsercaoAtivo);
             }
-        });
-    }
-}
+            
+            // 🔥 CORREÇÃO: Desativar o modo após a inserção
+            this.desativarTodosOsModos();
+        }
+
+        criarTexto(x, y, textoInicial = "") {
+            const textoElement = document.createElement('textarea');
+            textoElement.className = 'texto-legenda';
+            textoElement.style.left = `${x}px`;
+            textoElement.style.top = `${y}px`;
+            textoElement.value = textoInicial;
+            
+            textoElement.setAttribute('data-valor', textoInicial);
+            textoElement.rows = 1;
+            textoElement.placeholder = "Digite seu texto";
+        
+            textoElement.style.textAlign = 'left';
+            textoElement.style.justifyContent = 'flex-start';
+            textoElement.style.alignItems = 'flex-start';
+            
+            if (this.modoSelecaoAtivo) {
+                textoElement.classList.add('selecionavel');
+            }
+            
+            const grupo = this.encontrarGrupoNaPosicao(x, y);
+            if (grupo) {
+                grupo.appendChild(textoElement);
+            } else {
+                this.drawingArea.appendChild(textoElement);
+            }
+            
+            this.salvarEstadoImediato('Adicionar Caixa de Texto');
+            
+            textoElement.focus();
+            
+            textoElement.addEventListener('input', () => {
+                textoElement.style.height = 'auto';
+                textoElement.style.height = (textoElement.scrollHeight) + 'px';
+                textoElement.setAttribute('data-valor', textoElement.value);
+            });
+            
+            textoElement.addEventListener('blur', () => {
+                textoElement.setAttribute('data-valor', textoElement.value);
+                
+                if (textoElement.value.trim() === '') {
+                    textoElement.remove();
+                    this.salvarEstadoImediato('Remover Texto Vazio');
+                } else {
+                    this.salvarEstadoImediato('Editar Texto: ' + textoElement.value.substring(0, 20));
+                }
+            });
+
+            if (this.modoSelecaoAtivo) {
+                this.configurarInteratividadeTexto(textoElement);
+            }
+            
+            return textoElement;
+        }
+
+        configurarInteratividadeTexto(elemento) {
+            this.removerInteratividade(elemento);
+            
+            if (this.modoSelecaoAtivo) {
+                let originalBackground = elemento.style.backgroundColor;
+                
+                interact(elemento).draggable({
+                    allowFrom: '.texto-legenda',
+                    ignoreFrom: 'input, textarea, button, select',
+                    modifiers: [
+                        interact.modifiers.restrictRect({
+                            restriction: 'parent',
+                            endOnly: true
+                        })
+                    ],
+                    preventDefault: 'always',
+
+                    listeners: {
+                        start: (event) => {
+                            if (event.type.includes('touch')) {
+                                event.preventDefault();
+                            }
+
+                            elemento.style.zIndex = '1000';
+                            elemento.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+                        },
+                        move: (event) => {
+                            if (event.type.includes('touch')) {
+                                event.preventDefault();
+                            }
+
+                            let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                            let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                            const rotacao = parseFloat(elemento.getAttribute('data-rotacao')) || 0;
+
+                            elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotacao}deg)`;
+                            elemento.setAttribute('data-x', x);
+                            elemento.setAttribute('data-y', y);
+                        },
+                        end: () => {
+                            elemento.style.zIndex = '';
+                            elemento.style.backgroundColor = originalBackground;
+                            this.salvarEstadoHistorico('Mover Texto');
+                        }
+                    }
+                });
+            }
+        }
 
         criarLegendaSimplificada(x, y, simbolo = "C", descricao = "Acabamento") {
             const legendaElement = document.createElement('div');
@@ -3467,155 +3713,77 @@ atualizarOrdemEmpilhamento() {
             return legendaElement;
         }
 
-configurarInteratividadeLegenda(elemento) {
-    // 🔥 Captura e guarda a rotação inicial (se houver)
-    const transformInicial = window.getComputedStyle(elemento).transform;
+        configurarInteratividadeLegenda(elemento) {
+            const transformInicial = window.getComputedStyle(elemento).transform;
 
-    let rotacaoInicial = 0;
-    const match = elemento.style.transform.match(/rotate\(([-0-9.]+)deg\)/);
-    if (match) {
-        rotacaoInicial = parseFloat(match[1]);
-    } else {
-        const matrix = transformInicial.match(/^matrix\(([^)]+)\)$/);
-        if (matrix) {
-            const valores = matrix[1].split(',').map(parseFloat);
-            const a = valores[0], b = valores[1];
-            const angulo = Math.round(Math.atan2(b, a) * (180 / Math.PI));
-            rotacaoInicial = angulo;
-        }
-    }
-
-    elemento.setAttribute('data-rotacao', rotacaoInicial);
-    elemento.setAttribute('data-x', '0');
-    elemento.setAttribute('data-y', '0');
-
-    // === CONFIGURAÇÃO PRINCIPAL COM INTERACT.JS ===
-    interact(elemento).draggable({
-        allowFrom: '.legenda-simplificada',
-        ignoreFrom: 'input, textarea, button, select, .legenda-descricao-inline',
-        modifiers: [
-            interact.modifiers.restrictRect({
-                restriction: 'parent',
-                endOnly: true
-            })
-        ],
-        // ⚠️ Removido preventDefault: 'always' (impedia toque no celular)
-
-        listeners: {
-            start: (event) => {
-                if (event.type.includes('touch')) event.preventDefault();
-
-                elemento.style.zIndex = '1000';
-                const rotacao = parseFloat(elemento.getAttribute('data-rotacao')) || 0;
-                elemento.style.transform = `rotate(${rotacao}deg)`;
-
-                console.log('🌀 Iniciando movimento da legenda com rotação fixa:', rotacao);
-            },
-
-            move: (event) => {
-                if (event.type.includes('touch')) event.preventDefault();
-
-                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-                const rotacao = parseFloat(elemento.getAttribute('data-rotacao')) || 0;
-
-                // ✅ Mantém a rotação fixa enquanto move
-                elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotacao}deg)`;
-                elemento.setAttribute('data-x', x);
-                elemento.setAttribute('data-y', y);
-            },
-
-            end: (event) => {
-                if (event.type.includes('touch')) event.preventDefault();
-                elemento.style.zIndex = '';
-                this.salvarEstadoHistorico('Mover Legenda');
-                console.log('✅ Movimento da legenda finalizado');
+            let rotacaoInicial = 0;
+            const match = elemento.style.transform.match(/rotate\(([-0-9.]+)deg\)/);
+            if (match) {
+                rotacaoInicial = parseFloat(match[1]);
+            } else {
+                const matrix = transformInicial.match(/^matrix\(([^)]+)\)$/);
+                if (matrix) {
+                    const valores = matrix[1].split(',').map(parseFloat);
+                    const a = valores[0], b = valores[1];
+                    const angulo = Math.round(Math.atan2(b, a) * (180 / Math.PI));
+                    rotacaoInicial = angulo;
+                }
             }
+
+            elemento.setAttribute('data-rotacao', rotacaoInicial);
+            elemento.setAttribute('data-x', '0');
+            elemento.setAttribute('data-y', '0');
+
+            interact(elemento).draggable({
+                allowFrom: '.legenda-simplificada',
+                ignoreFrom: 'input, textarea, button, select, .legenda-descricao-inline',
+                modifiers: [
+                    interact.modifiers.restrictRect({
+                        restriction: 'parent',
+                        endOnly: true
+                    })
+                ],
+
+                listeners: {
+                    start: (event) => {
+                        if (event.type.includes('touch')) event.preventDefault();
+
+                        elemento.style.zIndex = '1000';
+                        const rotacao = parseFloat(elemento.getAttribute('data-rotacao')) || 0;
+                        elemento.style.transform = `rotate(${rotacao}deg)`;
+
+                        console.log('🌀 Iniciando movimento da legenda com rotação fixa:', rotacao);
+                    },
+
+                    move: (event) => {
+                        if (event.type.includes('touch')) event.preventDefault();
+
+                        let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                        let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                        const rotacao = parseFloat(elemento.getAttribute('data-rotacao')) || 0;
+
+                        elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotacao}deg)`;
+                        elemento.setAttribute('data-x', x);
+                        elemento.setAttribute('data-y', y);
+                    },
+
+                    end: (event) => {
+                        if (event.type.includes('touch')) event.preventDefault();
+                        elemento.style.zIndex = '';
+                        this.salvarEstadoHistorico('Mover Legenda');
+                        console.log('✅ Movimento da legenda finalizado');
+                    }
+                }
+            });
+
+            elemento.addEventListener('touchstart', (e) => {
+                e.stopPropagation();
+            }, { passive: true });
+
+            elemento.addEventListener('touchmove', (e) => {
+                if (e.cancelable) e.preventDefault();
+            }, { passive: false });
         }
-    });
-
-    // === SUPORTE MOBILE ===
-    // 🔒 Impede que o toque na legenda role a tela durante o arrasto
-    elemento.addEventListener('touchstart', (e) => {
-        e.stopPropagation();
-    }, { passive: true });
-
-    elemento.addEventListener('touchmove', (e) => {
-        if (e.cancelable) e.preventDefault();
-    }, { passive: false });
-}
-
-
-
-       configurarInteratividadeLegenda(elemento) {
-    // 🔥 Captura e guarda a rotação inicial (de estilo inline ou data-rotacao)
-    const transformInicial = window.getComputedStyle(elemento).transform;
-
-    // Extrai o ângulo de rotação (se houver)
-    let rotacaoInicial = 0;
-    const match = elemento.style.transform.match(/rotate\(([-0-9.]+)deg\)/);
-    if (match) {
-        rotacaoInicial = parseFloat(match[1]);
-    } else {
-        // Tenta extrair da matriz de transformação (caso o rotate venha de CSS computed)
-        const matrix = transformInicial.match(/^matrix\(([^)]+)\)$/);
-        if (matrix) {
-            const valores = matrix[1].split(',').map(parseFloat);
-            const a = valores[0], b = valores[1];
-            const angulo = Math.round(Math.atan2(b, a) * (180 / Math.PI));
-            rotacaoInicial = angulo;
-        }
-    }
-
-    elemento.setAttribute('data-rotacao', rotacaoInicial);
-
-    interact(elemento).draggable({
-        allowFrom: '.legenda-simplificada',
-        ignoreFrom: 'input, textarea, button, select, .legenda-descricao-inline',
-        modifiers: [
-            interact.modifiers.restrictRect({
-                restriction: 'parent',
-                endOnly: true
-            })
-        ],
-        preventDefault: 'always',
-
-        listeners: {
-            start: (event) => {
-                if (event.type.includes('touch')) event.preventDefault();
-
-                elemento.style.zIndex = '1000';
-                // ✅ Garante que a rotação inicial seja reaplicada no começo
-                const rotacao = parseFloat(elemento.getAttribute('data-rotacao')) || 0;
-                elemento.style.transform = `rotate(${rotacao}deg)`;
-
-                console.log('🌀 Iniciando movimento da legenda com rotação fixa:', rotacao);
-            },
-
-            move: (event) => {
-                if (event.type.includes('touch')) event.preventDefault();
-
-                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-                const rotacao = parseFloat(elemento.getAttribute('data-rotacao')) || 0;
-
-                // ✅ Mantém a rotação fixa enquanto move
-                elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotacao}deg)`;
-                elemento.setAttribute('data-x', x);
-                elemento.setAttribute('data-y', y);
-            },
-
-            end: (event) => {
-                if (event.type.includes('touch')) event.preventDefault();
-                elemento.style.zIndex = '';
-                this.salvarEstadoHistorico('Mover Legenda');
-                console.log('✅ Movimento da legenda finalizado');
-            }
-        }
-    });
-}
-
-
 
         configurarEventosTouchInsercao() {
             this.drawingArea.addEventListener('touchstart', (e) => {
@@ -3643,8 +3811,7 @@ configurarInteratividadeLegenda(elemento) {
                             break;
                     }
                     
-                    this.modoInsercaoAtivo = null;
-                    this.drawingArea.style.cursor = 'default';
+                    this.desativarTodosOsModos();
                 }
             }, { passive: false });
         }
@@ -3667,58 +3834,53 @@ configurarInteratividadeLegenda(elemento) {
             return null;
         }
 
-       criarDimensoes(pecaElement, peca, width, height) {
-    const pecaId = pecaElement.getAttribute('data-peca-id');
-    
-    // Dimensão superior
-    const dimensoesTop = document.createElement('div');
-    dimensoesTop.className = 'dimensoes dimensoes-top';
-    dimensoesTop.textContent = `${peca.comprimento}`;
-    dimensoesTop.style.top = `${-35}px`;
-    dimensoesTop.style.left = `${width / 2}px`;
-    
-    // 🔥 ADICIONAR ATRIBUTOS DE IDENTIFICAÇÃO E POSIÇÃO
-    dimensoesTop.setAttribute('data-peca-id', pecaId);
-    dimensoesTop.setAttribute('data-tipo', 'dimensao-top');
-    dimensoesTop.setAttribute('data-x', '0');
-    dimensoesTop.setAttribute('data-y', '0');
-    
-    pecaElement.appendChild(dimensoesTop);
-    
-    // Dimensão direita
-    const dimensoesRight = document.createElement('div');
-    dimensoesRight.className = 'dimensoes dimensoes-right';
-    dimensoesRight.textContent = `${peca.largura}`;
-    dimensoesRight.style.right = `${-35}px`;
-    dimensoesRight.style.top = `${height / 2}px`;
-    
-    // 🔥 ADICIONAR ATRIBUTOS DE IDENTIFICAÇÃO E POSIÇÃO
-    dimensoesRight.setAttribute('data-peca-id', pecaId);
-    dimensoesRight.setAttribute('data-tipo', 'dimensao-right');
-    dimensoesRight.setAttribute('data-x', '0');
-    dimensoesRight.setAttribute('data-y', '0');
-    
-    pecaElement.appendChild(dimensoesRight);
+        criarDimensoes(pecaElement, peca, width, height) {
+            const pecaId = pecaElement.getAttribute('data-peca-id');
+            
+            const dimensoesTop = document.createElement('div');
+            dimensoesTop.className = 'dimensoes dimensoes-top';
+            dimensoesTop.textContent = `${peca.comprimento}`;
+            dimensoesTop.style.top = `${-35}px`;
+            dimensoesTop.style.left = `${width / 2}px`;
+            
+            dimensoesTop.setAttribute('data-peca-id', pecaId);
+            dimensoesTop.setAttribute('data-tipo', 'dimensao-top');
+            dimensoesTop.setAttribute('data-x', '0');
+            dimensoesTop.setAttribute('data-y', '0');
+            
+            pecaElement.appendChild(dimensoesTop);
+            
+            const dimensoesRight = document.createElement('div');
+            dimensoesRight.className = 'dimensoes dimensoes-right';
+            dimensoesRight.textContent = `${peca.largura}`;
+            dimensoesRight.style.right = `${-35}px`;
+            dimensoesRight.style.top = `${height / 2}px`;
+            
+            dimensoesRight.setAttribute('data-peca-id', pecaId);
+            dimensoesRight.setAttribute('data-tipo', 'dimensao-right');
+            dimensoesRight.setAttribute('data-x', '0');
+            dimensoesRight.setAttribute('data-y', '0');
+            
+            pecaElement.appendChild(dimensoesRight);
 
-    // 🔥 CONFIGURAR INTERATIVIDADE SE MODO SELEÇÃO ESTIVER ATIVO
-    if (this.modoSelecaoAtivo) {
-        dimensoesTop.classList.add('selecionavel');
-        dimensoesRight.classList.add('selecionavel');
-        this.configurarInteratividadeDimensao(dimensoesTop);
-        this.configurarInteratividadeDimensao(dimensoesRight);
-    }
-    
-    setTimeout(() => {
-        const drawingRect = this.drawingArea.getBoundingClientRect();
+            if (this.modoSelecaoAtivo) {
+                dimensoesTop.classList.add('selecionavel');
+                dimensoesRight.classList.add('selecionavel');
+                this.configurarInteratividadeDimensao(dimensoesTop);
+                this.configurarInteratividadeDimensao(dimensoesRight);
+            }
+            
+            setTimeout(() => {
+                const drawingRect = this.drawingArea.getBoundingClientRect();
 
-        const topRect = dimensoesTop.getBoundingClientRect();
-        if (topRect.right > drawingRect.right - 10) {
-            const excesso = topRect.right - (drawingRect.right - 10);
-            const atualLeft = parseFloat(dimensoesTop.style.left || (width/2)) || (width/2);
-            dimensoesTop.style.left = `${atualLeft - excesso}px`;
+                const topRect = dimensoesTop.getBoundingClientRect();
+                if (topRect.right > drawingRect.right - 10) {
+                    const excesso = topRect.right - (drawingRect.right - 10);
+                    const atualLeft = parseFloat(dimensoesTop.style.left || (width/2)) || (width/2);
+                    dimensoesTop.style.left = `${atualLeft - excesso}px`;
+                }
+            }, 0);
         }
-    }, 0);
-}
 
         criarQuantidade(pecaElement, quantidade) {
             const quantidadeElement = document.createElement('div');
@@ -3766,177 +3928,167 @@ configurarInteratividadeLegenda(elemento) {
         }
 
         criarSimboloLinha(linhaElement, simboloData, simboloExistente = null) {
-    const simboloElement = document.createElement('div');
-    simboloElement.className = 'simbolo-linha';
-    simboloElement.textContent = simboloData.texto;
+            const simboloElement = document.createElement('div');
+            simboloElement.className = 'simbolo-linha';
+            simboloElement.textContent = simboloData.texto;
 
-    const angulo = Number(simboloData.rotacao) || 0;
-    simboloElement.setAttribute('data-rotacao', angulo);
-    simboloElement.setAttribute('data-rotate', angulo);
-    simboloElement.setAttribute('data-peca-id', linhaElement.getAttribute('data-peca-id'));
-    simboloElement.setAttribute('data-lado', linhaElement.getAttribute('data-lado'));
+            const angulo = Number(simboloData.rotacao) || 0;
+            simboloElement.setAttribute('data-rotacao', angulo);
+            simboloElement.setAttribute('data-rotate', angulo);
+            simboloElement.setAttribute('data-peca-id', linhaElement.getAttribute('data-peca-id'));
+            simboloElement.setAttribute('data-lado', linhaElement.getAttribute('data-lado'));
 
-    // 🔥 CORREÇÃO: Inicializar posição como zero
-    simboloElement.setAttribute('data-x', '0');
-    simboloElement.setAttribute('data-y', '0');
+            simboloElement.setAttribute('data-x', '0');
+            simboloElement.setAttribute('data-y', '0');
 
-    if (this.modoSelecaoAtivo) {
-        simboloElement.classList.add('selecionavel');
-    }
+            if (this.modoSelecaoAtivo) {
+                simboloElement.classList.add('selecionavel');
+            }
 
-    const pecaId = linhaElement.getAttribute('data-peca-id');
-    const pecaElement = this.drawingArea.querySelector(`#peca-${pecaId}`);
-    
-    if (pecaElement) {
-        const pecaWidth = parseFloat(pecaElement.style.width);
-        const pecaHeight = parseFloat(pecaElement.style.height);
-        
-        let left, top;
-        const lado = linhaElement.getAttribute('data-lado');
-        
-        switch(lado) {
-            case 'top':
-                left = '50%';
-                top = '0%';
-                break;
-            case 'bottom':
-                left = '50%';
-                top = '100%';
-                break;
-            case 'left':
-                left = '0%';
-                top = '50%';
-                break;
-            case 'right':
-                left = '100%';
-                top = '50%';
-                break;
+            const pecaId = linhaElement.getAttribute('data-peca-id');
+            const pecaElement = this.drawingArea.querySelector(`#peca-${pecaId}`);
+            
+            if (pecaElement) {
+                const pecaWidth = parseFloat(pecaElement.style.width);
+                const pecaHeight = parseFloat(pecaElement.style.height);
+                
+                let left, top;
+                const lado = linhaElement.getAttribute('data-lado');
+                
+                switch(lado) {
+                    case 'top':
+                        left = '50%';
+                        top = '0%';
+                        break;
+                    case 'bottom':
+                        left = '50%';
+                        top = '100%';
+                        break;
+                    case 'left':
+                        left = '0%';
+                        top = '50%';
+                        break;
+                    case 'right':
+                        left = '100%';
+                        top = '50%';
+                        break;
+                }
+                
+                simboloElement.style.left = left;
+                simboloElement.style.top = top;
+                
+                const currentX = parseFloat(simboloElement.getAttribute('data-x')) || 0;
+                const currentY = parseFloat(simboloElement.getAttribute('data-y')) || 0;
+                simboloElement.style.transform = `translate(-50%, -50%) translate(${currentX}px, ${currentY}px) rotate(${angulo}deg)`;
+                simboloElement.style.transformOrigin = 'center center';
+                simboloElement.style.position = 'absolute';
+                
+                pecaElement.appendChild(simboloElement);
+                this.configurarInteratividadeSimbolo(simboloElement);
+                
+                if (simboloExistente && simboloExistente !== simboloElement) {
+                    simboloExistente.remove();
+                }
+                
+                if (simboloExistente) {
+                    this.salvarEstadoHistorico('Editar Símbolo');
+                } else {
+                    this.salvarEstadoHistorico('Adicionar Símbolo');
+                }
+                
+                return simboloElement;
+            }
         }
-        
-        simboloElement.style.left = left;
-        simboloElement.style.top = top;
-        
-        // 🔥 CORREÇÃO: Aplicar transformação inicial correta
-        const currentX = parseFloat(simboloElement.getAttribute('data-x')) || 0;
-        const currentY = parseFloat(simboloElement.getAttribute('data-y')) || 0;
-        simboloElement.style.transform = `translate(-50%, -50%) translate(${currentX}px, ${currentY}px) rotate(${angulo}deg)`;
-        simboloElement.style.transformOrigin = 'center center';
-        simboloElement.style.position = 'absolute';
-        
-        pecaElement.appendChild(simboloElement);
-        this.configurarInteratividadeSimbolo(simboloElement);
-        
-        if (simboloExistente && simboloExistente !== simboloElement) {
-            simboloExistente.remove();
-        }
-        
-        if (simboloExistente) {
-            this.salvarEstadoHistorico('Editar Símbolo');
-        } else {
-            this.salvarEstadoHistorico('Adicionar Símbolo');
-        }
-        
-        return simboloElement;
-    }
-}
 
-configurarInteratividade(elemento) {
-    this.removerInteratividade(elemento);
-    
-    if (elemento.classList.contains('elemento-selecionado') && !elemento.classList.contains('grupo-temporario')) {
-        
-        if (elemento.classList.contains('simbolo-linha')) {
-            this.configurarInteratividadeSimbolo(elemento);
-        } else {
+        configurarInteratividade(elemento) {
+            this.removerInteratividade(elemento);
+            
+            if (elemento.classList.contains('elemento-selecionado') && !elemento.classList.contains('grupo-temporario')) {
+                
+                if (elemento.classList.contains('simbolo-linha')) {
+                    this.configurarInteratividadeSimbolo(elemento);
+                } else {
+                    interact(elemento).draggable({
+                        listeners: {
+                            start: () => {
+                                elemento.style.zIndex = '1000';
+                            },
+                            move: (event) => {
+                                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                                const rotate = elemento.getAttribute('data-rotate') || 0;
+
+                                elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
+                                elemento.setAttribute('data-x', x);
+                                elemento.setAttribute('data-y', y);
+
+                                if (elemento.classList.contains('peca')) {
+                                    this.atualizarPosicaoSimbolos(elemento);
+                                }
+                                
+                                if (!elemento.classList.contains('simbolo-linha')) {
+                                    this.atualizarHandles();
+                                }
+                            },
+                            end: () => {
+                                elemento.style.zIndex = '';
+                                this.salvarEstadoHistorico('Mover Elemento');
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
+        configurarInteratividadeSimbolo(elemento) {
+            console.log('🔧 Configurando interatividade para símbolo:', elemento);
+            
+            const pecaId = elemento.getAttribute('data-peca-id');
+            const pecaElement = this.drawingArea.querySelector(`#peca-${pecaId}`);
+            
+            if (!pecaElement) {
+                console.error('❌ Peça pai não encontrada para o símbolo');
+                return;
+            }
+
             interact(elemento).draggable({
+                allowFrom: '.simbolo-linha',
+                ignoreFrom: 'input, textarea, button, select',
+                
                 listeners: {
-                    start: () => {
+                    start: (event) => {
                         elemento.style.zIndex = '1000';
+                        console.log('🔧 Iniciando movimento do símbolo');
                     },
                     move: (event) => {
                         let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
                         let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-                        const rotate = elemento.getAttribute('data-rotate') || 0;
-
-                        elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
+                        const rotate = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+                        
+                        elemento.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px) rotate(${rotate}deg)`;
                         elemento.setAttribute('data-x', x);
                         elemento.setAttribute('data-y', y);
-
-                        // 🔥 CORREÇÃO: Atualizar símbolos quando a peça se move
-                        if (elemento.classList.contains('peca')) {
-                            this.atualizarPosicaoSimbolos(elemento);
-                        }
                         
-                        if (!elemento.classList.contains('simbolo-linha')) {
-                            this.atualizarHandles();
-                        }
+                        console.log(`🔧 Movendo símbolo - dx=${event.dx}, dy=${event.dy} | Pos: x=${x}, y=${y}`);
                     },
                     end: () => {
                         elemento.style.zIndex = '';
-                        this.salvarEstadoHistorico('Mover Elemento');
+                        this.salvarEstadoHistorico('Mover Símbolo');
+                        console.log('🔧 Movimento do símbolo concluído');
                     }
                 }
             });
-        }
-    }
-}
 
-     configurarInteratividadeSimbolo(elemento) {
-    console.log('🔧 Configurando interatividade para símbolo:', elemento);
-    
-    // 🔥 CORREÇÃO: Obter referência da peça pai ANTES de configurar interatividade
-    const pecaId = elemento.getAttribute('data-peca-id');
-    const pecaElement = this.drawingArea.querySelector(`#peca-${pecaId}`);
-    
-    if (!pecaElement) {
-        console.error('❌ Peça pai não encontrada para o símbolo');
-        return;
-    }
-
-    interact(elemento).draggable({
-        // 🔥 CORREÇÃO: Permitir apenas do símbolo, não da área interna
-        allowFrom: '.simbolo-linha',
-        ignoreFrom: 'input, textarea, button, select',
-        
-        listeners: {
-            start: (event) => {
-                elemento.style.zIndex = '1000';
-                console.log('🔧 Iniciando movimento do símbolo');
-            },
-            move: (event) => {
-                // 🔥 CORREÇÃO CRÍTICA: Usar sistema de coordenadas LOCAL (relativo à peça)
-                // Em vez de transformar coordenadas, usar movimento relativo simples
-                
-                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+            elemento.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                elemento.setAttribute('data-x', 0);
+                elemento.setAttribute('data-y', 0);
                 const rotate = parseFloat(elemento.getAttribute('data-rotate')) || 0;
-                
-                // 🔥 CORREÇÃO: Aplicar transformação mantendo o translate(-50%, -50%) para centralização
-                elemento.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px) rotate(${rotate}deg)`;
-                elemento.setAttribute('data-x', x);
-                elemento.setAttribute('data-y', y);
-                
-                console.log(`🔧 Movendo símbolo - dx=${event.dx}, dy=${event.dy} | Pos: x=${x}, y=${y}`);
-            },
-            end: () => {
-                elemento.style.zIndex = '';
-                this.salvarEstadoHistorico('Mover Símbolo');
-                console.log('🔧 Movimento do símbolo concluído');
-            }
+                elemento.style.transform = `translate(-50%, -50%) rotate(${rotate}deg)`;
+                this.salvarEstadoHistorico('Resetar Posição do Símbolo');
+                console.log('🔄 Posição do símbolo resetada');
+            });
         }
-    });
-
-    // 🔥 CORREÇÃO ADICIONAL: Resetar posição do símbolo com duplo clique
-    elemento.addEventListener('dblclick', (e) => {
-        e.stopPropagation();
-        elemento.setAttribute('data-x', 0);
-        elemento.setAttribute('data-y', 0);
-        const rotate = parseFloat(elemento.getAttribute('data-rotate')) || 0;
-        elemento.style.transform = `translate(-50%, -50%) rotate(${rotate}deg)`;
-        this.salvarEstadoHistorico('Resetar Posição do Símbolo');
-        console.log('🔄 Posição do símbolo resetada');
-    });
-}
 
         removerInteratividade(elemento) {
             interact(elemento).unset();
@@ -4191,75 +4343,6 @@ configurarInteratividade(elemento) {
             document.body.style.overflow = '';
         }
 
-        ativarModoInsercao(tipo) {
-            this.modoInsercaoAtivo = tipo;
-            
-            if (tipo === 'legenda') {
-                this.drawingArea.style.cursor = 'crosshair';
-                console.log('🔧 Modo legenda ativado - clique na área para posicionar');
-            } 
-            else if (tipo === 'cuba') {
-                this.drawingArea.style.cursor = 'crosshair';
-                console.log('🔧 Modo cuba ativado - clique na área para posicionar');
-            }
-            else {
-                this.drawingArea.style.cursor = tipo === 'texto' ? 'text' : 'crosshair';
-            }
-            
-            console.log(`🔧 Modo inserção ativado: ${tipo}`);
-        }
-
-        manipularCliqueInsercao(e) {
-            if (!this.modoInsercaoAtivo) return;
-            
-            const drawingRect = this.drawingArea.getBoundingClientRect();
-const x = e.clientX - drawingRect.left + this.drawingArea.scrollLeft;
-const y = e.clientY - drawingRect.top + this.drawingArea.scrollTop;
-            
-            console.log(`🎯 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y}`);
-
-            switch(this.modoInsercaoAtivo) {
-                case 'texto':
-                    const textoElement = document.createElement('textarea');
-                    textoElement.className = 'texto-legenda';
-                    textoElement.style.position = 'absolute';
-                    textoElement.style.left = x + 'px';
-                    textoElement.style.top = y + 'px';
-                    
-                    textoElement.style.zIndex = '1000';
-                    textoElement.placeholder = "Digite seu texto";
-                    
-                    this.drawingArea.appendChild(textoElement);
-                    textoElement.focus();
-                    
-                    textoElement.addEventListener('blur', () => {
-                        if (textoElement.value.trim() === '') {
-                            textoElement.remove();
-                        }
-                        this.salvarEstadoHistorico('Adicionar Texto');
-                    });
-                    
-                    console.log('✅ Caixa de texto criada com sucesso!');
-                    break;
-
-                case 'cuba':
-                    console.log('📝 Abrindo seletor de cuba...');
-                    this.mostrarSeletorCuba(x, y);
-                    break;
-
-                case 'legenda':
-                    console.log('🏷️ Abrindo seletor de legenda...');
-                    this.mostrarSeletorLegenda(x, y);
-                    break;
-
-                default:
-                    console.warn('⚠️ Modo de inserção desconhecido:', this.modoInsercaoAtivo);
-            }
-            
-            this.modoInsercaoAtivo = null;
-            this.drawingArea.style.cursor = 'default';
-        }
-
         mostrarSeletorLegenda(x, y) {
             const botoesLegenda = CONFIG.LEGENDA_SIMPLIFICADA.map(item => 
                 `<button type="button" class="btn btn-outline-primary m-1" onclick="gerenciadorDesenho.selecionarLegendaModal('${item.simbolo}', '${item.descricao}', ${x}, ${y})" style="min-width: 80px; text-align: center; padding: 8px 4px;">
@@ -4294,8 +4377,8 @@ const y = e.clientY - drawingRect.top + this.drawingArea.scrollTop;
                 modalLegenda.style.maxWidth = '320px';
                 
                 const drawingRect = this.drawingArea.getBoundingClientRect();
-    let left = drawingRect.left + x - this.drawingArea.scrollLeft;
-    let top = drawingRect.top + y - this.drawingArea.scrollTop;
+                let left = drawingRect.left + x - this.drawingArea.scrollLeft;
+                let top = drawingRect.top + y - this.drawingArea.scrollTop;
                 
                 if (left + 320 > viewportWidth) {
                     left = viewportWidth - 320 - 20;
@@ -4400,8 +4483,8 @@ const y = e.clientY - drawingRect.top + this.drawingArea.scrollTop;
                 modalCuba.style.maxWidth = '300px';
                 
                 const drawingRect = this.drawingArea.getBoundingClientRect();
-let left = drawingRect.left + x - this.drawingArea.scrollLeft;
-let top = drawingRect.top + y - this.drawingArea.scrollTop;
+                let left = drawingRect.left + x - this.drawingArea.scrollLeft;
+                let top = drawingRect.top + y - this.drawingArea.scrollTop;
                 
                 if (left + 300 > viewportWidth) {
                     left = viewportWidth - 300 - 20;
@@ -4445,11 +4528,10 @@ let top = drawingRect.top + y - this.drawingArea.scrollTop;
             });
         }
 
-       selecionarCuba(tipo, x, y) {
-    this.criarCuba(x, y, tipo);
-    this.fecharModalCuba();
-}
-
+        selecionarCuba(tipo, x, y) {
+            this.criarCuba(x, y, tipo);
+            this.fecharModalCuba();
+        }
 
         fecharModalCuba() {
             const modal = document.querySelector('.modal-controles');
@@ -4457,6 +4539,14 @@ let top = drawingRect.top + y - this.drawingArea.scrollTop;
             
             if (modal) modal.remove();
             if (backdrop) backdrop.remove();
+        }
+
+        // 🔥 NOVO: Atualizar interatividade dos textos
+        atualizarInteratividadeTextos() {
+            const textos = this.drawingArea.querySelectorAll('.texto-legenda');
+            textos.forEach(texto => {
+                this.configurarInteratividadeTexto(texto);
+            });
         }
 
     } // 🔥 FIM DA CLASSE GerenciadorDesenho
@@ -4471,6 +4561,11 @@ let top = drawingRect.top + y - this.drawingArea.scrollTop;
         gerenciadorDesenho = new GerenciadorDesenho();
         window.gerenciadorDesenho = gerenciadorDesenho;
     });
+
+
+
 </script>
+
+
 </body>
 </html>
