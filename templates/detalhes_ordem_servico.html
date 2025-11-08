@@ -898,6 +898,179 @@ right: -35px;
             }
         }
 
+        /* 🔥 NOVO: ESTILOS PARA O SISTEMA DE ESTILOS */
+        .modal-estilos {
+            position: fixed;
+            z-index: 2000;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            max-width: 400px;
+            width: 90vw;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-estilos h6 {
+            font-weight: bold;
+            margin-bottom: 15px;
+            color: #2e59d9;
+        }
+
+        .estilos-secao {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .estilos-secao:last-child {
+            border-bottom: none;
+        }
+
+        .estilos-secao h7 {
+            font-weight: 600;
+            margin-bottom: 10px;
+            display: block;
+            color: #495057;
+        }
+
+        .paleta-cores {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .cor-opcao {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            border: 2px solid #ddd;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .cor-opcao:hover {
+            transform: scale(1.1);
+            border-color: #999;
+        }
+
+        .cor-opcao.selecionada {
+            border-color: #2e59d9;
+            transform: scale(1.1);
+        }
+
+        .controles-texto {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .controle-grupo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .controle-grupo label {
+            margin-bottom: 0;
+            min-width: 80px;
+            font-size: 0.9rem;
+        }
+
+        .controle-grupo input[type="number"] {
+            width: 70px;
+            padding: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+
+        .controle-grupo input[type="range"] {
+            flex: 1;
+        }
+
+        .estilos-linha {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .opcao-linha {
+            padding: 8px 12px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: center;
+            flex: 1;
+            min-width: 80px;
+            transition: all 0.2s ease;
+        }
+
+        .opcao-linha:hover {
+            border-color: #4e73df;
+        }
+
+        .opcao-linha.selecionada {
+            border-color: #4e73df;
+            background-color: #f8f9ff;
+        }
+
+        .linha-solida {
+            border-bottom: 3px solid #333;
+        }
+
+        .linha-tracejada {
+            border-bottom: 3px dashed #333;
+        }
+
+        .botao-aplicar {
+            background-color: #4e73df;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: background-color 0.2s ease;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+        .botao-aplicar:hover {
+            background-color: #2e59d9;
+        }
+
+        /* Classes para estilos aplicados */
+        .texto-negrito {
+            font-weight: bold !important;
+        }
+
+        .linha-tracejada-elemento {
+            border-style: dashed !important;
+        }
+
+        .linha-solida-elemento {
+            border-style: solid !important;
+        }
+
+        /* Preview de cores */
+        .preview-cor {
+            width: 20px;
+            height: 20px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+            margin-left: 10px;
+        }
+
+        /* Para peças com linhas tracejadas */
+        .peca.linha-tracejada-elemento {
+            border-style: dashed !important;
+        }
+
+        .cuba.linha-tracejada-elemento {
+            border-style: dashed !important;
+        }
        
     </style>
 </head>
@@ -968,6 +1141,12 @@ right: -35px;
             <button id="btnLegendaSimplificada" class="btn btn-custom-primary">
                 <i class="fas fa-tag me-1"></i> <span class="btn-text">Legenda</span>
             </button>
+            
+            <!-- 🔥 NOVO BOTÃO: Estilos -->
+            <button id="btnEstilos" class="btn btn-custom-primary" title="Estilos (Cores, Texto, Linhas)">
+                <i class="fas fa-bars me-1"></i> <span class="btn-text">Estilos</span>
+            </button>
+            
             <!-- NOVOS BOTÕES: Duplicar e Excluir -->
             <button id="btnDuplicar" class="btn btn-custom-primary" disabled title="Duplicar Elemento Selecionado">
                 <i class="fas fa-copy me-1"></i> <span class="btn-text">Duplicar</span>
@@ -1080,7 +1259,16 @@ this.borrachaAtiva = false;
             this.legendaY = 0;
             this.ultimoSalvamentoHistorico = 0;
             this.ultimaDescricaoHistorico = '';
-this.adicionarEstilosMobile();
+            
+            // 🔥 NOVO: Variáveis para o sistema de estilos
+            this.modalEstilosAtual = null;
+            this.backdropEstilosAtual = null;
+            this.corSelecionada = null;
+            this.tamanhoTextoSelecionado = null;
+            this.negritoAtivo = null;
+            this.estiloLinhaSelecionado = null;
+
+            this.adicionarEstilosMobile();
 
             this.inicializar();
         }
@@ -1229,7 +1417,8 @@ adicionarEstilosMobile() {
             // Remover classes visuais de todos os botões de modo
             const botoesModo = [
                 'btnSelecionar', 'btnBorracha', 'btnLaco', 
-                'btnAdicionarTexto', 'btnAdicionarCuba', 'btnLegendaSimplificada'
+                'btnAdicionarTexto', 'btnAdicionarCuba', 'btnLegendaSimplificada',
+                'btnEstilos' // 🔥 NOVO
             ];
             
             botoesModo.forEach(botaoId => {
@@ -2222,7 +2411,7 @@ refazer() {
     
     const botoes = [
         'btnSelecionar', 'btnBorracha', 'btnLaco', 'btnDesfazer', 'btnRefazer', 'btnAdicionarTexto',
-        'btnAdicionarCuba', 'btnLegendaSimplificada', 'btnDuplicar', 
+        'btnAdicionarCuba', 'btnLegendaSimplificada', 'btnEstilos', 'btnDuplicar', // 🔥 ADICIONADO btnEstilos
         'btnExcluir', 'btnSalvar', 'btnImprimir'
     ];
 
@@ -2246,6 +2435,7 @@ refazer() {
                     case 'btnAdicionarTexto': this.ativarModoTexto(); break;
                     case 'btnAdicionarCuba': this.ativarModoDesenhos(); break;
                     case 'btnLegendaSimplificada': this.ativarModoLegenda(); break;
+                    case 'btnEstilos': this.mostrarModalEstilos(); break; // 🔥 NOVO
                     case 'btnDuplicar': this.duplicarElemento(); break;
                     case 'btnExcluir': this.excluirElemento(); break;
                     case 'btnSalvar': this.salvarDesenho(); break;
@@ -3276,16 +3466,19 @@ _isTouchGesture(e) {
 }
         
         obterPosicaoComScroll(elemento) {
-            const rect = elemento.getBoundingClientRect();
-            const drawingAreaRect = this.drawingArea.getBoundingClientRect();
-            
-            return {
-                left: rect.left - drawingAreaRect.left + this.drawingArea.scrollLeft,
-                top: rect.top - drawingAreaRect.top + this.drawingArea.scrollTop,
-                width: rect.width,
-                height: rect.height
-            };
-        }
+    const rect = elemento.getBoundingClientRect();
+    const drawingAreaRect = this.drawingArea.getBoundingClientRect();
+    const scrollLeft = this.drawingArea.scrollLeft || 0;
+    const scrollTop = this.drawingArea.scrollTop || 0;
+    
+    // 🔥 CORREÇÃO: Considerar scroll na posição
+    return {
+        left: rect.left - drawingAreaRect.left + scrollLeft,
+        top: rect.top - drawingAreaRect.top + scrollTop,
+        width: rect.width,
+        height: rect.height
+    };
+}
 
         atualizarOrdemEmpilhamento() {
             const todasPecas = this.drawingArea.querySelectorAll('.peca');
@@ -4078,40 +4271,52 @@ _isTouchGesture(e) {
         }
 
         criarCuba(x, y, tipo, largura = 80, altura = 50) {
-            const cubaElement = document.createElement('div');
-            cubaElement.className = `cuba ${tipo}`;
-            cubaElement.style.position = 'absolute';
-            cubaElement.style.left = `${x}px`;
-            cubaElement.style.top = `${y}px`;
-            
-            if (tipo === 'linha-reta') {
-                cubaElement.style.width = `${Math.max(largura, 100)}px`;
-                cubaElement.style.height = '2px';
-                cubaElement.style.backgroundColor = '#333';
-                cubaElement.style.border = 'none';
-            } else if (tipo === 'circulo') {
-                const tamanho = Math.max(largura, altura);
-                cubaElement.style.width = `${tamanho}px`;
-                cubaElement.style.height = `${tamanho}px`;
-                cubaElement.style.borderRadius = '50%';
-            } else {
-                cubaElement.style.width = `${largura}px`;
-                cubaElement.style.height = `${altura}px`;
-                if (tipo === 'oval') cubaElement.style.borderRadius = '50%';
-                else if (tipo === 'elipse') cubaElement.style.borderRadius = '40%';
-                else cubaElement.style.borderRadius = '0';
-            }
+    const cubaElement = document.createElement('div');
+    cubaElement.className = `cuba ${tipo}`;
+    cubaElement.style.position = 'absolute';
+    
+    // 🔥 CORREÇÃO: Posicionamento absoluto direto
+    cubaElement.style.left = `${x}px`;
+    cubaElement.style.top = `${y}px`;
+    cubaElement.style.transform = 'none';
+    cubaElement.setAttribute('data-x', '0');
+    cubaElement.setAttribute('data-y', '0');
+    
+    // Resto do código de estilo permanece igual...
+    if (tipo === 'linha-reta') {
+        cubaElement.style.width = `${Math.max(largura, 100)}px`;
+        cubaElement.style.height = '2px';
+        cubaElement.style.backgroundColor = '#333';
+        cubaElement.style.border = 'none';
+    } else if (tipo === 'circulo') {
+        const tamanho = Math.max(largura, altura);
+        cubaElement.style.width = `${tamanho}px`;
+        cubaElement.style.height = `${tamanho}px`;
+        cubaElement.style.borderRadius = '50%';
+    } else {
+        cubaElement.style.width = `${largura}px`;
+        cubaElement.style.height = `${altura}px`;
+        if (tipo === 'oval') cubaElement.style.borderRadius = '50%';
+        else if (tipo === 'elipse') cubaElement.style.borderRadius = '40%';
+        else cubaElement.style.borderRadius = '0';
+    }
 
-            if (this.modoSelecaoAtivo) cubaElement.classList.add('selecionavel');
+    if (this.modoSelecaoAtivo) cubaElement.classList.add('selecionavel');
 
-            const grupo = this.encontrarGrupoNaPosicao(x, y);
-            if (grupo) grupo.appendChild(cubaElement);
-            else this.drawingArea.appendChild(cubaElement);
+    // 🔥 CORREÇÃO: Usar método corrigido para encontrar grupo
+    const grupo = this.encontrarGrupoNaPosicao(x, y);
+    if (grupo) {
+        console.log('🔷 Adicionando cuba dentro do grupo');
+        grupo.appendChild(cubaElement);
+    } else {
+        console.log('🔷 Adicionando cuba na área principal');
+        this.drawingArea.appendChild(cubaElement);
+    }
 
-            this.configurarInteratividadeCuba(cubaElement, tipo);
-            this.salvarEstadoHistorico('Adicionar Cuba');
-            return cubaElement;
-        }
+    this.configurarInteratividadeCuba(cubaElement, tipo);
+    this.salvarEstadoHistorico('Adicionar Cuba');
+    return cubaElement;
+}
 
         configurarInteratividadeCuba(elemento, tipo) {
             interact(elemento).draggable({
@@ -4161,65 +4366,80 @@ _isTouchGesture(e) {
             }
         }
 
-        // 🔥 MODIFICADO: Manipular clique de inserção
-        manipularCliqueInsercao(e) {
-            if (!this.modoInsercaoAtivo) return;
-            
-            const drawingRect = this.drawingArea.getBoundingClientRect();
-            const x = e.clientX - drawingRect.left + this.drawingArea.scrollLeft;
-            const y = e.clientY - drawingRect.top + this.drawingArea.scrollTop;
-            
-            console.log(`🎯 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y}`);
+      manipularCliqueInsercao(e) {
+    if (!this.modoInsercaoAtivo) return;
+    
+    // 🔥 CORREÇÃO: Obter coordenadas considerando scroll
+    const rect = this.drawingArea.getBoundingClientRect();
+    const scrollLeft = this.drawingArea.scrollLeft || 0;
+    const scrollTop = this.drawingArea.scrollTop || 0;
+    
+    let clientX, clientY;
+    
+    if (e.touches && e.touches[0]) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+    } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+    }
+    
+    const x = clientX - rect.left + scrollLeft;
+    const y = clientY - rect.top + scrollTop;
+    
+    console.log(`🎯 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y} (scroll: ${scrollLeft}, ${scrollTop})`);
 
-            switch(this.modoInsercaoAtivo) {
-                case 'texto':
-                    this.criarTexto(x, y, '');
-                    break;
-                case 'cuba':
-                    this.mostrarSeletorCuba(x, y);
-                    break;
-                case 'legenda':
-                    this.mostrarSeletorLegenda(x, y);
-                    break;
-                default:
-                    console.warn('⚠️ Modo de inserção desconhecido:', this.modoInsercaoAtivo);
-            }
-            
-            // 🔥 CORREÇÃO: Desativar o modo após a inserção
-            this.desativarTodosOsModos();
-        }
+    switch(this.modoInsercaoAtivo) {
+        case 'texto':
+            this.criarTexto(x, y, '');
+            break;
+        case 'cuba':
+            this.mostrarSeletorCuba(x, y);
+            break;
+        case 'legenda':
+            this.mostrarSeletorLegenda(x, y);
+            break;
+        default:
+            console.warn('⚠️ Modo de inserção desconhecido:', this.modoInsercaoAtivo);
+    }
+    
+    this.desativarTodosOsModos();
+}
 
-       criarTexto(x, y, textoInicial = "") {
+      criarTexto(x, y, textoInicial = "") {
     const textoElement = document.createElement('textarea');
     textoElement.className = 'texto-legenda';
+
+    // 🔥 CORREÇÃO: Usar posicionamento absoluto direto em vez de transform
     textoElement.style.left = `${x}px`;
     textoElement.style.top = `${y}px`;
-    textoElement.value = textoInicial;
+    textoElement.style.transform = 'none'; // Remover transform
+    textoElement.setAttribute('data-x', '0');
+    textoElement.setAttribute('data-y', '0');
     
+    textoElement.value = textoInicial;
     textoElement.setAttribute('data-valor', textoInicial);
     textoElement.rows = 1;
     textoElement.placeholder = "Digite seu texto";
 
-    textoElement.style.textAlign = 'left';
-    textoElement.style.justifyContent = 'flex-start';
-    textoElement.style.alignItems = 'flex-start';
-    
-    // 🔥 CORREÇÃO: Sempre adicionar classe selecionavel se modo seleção estiver ativo
     if (this.modoSelecaoAtivo) {
         textoElement.classList.add('selecionavel');
     }
-    
+
+    // 🔥 CORREÇÃO: Buscar grupo com as coordenadas corretas
     const grupo = this.encontrarGrupoNaPosicao(x, y);
     if (grupo) {
+        console.log('📝 Adicionando texto dentro do grupo');
         grupo.appendChild(textoElement);
     } else {
+        console.log('📝 Adicionando texto na área principal');
         this.drawingArea.appendChild(textoElement);
     }
     
+    // Resto do método permanece igual...
     this.salvarEstadoImediato('Adicionar Caixa de Texto');
-    
     textoElement.focus();
-    
+
     textoElement.addEventListener('input', () => {
         textoElement.style.height = 'auto';
         textoElement.style.height = (textoElement.scrollHeight) + 'px';
@@ -4228,7 +4448,6 @@ _isTouchGesture(e) {
     
     textoElement.addEventListener('blur', () => {
         textoElement.setAttribute('data-valor', textoElement.value);
-        
         if (textoElement.value.trim() === '') {
             textoElement.remove();
             this.salvarEstadoImediato('Remover Texto Vazio');
@@ -4237,11 +4456,11 @@ _isTouchGesture(e) {
         }
     });
 
-    // 🔥 CORREÇÃO: Configurar interatividade imediatamente
     this.configurarInteratividadeTexto(textoElement);
     
     return textoElement;
 }
+
 
         configurarInteratividadeTexto(elemento) {
     this.removerInteratividade(elemento);
@@ -4312,43 +4531,44 @@ _isTouchGesture(e) {
 }
 
         criarLegendaSimplificada(x, y, simbolo = "C", descricao = "Acabamento") {
-            const legendaElement = document.createElement('div');
-            legendaElement.className = 'legenda-simplificada';
-            
-            legendaElement.style.position = 'absolute';
-            legendaElement.style.left = `${x}px`;
-            legendaElement.style.top = `${y}px`;
-            
-            legendaElement.style.transform = 'none';
-            legendaElement.setAttribute('data-x', '0');
-            legendaElement.setAttribute('data-y', '0');
-            
-            legendaElement.innerHTML = `
-                <span class="legenda-simbolo-inline">${simbolo}</span> = <span class="legenda-descricao-inline" contenteditable="true">${descricao}</span>
-            `;
-            
-            if (this.modoSelecaoAtivo) {
-                legendaElement.classList.add('selecionavel');
-            }
-            
-            legendaElement.addEventListener('dblclick', () => {
-                const spanDescricao = legendaElement.querySelector('.legenda-descricao-inline');
-                spanDescricao.focus();
-            });
-            
-            const grupo = this.encontrarGrupoNaPosicao(x, y);
-            if (grupo) {
-                grupo.appendChild(legendaElement);
-            } else {
-                this.drawingArea.appendChild(legendaElement);
-            }
-            
-            this.salvarEstadoHistorico('Adicionar Legenda');
-            
-            this.configurarInteratividadeLegenda(legendaElement);
-            
-            return legendaElement;
-        }
+    const legendaElement = document.createElement('div');
+    legendaElement.className = 'legenda-simplificada';
+    
+    // 🔥 CORREÇÃO: Posicionamento absoluto direto
+    legendaElement.style.position = 'absolute';
+    legendaElement.style.left = `${x}px`;
+    legendaElement.style.top = `${y}px`;
+    legendaElement.style.transform = 'none';
+    legendaElement.setAttribute('data-x', '0');
+    legendaElement.setAttribute('data-y', '0');
+    
+    // Resto do método permanece igual...
+    legendaElement.innerHTML = `
+        <span class="legenda-simbolo-inline">${simbolo}</span> = <span class="legenda-descricao-inline" contenteditable="true">${descricao}</span>
+    `;
+    
+    if (this.modoSelecaoAtivo) {
+        legendaElement.classList.add('selecionavel');
+    }
+    
+    legendaElement.addEventListener('dblclick', () => {
+        const spanDescricao = legendaElement.querySelector('.legenda-descricao-inline');
+        spanDescricao.focus();
+    });
+    
+    // 🔥 CORREÇÃO: Usar método corrigido
+    const grupo = this.encontrarGrupoNaPosicao(x, y);
+    if (grupo) {
+        grupo.appendChild(legendaElement);
+    } else {
+        this.drawingArea.appendChild(legendaElement);
+    }
+    
+    this.salvarEstadoHistorico('Adicionar Legenda');
+    this.configurarInteratividadeLegenda(legendaElement);
+    
+    return legendaElement;
+}
 
         configurarInteratividadeLegenda(elemento) {
             const transformInicial = window.getComputedStyle(elemento).transform;
@@ -4453,23 +4673,31 @@ _isTouchGesture(e) {
             }, { passive: false });
         }
 
-        encontrarGrupoNaPosicao(x, y) {
-            const grupos = this.drawingArea.querySelectorAll('.area-pecas');
-            for (const grupo of grupos) {
-                const rect = grupo.getBoundingClientRect();
-                const drawingAreaRect = this.drawingArea.getBoundingClientRect();
-                
-                const grupoLeft = rect.left - drawingAreaRect.left;
-                const grupoTop = rect.top - drawingAreaRect.top;
-                const grupoRight = grupoLeft + rect.width;
-                const grupoBottom = grupoTop + rect.height;
-                
-                if (x >= grupoLeft && x <= grupoRight && y >= grupoTop && y <= grupoBottom) {
-                    return grupo;
-                }
-            }
-            return null;
+       encontrarGrupoNaPosicao(x, y) {
+    const grupos = this.drawingArea.querySelectorAll('.area-pecas');
+    
+    for (const grupo of grupos) {
+        const grupoRect = grupo.getBoundingClientRect();
+        const drawingRect = this.drawingArea.getBoundingClientRect();
+        
+        // 🔥 CORREÇÃO: Calcular posição absoluta considerando scroll
+        const grupoAbsLeft = grupoRect.left - drawingRect.left + this.drawingArea.scrollLeft;
+        const grupoAbsTop = grupoRect.top - drawingRect.top + this.drawingArea.scrollTop;
+        const grupoAbsRight = grupoAbsLeft + grupoRect.width;
+        const grupoAbsBottom = grupoAbsTop + grupoRect.height;
+        
+        console.log(`🔍 Grupo: ${grupoAbsLeft},${grupoAbsTop} -> ${grupoAbsRight},${grupoAbsBottom} | Clique: ${x},${y}`);
+        
+        if (x >= grupoAbsLeft && x <= grupoAbsRight && 
+            y >= grupoAbsTop && y <= grupoAbsBottom) {
+            console.log('✅ Elemento será adicionado dentro do grupo');
+            return grupo;
         }
+    }
+    
+    console.log('❌ Nenhum grupo encontrado na posição, adicionando na área principal');
+    return null;
+}
 
         criarDimensoes(pecaElement, peca, width, height) {
             const pecaId = pecaElement.getAttribute('data-peca-id');
@@ -5187,6 +5415,497 @@ _isTouchGesture(e) {
             });
         }
 
+        // 🔥🔥🔥 NOVOS MÉTODOS PARA O SISTEMA DE ESTILOS
+
+       mostrarModalEstilos() {
+    console.log('🎨 Abrindo modal de estilos...');
+    
+    // Fechar qualquer modal existente primeiro
+    this.fecharModalEstilos();
+    
+    const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
+    
+    // Criar backdrop primeiro
+    const backdrop = document.createElement('div');
+    backdrop.className = 'modal-backdrop';
+    backdrop.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        z-index: 1999;
+    `;
+    document.body.appendChild(backdrop);
+    this.backdropEstilosAtual = backdrop;
+    
+    // Criar modal
+    const modalEstilos = document.createElement('div');
+    modalEstilos.className = 'modal-estilos';
+    modalEstilos.style.cssText = `
+        position: fixed;
+        z-index: 2000;
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        max-width: 400px;
+        width: 90vw;
+        max-height: 80vh;
+        overflow-y: auto;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+    `;
+    
+    // Cores predefinidas
+    const cores = [
+        '#000000', '#333333', '#666666', '#999999', '#cccccc',
+        '#ff0000', '#ff6b6b', '#ffa500', '#ffd700', '#ffff00',
+        '#00ff00', '#90ee90', '#0000ff', '#87ceeb', '#4e73df',
+        '#8a2be2', '#ee82ee', '#a52a2a', '#deb887', '#ffffff'
+    ];
+    
+    // Obter estilos atuais do elemento
+    const estilosAtuais = this.obterEstilosAtuais(elementoAlvo);
+    
+    modalEstilos.innerHTML = `
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h6 style="margin: 0;">Estilos e Formatação</h6>
+            <button type="button" class="btn-close" id="fecharModalEstilosBtn"></button>
+        </div>
+        
+        <div class="estilos-secao">
+            <h7>Cores</h7>
+            <div class="paleta-cores" id="paletaCores">
+                ${cores.map(cor => `
+                    <div class="cor-opcao ${estilosAtuais.cor === cor ? 'selecionada' : ''}" 
+                         style="background-color: ${cor}; border: 2px solid ${cor === '#ffffff' ? '#ccc' : cor}"
+                         data-cor="${cor}">
+                    </div>
+                `).join('')}
+            </div>
+            <div class="controle-grupo mt-2">
+                <label>Cor personalizada:</label>
+                <input type="color" id="corPersonalizada" value="${estilosAtuais.cor || '#000000'}">
+                <div class="preview-cor" style="background-color: ${estilosAtuais.cor || '#000000'}" id="previewCor"></div>
+            </div>
+        </div>
+        
+        <div class="estilos-secao">
+            <h7>Texto</h7>
+            <div class="controles-texto">
+                <div class="controle-grupo">
+                    <label>Tamanho:</label>
+                    <input type="range" id="tamanhoTexto" min="8" max="72" value="${estilosAtuais.tamanhoFonte || 16}">
+                    <span id="valorTamanho">${estilosAtuais.tamanhoFonte || 16}px</span>
+                </div>
+                <div class="controle-grupo">
+                    <label>
+                        <input type="checkbox" id="textoNegrito" ${estilosAtuais.negrito ? 'checked' : ''}>
+                        Negrito
+                    </label>
+                </div>
+            </div>
+        </div>
+        
+        <div class="estilos-secao">
+            <h7>Estilo de Linha</h7>
+            <div class="estilos-linha">
+                <div class="opcao-linha ${estilosAtuais.estiloLinha === 'solid' ? 'selecionada' : ''}" 
+                     data-estilo="solid">
+                    <div class="linha-solida"></div>
+                    <small>Contínua</small>
+                </div>
+                <div class="opcao-linha ${estilosAtuais.estiloLinha === 'dashed' ? 'selecionada' : ''}" 
+                     data-estilo="dashed">
+                    <div class="linha-tracejada"></div>
+                    <small>Tracejada</small>
+                </div>
+            </div>
+        </div>
+        
+        <button class="botao-aplicar" id="aplicarEstilosBtn">
+            <i class="fas fa-check me-1"></i> Aplicar Estilos
+        </button>
+        
+        <div class="mt-3 small text-muted">
+            <i class="fas fa-info-circle me-1"></i>
+            Aplica aos elementos selecionados ou ao último elemento clicado
+        </div>
+    `;
+    
+    document.body.appendChild(modalEstilos);
+    this.modalEstilosAtual = modalEstilos;
+    
+    // Configurar eventos DEPOIS que o modal foi adicionado ao DOM
+    setTimeout(() => {
+        this.configurarEventosModalEstilos();
+    }, 10);
+    
+    console.log('✅ Modal de estilos aberto');
+}
+
+
+        obterEstilosAtuais(elemento) {
+            if (!elemento) {
+                return {
+                    cor: '#000000',
+                    tamanhoFonte: 16,
+                    negrito: false,
+                    estiloLinha: 'solid'
+                };
+            }
+            
+            const estilos = window.getComputedStyle(elemento);
+            
+            // Determinar cor atual
+            let cor = '#000000';
+            if (elemento.classList.contains('peca') || elemento.classList.contains('cuba')) {
+                cor = estilos.borderColor || '#000000';
+            } else if (elemento.classList.contains('texto-legenda') || 
+                       elemento.classList.contains('legenda-simplificada') ||
+                       elemento.classList.contains('simbolo-linha') ||
+                       elemento.classList.contains('titulo-grupo') ||
+                       elemento.classList.contains('dimensoes') ||
+                       elemento.classList.contains('quantidade-peca')) {
+                cor = estilos.color || '#000000';
+            }
+            
+            // Converter cor RGB para HEX se necessário
+            if (cor.startsWith('rgb')) {
+                cor = this.rgbParaHex(cor);
+            }
+            
+            // Determinar tamanho da fonte
+            let tamanhoFonte = parseInt(estilos.fontSize) || 16;
+            
+            // Determinar se é negrito
+            const negrito = estilos.fontWeight === 'bold' || estilos.fontWeight === '700';
+            
+            // Determinar estilo da linha
+            let estiloLinha = 'solid';
+            if (elemento.classList.contains('peca') || elemento.classList.contains('cuba')) {
+                estiloLinha = estilos.borderStyle || 'solid';
+            }
+            
+            return {
+                cor: cor,
+                tamanhoFonte: tamanhoFonte,
+                negrito: negrito,
+                estiloLinha: estiloLinha
+            };
+        }
+
+        rgbParaHex(rgb) {
+            // Converter rgb(r, g, b) para hexadecimal
+            const match = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+            if (!match) return '#000000';
+            
+            const r = parseInt(match[1]).toString(16).padStart(2, '0');
+            const g = parseInt(match[2]).toString(16).padStart(2, '0');
+            const b = parseInt(match[3]).toString(16).padStart(2, '0');
+            
+            return `#${r}${g}${b}`;
+        }
+
+        selecionarCor(cor) {
+            console.log('🎨 Selecionando cor:', cor);
+            this.corSelecionada = cor;
+            
+            // Atualizar preview
+            const preview = document.getElementById('previewCor');
+            if (preview) {
+                preview.style.backgroundColor = cor;
+            }
+            
+            // Atualizar seletor de cor personalizada
+            const corPersonalizada = document.getElementById('corPersonalizada');
+            if (corPersonalizada) {
+                corPersonalizada.value = cor;
+            }
+            
+            // Atualizar seleção na paleta
+            document.querySelectorAll('.cor-opcao').forEach(opcao => {
+                opcao.classList.remove('selecionada');
+                if (opcao.getAttribute('data-cor') === cor) {
+                    opcao.classList.add('selecionada');
+                }
+            });
+            
+            // Aplicar cor imediatamente para preview em tempo real
+            this.aplicarEstilosPreview();
+        }
+
+        atualizarTamanhoTexto(tamanho) {
+            console.log('📐 Atualizando tamanho do texto:', tamanho);
+            this.tamanhoTextoSelecionado = parseInt(tamanho);
+            
+            // Atualizar display do valor
+            const valorTamanho = document.getElementById('valorTamanho');
+            if (valorTamanho) {
+                valorTamanho.textContent = `${tamanho}px`;
+            }
+            
+            // Aplicar preview em tempo real
+            this.aplicarEstilosPreview();
+        }
+
+        toggleNegrito(ativo) {
+            console.log('🔠 Alternando negrito:', ativo);
+            this.negritoAtivo = ativo;
+            this.aplicarEstilosPreview();
+        }
+
+        selecionarEstiloLinha(estilo) {
+            console.log('📏 Selecionando estilo de linha:', estilo);
+            this.estiloLinhaSelecionado = estilo;
+            
+            // Atualizar seleção visual
+            document.querySelectorAll('.opcao-linha').forEach(opcao => {
+                opcao.classList.remove('selecionada');
+                if (opcao.getAttribute('data-estilo') === estilo) {
+                    opcao.classList.add('selecionada');
+                }
+            });
+            
+            // Aplicar preview em tempo real
+            this.aplicarEstilosPreview();
+        }
+
+        aplicarEstilosPreview() {
+            const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
+            if (!elementoAlvo) return;
+            
+            this.aplicarEstilosElemento(elementoAlvo, true);
+        }
+
+configurarEventosModalEstilos() {
+    if (!this.modalEstilosAtual) return;
+    
+    // Botão fechar
+    const fecharBtn = this.modalEstilosAtual.querySelector('#fecharModalEstilosBtn');
+    if (fecharBtn) {
+        fecharBtn.addEventListener('click', () => {
+            this.fecharModalEstilos();
+        });
+    }
+    
+    // Botão aplicar
+    const aplicarBtn = this.modalEstilosAtual.querySelector('#aplicarEstilosBtn');
+    if (aplicarBtn) {
+        aplicarBtn.addEventListener('click', () => {
+            this.aplicarEstilos();
+        });
+    }
+    
+    // Backdrop - fechar ao clicar fora
+    if (this.backdropEstilosAtual) {
+        this.backdropEstilosAtual.addEventListener('click', () => {
+            this.fecharModalEstilos();
+        });
+    }
+    
+    // Eventos dos controles
+    const corPersonalizada = this.modalEstilosAtual.querySelector('#corPersonalizada');
+    if (corPersonalizada) {
+        corPersonalizada.addEventListener('change', (e) => {
+            this.selecionarCor(e.target.value);
+        });
+    }
+    
+    const tamanhoTexto = this.modalEstilosAtual.querySelector('#tamanhoTexto');
+    if (tamanhoTexto) {
+        tamanhoTexto.addEventListener('input', (e) => {
+            this.atualizarTamanhoTexto(e.target.value);
+        });
+    }
+    
+    const textoNegrito = this.modalEstilosAtual.querySelector('#textoNegrito');
+    if (textoNegrito) {
+        textoNegrito.addEventListener('change', (e) => {
+            this.toggleNegrito(e.target.checked);
+        });
+    }
+    
+    // Eventos da paleta de cores
+    const coresOpcoes = this.modalEstilosAtual.querySelectorAll('.cor-opcao');
+    coresOpcoes.forEach(opcao => {
+        opcao.addEventListener('click', () => {
+            const cor = opcao.getAttribute('data-cor');
+            this.selecionarCor(cor);
+        });
+    });
+    
+    // Eventos dos estilos de linha
+    const opcoesLinha = this.modalEstilosAtual.querySelectorAll('.opcao-linha');
+    opcoesLinha.forEach(opcao => {
+        opcao.addEventListener('click', () => {
+            const estilo = opcao.getAttribute('data-estilo');
+            this.selecionarEstiloLinha(estilo);
+        });
+    });
+    
+    console.log('✅ Eventos do modal de estilos configurados');
+}
+
+       aplicarEstilos() {
+    console.log('🎨 Aplicando estilos...');
+    
+    try {
+        const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
+        
+        if (!elementoAlvo) {
+           
+            this.fecharModalEstilos();
+            
+           
+                
+            return;
+        }
+        
+        console.log('🎨 Aplicando estilos ao elemento:', elementoAlvo);
+        
+        // Aplicar estilos
+        this.aplicarEstilosElemento(elementoAlvo);
+        
+        // Fechar o modal IMEDIATAMENTE
+        this.fecharModalEstilos();
+        
+        // Salvar no histórico DEPOIS de fechar o modal
+        setTimeout(() => {
+            this.salvarEstadoHistorico('Aplicar Estilos');
+        }, 50);
+        
+        console.log('✅ Estilos aplicados com sucesso');
+        
+    } catch (error) {
+        console.error('❌ Erro ao aplicar estilos:', error);
+        // Garantir que o modal feche mesmo em caso de erro
+        this.fecharModalEstilos();
+    }
+}
+
+        aplicarEstilosElemento(elemento, preview = false) {
+            const cor = this.corSelecionada || (preview ? this.corSelecionada : null);
+            const tamanhoFonte = this.tamanhoTextoSelecionado || (preview ? this.tamanhoTextoSelecionado : null);
+            const negrito = this.negritoAtivo !== undefined ? this.negritoAtivo : null;
+            const estiloLinha = this.estiloLinhaSelecionado || (preview ? this.estiloLinhaSelecionado : null);
+            
+            // Aplicar estilos baseados no tipo de elemento
+            if (elemento.classList.contains('peca')) {
+                if (cor) elemento.style.borderColor = cor;
+                if (estiloLinha) elemento.style.borderStyle = estiloLinha;
+            }
+            else if (elemento.classList.contains('cuba')) {
+                if (cor) elemento.style.borderColor = cor;
+                if (estiloLinha) elemento.style.borderStyle = estiloLinha;
+            }
+            else if (elemento.classList.contains('texto-legenda') || 
+                     elemento.classList.contains('legenda-simplificada') ||
+                     elemento.classList.contains('titulo-grupo')) {
+                if (cor) elemento.style.color = cor;
+                if (tamanhoFonte) elemento.style.fontSize = `${tamanhoFonte}px`;
+                if (negrito !== null) {
+                    if (negrito) {
+                        elemento.classList.add('texto-negrito');
+                    } else {
+                        elemento.classList.remove('texto-negrito');
+                    }
+                }
+            }
+            else if (elemento.classList.contains('simbolo-linha') ||
+                     elemento.classList.contains('dimensoes') ||
+                     elemento.classList.contains('quantidade-peca')) {
+                if (cor) elemento.style.color = cor;
+                if (tamanhoFonte) elemento.style.fontSize = `${tamanhoFonte}px`;
+                if (negrito !== null) {
+                    elemento.style.fontWeight = negrito ? 'bold' : 'normal';
+                }
+            }
+            else if (elemento.classList.contains('linha-peca')) {
+                if (cor) elemento.style.backgroundColor = cor;
+                // Para linhas, o estilo é aplicado através de classes
+                if (estiloLinha === 'dashed') {
+                    elemento.classList.add('linha-tracejada-elemento');
+                    elemento.classList.remove('linha-solida-elemento');
+                } else {
+                    elemento.classList.add('linha-solida-elemento');
+                    elemento.classList.remove('linha-tracejada-elemento');
+                }
+            }
+            
+            // Se for um grupo temporário, aplicar a todos os elementos do grupo
+            if (elemento.classList.contains('grupo-temporario')) {
+                const elementosData = JSON.parse(elemento.getAttribute('data-elementos') || '[]');
+                elementosData.forEach(data => {
+                    if (data.elemento && data.elemento.classList) {
+                        this.aplicarEstilosElemento(data.elemento, preview);
+                    }
+                });
+            }
+        }
+
+      fecharModalEstilos() {
+    console.log('🔴 Fechando modal de estilos...');
+    
+    // Remover modal
+    if (this.modalEstilosAtual) {
+        console.log('🔴 Removendo modalEstilosAtual');
+        try {
+            if (this.modalEstilosAtual.parentNode) {
+                this.modalEstilosAtual.parentNode.removeChild(this.modalEstilosAtual);
+            }
+        } catch (e) {
+            console.error('Erro ao remover modal:', e);
+        }
+        this.modalEstilosAtual = null;
+    }
+    
+    // Remover backdrop
+    if (this.backdropEstilosAtual) {
+        console.log('🔴 Removendo backdropEstilosAtual');
+        try {
+            if (this.backdropEstilosAtual.parentNode) {
+                this.backdropEstilosAtual.parentNode.removeChild(this.backdropEstilosAtual);
+            }
+        } catch (e) {
+            console.error('Erro ao remover backdrop:', e);
+        }
+        this.backdropEstilosAtual = null;
+    }
+    
+    // Limpeza adicional por classe (fallback)
+    try {
+        const modaisRemanescentes = document.querySelectorAll('.modal-estilos');
+        modaisRemanescentes.forEach(modal => {
+            if (modal.parentNode) {
+                console.log('🔴 Removendo modal por classe');
+                modal.parentNode.removeChild(modal);
+            }
+        });
+        
+        const backdropsRemanescentes = document.querySelectorAll('.modal-backdrop');
+        backdropsRemanescentes.forEach(backdrop => {
+            if (backdrop.parentNode) {
+                console.log('🔴 Removendo backdrop por classe');
+                backdrop.parentNode.removeChild(backdrop);
+            }
+        });
+    } catch (e) {
+        console.error('Erro na limpeza por classe:', e);
+    }
+    
+    // Limpar seleções temporárias
+    this.corSelecionada = null;
+    this.tamanhoTextoSelecionado = null;
+    this.negritoAtivo = null;
+    this.estiloLinhaSelecionado = null;
+    
+    console.log('✅ Modal de estilos fechado completamente');
+}
+
     } // 🔥 FIM DA CLASSE GerenciadorDesenho
 
     // =============================================
@@ -5207,4 +5926,3 @@ _isTouchGesture(e) {
 
 </body>
 </html>
-
