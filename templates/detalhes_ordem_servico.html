@@ -1332,7 +1332,7 @@ this.adicionarEstilosMobile();
                         e.preventDefault();
                         this.iniciarPinturaBorracha(e);
                     }
-                }, 150); // Delay de 150ms para reconhecer zoom com pinça
+                }, 100); // Delay de 150ms para reconhecer zoom com pinça
             } else {
                 // Se já for múltiplos toques, cancelar qualquer timeout e permitir zoom
                 clearTimeout(touchStartTimeout);
@@ -2303,61 +2303,139 @@ refazer() {
 
         // 🔥 MODIFICADO: Ativar modo laço
         ativarModoLaco() {
-            this.desativarTodosOsModos();
-            console.log('🔵 Ativando modo laço...');
-            
-            this.modoLacoAtivo = true;
-            this.desselecionarElemento();
-            this.drawingArea.style.cursor = 'crosshair';
-            
-            const btnLaco = document.getElementById('btnLaco');
-            if (btnLaco) btnLaco.classList.add('btn-modo-ativo');
-            
-            this.lacoPontos = [];
-            
-            if (!this.svgOverlay) {
-                const svgns = "http://www.w3.org/2000/svg";
-                const svg = document.createElementNS(svgns, 'svg');
-                svg.setAttribute('class', 'laco-overlay');
-                svg.style.position = 'absolute';
-                svg.style.left = '0';
-                svg.style.top = '0';
-                svg.style.width = '100%';
-                svg.style.height = '100%';
-                svg.style.pointerEvents = 'none';
-                svg.style.zIndex = '999';
-                this.drawingArea.appendChild(svg);
-                this.svgOverlay = svg;
-            }
-            
-            this._lacoMouseDownHandler = (e) => this._iniciarLaco(e);
-            this._lacoMoveHandler = (e) => this._atualizarLaco(e);
-            this._lacoUpHandler = (e) => this._finalizarLaco(e);
+    this.desativarTodosOsModos();
+    console.log('🔵 Ativando modo laço...');
+    
+    this.modoLacoAtivo = true;
+    this.desselecionarElemento();
+    this.drawingArea.style.cursor = 'crosshair';
+    
+    const btnLaco = document.getElementById('btnLaco');
+    if (btnLaco) btnLaco.classList.add('btn-modo-ativo');
+    
+    this.lacoPontos = [];
+    
+    if (!this.svgOverlay) {
+        const svgns = "http://www.w3.org/2000/svg";
+        const svg = document.createElementNS(svgns, 'svg');
+        svg.setAttribute('class', 'laco-overlay');
+        svg.style.position = 'absolute';
+        svg.style.left = '0';
+        svg.style.top = '0';
+        svg.style.width = '100%';
+        svg.style.height = '100%';
+        svg.style.pointerEvents = 'none';
+        svg.style.zIndex = '999';
+        this.drawingArea.appendChild(svg);
+        this.svgOverlay = svg;
+    }
+    
+    // 🔥 NOVO: Variáveis para controle do delay no modo laço
+    this.lacoTouchStartTimeout = null;
+    this.lacoCurrentTouches = 0;
+    this.lacoIniciado = false;
+    
+    // Event listeners para mouse (mantém o mesmo)
+    this._lacoMouseDownHandler = (e) => this._iniciarLaco(e);
+    this._lacoMoveHandler = (e) => this._atualizarLaco(e);
+    this._lacoUpHandler = (e) => this._finalizarLaco(e);
 
-            this.drawingArea.addEventListener('mousedown', this._lacoMouseDownHandler);
-            this.drawingArea.addEventListener('mousemove', this._lacoMoveHandler);
-            this.drawingArea.addEventListener('mouseup', this._lacoUpHandler);
-            
-            this.drawingArea.addEventListener('touchstart', this._lacoMouseDownHandler, { passive: false });
-            this.drawingArea.addEventListener('touchmove', this._lacoMoveHandler, { passive: false });
-            this.drawingArea.addEventListener('touchend', this._lacoUpHandler, { passive: false });
-            
-            console.log('✅ Modo laço ativado');
+    this.drawingArea.addEventListener('mousedown', this._lacoMouseDownHandler);
+    this.drawingArea.addEventListener('mousemove', this._lacoMoveHandler);
+    this.drawingArea.addEventListener('mouseup', this._lacoUpHandler);
+    
+    // 🔥 CORREÇÃO MELHORADA: Touch events com delay para reconhecer zoom com pinça
+    this._lacoTouchStartHandler = (e) => {
+        if (!this.modoLacoAtivo) return;
+        
+        this.lacoCurrentTouches = e.touches.length;
+        
+        // Se for toque único, aguardar um pouco para verificar se vira pinça
+        if (this.lacoCurrentTouches === 1) {
+            this.lacoTouchStartTimeout = setTimeout(() => {
+                // Se ainda for toque único após o delay, iniciar laço
+                if (e.touches.length === 1) {
+                    e.preventDefault();
+                    this.lacoIniciado = true;
+                    this._iniciarLaco(e);
+                }
+            }, 100); // Delay de 150ms para reconhecer zoom com pinça
+        } else {
+            // Se já for múltiplos toques, cancelar qualquer timeout e permitir zoom
+            clearTimeout(this.lacoTouchStartTimeout);
+            this.lacoIniciado = false;
+            // Não prevenir comportamento padrão - permitir zoom
         }
+    };
+    
+    this._lacoTouchMoveHandler = (e) => {
+        if (!this.modoLacoAtivo) return;
+        
+        this.lacoCurrentTouches = e.touches.length;
+        
+        // Se for zoom com pinça (2+ dedos), permitir comportamento padrão
+        if (this.lacoCurrentTouches >= 2) {
+            clearTimeout(this.lacoTouchStartTimeout);
+            this.lacoIniciado = false;
+            // Não fazer nada - permitir que o navegador gerencie o zoom
+            return;
+        }
+        
+        // Se for toque único após o timeout e laço iniciado, permitir atualização
+        if (this.lacoCurrentTouches === 1 && this.lacoIniciado) {
+            e.preventDefault();
+            this._atualizarLaco(e);
+        }
+    };
+    
+    this._lacoTouchEndHandler = (e) => {
+        if (!this.modoLacoAtivo) return;
+        
+        clearTimeout(this.lacoTouchStartTimeout);
+        
+        // Se o laço foi iniciado e todos os toques foram removidos, finalizar
+        if (this.lacoIniciado && e.touches.length === 0) {
+            this._finalizarLaco(e);
+            this.lacoIniciado = false;
+        } else if (e.touches.length >= 2) {
+            // Se ainda há múltiplos toques, manter o laço cancelado
+            this.lacoIniciado = false;
+        }
+    };
+    
+    this.drawingArea.addEventListener('touchstart', this._lacoTouchStartHandler, { passive: false });
+    this.drawingArea.addEventListener('touchmove', this._lacoTouchMoveHandler, { passive: false });
+    this.drawingArea.addEventListener('touchend', this._lacoTouchEndHandler, { passive: false });
+    
+    // 🔥 NOVO: Cancelar timeout se novos toques forem adicionados rapidamente
+    this.drawingArea.addEventListener('touchstart', (e) => {
+        if (this.modoLacoAtivo && e.touches.length >= 2) {
+            clearTimeout(this.lacoTouchStartTimeout);
+            this.lacoIniciado = false;
+            console.log('📱 Zoom com pinça detectado no modo laço - cancelando laço');
+        }
+    }, { passive: true });
+    
+    console.log('✅ Modo laço ativado');
+}
 
         // 🔥 MODIFICADO: Desativar modo laço
         desativarModoLaco() {
-            console.log('🔵 Desativando modo laço...');
-            this.modoLacoAtivo = false;
-            this.drawingArea.style.cursor = 'default';
-            
-            const btnLaco = document.getElementById('btnLaco');
-            if (btnLaco) btnLaco.classList.remove('btn-modo-ativo');
-            
-            this.limparModoLacoCompletamente();
-            
-            console.log('✅ Modo laço desativado');
-        }
+    console.log('🔵 Desativando modo laço...');
+    this.modoLacoAtivo = false;
+    this.drawingArea.style.cursor = 'default';
+    
+    const btnLaco = document.getElementById('btnLaco');
+    if (btnLaco) btnLaco.classList.remove('btn-modo-ativo');
+    
+    // Limpar timeouts
+    clearTimeout(this.lacoTouchStartTimeout);
+    this.lacoIniciado = false;
+    
+    this.limparModoLacoCompletamente();
+    
+    console.log('✅ Modo laço desativado');
+}
 
         // 🔥 NOVO: Ativar modo texto
         ativarModoTexto() {
@@ -2843,28 +2921,49 @@ refazer() {
         }
 
         limparModoLacoCompletamente() {
-            if (this.svgOverlay && this.svgOverlay.parentNode) {
-                this.svgOverlay.parentNode.removeChild(this.svgOverlay);
-                this.svgOverlay = null;
-            }
-            
-            this._lacoPolygonElement = null;
-            this.lacoPontos = [];
-            
-            if (this._lacoMouseDownHandler) {
-                this.drawingArea.removeEventListener('mousedown', this._lacoMouseDownHandler);
-            }
-            if (this._lacoMoveHandler) {
-                this.drawingArea.removeEventListener('mousemove', this._lacoMoveHandler);
-            }
-            if (this._lacoUpHandler) {
-                this.drawingArea.removeEventListener('mouseup', this._lacoUpHandler);
-            }
-            
-            this._lacoMouseDownHandler = null;
-            this._lacoMoveHandler = null;
-            this._lacoUpHandler = null;
-        }
+    if (this.svgOverlay && this.svgOverlay.parentNode) {
+        this.svgOverlay.parentNode.removeChild(this.svgOverlay);
+        this.svgOverlay = null;
+    }
+    
+    this._lacoPolygonElement = null;
+    this.lacoPontos = [];
+    
+    // Remover event listeners de mouse
+    if (this._lacoMouseDownHandler) {
+        this.drawingArea.removeEventListener('mousedown', this._lacoMouseDownHandler);
+    }
+    if (this._lacoMoveHandler) {
+        this.drawingArea.removeEventListener('mousemove', this._lacoMoveHandler);
+    }
+    if (this._lacoUpHandler) {
+        this.drawingArea.removeEventListener('mouseup', this._lacoUpHandler);
+    }
+    
+    // Remover event listeners de touch
+    if (this._lacoTouchStartHandler) {
+        this.drawingArea.removeEventListener('touchstart', this._lacoTouchStartHandler);
+    }
+    if (this._lacoTouchMoveHandler) {
+        this.drawingArea.removeEventListener('touchmove', this._lacoTouchMoveHandler);
+    }
+    if (this._lacoTouchEndHandler) {
+        this.drawingArea.removeEventListener('touchend', this._lacoTouchEndHandler);
+    }
+    
+    this._lacoMouseDownHandler = null;
+    this._lacoMoveHandler = null;
+    this._lacoUpHandler = null;
+    this._lacoTouchStartHandler = null;
+    this._lacoTouchMoveHandler = null;
+    this._lacoTouchEndHandler = null;
+    
+    // Limpar variáveis de controle
+    clearTimeout(this.lacoTouchStartTimeout);
+    this.lacoTouchStartTimeout = null;
+    this.lacoCurrentTouches = 0;
+    this.lacoIniciado = false;
+}
 
         limparGrupoTemporario() {
             if (this.grupoTemporario && this.grupoTemporario.parentNode) {
