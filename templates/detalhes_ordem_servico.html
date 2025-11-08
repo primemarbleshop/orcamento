@@ -6,7 +6,83 @@
     <title>Ordem de Serviço - {{ codigo_orcamento }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-     <style>
+    <style>
+        /* 🔥 CORREÇÃO: Aumentar z-index dos containers de botões */
+        .top-buttons-container,
+        .action-buttons-container {
+            z-index: 10000 !important; /* Acima de tudo */
+            position: relative; /* Para z-index funcionar */
+        }
+
+        /* 🔥 CORREÇÃO: Ajustar z-index da área de desenho e elementos */
+        .drawing-area {
+            z-index: 1 !important; /* Abaixo dos botões */
+        }
+
+        .peca, .cuba, .texto-legenda, .legenda-simplificada,
+        .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca,
+        .linha-peca, .grupo-temporario {
+            z-index: 2 !important; /* Acima da área mas abaixo dos botões */
+        }
+
+        /* 🔥 CORREÇÃO: Elementos selecionados devem ficar acima das peças normais */
+        .elemento-selecionado {
+            z-index: 3 !important;
+        }
+
+        /* 🔥 CORREÇÃO: Handles devem ficar acima de tudo, mas abaixo dos botões */
+        .handles-container,
+        .handle,
+        .handle-rotacao {
+            z-index: 9999 !important; /* Logo abaixo dos botões */
+        }
+
+        /* 🔥 CORREÇÃO: Cursor da borracha deve ficar acima de tudo */
+        .cursor-borracha {
+            z-index: 10001 !important; /* Acima dos botões */
+        }
+
+        /* 🔥 CORREÇÃO: Modais devem ficar acima de tudo */
+        .modal-controles,
+        .modal-estilos {
+            z-index: 20000 !important; /* Muito acima de tudo */
+        }
+
+        .modal-backdrop {
+            z-index: 19999 !important; /* Logo abaixo dos modais */
+        }
+
+        /* 🔥 CORREÇÃO: Garantir que os containers de botão tenham fundo sólido */
+        .top-buttons-container {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .action-buttons-container {
+            background: linear-gradient(to bottom, #f8f9fa 90%, transparent);
+            backdrop-filter: blur(10px);
+            border-bottom: 2px solid #dee2e6;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 25px 0;
+        }
+
+        /* 🔥 CORREÇÃO: Garantir que a área de desenho não suba sobre os botões */
+        .drawing-area {
+            margin-top: 20px;
+            position: relative;
+            z-index: 1 !important;
+        }
+
+        /* 🔥 CORREÇÃO: Ajustar a ordem de empilhamento completa */
+        .main-container {
+            position: relative;
+        }
+
+        /* Resto do CSS permanece igual... */
         .main-container { 
             width: 1400px; 
             margin: 0 auto; 
@@ -83,7 +159,6 @@
             box-sizing: border-box; 
             user-select: none; 
             touch-action: none; 
-            /* 🔥 CORREÇÃO: Permitir interação entre grupos */
             pointer-events: auto;
             z-index: 2; /* Acima do container */
         }
@@ -100,22 +175,20 @@
             padding: 2px 4px; 
             border: none;
             border-radius: 3px; 
-             z-index: 999 !important;
+            z-index: 5 !important;
             cursor: default; 
             touch-action: none; 
             user-select: none; 
         }
         
         .dimensoes-top { 
- z-index: 999 !important;          
-top: -35px; 
+            top: -35px; 
             left: 50%; 
             transform: translateX(-50%); 
         }
         
         .dimensoes-right { 
- z-index: 999 !important;            
-right: -35px; 
+            right: -35px; 
             top: 50%; 
             transform: translateY(-50%); 
         }
@@ -219,39 +292,35 @@ right: -35px;
             border: 2px solid #333;
             border-radius: 3px;
             pointer-events: none;
-            z-index: 10000;
             box-shadow: 0 0 5px rgba(0,0,0,0.5);
         }
         
        .pintura-borracha {
-    position: absolute;
-    background-color: white;
-    border: none;
-    pointer-events: none;
-    z-index: 9; /* Acima de peças (2), cubas (8), linhas (6) e símbolos (7), mas abaixo de textos (10) e legendas (10) */
-}
+            position: absolute;
+            background-color: white;
+            border: none;
+            pointer-events: none;
+            z-index: 9; /* Acima de peças (2), cubas (8), linhas (6) e símbolos (7), mas abaixo de textos (10) e legendas (10) */
+        }
 
-/* 🔥 NOVO: Bloquear interações no modo borracha */
-.modo-borracha .peca,
-.modo-borracha .cuba,
-.modo-borracha .texto-legenda,
-.modo-borracha .legenda-simplificada,
-.modo-borracha .simbolo-linha,
-.modo-borracha .titulo-grupo,
-.modo-borracha .dimensoes,
-.modo-borracha .quantidade-peca,
-.modo-borracha .linha-peca,
-.modo-borracha .grupo-temporario {
-    pointer-events: none !important;
-    cursor: none !important;
-}
+        /* 🔥 NOVO: Bloquear interações no modo borracha */
+        .modo-borracha .peca,
+        .modo-borracha .cuba,
+        .modo-borracha .texto-legenda,
+        .modo-borracha .legenda-simplificada,
+        .modo-borracha .simbolo-linha,
+        .modo-borracha .titulo-grupo,
+        .modo-borracha .dimensoes,
+        .modo-borracha .quantidade-peca,
+        .modo-borracha .linha-peca,
+        .modo-borracha .grupo-temporario {
+            pointer-events: none !important;
+            cursor: none !important;
+        }
 
-.modo-borracha .drawing-area {
-    cursor: none !important;
-}
-
-        
-        
+        .modo-borracha .drawing-area {
+            cursor: none !important;
+        }
         
         .btn-custom-success { 
             background-color: #1cc88a; 
@@ -498,14 +567,14 @@ right: -35px;
         .elemento-selecionado { 
             outline: 3px solid #4e73df !important; 
             outline-offset: 2px; 
-            z-index: 1000 !important; 
+            z-index: 3 !important; 
             pointer-events: auto !important;
         }
         
         .handles-container {
             position: absolute;
             pointer-events: none;
-            z-index: 1001;
+            z-index: 9999;
         }
         
         .handle {
@@ -518,7 +587,7 @@ right: -35px;
             pointer-events: all;
             box-shadow: 0 2px 4px rgba(0,0,0,0.3);
             transform: translate(-50%, -50%);
-            z-index: 1002;
+            z-index: 9999;
             touch-action: none;
             -webkit-user-select: none;
             user-select: none;
@@ -553,7 +622,7 @@ right: -35px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.3);
             transform: translate(-50%, -50%);
             cursor: grab;
-            z-index: 1002;
+            z-index: 9999;
         }
         
         .handle-n {
@@ -595,7 +664,6 @@ right: -35px;
         .action-buttons-container { 
             position: sticky;
             top: 0;
-            z-index: 1000;
             background: linear-gradient(to bottom, #f8f9fa 90%, transparent);
             backdrop-filter: blur(10px);
             border-bottom: 2px solid #dee2e6;
@@ -629,43 +697,43 @@ right: -35px;
             box-shadow: none !important;
         }
 
-
         /* ======================== MOBILE - APENAS ÍCONES ======================== */
-/* 🔥 CORREÇÃO: Estilos para modo laço no mobile - permitir apenas zoom com pinça */
-@media (max-width: 768px) {
-    .modo-laco .drawing-area {
-        touch-action: pinch-zoom !important;
-        cursor: crosshair !important;
-        -webkit-overflow-scrolling: auto !important;
-    }
-    
-    /* Bloquear completamente a movimentação da tela no modo laço */
-    .modo-laco {
-        overflow: hidden;
-        position: fixed;
-        width: 100%;
-        height: 100%;
-    }
-    
-    .modo-laco .main-container {
-        overflow: hidden;
-    }
-    
-    /* Manter o bloqueio de interação com elementos */
-    .modo-laco .peca,
-    .modo-laco .cuba,
-    .modo-laco .texto-legenda,
-    .modo-laco .legenda-simplificada,
-    .modo-laco .simbolo-linha,
-    .modo-laco .titulo-grupo,
-    .modo-laco .dimensoes,
-    .modo-laco .quantidade-peca,
-    .modo-laco .linha-peca,
-    .modo-laco .grupo-temporario {
-        pointer-events: none !important;
-        touch-action: none !important;
-    }
-}
+        /* 🔥 CORREÇÃO: Estilos para modo laço no mobile - permitir apenas zoom com pinça */
+        @media (max-width: 768px) {
+            .modo-laco .drawing-area {
+                touch-action: pinch-zoom !important;
+                cursor: crosshair !important;
+                -webkit-overflow-scrolling: auto !important;
+            }
+            
+            /* Bloquear completamente a movimentação da tela no modo laço */
+            .modo-laco {
+                overflow: hidden;
+                position: fixed;
+                width: 100%;
+                height: 100%;
+            }
+            
+            .modo-laco .main-container {
+                overflow: hidden;
+            }
+            
+            /* Manter o bloqueio de interação com elementos */
+            .modo-laco .peca,
+            .modo-laco .cuba,
+            .modo-laco .texto-legenda,
+            .modo-laco .legenda-simplificada,
+            .modo-laco .simbolo-linha,
+            .modo-laco .titulo-grupo,
+            .modo-laco .dimensoes,
+            .modo-laco .quantidade-peca,
+            .modo-laco .linha-peca,
+            .modo-laco .grupo-temporario {
+                pointer-events: none !important;
+                touch-action: none !important;
+            }
+        }
+        
         @media (max-width: 1400px) {
             .action-buttons-container .btn-text {
                 display: none;
@@ -789,7 +857,6 @@ right: -35px;
             width: 100%;
             height: 100%;
             background: rgba(0,0,0,0.5);
-            z-index: 1999;
             pointer-events: none;
             touch-action: none;
         }
@@ -901,7 +968,6 @@ right: -35px;
         /* 🔥 NOVO: ESTILOS PARA O SISTEMA DE ESTILOS */
         .modal-estilos {
             position: fixed;
-            z-index: 2000;
             background: white;
             padding: 20px;
             border-radius: 10px;
@@ -1073,6 +1139,7 @@ right: -35px;
         }
        
     </style>
+
 </head>
 <body>
     <div class="main-container">
@@ -1144,7 +1211,7 @@ right: -35px;
             
             <!-- 🔥 NOVO BOTÃO: Estilos -->
             <button id="btnEstilos" class="btn btn-custom-primary" title="Estilos (Cores, Texto, Linhas)">
-                <i class="fas fa-bars me-1"></i> <span class="btn-text">Estilos</span>
+                <i class="fas fa-bars me-1"></i> <span class="btn-text"></span>
             </button>
             
             <!-- NOVOS BOTÕES: Duplicar e Excluir -->
@@ -1155,7 +1222,7 @@ right: -35px;
                 <i class="fas fa-trash me-1"></i> <span class="btn-text">Excluir</span>
             </button>
             <button id="btnSalvar" class="btn btn-custom-success">
-                <i class="fas fa-save me-1"></i> <span class="btn-text">Salvar Desenho</span>
+                <i class="fas fa-save me-1"></i> <span class="btn-text">Salvar</span>
             </button>
             <button id="btnImprimir" class="btn btn-custom-success">
                 <i class="fas fa-print me-1"></i> <span class="btn-text">Imprimir</span>
