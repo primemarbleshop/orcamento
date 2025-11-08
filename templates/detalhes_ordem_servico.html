@@ -100,20 +100,22 @@
             padding: 2px 4px; 
             border: none;
             border-radius: 3px; 
-            z-index: 5; 
+             z-index: 999 !important;
             cursor: default; 
             touch-action: none; 
             user-select: none; 
         }
         
         .dimensoes-top { 
-            top: -35px; 
+ z-index: 999 !important;          
+top: -35px; 
             left: 50%; 
             transform: translateX(-50%); 
         }
         
         .dimensoes-right { 
-            right: -35px; 
+ z-index: 999 !important;            
+right: -35px; 
             top: 50%; 
             transform: translateY(-50%); 
         }
@@ -224,9 +226,28 @@
        .pintura-borracha {
     position: absolute;
     background-color: white;
-    border: none; /* CORREÇÃO: Remove a borda visível */
+    border: none;
     pointer-events: none;
-    z-index: 999;
+    z-index: 9; /* Acima de peças (2), cubas (8), linhas (6) e símbolos (7), mas abaixo de textos (10) e legendas (10) */
+}
+
+/* 🔥 NOVO: Bloquear interações no modo borracha */
+.modo-borracha .peca,
+.modo-borracha .cuba,
+.modo-borracha .texto-legenda,
+.modo-borracha .legenda-simplificada,
+.modo-borracha .simbolo-linha,
+.modo-borracha .titulo-grupo,
+.modo-borracha .dimensoes,
+.modo-borracha .quantidade-peca,
+.modo-borracha .linha-peca,
+.modo-borracha .grupo-temporario {
+    pointer-events: none !important;
+    cursor: none !important;
+}
+
+.modo-borracha .drawing-area {
+    cursor: none !important;
 }
 
         
@@ -297,7 +318,7 @@
             padding: 10px 15px;
             border-radius: 5px;
             position: absolute;
-            z-index: 1; /* 🔥 ABAIXO das peças */
+            z-index: 10; /* 🔥 ABAIXO das peças */
             cursor: default;
             background-color: rgba(255, 255, 255, 0.95);
             border: 2px solid #4e73df;
@@ -361,7 +382,7 @@
             color: #000; 
             background-color: transparent !important; 
             cursor: default; 
-            z-index: 7; 
+            z-index: 10; 
             user-select: none; 
             text-align: center; 
         }
@@ -989,6 +1010,10 @@
             this.borrachaPressionada = false;
             this.ultimaPosicaoBorracha = null;
             this.tamanhoBorracha = 10;
+		this.ultimoSalvamentoBorracha = 0;
+this.borrachaEmAndamento = false;
+    this.estadoAntesDaBorracha = null;
+this.borrachaAtiva = false;
             
             this.ultimoElementoClicado = null;
             
@@ -1261,21 +1286,70 @@
             }, { passive: false });
         }
 
-        iniciarPinturaBorracha(e) {
-            this.borrachaPressionada = true;
-            this.ultimaPosicaoBorracha = null;
-            this.pintarComBorracha(e);
-            console.log('🔧 Iniciando pintura com borracha');
-        }
+      iniciarPinturaBorracha(e) {
+    if (!this.modoBorrachaAtivo) return;
+    
+    this.borrachaPressionada = true;
+    this.ultimaPosicaoBorracha = null;
+    
+    // 🔥 CORREÇÃO: Salvar estado ANTES de começar a borracha
+    this.salvarEstadoHistorico('Antes da Borracha');
+    
+    console.log('🔧 Iniciando pintura com borracha');
+    this.pintarComBorracha(e);
+}
 
-        pararPinturaBorracha() {
-            this.borrachaPressionada = false;
-            this.ultimaPosicaoBorracha = null;
-            if (this.modoBorrachaAtivo) {
-                this.salvarEstadoHistorico('Pintar com Borracha');
-            }
-            console.log('🔧 Parando pintura com borracha');
-        }
+pararPinturaBorracha() {
+    if (!this.borrachaPressionada) return;
+    
+    this.borrachaPressionada = false;
+    this.ultimaPosicaoBorracha = null;
+    
+    // 🔥 CORREÇÃO SIMPLES: Sempre salvar quando terminar a borracha
+    // Verificar se realmente houve alguma pintura
+    const elementosPintura = this.drawingArea.querySelectorAll('.pintura-borracha');
+    if (elementosPintura.length > 0) {
+        this.salvarEstadoHistorico('Pintar com Borracha');
+        console.log(`💾 Borracha salva: ${elementosPintura.length} elementos pintados`);
+    }
+    
+    console.log('🔧 Parando pintura com borracha');
+}
+
+salvarEstadoHistoricoForcado(descricao) {
+    if (this.indiceHistorico < this.historico.length - 1) {
+        this.historico = this.historico.slice(0, this.indiceHistorico + 1);
+    }
+    
+    // 🔥 CORREÇÃO: Preservar cursor da borracha durante o salvamento
+    let displayOriginal;
+    if (this.borrachaCursor) {
+        displayOriginal = this.borrachaCursor.style.display;
+        this.borrachaCursor.style.display = 'none';
+    }
+
+    const snapshot = { 
+        descricao: descricao, 
+        timestamp: new Date(), 
+        data: this.obterEstadoAtual() 
+    };
+    this.historico.push(snapshot);
+    this.indiceHistorico++;
+    
+    // 🔥 CORREÇÃO: Restaurar display do cursor após salvamento
+    if (this.borrachaCursor) {
+        this.borrachaCursor.style.display = displayOriginal || 'block';
+    }
+
+    if (this.historico.length > this.maximoHistorico) {
+        this.historico.shift();
+        this.indiceHistorico--;
+    }
+    
+    this.ultimoSalvamentoHistorico = Date.now();
+    this.atualizarBotoesHistorico();
+    console.log(`💾 Histórico salvo: ${descricao} (${this.historico.length} estados, índice: ${this.indiceHistorico})`);
+}
 
         atualizarCursorBorracha(e) {
     if (!this.borrachaCursor) {
@@ -1311,26 +1385,27 @@
             }; 
         }
 
-        pintarComBorracha(e) {
-            if (!this.borrachaPressionada) return;
-            
-            const coords = this.obterCoordenadasBorracha(e);
-            
-            const pintura = document.createElement('div');
-            pintura.className = 'pintura-borracha';
-            pintura.style.left = `${coords.x - this.tamanhoBorracha/2}px`;
-            pintura.style.top = `${coords.y - this.tamanhoBorracha/2}px`;
-            pintura.style.width = `${this.tamanhoBorracha}px`;
-            pintura.style.height = `${this.tamanhoBorracha}px`;
-            
-            this.drawingArea.appendChild(pintura);
-            
-            if (this.ultimaPosicaoBorracha) {
-                this.preencherEspacoBorracha(this.ultimaPosicaoBorracha, coords);
-            }
-            
-            this.ultimaPosicaoBorracha = coords;
-        }
+      pintarComBorracha(e) {
+    if (!this.borrachaPressionada) return;
+    
+    const coords = this.obterCoordenadasBorracha(e);
+    
+    const pintura = document.createElement('div');
+    pintura.className = 'pintura-borracha';
+    pintura.style.left = `${coords.x - this.tamanhoBorracha/2}px`;
+    pintura.style.top = `${coords.y - this.tamanhoBorracha/2}px`;
+    pintura.style.width = `${this.tamanhoBorracha}px`;
+    pintura.style.height = `${this.tamanhoBorracha}px`;
+    
+    this.drawingArea.appendChild(pintura);
+    
+    if (this.ultimaPosicaoBorracha) {
+        this.preencherEspacoBorracha(this.ultimaPosicaoBorracha, coords);
+    }
+    
+    this.ultimaPosicaoBorracha = coords;
+}
+
 
         preencherEspacoBorracha(inicio, fim) {
             const distancia = Math.sqrt(Math.pow(fim.x - inicio.x, 2) + Math.pow(fim.y - inicio.y, 2));
@@ -1386,24 +1461,51 @@
 
       desativarModoBorracha() {
     console.log('🔵 Desativando modo borracha...');
+    
     this.modoBorrachaAtivo = false;
     this.borrachaPressionada = false;
     this.ultimaPosicaoBorracha = null;
     
     document.body.classList.remove('modo-borracha');
     
-    // 🔥 NOVO: Restaurar cursor padrão
+    // 🔥 CORREÇÃO: Restaurar cursor padrão
     this.drawingArea.style.cursor = 'default';
     
+    // 🔥 CORREÇÃO: Remover completamente o cursor da borracha
     this.ocultarCursorBorracha();
+    if (this.borrachaCursor && this.borrachaCursor.parentNode) {
+        this.borrachaCursor.parentNode.removeChild(this.borrachaCursor);
+        this.borrachaCursor = null;
+    }
     
     const btnBorracha = document.getElementById('btnBorracha');
     if (btnBorracha) {
         btnBorracha.classList.remove('btn-borracha-ativo');
     }
     
-    console.log('✅ Modo borracha desativado - cursor padrão restaurado');
+    console.log('✅ Modo borracha desativado - cursor removido');
 }
+
+atualizarCursorBorracha(e) {
+    // 🔥 CORREÇÃO: Se não existe cursor, criar um
+    if (!this.borrachaCursor) {
+        this.borrachaCursor = document.createElement('div');
+        this.borrachaCursor.className = 'cursor-borracha';
+        this.drawingArea.appendChild(this.borrachaCursor);
+        console.log('🔧 Cursor da borracha recriado durante movimento');
+    }
+    
+    const coords = this.obterCoordenadasBorracha(e);
+    this.borrachaCursor.style.left = `${coords.x - this.tamanhoBorracha/2}px`;
+    this.borrachaCursor.style.top = `${coords.y - this.tamanhoBorracha/2}px`;
+    this.borrachaCursor.style.display = 'block';
+    
+    // 🔥 GARANTIR que o cursor padrão esteja oculto
+    if (this.modoBorrachaAtivo) {
+        this.drawingArea.style.cursor = 'none';
+    }
+}
+
 
         excluirElemento() {
             const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
@@ -1444,11 +1546,14 @@
             });
         }
 
-       salvarEstadoHistorico(descricao, forcarSalvamento = false) {
+      salvarEstadoHistorico(descricao, forcarSalvamento = false) {
     const agora = Date.now();
     const tempoDesdeUltimoSalvamento = agora - (this.ultimoSalvamentoHistorico || 0);
 
-    if (!forcarSalvamento && tempoDesdeUltimoSalvamento < 200) {
+    // 🔥 CORREÇÃO: Sem throttle para operações de borracha
+    const ehBorracha = descricao.includes('Borracha');
+    
+    if (!ehBorracha && !forcarSalvamento && tempoDesdeUltimoSalvamento < 200) {
         console.log(`⏱️ Ação rápida ignorada temporariamente: ${descricao}`);
         return;
     }
@@ -1457,18 +1562,22 @@
         this.historico = this.historico.slice(0, this.indiceHistorico + 1);
     }
     
-    // 🔥 CORREÇÃO: Preservar cursor da borracha durante o salvamento
+    // Preservar cursor da borracha durante o salvamento
     let displayOriginal;
     if (this.borrachaCursor) {
         displayOriginal = this.borrachaCursor.style.display;
         this.borrachaCursor.style.display = 'none';
     }
 
-    const snapshot = { descricao: descricao, timestamp: new Date(), data: this.obterEstadoAtual() };
+    const snapshot = { 
+        descricao: descricao, 
+        timestamp: new Date(), 
+        data: this.obterEstadoAtual() 
+    };
     this.historico.push(snapshot);
     this.indiceHistorico++;
     
-    // 🔥 CORREÇÃO: Restaurar display do cursor após salvamento
+    // Restaurar display do cursor após salvamento
     if (this.borrachaCursor) {
         this.borrachaCursor.style.display = displayOriginal || 'block';
     }
@@ -1477,6 +1586,7 @@
         this.historico.shift();
         this.indiceHistorico--;
     }
+    
     this.ultimoSalvamentoHistorico = agora;
     this.atualizarBotoesHistorico();
     console.log(`💾 Histórico salvo: ${descricao} (${this.historico.length} estados, índice: ${this.indiceHistorico})`);
@@ -1490,9 +1600,17 @@
 
     const clone = this.drawingArea.cloneNode(true);
 
-    // 🔥 CORREÇÃO: Remover elementos temporários do snapshot do histórico
-    const temporarios = clone.querySelectorAll('#laco-selecao, .laco-temporario, .linha-temporaria, .preview-laco, .cursor-borracha, .pintura-borracha');
+    // 🔥 CORREÇÃO: Remover elementos temporários MAS PRESERVAR cursor da borracha se estiver ativo
+    const temporarios = clone.querySelectorAll(
+        '#laco-selecao, .laco-temporario, .linha-temporaria, .preview-laco'
+    );
     temporarios.forEach(el => el.remove());
+
+    // 🔥 CORREÇÃO: Se o modo borracha está ativo, preservar o cursor no snapshot
+    if (!this.modoBorrachaAtivo) {
+        const cursor = clone.querySelector('.cursor-borracha');
+        if (cursor) cursor.remove();
+    }
 
     const grupoTemp = clone.querySelector('.grupo-temporario');
     if (grupoTemp) grupoTemp.remove();
@@ -1504,6 +1622,11 @@
         drawingAreaHTML: clone.innerHTML,
         gruposPecas: JSON.parse(JSON.stringify(this.gruposPecas))
     };
+}
+
+limparPinturasBorracha() {
+    const pinturas = this.drawingArea.querySelectorAll('.pintura-borracha');
+    pinturas.forEach(pintura => pintura.remove());
 }
 
         salvarEstadoImediato(descricao) {
@@ -1668,20 +1791,15 @@
         
         this.indiceHistorico--;
         const estadoAnterior = this.historico[this.indiceHistorico];
-
-if (this.modoBorrachaAtivo) {
-    this.desativarModoBorracha();
-}
         
-        // 🔥 CORREÇÃO: Preservar estado do modo borracha antes de restaurar
+        // 🔥 CORREÇÃO: Preservar estado do modo borracha
         const modoBorrachaAtivoAntes = this.modoBorrachaAtivo;
         
         this.restaurarEstadoHistorico(estadoAnterior.data);
         console.log('🔧 Desfazer executado - Estado:', this.indiceHistorico);
 
-        // 🔥 CORREÇÃO: Restaurar modo borracha se estava ativo antes
+        // 🔥 CORREÇÃO SIMPLIFICADA: Restaurar modo borracha se estava ativo
         if (modoBorrachaAtivoAntes) {
-            // Reativar o modo borracha sem desativar todos os modos primeiro
             this.modoBorrachaAtivo = true;
             document.body.classList.add('modo-borracha');
             this.drawingArea.style.cursor = 'none';
@@ -1691,9 +1809,14 @@ if (this.modoBorrachaAtivo) {
                 btnBorracha.classList.add('btn-borracha-ativo');
             }
             
-            // Recriar o cursor da borracha
-            this.borrachaCursor = null;
-            console.log('✅ Modo borracha restaurado após desfazer');
+            // 🔥 CORREÇÃO: Recriar o cursor mas NÃO posicioná-lo ainda
+            // Ele será posicionado no próximo movimento do mouse
+            this.borrachaCursor = document.createElement('div');
+            this.borrachaCursor.className = 'cursor-borracha';
+            this.borrachaCursor.style.display = 'none'; // Inicialmente oculto
+            this.drawingArea.appendChild(this.borrachaCursor);
+            
+            console.log('✅ Modo borracha restaurado após desfazer - cursor será posicionado no movimento');
         }
     } else {
         console.log('🔧 Não há ações para desfazer');
@@ -1701,27 +1824,50 @@ if (this.modoBorrachaAtivo) {
     this.atualizarBotoesHistorico();
 }
 
+// 🔥 ADICIONAR: Corrigir também o método refazer para manter consistência
 refazer() {
     if (this.indiceHistorico < this.historico.length - 1) {
         this.removerTodosOsHandles();
         
         this.indiceHistorico++;
         const estadoFuturo = this.historico[this.indiceHistorico];
+        
+        // 🔥 CORREÇÃO: Preservar estado do modo borracha
+        const modoBorrachaAtivoAntes = this.modoBorrachaAtivo;
+        
         this.restaurarEstadoHistorico(estadoFuturo.data);
         console.log('🔧 Refazer executado - Estado:', this.indiceHistorico);
 
-        // 🔥 CORREÇÃO: Desativar modo borracha e restaurar cursor
-        if (this.modoBorrachaAtivo) {
-            this.desativarModoBorracha();
-        } else {
-            // Garantir que o cursor padrão esteja visível
-            this.drawingArea.style.cursor = 'default';
+        // Restaurar modo borracha se estava ativo
+        if (modoBorrachaAtivoAntes) {
+            this.modoBorrachaAtivo = true;
+            document.body.classList.add('modo-borracha');
+            this.drawingArea.style.cursor = 'none';
+            
+            const btnBorracha = document.getElementById('btnBorracha');
+            if (btnBorracha) {
+                btnBorracha.classList.add('btn-borracha-ativo');
+            }
+            
+            // Recriar cursor
+            this.borrachaCursor = document.createElement('div');
+            this.borrachaCursor.className = 'cursor-borracha';
+            this.borrachaCursor.style.display = 'none';
+            this.drawingArea.appendChild(this.borrachaCursor);
+            
+            setTimeout(() => {
+                if (this.modoBorrachaAtivo && this.borrachaCursor) {
+                    this.borrachaCursor.style.display = 'block';
+                }
+            }, 50);
         }
     } else {
         console.log('🔧 Não há ações para refazer');
     }
     this.atualizarBotoesHistorico();
 }
+
+
         refazer() {
             if (this.indiceHistorico < this.historico.length - 1) {
                 this.removerTodosOsHandles();
@@ -3842,6 +3988,7 @@ refazer() {
             dimensoesTop.textContent = `${peca.comprimento}`;
             dimensoesTop.style.top = `${-35}px`;
             dimensoesTop.style.left = `${width / 2}px`;
+
             
             dimensoesTop.setAttribute('data-peca-id', pecaId);
             dimensoesTop.setAttribute('data-tipo', 'dimensao-top');
@@ -4072,7 +4219,7 @@ refazer() {
                         console.log(`🔧 Movendo símbolo - dx=${event.dx}, dy=${event.dy} | Pos: x=${x}, y=${y}`);
                     },
                     end: () => {
-                        elemento.style.zIndex = '';
+                        elemento.style.zIndex = '10';
                         this.salvarEstadoHistorico('Mover Símbolo');
                         console.log('🔧 Movimento do símbolo concluído');
                     }
