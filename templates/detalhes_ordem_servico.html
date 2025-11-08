@@ -6,324 +6,774 @@
     <title>Ordem de Serviço - {{ codigo_orcamento }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        /* 🔥 CORREÇÃO CRÍTICA: Backdrop dos modais NÃO deve bloquear eventos */
-        .modal-backdrop {
+   <style>
+    /* 🔥 CORREÇÃO CRÍTICA: Backdrop dos modais NÃO deve bloquear eventos */
+    .modal-backdrop {
+        pointer-events: none !important;
+        touch-action: none !important;
+    }
+
+    /* 🔥 CORREÇÃO: Modais devem permitir interação mas não bloquear o resto */
+    .modal-controles,
+    .modal-estilos {
+        pointer-events: auto !important;
+        touch-action: auto !important;
+    }
+
+    /* 🔥 CORREÇÃO: Área de desenho deve SEMPRE permitir zoom e pan */
+    .drawing-area {
+        touch-action: pan-x pan-y pinch-zoom !important;
+        -webkit-overflow-scrolling: touch !important;
+    }
+
+    /* 🔥 CORREÇÃO: Mesmo durante modais, manter interatividade do drawing area */
+    body.modal-estilos-aberto .drawing-area {
+        touch-action: pan-x pan-y pinch-zoom !important;
+        pointer-events: auto !important;
+    }
+
+    /* 🔥 CORREÇÃO: Containers de botões devem ficar acima */
+    .top-buttons-container,
+    .action-buttons-container {
+        z-index: 15 !important;
+        position: relative;
+    }
+
+    /* 🔥 CORREÇÃO: Ajustar z-index da área de desenho e elementos */
+    .drawing-area {
+        z-index: 1 !important;
+    }
+
+    .peca, .cuba, .texto-legenda, .legenda-simplificada,
+    .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca,
+    .linha-peca, .grupo-temporario {
+        z-index: 2 !important;
+    }
+
+    /* 🔥 CORREÇÃO: Elementos selecionados devem ficar acima */
+    .elemento-selecionado {
+        z-index: 3 !important;
+    }
+
+    /* 🔥 CORREÇÃO: Handles devem ficar acima */
+    .handles-container,
+    .handle,
+    .handle-rotacao {
+        z-index: 14 !important;
+    }
+
+    /* 🔥 CORREÇÃO: Cursor da borracha */
+    .cursor-borracha {
+        z-index: 14 !important;
+    }
+
+    /* 🔥 CORREÇÃO: Modais devem ficar acima de tudo mas NÃO BLOQUEAR BACKGROUND */
+    .modal-controles,
+    .modal-estilos {
+        z-index: 20000 !important;
+    }
+
+    .modal-backdrop {
+        z-index: 19999 !important;
+        background: rgba(0,0,0,0.3) !important;
+    }
+
+    /* 🔥 CORREÇÃO: Garantir que os containers de botão tenham fundo sólido */
+    .top-buttons-container {
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+    }
+
+    .action-buttons-container {
+        background: linear-gradient(to bottom, #f8f9fa 90%, transparent);
+        backdrop-filter: blur(10px);
+        border-bottom: 2px solid #dee2e6;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        padding: 15px;
+        border-radius: 8px;
+        margin: 25px 0;
+    }
+
+    /* 🔥 CORREÇÃO: Garantir que a área de desenho não suba sobre os botões */
+    .drawing-area {
+        margin-top: 20px;
+        position: relative;
+        z-index: 1 !important;
+    }
+
+    /* Resto do CSS base */
+    .main-container { 
+        width: 1400px; 
+        margin: 0 auto; 
+        padding: 0 15px; 
+        box-sizing: border-box; 
+    }
+    
+    body { 
+        font-size: 15px; 
+        font-family: Arial, sans-serif; 
+        line-height: 1.3; 
+        background-color: #f8f9fa; 
+        padding: 20px 0;
+        min-width: 1400px;
+        overflow-x: auto;
+    }
+    
+    .header-container { 
+        display: flex; 
+        justify-content: flex-start; 
+        align-items: center; 
+        position: relative; 
+        width: 100%; 
+    }
+    
+    .logo-empresa { 
+        position: absolute; 
+        right: -70px; 
+        top: 10px; 
+        height: 120px; 
+        width: 280px; 
+        max-width: 280px; 
+        object-fit: contain; 
+    }
+    
+    .cliente-header h2, .cliente-header p { 
+        display: block !important; 
+        margin: 2px 0 !important; 
+    }
+    
+    .cliente-header strong { 
+        display: inline !important; 
+        white-space: nowrap !important; 
+    }
+    
+    .wrap-text { 
+        display: inline-block !important; 
+        max-width: 60% !important; 
+        word-wrap: break-word !important; 
+        vertical-align: top !important; 
+    }
+    
+    .info-normal { 
+        font-weight: normal; 
+    }
+    
+    .drawing-area { 
+        position: relative; 
+        width: 100%; 
+        min-height: 1200px; 
+        border: 2px solid #ccc; 
+        background-color: white; 
+        margin: 20px 0; 
+        overflow: auto; 
+        cursor: default; 
+        touch-action: pan-x pan-y pinch-zoom !important; 
+    }
+    
+    .peca { 
+        position: absolute; 
+        background-color: rgba(255, 255, 255, 0.9); 
+        border: 2px solid #000; 
+        cursor: default; 
+        box-sizing: border-box; 
+        user-select: none; 
+        touch-action: none; 
+        pointer-events: auto;
+        z-index: 2;
+    }
+    
+    .peca.selecionavel {
+        cursor: pointer;
+        z-index: 3;
+    }
+    
+    .dimensoes { 
+        position: absolute; 
+        font-size: 14px;
+        background: transparent;
+        padding: 2px 4px; 
+        border: none;
+        border-radius: 3px; 
+        z-index: 5 !important;
+        cursor: default; 
+        touch-action: none; 
+        user-select: none; 
+    }
+    
+    .dimensoes-top { 
+        top: -35px; 
+        left: 50%; 
+        transform: translateX(-50%); 
+    }
+    
+    .dimensoes-right { 
+        right: -35px; 
+        top: 50%; 
+        transform: translateY(-50%); 
+    }
+
+    /* 🔥 ESTILOS PARA MODO LAÇO */
+    .laco-overlay {
+        z-index: 999;
+        pointer-events: none;
+    }
+    
+    .laco-polygon {
+        fill: rgba(46, 89, 217, 0.1);
+        stroke: #2e59d9;
+        stroke-width: 2;
+        stroke-dasharray: 5, 5;
+        pointer-events: none;
+    }
+    
+    .grupo-temporario {
+        border: 2px dashed rgba(46, 89, 217, 0.8);
+        background: rgba(46, 89, 217, 0.05);
+        pointer-events: auto;
+        z-index: 1000;
+    }
+    
+    .elemento-em-grupo {
+        filter: brightness(0.95);
+    }
+    
+    .quantidade-peca { 
+        position: absolute; 
+        font-size: 14px;
+        left: -35px; 
+        top: 50%; 
+        transform: translateY(-50%); 
+        background: transparent; 
+        padding: 2px 6px; 
+        border: none;
+        border-radius: 3px;  
+        z-index: 5; 
+        cursor: default; 
+        touch-action: none; 
+    }
+    
+    .btn-custom-primary { 
+        background-color: #4e73df; 
+        border-color: #4e73df; 
+        color: white; 
+    }
+    
+    .btn-custom-primary:hover { 
+        background-color: #2e59d9; 
+        border-color: #2e59d9; 
+        color: white; 
+    }
+
+    .modo-borracha .drawing-area {
+        cursor: none;
+    }
+
+    /* 🔥 ESTILOS PARA BOTÕES ATIVOS */
+    .btn-modo-ativo {
+        background-color: #4e73df !important;
+        border-color: #4e73df !important;
+        color: white !important;
+        box-shadow: 
+            0 0 0 0.2rem rgba(78, 115, 223, 0.25),
+            0 0 0 3px #ffffff,
+            0 0 0 5px #4e73df !important;
+        transform: translateY(-2px);
+    }
+
+    .btn-selecao-ativo {
+        background-color: #ffc107 !important;
+        border-color: #ffc107 !important;
+        color: #000 !important;
+        box-shadow: 
+            0 0 0 0.2rem rgba(255, 193, 7, 0.25),
+            0 0 0 3px #ffffff,
+            0 0 0 5px #ffc107 !important;
+        transform: translateY(-2px);
+    }
+    
+    .btn-borracha-ativo {
+        background-color: #ffc107 !important;
+        border-color: #ffc107 !important;
+        color: #000 !important;
+        box-shadow: 
+             0 0 0 0.2rem rgba(255, 193, 7, 0.25),
+            0 0 0 3px #ffffff,
+            0 0 0 5px #ffc107 !important;
+        transform: translateY(-2px);
+    }             
+    
+    .cursor-borracha {
+        position: absolute;
+        width: 10px;
+        height: 10px;
+        background-color: rgba(255, 255, 255, 0.7);
+        border: 2px solid #333;
+        border-radius: 3px;
+        pointer-events: none;
+        box-shadow: 0 0 5px rgba(0,0,0,0.5);
+    }
+    
+    .pintura-borracha {
+        position: absolute;
+        background-color: white;
+        border: none;
+        pointer-events: none;
+        z-index: 9;
+    }
+
+    /* 🔥 CORREÇÃO: Bloquear interações no modo borracha */
+    .modo-borracha .peca,
+    .modo-borracha .cuba,
+    .modo-borracha .texto-legenda,
+    .modo-borracha .legenda-simplificada,
+    .modo-borracha .simbolo-linha,
+    .modo-borracha .titulo-grupo,
+    .modo-borracha .dimensoes,
+    .modo-borracha .quantidade-peca,
+    .modo-borracha .linha-peca,
+    .modo-borracha .grupo-temporario {
+        pointer-events: none !important;
+        cursor: none !important;
+    }
+
+    .modo-borracha .drawing-area {
+        cursor: none !important;
+    }
+    
+    .btn-custom-success { 
+        background-color: #1cc88a; 
+        border-color: #1cc88a; 
+        color: white; 
+    }
+    
+    .btn-custom-success:hover { 
+        background-color: #17a673; 
+        border-color: #17a673; 
+        color: white; 
+    }
+    
+    .btn-custom-danger { 
+        background-color: #e74a3b; 
+        border-color: #e74a3b; 
+        color: white; 
+    }
+    
+    .btn-custom-danger:hover { 
+        background-color: #be2617; 
+        border-color: #be2617; 
+        color: white; 
+    }
+    
+    .btn-warning { 
+        background-color: #f6c23e; 
+        border-color: #f6c23e; 
+        color: #000; 
+    }
+    
+    .btn-warning:hover { 
+        background-color: #dda20a; 
+        border-color: #dda20a; 
+        color: #000; 
+    }
+    
+    .action-buttons-container { 
+        margin: 25px 0; 
+        display: flex; 
+        gap: 12px; 
+        justify-content: flex-start; 
+        flex-wrap: wrap; 
+        padding: 15px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+    }
+    
+    .top-buttons-container { 
+        margin-bottom: 20px; 
+        display: flex; 
+        gap: 10px; 
+        justify-content: flex-start; 
+        flex-wrap: wrap; 
+    }
+    
+    .titulo-grupo {
+        font-size: 18px;
+        font-weight: bold;
+        color: #2e59d9;
+        padding: 10px 15px;
+        border-radius: 5px;
+        position: absolute;
+        z-index: 10;
+        cursor: default;
+        background-color: rgba(255, 255, 255, 0.95);
+        border: 2px solid #4e73df;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        min-width: 200px;
+        min-height: 40px;
+        resize: none;
+        overflow: hidden;
+        white-space: nowrap;
+        user-select: none;
+        touch-action: none;
+        pointer-events: auto;
+    }
+
+    .titulo-grupo.selecionavel {
+        cursor: pointer;
+    }
+
+    .titulo-grupo:focus {
+        background: white;
+        border: 2px solid #4e73df;
+        outline: none;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .grupo-material {
+        all: unset;
+        display: block;
+        position: relative;
+        margin-bottom: 40px;
+    }
+
+    .area-pecas {
+        position: relative;
+        margin-top: 10px;
+        display: block;
+        min-height: 200px;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .area-pecas {
+        pointer-events: auto !important;
+    }
+
+    .area-pecas .peca,
+    .area-pecas .cuba,
+    .area-pecas .texto-legenda,
+    .area-pecas .legenda-simplificada,
+    .area-pecas .simbolo-linha,
+    .area-pecas .titulo-grupo,
+    .area-pecas .dimensoes,
+    .area-pecas .quantidade-peca {
+        pointer-events: auto !important;
+    }
+
+    .selecionavel {
+        cursor: pointer !important;
+    }
+
+    .area-pecas .selecionavel {
+        cursor: pointer !important;
+    }
+    
+    .linha-peca { 
+        position: absolute; 
+        background-color: transparent; 
+        z-index: 6; 
+        cursor: pointer; 
+        transition: all 0.2s ease; 
+        border: none !important; 
+    }
+    
+    .linha-peca:hover { 
+        background-color: #4e73df !important; 
+        opacity: 0.7; 
+    }
+    
+    .simbolo-linha { 
+        position: absolute; 
+        font-size: 16px; 
+        color: #000; 
+        background-color: transparent !important; 
+        cursor: default; 
+        z-index: 10; 
+        user-select: none; 
+        text-align: center; 
+    }
+    
+    .simbolo-linha.selecionavel {
+        cursor: pointer;
+    }
+    
+    .cuba { 
+        position: absolute; 
+        background-color: rgba(255, 255, 255, 0.9); 
+        border: 2px solid #333; 
+        cursor: default; 
+        box-sizing: border-box; 
+        user-select: none; 
+        touch-action: none; 
+        z-index: 8; 
+    }
+    
+    .cuba.selecionavel {
+        cursor: pointer;
+    }
+    
+    .cuba.retangulo { 
+        border-radius: 0; 
+    }
+    
+    .cuba.circulo { 
+        border-radius: 50%; 
+    }
+    
+    .cuba.oval { 
+        border-radius: 50%; 
+    }
+    
+    .cuba.elipse { 
+        border-radius: 40%; 
+    }
+    
+    .texto-legenda { 
+        position: absolute; 
+        background: transparent; 
+        border: none; 
+        outline: none; 
+        resize: none; 
+        font-size: 16px; 
+        text-align: left; 
+        z-index: 10; 
+        cursor: default; 
+        min-width: 20px; 
+        min-height: 20px; 
+        touch-action: none; 
+        padding: 2px; 
+        overflow: hidden;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    } 
+
+    .texto-legenda::-webkit-scrollbar {
+        display: none;
+    }
+
+    .texto-legenda:focus { 
+        background: white; 
+        border: 1px solid #ccc; 
+        border-radius: 4px; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+        padding: 5px; 
+        overflow: hidden;
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    } 
+
+    .texto-legenda:focus::-webkit-scrollbar {
+        display: none;
+    }
+    
+    .texto-legenda.selecionavel {
+        cursor: pointer;
+    }
+    
+    .legenda-simplificada { 
+        position: absolute; 
+        background: transparent; 
+        border: none; 
+        padding: 2px; 
+        z-index: 10; 
+        cursor: default; 
+        min-width: 120px; 
+        font-size: 16px; 
+        display: flex; 
+        align-items: center; 
+        gap: 5px; 
+    }
+    
+    .legenda-simplificada.selecionavel {
+        cursor: pointer;
+    }
+    
+    .legenda-simplificada:focus-within { 
+        background: white; 
+        border: 1px solid #ccc; 
+        border-radius: 4px; 
+        padding: 5px 8px; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
+    }
+    
+    .legenda-simbolo-inline { 
+        font-weight: bold; 
+    }
+
+    .elemento-selecionado { 
+        outline: 3px solid #4e73df !important; 
+        outline-offset: 2px; 
+        z-index: 3 !important; 
+        pointer-events: auto !important;
+    }
+    
+    .handles-container {
+        position: absolute;
+        pointer-events: none;
+        z-index: 9999;
+    }
+    
+    .handle {
+        position: absolute;
+        width: 12px;
+        height: 12px;
+        background-color: #4e73df;
+        border: 1px solid white;
+        border-radius: 50%;
+        pointer-events: all;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        transform: translate(-50%, -50%);
+        z-index: 9999;
+        touch-action: none;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+
+    .handle-rotacao {
+        touch-action: none;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+
+    .action-buttons-container .btn {
+        touch-action: manipulation;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+
+    .drawing-area {
+        touch-action: pan-x pan-y pinch-zoom !important;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+    
+    .handle-rotacao {
+        position: absolute;
+        width: 14px;
+        height: 14px;
+        background-color: #f6c23e;
+        border: 2px solid white;
+        border-radius: 50%;
+        pointer-events: all;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        transform: translate(-50%, -50%);
+        cursor: grab;
+        z-index: 9999;
+    }
+    
+    .handle-n {
+        cursor: n-resize;
+    }
+    
+    .handle-s {
+        cursor: s-resize;
+    }
+    
+    .handle-e {
+        cursor: e-resize;
+    }
+    
+    .handle-w {
+        cursor: w-resize;
+    }
+    
+    .handle-ne {
+        cursor: ne-resize;
+    }
+    
+    .handle-nw {
+        cursor: nw-resize;
+    }
+    
+    .handle-se {
+        cursor: se-resize;
+    }
+    
+    .handle-sw {
+        cursor: sw-resize;
+    }
+    
+    .action-buttons-container {
+        gap: 8px;
+    }
+
+    .action-buttons-container { 
+        position: sticky;
+        top: 0;
+        background: linear-gradient(to bottom, #f8f9fa 90%, transparent);
+        backdrop-filter: blur(10px);
+        border-bottom: 2px solid #dee2e6;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .btn-desabilitado-mobile {
+        pointer-events: none !important;
+        touch-action: none !important;
+        -webkit-user-select: none !important;
+        user-select: none !important;
+        opacity: 0.5 !important;
+        cursor: not-allowed !important;
+    }
+
+    .action-buttons-container .btn:disabled,
+    .action-buttons-container .btn-desabilitado-mobile {
+        background-color: #FFFFFF !important;
+        border-color: #6c757d !important;
+        pointer-events: none !important;
+        touch-action: none !important;
+    }
+
+    .action-buttons-container .btn:disabled:active,
+    .action-buttons-container .btn-desabilitado-mobile:active,
+    .action-buttons-container .btn:disabled:focus,
+    .action-buttons-container .btn-desabilitado-mobile:focus {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
+    /* ======================== MOBILE ======================== */
+    @media (max-width: 768px) {
+        .modo-laco .drawing-area {
+            touch-action: pan-x pan-y pinch-zoom !important;
+            cursor: crosshair !important;
+        }
+        
+        .modo-laco {
+            overflow: hidden;
+            position: fixed;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .modo-laco .main-container {
+            overflow: hidden;
+        }
+        
+        .modo-laco .peca,
+        .modo-laco .cuba,
+        .modo-laco .texto-legenda,
+        .modo-laco .legenda-simplificada,
+        .modo-laco .simbolo-linha,
+        .modo-laco .titulo-grupo,
+        .modo-laco .dimensoes,
+        .modo-laco .quantidade-peca,
+        .modo-laco .linha-peca,
+        .modo-laco .grupo-temporario {
             pointer-events: none !important;
             touch-action: none !important;
         }
 
-        /* 🔥 CORREÇÃO: Modais devem permitir interação mas não bloquear o resto */
-        .modal-controles,
-        .modal-estilos {
-            pointer-events: auto !important;
-            touch-action: auto !important;
-        }
-
-        /* 🔥 CORREÇÃO: Área de desenho deve SEMPRE permitir zoom e pan */
-        .drawing-area {
-            touch-action: pan-x pan-y pinch-zoom !important;
-            -webkit-overflow-scrolling: touch !important;
-        }
-
-        /* 🔥 CORREÇÃO: Mesmo durante modais, manter interatividade do drawing area */
-        body.modal-estilos-aberto .drawing-area {
-            touch-action: pan-x pan-y pinch-zoom !important;
-            pointer-events: auto !important;
-        }
-
-        /* 🔥 CORREÇÃO: Containers de botões devem ficar acima */
-        .top-buttons-container,
-        .action-buttons-container {
-            z-index: 15 !important;
-            position: relative;
-        }
-
-        /* 🔥 CORREÇÃO: Ajustar z-index da área de desenho e elementos */
-        .drawing-area {
-            z-index: 1 !important;
-        }
-
-        .peca, .cuba, .texto-legenda, .legenda-simplificada,
-        .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca,
-        .linha-peca, .grupo-temporario {
-            z-index: 2 !important;
-        }
-
-        /* 🔥 CORREÇÃO: Elementos selecionados devem ficar acima */
-        .elemento-selecionado {
-            z-index: 3 !important;
-        }
-
-        /* 🔥 CORREÇÃO: Handles devem ficar acima */
-        .handles-container,
-        .handle,
-        .handle-rotacao {
-            z-index: 14 !important;
-        }
-
-        /* 🔥 CORREÇÃO: Cursor da borracha */
-        .cursor-borracha {
-            z-index: 14 !important;
-        }
-
-        /* 🔥 CORREÇÃO: Modais devem ficar acima de tudo mas NÃO BLOQUEAR BACKGROUND */
-        .modal-controles,
-        .modal-estilos {
-            z-index: 20000 !important;
-        }
-
-        .modal-backdrop {
-            z-index: 19999 !important;
-            background: rgba(0,0,0,0.3) !important;
-        }
-
-        /* 🔥 CORREÇÃO: Garantir que os containers de botão tenham fundo sólido */
-        .top-buttons-container {
-            background-color: #f8f9fa;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-
-        .action-buttons-container {
-            background: linear-gradient(to bottom, #f8f9fa 90%, transparent);
-            backdrop-filter: blur(10px);
-            border-bottom: 2px solid #dee2e6;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            padding: 15px;
-            border-radius: 8px;
-            margin: 25px 0;
-        }
-
-        /* 🔥 CORREÇÃO: Garantir que a área de desenho não suba sobre os botões */
-        .drawing-area {
-            margin-top: 20px;
-            position: relative;
-            z-index: 1 !important;
-        }
-
-        /* Resto do CSS base */
-        .main-container { 
-            width: 1400px; 
-            margin: 0 auto; 
-            padding: 0 15px; 
-            box-sizing: border-box; 
-        }
-        
-        body { 
-            font-size: 15px; 
-            font-family: Arial, sans-serif; 
-            line-height: 1.3; 
-            background-color: #f8f9fa; 
-            padding: 20px 0;
-            min-width: 1400px;
-            overflow-x: auto;
-        }
-        
-        .header-container { 
-            display: flex; 
-            justify-content: flex-start; 
-            align-items: center; 
-            position: relative; 
-            width: 100%; 
-        }
-        
-        .logo-empresa { 
-            position: absolute; 
-            right: -70px; 
-            top: 10px; 
-            height: 120px; 
-            width: 280px; 
-            max-width: 280px; 
-            object-fit: contain; 
-        }
-        
-        .cliente-header h2, .cliente-header p { 
-            display: block !important; 
-            margin: 2px 0 !important; 
-        }
-        
-        .cliente-header strong { 
-            display: inline !important; 
-            white-space: nowrap !important; 
-        }
-        
-        .wrap-text { 
-            display: inline-block !important; 
-            max-width: 60% !important; 
-            word-wrap: break-word !important; 
-            vertical-align: top !important; 
-        }
-        
-        .info-normal { 
-            font-weight: normal; 
-        }
-        
-        .drawing-area { 
-            position: relative; 
-            width: 100%; 
-            min-height: 1200px; 
-            border: 2px solid #ccc; 
-            background-color: white; 
-            margin: 20px 0; 
-            overflow: auto; 
-            cursor: default; 
-            touch-action: pan-x pan-y pinch-zoom !important; 
-        }
-        
-        .peca { 
-            position: absolute; 
-            background-color: rgba(255, 255, 255, 0.9); 
-            border: 2px solid #000; 
-            cursor: default; 
-            box-sizing: border-box; 
-            user-select: none; 
-            touch-action: none; 
-            pointer-events: auto;
-            z-index: 2;
-        }
-        
-        .peca.selecionavel {
-            cursor: pointer;
-            z-index: 3;
-        }
-        
-        .dimensoes { 
-            position: absolute; 
-            font-size: 14px;
-            background: transparent;
-            padding: 2px 4px; 
-            border: none;
-            border-radius: 3px; 
-            z-index: 5 !important;
-            cursor: default; 
-            touch-action: none; 
-            user-select: none; 
-        }
-        
-        .dimensoes-top { 
-            top: -35px; 
-            left: 50%; 
-            transform: translateX(-50%); 
-        }
-        
-        .dimensoes-right { 
-            right: -35px; 
-            top: 50%; 
-            transform: translateY(-50%); 
-        }
-
-        /* 🔥 ESTILOS PARA MODO LAÇO */
-        .laco-overlay {
-            z-index: 999;
-            pointer-events: none;
-        }
-        
-        .laco-polygon {
-            fill: rgba(46, 89, 217, 0.1);
-            stroke: #2e59d9;
-            stroke-width: 2;
-            stroke-dasharray: 5, 5;
-            pointer-events: none;
-        }
-        
-        .grupo-temporario {
-            border: 2px dashed rgba(46, 89, 217, 0.8);
-            background: rgba(46, 89, 217, 0.05);
-            pointer-events: auto;
-            z-index: 1000;
-        }
-        
-        .elemento-em-grupo {
-            filter: brightness(0.95);
-        }
-        
-        .quantidade-peca { 
-            position: absolute; 
-            font-size: 14px;
-            left: -35px; 
-            top: 50%; 
-            transform: translateY(-50%); 
-            background: transparent; 
-            padding: 2px 6px; 
-            border: none;
-            border-radius: 3px;  
-            z-index: 5; 
-            cursor: default; 
-            touch-action: none; 
-        }
-        
-        .btn-custom-primary { 
-            background-color: #4e73df; 
-            border-color: #4e73df; 
-            color: white; 
-        }
-        
-        .btn-custom-primary:hover { 
-            background-color: #2e59d9; 
-            border-color: #2e59d9; 
-            color: white; 
-        }
-
+        /* 🔥 CORREÇÃO: Permitir zoom com pinça no modo borracha */
         .modo-borracha .drawing-area {
-            cursor: none;
-        }
-
-        /* 🔥 ESTILOS PARA BOTÕES ATIVOS */
-        .btn-modo-ativo {
-            background-color: #4e73df !important;
-            border-color: #4e73df !important;
-            color: white !important;
-            box-shadow: 
-                0 0 0 0.2rem rgba(78, 115, 223, 0.25),
-                0 0 0 3px #ffffff,
-                0 0 0 5px #4e73df !important;
-            transform: translateY(-2px);
-        }
-
-        .btn-selecao-ativo {
-            background-color: #ffc107 !important;
-            border-color: #ffc107 !important;
-            color: #000 !important;
-            box-shadow: 
-                0 0 0 0.2rem rgba(255, 193, 7, 0.25),
-                0 0 0 3px #ffffff,
-                0 0 0 5px #ffc107 !important;
-            transform: translateY(-2px);
+            touch-action: pan-x pan-y pinch-zoom !important;
+            cursor: default !important;
         }
         
-        .btn-borracha-ativo {
-            background-color: #ffc107 !important;
-            border-color: #ffc107 !important;
-            color: #000 !important;
-            box-shadow: 
-                 0 0 0 0.2rem rgba(255, 193, 7, 0.25),
-                0 0 0 3px #ffffff,
-                0 0 0 5px #ffc107 !important;
-            transform: translateY(-2px);
-        }             
-        
-        .cursor-borracha {
-            position: absolute;
-            width: 10px;
-            height: 10px;
-            background-color: rgba(255, 255, 255, 0.7);
-            border: 2px solid #333;
-            border-radius: 3px;
-            pointer-events: none;
-            box-shadow: 0 0 5px rgba(0,0,0,0.5);
+        .modo-borracha .cursor-borracha {
+            display: none !important;
         }
         
-        .pintura-borracha {
-            position: absolute;
-            background-color: white;
-            border: none;
-            pointer-events: none;
-            z-index: 9;
-        }
-
-        /* 🔥 CORREÇÃO: Bloquear interações no modo borracha */
         .modo-borracha .peca,
         .modo-borracha .cuba,
         .modo-borracha .texto-legenda,
@@ -335,989 +785,514 @@
         .modo-borracha .linha-peca,
         .modo-borracha .grupo-temporario {
             pointer-events: none !important;
-            cursor: none !important;
+            touch-action: none !important;
         }
 
-        .modo-borracha .drawing-area {
-            cursor: none !important;
+        .cursor-borracha {
+            width: 25px;
+            height: 25px;
+            border-width: 3px;
         }
-        
-        .btn-custom-success { 
-            background-color: #1cc88a; 
-            border-color: #1cc88a; 
-            color: white; 
-        }
-        
-        .btn-custom-success:hover { 
-            background-color: #17a673; 
-            border-color: #17a673; 
-            color: white; 
-        }
-        
-        .btn-custom-danger { 
-            background-color: #e74a3b; 
-            border-color: #e74a3b; 
-            color: white; 
-        }
-        
-        .btn-custom-danger:hover { 
-            background-color: #be2617; 
-            border-color: #be2617; 
-            color: white; 
-        }
-        
-        .btn-warning { 
-            background-color: #f6c23e; 
-            border-color: #f6c23e; 
-            color: #000; 
-        }
-        
-        .btn-warning:hover { 
-            background-color: #dda20a; 
-            border-color: #dda20a; 
-            color: #000; 
-        }
-        
-        .action-buttons-container { 
-            margin: 25px 0; 
-            display: flex; 
-            gap: 12px; 
-            justify-content: flex-start; 
-            flex-wrap: wrap; 
-            padding: 15px;
-            background-color: #f8f9fa;
-            border-radius: 8px;
-        }
-        
-        .top-buttons-container { 
-            margin-bottom: 20px; 
-            display: flex; 
-            gap: 10px; 
-            justify-content: flex-start; 
-            flex-wrap: wrap; 
-        }
-        
-        .titulo-grupo {
-            font-size: 18px;
-            font-weight: bold;
-            color: #2e59d9;
-            padding: 10px 15px;
-            border-radius: 5px;
-            position: absolute;
-            z-index: 10;
-            cursor: default;
-            background-color: rgba(255, 255, 255, 0.95);
-            border: 2px solid #4e73df;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            min-width: 200px;
-            min-height: 40px;
-            resize: none;
-            overflow: hidden;
-            white-space: nowrap;
-            user-select: none;
-            touch-action: none;
-            pointer-events: auto;
-        }
-
-        .titulo-grupo.selecionavel {
-            cursor: pointer;
-        }
-
-        .titulo-grupo:focus {
-            background: white;
-            border: 2px solid #4e73df;
-            outline: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-
-        .grupo-material {
-            all: unset;
-            display: block;
-            position: relative;
-            margin-bottom: 40px;
-        }
-
-        .area-pecas {
-            position: relative;
-            margin-top: 10px;
-            display: block;
-            min-height: 200px;
-            pointer-events: none;
-            z-index: 1;
-        }
-
-        .area-pecas {
-            pointer-events: auto !important;
-        }
-
-        .area-pecas .peca,
-        .area-pecas .cuba,
-        .area-pecas .texto-legenda,
-        .area-pecas .legenda-simplificada,
-        .area-pecas .simbolo-linha,
-        .area-pecas .titulo-grupo,
-        .area-pecas .dimensoes,
-        .area-pecas .quantidade-peca {
-            pointer-events: auto !important;
-        }
-
-        .selecionavel {
-            cursor: pointer !important;
-        }
-
-        .area-pecas .selecionavel {
-            cursor: pointer !important;
-        }
-        
-        .linha-peca { 
-            position: absolute; 
-            background-color: transparent; 
-            z-index: 6; 
-            cursor: pointer; 
-            transition: all 0.2s ease; 
-            border: none !important; 
-        }
-        
-        .linha-peca:hover { 
-            background-color: #4e73df !important; 
-            opacity: 0.7; 
-        }
-        
-        .simbolo-linha { 
-            position: absolute; 
-            font-size: 16px; 
-            color: #000; 
-            background-color: transparent !important; 
-            cursor: default; 
-            z-index: 10; 
-            user-select: none; 
-            text-align: center; 
-        }
-        
-        .simbolo-linha.selecionavel {
-            cursor: pointer;
-        }
-        
-        .cuba { 
-            position: absolute; 
-            background-color: rgba(255, 255, 255, 0.9); 
-            border: 2px solid #333; 
-            cursor: default; 
-            box-sizing: border-box; 
-            user-select: none; 
-            touch-action: none; 
-            z-index: 8; 
-        }
-        
-        .cuba.selecionavel {
-            cursor: pointer;
-        }
-        
-        .cuba.retangulo { 
-            border-radius: 0; 
-        }
-        
-        .cuba.circulo { 
-            border-radius: 50%; 
-        }
-        
-        .cuba.oval { 
-            border-radius: 50%; 
-        }
-        
-        .cuba.elipse { 
-            border-radius: 40%; 
-        }
-        
-        .texto-legenda { 
-            position: absolute; 
-            background: transparent; 
-            border: none; 
-            outline: none; 
-            resize: none; 
-            font-size: 16px; 
-            text-align: left; 
-            z-index: 10; 
-            cursor: default; 
-            min-width: 20px; 
-            min-height: 20px; 
-            touch-action: none; 
-            padding: 2px; 
-            overflow: hidden;
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        } 
-
-        .texto-legenda::-webkit-scrollbar {
-            display: none;
-        }
-
-        .texto-legenda:focus { 
-            background: white; 
-            border: 1px solid #ccc; 
-            border-radius: 4px; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
-            padding: 5px; 
-            overflow: hidden;
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        } 
-
-        .texto-legenda:focus::-webkit-scrollbar {
+    }
+    
+    @media (max-width: 1400px) {
+        .action-buttons-container .btn-text {
             display: none;
         }
         
-        .texto-legenda.selecionavel {
-            cursor: pointer;
-        }
-        
-        .legenda-simplificada { 
-            position: absolute; 
-            background: transparent; 
-            border: none; 
-            padding: 2px; 
-            z-index: 10; 
-            cursor: default; 
-            min-width: 120px; 
-            font-size: 16px; 
-            display: flex; 
-            align-items: center; 
-            gap: 5px; 
-        }
-        
-        .legenda-simplificada.selecionavel {
-            cursor: pointer;
-        }
-        
-        .legenda-simplificada:focus-within { 
-            background: white; 
-            border: 1px solid #ccc; 
-            border-radius: 4px; 
-            padding: 5px 8px; 
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1); 
-        }
-        
-        .legenda-simbolo-inline { 
-            font-weight: bold; 
-        }
-
-        .elemento-selecionado { 
-            outline: 3px solid #4e73df !important; 
-            outline-offset: 2px; 
-            z-index: 3 !important; 
-            pointer-events: auto !important;
-        }
-        
-        .handles-container {
-            position: absolute;
-            pointer-events: none;
-            z-index: 9999;
-        }
-        
-        .handle {
-            position: absolute;
-            width: 12px;
-            height: 12px;
-            background-color: #4e73df;
-            border: 1px solid white;
-            border-radius: 50%;
-            pointer-events: all;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            transform: translate(-50%, -50%);
-            z-index: 9999;
-            touch-action: none;
-            -webkit-user-select: none;
-            user-select: none;
-        }
-
-        .handle-rotacao {
-            touch-action: none;
-            -webkit-user-select: none;
-            user-select: none;
-        }
-
         .action-buttons-container .btn {
-            touch-action: manipulation;
-            -webkit-user-select: none;
-            user-select: none;
-        }
-
-        .drawing-area {
-            touch-action: pan-x pan-y pinch-zoom !important;
-            -webkit-user-select: none;
-            user-select: none;
-        }
-        
-        .handle-rotacao {
-            position: absolute;
-            width: 14px;
-            height: 14px;
-            background-color: #f6c23e;
-            border: 2px solid white;
+            width: 50px;
+            height: 50px;
             border-radius: 50%;
-            pointer-events: all;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            transform: translate(-50%, -50%);
-            cursor: grab;
-            z-index: 9999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
         }
         
-        .handle-n {
-            cursor: n-resize;
-        }
-        
-        .handle-s {
-            cursor: s-resize;
-        }
-        
-        .handle-e {
-            cursor: e-resize;
-        }
-        
-        .handle-w {
-            cursor: w-resize;
-        }
-        
-        .handle-ne {
-            cursor: ne-resize;
-        }
-        
-        .handle-nw {
-            cursor: nw-resize;
-        }
-        
-        .handle-se {
-            cursor: se-resize;
-        }
-        
-        .handle-sw {
-            cursor: sw-resize;
+        .action-buttons-container .btn i {
+            margin-right: 0 !important;
+            font-size: 1.2rem;
         }
         
         .action-buttons-container {
+            justify-content: center;
             gap: 8px;
+            padding: 10px;
         }
+    }
 
-        .action-buttons-container { 
-            position: sticky;
+    .drawing-container {
+        width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+    }
+
+    .drawing-area {
+        position: relative;
+        width: 1000px;
+        min-height: 1200px;
+        border: 2px solid #ccc;
+        background-color: white;
+        margin: 20px auto;
+        overflow: auto;
+        cursor: default;
+        touch-action: pan-x pan-y pinch-zoom !important;
+        box-sizing: border-box;
+    }
+
+    @media (max-width: 768px) {
+        .drawing-area {
+            width: 1000px !important;
+            margin: 20px auto !important;
+            overflow-x: auto !important;
+        }
+        
+        .drawing-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+    }
+
+    .drawing-area .peca,
+    .drawing-area .cuba,
+    .drawing-area .texto-legenda,
+    .drawing-area .legenda-simplificada {
+        position: absolute;
+    }
+
+    @media (max-width: 768px) {
+        .modal-controles {
+            max-width: 95vw !important;
+            min-width: 95vw !important;
+            left: 50% !important;
+            top: 50% !important;
+            transform: translate(-50%, -50%) !important;
+            max-height: 90vh !important;
+            overflow-y: auto !important;
+        }
+        
+        .modal-controles .btn {
+            padding: 10px 6px !important;
+            font-size: 0.85rem !important;
+            min-width: 70px !important;
+        }
+        
+        .modal-controles .btn small {
+            font-size: 0.65rem !important;
+            line-height: 1.1 !important;
+        }
+        
+        .modal-controles h6 {
+            font-size: 1rem !important;
+        }
+        
+        .modal-controles > div:nth-child(4) {
+            max-height: 40vh !important;
+            overflow-y: auto !important;
+            padding-right: 5px;
+        }
+        
+        .modal-controles > div:nth-child(4)::-webkit-scrollbar {
+            width: 4px;
+        }
+        
+        .modal-controles > div:nth-child(4)::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 2px;
+        }
+    }
+
+    @media (max-width: 768px) {
+        .modal-controles input, 
+        .modal-controles textarea {
+            font-size: 16px !important;
+            padding: 8px 10px !important;
+        }
+    }
+
+    .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.5);
+        pointer-events: none !important;
+        touch-action: none !important;
+    }
+
+    /* ======================== IMPRESSÃO ======================== */
+    @media print {
+        @page {
+            size: A4 portrait;
+            margin: 5mm;
+        }
+        
+        body {
+            background: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            font-size: 15px !important;
+            line-height: 1.2 !important;
+        }
+        
+        body * {
+            visibility: hidden;
+        }
+        
+        .main-container, .main-container * {
+            visibility: visible;
+        }
+        
+        .main-container {
+            position: absolute;
+            left: 0;
             top: 0;
-            background: linear-gradient(to bottom, #f8f9fa 90%, transparent);
-            backdrop-filter: blur(10px);
-            border-bottom: 2px solid #dee2e6;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-
-        .btn-desabilitado-mobile {
-            pointer-events: none !important;
-            touch-action: none !important;
-            -webkit-user-select: none !important;
-            user-select: none !important;
-            opacity: 0.5 !important;
-            cursor: not-allowed !important;
-        }
-
-        .action-buttons-container .btn:disabled,
-        .action-buttons-container .btn-desabilitado-mobile {
-            background-color: #FFFFFF !important;
-            border-color: #6c757d !important;
-            pointer-events: none !important;
-            touch-action: none !important;
-        }
-
-        .action-buttons-container .btn:disabled:active,
-        .action-buttons-container .btn-desabilitado-mobile:active,
-        .action-buttons-container .btn:disabled:focus,
-        .action-buttons-container .btn-desabilitado-mobile:focus {
-            transform: none !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 10px !important;
+            font-size: 18px !important;
+            background: white !important;
             box-shadow: none !important;
         }
 
-        /* ======================== MOBILE ======================== */
-        @media (max-width: 768px) {
-            .modo-laco .drawing-area {
-                touch-action: pan-x pan-y pinch-zoom !important;
-                cursor: crosshair !important;
-            }
-            
-            .modo-laco {
-                overflow: hidden;
-                position: fixed;
-                width: 100%;
-                height: 100%;
-            }
-            
-            .modo-laco .main-container {
-                overflow: hidden;
-            }
-            
-            .modo-laco .peca,
-            .modo-laco .cuba,
-            .modo-laco .texto-legenda,
-            .modo-laco .legenda-simplificada,
-            .modo-laco .simbolo-linha,
-            .modo-laco .titulo-grupo,
-            .modo-laco .dimensoes,
-            .modo-laco .quantidade-peca,
-            .modo-laco .linha-peca,
-            .modo-laco .grupo-temporario {
-                pointer-events: none !important;
-                touch-action: none !important;
-            }
-
-            /* 🔥 CORREÇÃO: Permitir zoom com pinça no modo borracha */
-            .modo-borracha .drawing-area {
-                touch-action: pan-x pan-y pinch-zoom !important;
-                cursor: default !important;
-            }
-            
-            .modo-borracha .cursor-borracha {
-                display: none !important;
-            }
-            
-            .modo-borracha .peca,
-            .modo-borracha .cuba,
-            .modo-borracha .texto-legenda,
-            .modo-borracha .legenda-simplificada,
-            .modo-borracha .simbolo-linha,
-            .modo-borracha .titulo-grupo,
-            .modo-borracha .dimensoes,
-            .modo-borracha .quantidade-peca,
-            .modo-borracha .linha-peca,
-            .modo-borracha .grupo-temporario {
-                pointer-events: none !important;
-                touch-action: none !important;
-            }
-
-            .cursor-borracha {
-                width: 25px;
-                height: 25px;
-                border-width: 3px;
-            }
+        .peca, .cuba, .texto-legenda, .legenda-simplificada, 
+        .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
         }
         
-        @media (max-width: 1400px) {
-            .action-buttons-container .btn-text {
-                display: none;
-            }
-            
-            .action-buttons-container .btn {
-                width: 50px;
-                height: 50px;
-                border-radius: 50%;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                padding: 0;
-            }
-            
-            .action-buttons-container .btn i {
-                margin-right: 0 !important;
-                font-size: 1.2rem;
-            }
-            
-            .action-buttons-container {
-                justify-content: center;
-                gap: 8px;
-                padding: 10px;
-            }
-        }
-
-        .drawing-container {
-            width: 100%;
-            overflow-x: auto;
-            overflow-y: hidden;
+        .top-buttons-container,
+        .action-buttons-container,
+        .mobile-buttons-container,
+        .zoom-controls,
+        .handles-container,
+        .handle,
+        .handle-rotacao,
+        .elemento-selecionado,
+        .modal-controles,
+        .modal-backdrop { 
+            display: none !important; 
         }
 
         .drawing-area {
-            position: relative;
-            width: 1000px;
-            min-height: 1200px;
-            border: 2px solid #ccc;
-            background-color: white;
-            margin: 20px auto;
-            overflow: auto;
-            cursor: default;
-            touch-action: pan-x pan-y pinch-zoom !important;
-            box-sizing: border-box;
+            width: 1000px !important;
+            height: auto !important;
+            min-height: auto !important;
+            max-height: none !important;
+            border: 1px solid #ccc !important;
+            background: white !important;
+            margin: 0 auto !important;
+            padding: 0px !important;
+            overflow: visible !important;
+            box-shadow: none !important;
+            position: relative !important;
+            page-break-inside: avoid;
+        }
+        
+        .dimensoes-right {
+            right: -35px !important;
         }
 
-        @media (max-width: 768px) {
-            .drawing-area {
-                width: 1000px !important;
-                margin: 20px auto !important;
-                overflow-x: auto !important;
-            }
-            
-            .drawing-container {
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-            }
+        .peca, .cuba, .texto-legenda, .legenda-simplificada, 
+        .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
+            position: absolute !important;
+            page-break-inside: avoid;
+            break-inside: avoid;
         }
 
-        .drawing-area .peca,
-        .drawing-area .cuba,
-        .drawing-area .texto-legenda,
-        .drawing-area .legenda-simplificada {
-            position: absolute;
+        .logo-empresa {
+            position: absolute !important;
+            right: 10px !important;
+            top: 10px !important;
+            max-width: 200px !important;
+            height: auto !important;
         }
 
-        @media (max-width: 768px) {
-            .modal-controles {
-                max-width: 95vw !important;
-                min-width: 95vw !important;
-                left: 50% !important;
-                top: 50% !important;
-                transform: translate(-50%, -50%) !important;
-                max-height: 90vh !important;
-                overflow-y: auto !important;
-            }
-            
-            .modal-controles .btn {
-                padding: 10px 6px !important;
-                font-size: 0.85rem !important;
-                min-width: 70px !important;
-            }
-            
-            .modal-controles .btn small {
-                font-size: 0.65rem !important;
-                line-height: 1.1 !important;
-            }
-            
-            .modal-controles h6 {
-                font-size: 1rem !important;
-            }
-            
-            .modal-controles > div:nth-child(4) {
-                max-height: 40vh !important;
-                overflow-y: auto !important;
-                padding-right: 5px;
-            }
-            
-            .modal-controles > div:nth-child(4)::-webkit-scrollbar {
-                width: 4px;
-            }
-            
-            .modal-controles > div:nth-child(4)::-webkit-scrollbar-thumb {
-                background: #ccc;
-                border-radius: 2px;
-            }
+        .texto-legenda, .legenda-simplificada {
+            background: transparent !important;
         }
-
-        @media (max-width: 768px) {
-            .modal-controles input, 
-            .modal-controles textarea {
-                font-size: 16px !important;
-                padding: 8px 10px !important;
-            }
+        
+        .peca {
+            border: 2px solid #000 !important;
+            background: white !important;
         }
-
-        .modal-backdrop {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            pointer-events: none !important;
-            touch-action: none !important;
+        
+        .cuba {
+            border: 2px solid #333 !important;
+            background: white !important;
         }
+    }
 
-        /* ======================== IMPRESSÃO ======================== */
-        @media print {
-            @page {
-                size: A4 portrait;
-                margin: 5mm;
-            }
-            
-            body {
-                background: white !important;
-                margin: 0 !important;
-                padding: 0 !important;
-                font-size: 15px !important;
-                line-height: 1.2 !important;
-            }
-            
-            body * {
-                visibility: hidden;
-            }
-            
-            .main-container, .main-container * {
-                visibility: visible;
-            }
-            
-            .main-container {
-                position: absolute;
-                left: 0;
-                top: 0;
-                width: 100% !important;
-                max-width: 100% !important;
-                margin: 0 !important;
-                padding: 10px !important;
-                font-size: 18px !important;
-                background: white !important;
-                box-shadow: none !important;
-            }
+    /* 🔥 CORREÇÃO CRÍTICA: LINHA RETA FUNCIONANDO IGUAL EM PC E MOBILE */
+    .cuba.linha-reta {
+        height: 0px !important;
+        border-top: 0px solid #333 !important;
+        background-color: transparent !important;
+    }
 
-            .peca, .cuba, .texto-legenda, .legenda-simplificada, 
-            .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
-                page-break-inside: avoid !important;
-                break-inside: avoid !important;
-            }
-            
-            .top-buttons-container,
-            .action-buttons-container,
-            .mobile-buttons-container,
-            .zoom-controls,
-            .handles-container,
-            .handle,
-            .handle-rotacao,
-            .elemento-selecionado,
-            .modal-controles,
-            .modal-backdrop { 
-                display: none !important; 
-            }
+    .cuba.linha-reta[style*="border-style: dashed"] {
+        border-top-style: dashed !important;
+    }
 
-            .drawing-area {
-                width: 1000px !important;
-                height: auto !important;
-                min-height: auto !important;
-                max-height: none !important;
-                border: 1px solid #ccc !important;
-                background: white !important;
-                margin: 0 auto !important;
-                padding: 0px !important;
-                overflow: visible !important;
-                box-shadow: none !important;
-                position: relative !important;
-                page-break-inside: avoid;
-            }
-            
-            .dimensoes-right {
-                right: -35px !important;
-            }
+    .cuba.linha-reta.linha-tracejada-elemento[style*="border-color"] {
+        background: repeating-linear-gradient(
+            to right,
+            var(--line-color, #333),
+            var(--line-color, #333) 5px,
+            transparent 5px,
+            transparent 10px
+        ) !important;
+    }
 
-            .peca, .cuba, .texto-legenda, .legenda-simplificada, 
-            .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
-                position: absolute !important;
-                page-break-inside: avoid;
-                break-inside: avoid;
-            }
-
-            .logo-empresa {
-                position: absolute !important;
-                right: 10px !important;
-                top: 10px !important;
-                max-width: 200px !important;
-                height: auto !important;
-            }
-
-            .texto-legenda, .legenda-simplificada {
-                background: transparent !important;
-            }
-            
-            .peca {
-                border: 2px solid #000 !important;
-                background: white !important;
-            }
-            
-            .cuba {
-                border: 2px solid #333 !important;
-                background: white !important;
-            }
-        }
-
+    /* 🔥 CORREÇÃO: MOBILE - MESMA APARÊNCIA DO PC */
+    @media (max-width: 768px) {
         .cuba.linha-reta {
+            /* 🔥 MANTÉM EXATAMENTE A MESMA APARÊNCIA DO PC */
+            border-top: 0px solid #333 !important;
             height: 0px !important;
-            border-top: 2px solid #333 !important;
             background-color: transparent !important;
-            border-top: none !important;
         }
-
+        
         .cuba.linha-reta[style*="border-style: dashed"] {
             border-top-style: dashed !important;
         }
+    }
 
-        .cuba.linha-reta.linha-tracejada-elemento[style*="border-color"] {
-            background: repeating-linear-gradient(
-                to right,
-                var(--line-color, #333),
-                var(--line-color, #333) 5px,
-                transparent 5px,
-                transparent 10px
-            ) !important;
-        }
+    /* 🔥 ESTILOS PARA O SISTEMA DE ESTILOS */
+    .modal-estilos {
+        position: fixed;
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        max-width: 400px;
+        width: 90vw;
+        max-height: 80vh;
+        overflow-y: auto;
+        pointer-events: auto !important;
+        touch-action: auto !important;
+    }
 
-        .cuba.linha-reta {
-            position: relative;
-        }
+    .modal-estilos h6 {
+        font-weight: bold;
+        margin-bottom: 15px;
+        color: #2e59d9;
+    }
 
-        .cuba.linha-reta::after {
-            content: '';
-            position: absolute;
-            top: -8px;
-            left: 0;
-            width: 100%;
-            height: 16px;
-            background: transparent;
-            z-index: 1;
-        }
+    .estilos-secao {
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #eee;
+    }
 
-        .cuba.linha-reta .mxHandleCenter {
-            display: none !important;
-        }
+    .estilos-secao:last-child {
+        border-bottom: none;
+    }
 
-        .cuba.linha-reta .mxHandle:not(.mxHandleStart):not(.mxHandleEnd):not(.mxHandleRotate) {
-            display: none !important;
-        }
+    .estilos-secao h7 {
+        font-weight: 600;
+        margin-bottom: 10px;
+        display: block;
+        color: #495057;
+    }
 
-        @media (max-width: 768px) {
-            .cuba.linha-reta {
-                border-top: none !important;
-            }
-            
-            .cuba.linha-reta::before {
-                content: '';
-                position: absolute;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 2px;
-                background-color: #333;
-            }
-        }
+    .paleta-cores {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
 
-        /* 🔥 ESTILOS PARA O SISTEMA DE ESTILOS */
-        .modal-estilos {
-            position: fixed;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            max-width: 400px;
-            width: 90vw;
-            max-height: 80vh;
-            overflow-y: auto;
-            pointer-events: auto !important;
-            touch-action: auto !important;
-        }
+    .cor-opcao {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 2px solid #ddd;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
 
-        .modal-estilos h6 {
-            font-weight: bold;
-            margin-bottom: 15px;
-            color: #2e59d9;
-        }
+    .cor-opcao:hover {
+        transform: scale(1.1);
+        border-color: #999;
+    }
 
-        .estilos-secao {
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #eee;
-        }
+    .cor-opcao.selecionada {
+        border-color: #2e59d9;
+        transform: scale(1.1);
+    }
 
-        .estilos-secao:last-child {
-            border-bottom: none;
-        }
+    .controles-texto {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
 
-        .estilos-secao h7 {
-            font-weight: 600;
-            margin-bottom: 10px;
-            display: block;
-            color: #495057;
-        }
+    .controle-grupo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
 
-        .paleta-cores {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 8px;
-            margin-bottom: 10px;
-        }
+    .controle-grupo label {
+        margin-bottom: 0;
+        min-width: 80px;
+        font-size: 0.9rem;
+    }
 
-        .cor-opcao {
-            width: 30px;
-            height: 30px;
-            border-radius: 50%;
-            border: 2px solid #ddd;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
+    .controle-grupo input[type="number"] {
+        width: 70px;
+        padding: 5px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
 
-        .cor-opcao:hover {
-            transform: scale(1.1);
-            border-color: #999;
-        }
+    .controle-grupo input[type="range"] {
+        flex: 1;
+    }
 
-        .cor-opcao.selecionada {
-            border-color: #2e59d9;
-            transform: scale(1.1);
-        }
+    .estilos-linha {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
 
-        .controles-texto {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
+    .opcao-linha {
+        padding: 8px 12px;
+        border: 2px solid #dee2e6;
+        border-radius: 6px;
+        cursor: pointer;
+        text-align: center;
+        flex: 1;
+        min-width: 80px;
+        transition: all 0.2s ease;
+    }
 
-        .controle-grupo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
+    .opcao-linha:hover {
+        border-color: #4e73df;
+    }
 
-        .controle-grupo label {
-            margin-bottom: 0;
-            min-width: 80px;
-            font-size: 0.9rem;
-        }
+    .opcao-linha.selecionada {
+        border-color: #4e73df;
+        background-color: #f8f9ff;
+    }
 
-        .controle-grupo input[type="number"] {
-            width: 70px;
-            padding: 5px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-        }
+    .linha-solida {
+        border-bottom: 3px solid #333;
+    }
 
-        .controle-grupo input[type="range"] {
-            flex: 1;
-        }
+    .linha-tracejada {
+        border-bottom: 3px dashed #333;
+    }
 
-        .estilos-linha {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
+    .botao-aplicar {
+        background-color: #4e73df;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background-color 0.2s ease;
+        width: 100%;
+        margin-top: 10px;
+    }
 
-        .opcao-linha {
-            padding: 8px 12px;
-            border: 2px solid #dee2e6;
-            border-radius: 6px;
-            cursor: pointer;
-            text-align: center;
-            flex: 1;
-            min-width: 80px;
-            transition: all 0.2s ease;
-        }
+    .botao-aplicar:hover {
+        background-color: #2e59d9;
+    }
 
-        .opcao-linha:hover {
-            border-color: #4e73df;
-        }
+    .texto-negrito {
+        font-weight: bold !important;
+    }
 
-        .opcao-linha.selecionada {
-            border-color: #4e73df;
-            background-color: #f8f9ff;
-        }
+    .linha-tracejada-elemento {
+        border-style: dashed !important;
+    }
 
-        .linha-solida {
-            border-bottom: 3px solid #333;
-        }
+    .linha-solida-elemento {
+        border-style: solid !important;
+    }
 
-        .linha-tracejada {
-            border-bottom: 3px dashed #333;
-        }
+    .preview-cor {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+        margin-left: 10px;
+    }
 
-        .botao-aplicar {
-            background-color: #4e73df;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: background-color 0.2s ease;
-            width: 100%;
-            margin-top: 10px;
-        }
+    .peca.linha-tracejada-elemento {
+        border-style: dashed !important;
+    }
 
-        .botao-aplicar:hover {
-            background-color: #2e59d9;
-        }
+    .cuba.linha-tracejada-elemento {
+        border-style: dashed !important;
+    }
 
-        .texto-negrito {
-            font-weight: bold !important;
-        }
+    .modal-backdrop {
+        z-index: 19999 !important;
+        pointer-events: none !important;
+    }
 
-        .linha-tracejada-elemento {
-            border-style: dashed !important;
-        }
+    .modal-estilos {
+        z-index: 20000 !important;
+        pointer-events: auto !important;
+    }
 
-        .linha-solida-elemento {
-            border-style: solid !important;
-        }
+    .elemento-selecionado {
+        z-index: 1000 !important;
+    }
 
-        .preview-cor {
-            width: 20px;
-            height: 20px;
-            border-radius: 4px;
-            border: 1px solid #ddd;
-            margin-left: 10px;
-        }
+    .modal-estilos * {
+        touch-action: auto !important;
+    }
 
-        .peca.linha-tracejada-elemento {
-            border-style: dashed !important;
-        }
+    .cor-opcao, .opcao-linha {
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+    }
 
-        .cuba.linha-tracejada-elemento {
-            border-style: dashed !important;
-        }
-
-        .modal-backdrop {
-            z-index: 19999 !important;
-            pointer-events: none !important;
-        }
-
-        .modal-estilos {
-            z-index: 20000 !important;
-            pointer-events: auto !important;
-        }
-
-        .elemento-selecionado {
-            z-index: 1000 !important;
-        }
-
-        .modal-estilos * {
-            touch-action: auto !important;
-        }
-
-        .cor-opcao, .opcao-linha {
-            touch-action: manipulation;
-            -webkit-tap-highlight-color: transparent;
-        }
-
-        /* 🔥 CORREÇÃO CRÍTICA: Prevenir seleção de texto durante gestos */
+    /* 🔥 CORREÇÃO CRÍTICA: Prevenir seleção de texto durante gestos */
+    .drawing-area {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* 🔥 CORREÇÃO: Feedback visual para elementos selecionados no mobile */
+    .elemento-selecionado {
+        outline: 3px solid #4e73df !important;
+        outline-offset: 2px;
+    }
+    
+    /* 🔥 CORREÇÃO: Zoom mais suave no mobile */
+    @media (max-width: 768px) {
         .drawing-area {
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
+            touch-action: pan-x pan-y pinch-zoom !important;
         }
         
-        /* 🔥 CORREÇÃO: Feedback visual para elementos selecionados no mobile */
-        .elemento-selecionado {
-            outline: 3px solid #4e73df !important;
-            outline-offset: 2px;
+        .action-buttons-container {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: rgba(248, 249, 250, 0.95);
+            backdrop-filter: blur(10px);
         }
-        
-        /* 🔥 CORREÇÃO: Zoom mais suave no mobile */
-        @media (max-width: 768px) {
-            .drawing-area {
-                touch-action: pan-x pan-y pinch-zoom !important;
-            }
-            
-            .action-buttons-container {
-                position: sticky;
-                top: 0;
-                z-index: 1000;
-                background: rgba(248, 249, 250, 0.95);
-                backdrop-filter: blur(10px);
-            }
 
-            /* 🔥 CORREÇÃO: Garantir que modais não bloqueiem a área de desenho */
-            .modal-controles,
-            .modal-estilos {
-                touch-action: auto !important;
-                pointer-events: auto !important;
-            }
+        /* 🔥 CORREÇÃO: Garantir que modais não bloqueiem a área de desenho */
+        .modal-controles,
+        .modal-estilos {
+            touch-action: auto !important;
+            pointer-events: auto !important;
         }
-    </style>
+    }
+</style>
 
 </head>
 <body>
