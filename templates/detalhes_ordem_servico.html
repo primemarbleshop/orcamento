@@ -629,6 +629,7 @@ right: -35px;
             box-shadow: none !important;
         }
 
+
         /* ======================== MOBILE - APENAS ÍCONES ======================== */
         @media (max-width: 1400px) {
             .action-buttons-container .btn-text {
@@ -1004,6 +1005,8 @@ right: -35px;
             this._lacoMoveHandler = null;
             this._lacoUpHandler = null;
             this._lacoPolygonElement = null;
+
+
             
             // Variáveis para o modo borracha
             this.borrachaCursor = null;
@@ -1035,9 +1038,60 @@ this.borrachaAtiva = false;
             this.legendaY = 0;
             this.ultimoSalvamentoHistorico = 0;
             this.ultimaDescricaoHistorico = '';
+this.adicionarEstilosMobile();
 
             this.inicializar();
         }
+
+ adicionarEstilosMobile() {
+        if (!document.getElementById('estilos-borracha-mobile')) {
+            const estiloMobile = `
+                /* 🔥 CORREÇÃO: Permitir zoom com pinça no modo borracha para mobile */
+                @media (max-width: 768px) {
+                    .modo-borracha .drawing-area {
+                        touch-action: pan-x pan-y pinch-zoom !important;
+                        cursor: default !important;
+                    }
+                    
+                    .modo-borracha .cursor-borracha {
+                        display: none !important;
+                    }
+                    
+                    /* Manter o bloqueio de interação com elementos, mas permitir zoom */
+                    .modo-borracha .peca,
+                    .modo-borracha .cuba,
+                    .modo-borracha .texto-legenda,
+                    .modo-borracha .legenda-simplificada,
+                    .modo-borracha .simbolo-linha,
+                    .modo-borracha .titulo-grupo,
+                    .modo-borracha .dimensoes,
+                    .modo-borracha .quantidade-peca,
+                    .modo-borracha .linha-peca,
+                    .modo-borracha .grupo-temporario {
+                        pointer-events: none !important;
+                        touch-action: none !important;
+                    }
+                }
+
+               
+
+                @media (max-width: 768px) {
+                    .cursor-borracha {
+                        width: 25px;
+                        height: 25px;
+                        border-width: 3px;
+                    }
+                }
+            `;
+
+            const styleElement = document.createElement('style');
+            styleElement.id = 'estilos-borracha-mobile';
+            styleElement.textContent = estiloMobile;
+            document.head.appendChild(styleElement);
+            
+            console.log('✅ Estilos mobile para borracha adicionados');
+        }
+    }
 
         // 🔥 NOVO MÉTODO: Desativar todos os modos
         desativarTodosOsModos() {
@@ -1233,58 +1287,95 @@ this.borrachaAtiva = false;
             console.log('✅ Gerenciador de Desenho inicializado com sucesso!');
         }
 
-        configurarEventosBorracha() {
-            this.drawingArea.addEventListener('mousedown', (e) => {
-                if (this.modoBorrachaAtivo && e.button === 0) {
-                    this.iniciarPinturaBorracha(e);
-                }
-            });
-            
-            this.drawingArea.addEventListener('mousemove', (e) => {
-                if (this.modoBorrachaAtivo) {
-                    this.atualizarCursorBorracha(e);
-                    if (this.borrachaPressionada) {
-                        this.pintarComBorracha(e);
-                    }
-                }
-            });
-            
-            this.drawingArea.addEventListener('mouseup', (e) => {
-                if (this.modoBorrachaAtivo && e.button === 0) {
-                    this.pararPinturaBorracha();
-                }
-            });
-            
-            this.drawingArea.addEventListener('mouseleave', () => {
-                if (this.modoBorrachaAtivo) {
-                    this.ocultarCursorBorracha();
-                }
-            });
-            
-            this.drawingArea.addEventListener('touchstart', (e) => {
-                if (this.modoBorrachaAtivo) {
-                    e.preventDefault();
-                    this.iniciarPinturaBorracha(e);
-                }
-            }, { passive: false });
-            
-            this.drawingArea.addEventListener('touchmove', (e) => {
-                if (this.modoBorrachaAtivo) {
-                    e.preventDefault();
-                    this.atualizarCursorBorracha(e);
-                    if (this.borrachaPressionada) {
-                        this.pintarComBorracha(e);
-                    }
-                }
-            }, { passive: false });
-            
-            this.drawingArea.addEventListener('touchend', (e) => {
-                if (this.modoBorrachaAtivo) {
-                    e.preventDefault();
-                    this.pararPinturaBorracha();
-                }
-            }, { passive: false });
+       configurarEventosBorracha() {
+    // Mouse events (mantém o mesmo)
+    this.drawingArea.addEventListener('mousedown', (e) => {
+        if (this.modoBorrachaAtivo && e.button === 0) {
+            this.iniciarPinturaBorracha(e);
         }
+    });
+    
+    this.drawingArea.addEventListener('mousemove', (e) => {
+        if (this.modoBorrachaAtivo) {
+            this.atualizarCursorBorracha(e);
+            if (this.borrachaPressionada) {
+                this.pintarComBorracha(e);
+            }
+        }
+    });
+    
+    this.drawingArea.addEventListener('mouseup', (e) => {
+        if (this.modoBorrachaAtivo && e.button === 0) {
+            this.pararPinturaBorracha();
+        }
+    });
+    
+    this.drawingArea.addEventListener('mouseleave', () => {
+        if (this.modoBorrachaAtivo && this.borrachaPressionada) {
+            this.pararPinturaBorracha();
+        }
+    });
+    
+    // 🔥 CORREÇÃO: Touch events - Permitir zoom com pinça
+    this.drawingArea.addEventListener('touchstart', (e) => {
+        if (this.modoBorrachaAtivo) {
+            // 🔥 PERMITIR zoom com pinça (2 dedos ou mais)
+            if (e.touches.length >= 2) {
+                // Não fazer nada - permitir que o navegador gerence o zoom
+                return;
+            }
+            
+            // Apenas para toque único - prevenir comportamento padrão
+            e.preventDefault();
+            this.iniciarPinturaBorracha(e);
+        }
+    }, { passive: false });
+    
+    this.drawingArea.addEventListener('touchmove', (e) => {
+        if (this.modoBorrachaAtivo) {
+            // 🔥 PERMITIR zoom com pinça (2 dedos ou mais)
+            if (e.touches.length >= 2) {
+                // Não fazer nada - permitir que o navegador gerence o zoom
+                return;
+            }
+            
+            // Apenas para toque único - prevenir comportamento padrão
+            e.preventDefault();
+            this.atualizarCursorBorracha(e);
+            if (this.borrachaPressionada) {
+                this.pintarComBorracha(e);
+            }
+        }
+    }, { passive: false });
+    
+    this.drawingArea.addEventListener('touchend', (e) => {
+        if (this.modoBorrachaAtivo) {
+            // 🔥 PERMITIR zoom com pinça - não prevenir quando há múltiplos toques
+            if (e.touches.length >= 2) {
+                return;
+            }
+            
+            e.preventDefault();
+            this.pararPinturaBorracha();
+        }
+    }, { passive: false });
+    
+    // 🔥 NOVO: Evento para detectar gesto de pinça e desativar temporariamente a borracha
+    this.drawingArea.addEventListener('touchstart', (e) => {
+        if (this.modoBorrachaAtivo && e.touches.length >= 2) {
+            console.log('📱 Zoom com pinça detectado - desativando temporariamente a borracha');
+            this.borrachaPressionada = false;
+            this.ultimaPosicaoBorracha = null;
+        }
+    }, { passive: true });
+    
+    this.drawingArea.addEventListener('touchend', (e) => {
+        if (this.modoBorrachaAtivo && e.touches.length === 0) {
+            console.log('📱 Todos os toques removidos - borracha pode ser reativada');
+        }
+    }, { passive: true });
+}
+
 
       iniciarPinturaBorracha(e) {
     if (!this.modoBorrachaAtivo) return;
@@ -1374,16 +1465,26 @@ salvarEstadoHistoricoForcado(descricao) {
     }
 }
 
-        obterCoordenadasBorracha(e) {
-            const clientX = e.clientX || (e.touches && e.touches[0].clientX);
-            const clientY = e.clientY || (e.touches && e.touches[0].clientY);
-            const rect = this.drawingArea.getBoundingClientRect();
-            
-            return { 
-                x: clientX - rect.left + this.drawingArea.scrollLeft, 
-                y: clientY - rect.top + this.drawingArea.scrollTop 
-            }; 
-        }
+       obterCoordenadasBorracha(e) {
+    let clientX, clientY;
+    
+    if (e.touches && e.touches[0]) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+    } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+    }
+    
+    const rect = this.drawingArea.getBoundingClientRect();
+    const scrollLeft = this.drawingArea.scrollLeft || 0;
+    const scrollTop = this.drawingArea.scrollTop || 0;
+    
+    return { 
+        x: clientX - rect.left + scrollLeft, 
+        y: clientY - rect.top + scrollTop
+    }; 
+}
 
       pintarComBorracha(e) {
     if (!this.borrachaPressionada) return;
@@ -1445,18 +1546,30 @@ salvarEstadoHistoricoForcado(descricao) {
     
     document.body.classList.add('modo-borracha');
     
-    // 🔥 GARANTIR que o cursor padrão esteja oculto
-    this.drawingArea.style.cursor = 'none';
+    // 🔥 CORREÇÃO: No mobile, manter cursor padrão para permitir zoom
+    if (this.ehDispositivoMobile()) {
+        this.drawingArea.style.cursor = 'default';
+        console.log('📱 Modo borracha ativado no mobile - zoom com pinça habilitado');
+    } else {
+        this.drawingArea.style.cursor = 'none';
+    }
     
-    // 🔥 FORÇAR a criação do cursor da borracha
-    this.borrachaCursor = null; // Isso fará com que seja recriado no próximo movimento
+    // Criar cursor da borracha
+    this.borrachaCursor = document.createElement('div');
+    this.borrachaCursor.className = 'cursor-borracha';
+    this.drawingArea.appendChild(this.borrachaCursor);
     
     const btnBorracha = document.getElementById('btnBorracha');
     if (btnBorracha) {
         btnBorracha.classList.add('btn-borracha-ativo');
     }
     
-    console.log('✅ Modo borracha ativado - cursor será restaurado no movimento do mouse');
+    console.log('✅ Modo borracha ativado');
+}
+
+ehDispositivoMobile() {
+    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+           (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
 }
 
       desativarModoBorracha() {
@@ -1471,7 +1584,7 @@ salvarEstadoHistoricoForcado(descricao) {
     // 🔥 CORREÇÃO: Restaurar cursor padrão
     this.drawingArea.style.cursor = 'default';
     
-    // 🔥 CORREÇÃO: Remover completamente o cursor da borracha
+    // Remover cursor da borracha
     this.ocultarCursorBorracha();
     if (this.borrachaCursor && this.borrachaCursor.parentNode) {
         this.borrachaCursor.parentNode.removeChild(this.borrachaCursor);
@@ -1483,29 +1596,36 @@ salvarEstadoHistoricoForcado(descricao) {
         btnBorracha.classList.remove('btn-borracha-ativo');
     }
     
-    console.log('✅ Modo borracha desativado - cursor removido');
+    console.log('✅ Modo borracha desativado');
 }
 
 atualizarCursorBorracha(e) {
-    // 🔥 CORREÇÃO: Se não existe cursor, criar um
+    // 🔥 CORREÇÃO: No mobile, não mostrar cursor da borracha durante zoom com pinça
+    if (this.ehDispositivoMobile() && e.touches && e.touches.length >= 2) {
+        if (this.borrachaCursor) {
+            this.borrachaCursor.style.display = 'none';
+        }
+        return;
+    }
+    
     if (!this.borrachaCursor) {
         this.borrachaCursor = document.createElement('div');
         this.borrachaCursor.className = 'cursor-borracha';
         this.drawingArea.appendChild(this.borrachaCursor);
-        console.log('🔧 Cursor da borracha recriado durante movimento');
     }
     
     const coords = this.obterCoordenadasBorracha(e);
     this.borrachaCursor.style.left = `${coords.x - this.tamanhoBorracha/2}px`;
     this.borrachaCursor.style.top = `${coords.y - this.tamanhoBorracha/2}px`;
-    this.borrachaCursor.style.display = 'block';
     
-    // 🔥 GARANTIR que o cursor padrão esteja oculto
-    if (this.modoBorrachaAtivo) {
+    // 🔥 CORREÇÃO: No mobile, mostrar cursor apenas durante uso ativo
+    if (this.ehDispositivoMobile()) {
+        this.borrachaCursor.style.display = this.borrachaPressionada ? 'block' : 'none';
+    } else {
+        this.borrachaCursor.style.display = 'block';
         this.drawingArea.style.cursor = 'none';
     }
 }
-
 
         excluirElemento() {
             const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
