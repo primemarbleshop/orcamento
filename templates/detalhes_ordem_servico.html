@@ -1037,6 +1037,22 @@
 .cuba.linha-reta .mxHandle:not(.mxHandleStart):not(.mxHandleEnd):not(.mxHandleRotate) {
     display: none !important;
 }
+
+@media (max-width: 768px) {
+    .cuba.linha-reta {
+        border-top: none !important;
+    }
+    
+    .cuba.linha-reta::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 2px;
+        background-color: #333;
+    }
+}
         /* 🔥 NOVO: ESTILOS PARA O SISTEMA DE ESTILOS */
         .modal-estilos {
             position: fixed;
@@ -5653,11 +5669,14 @@ _isTouchGesture(e) {
         return;
     }
     
-    // 🔥 CORREÇÃO CRÍTICA: Salvar referência ANTES de abrir o modal
+    // Salvar referência ANTES de abrir o modal
     this.elementoSelecionadoAntesDoModal = this.elementoSelecionado;
     this.modalEstilosAberto = true;
     
-    // Criar backdrop - BLOQUEAR COMPLETAMENTE interações externas
+    // Adicionar classe ao body para controle CSS
+    document.body.classList.add('modal-estilos-aberto');
+    
+    // 🔥 CORREÇÃO: Backdrop inteligente que permite gestos de multi-toque e rolagem
     const backdrop = document.createElement('div');
     backdrop.className = 'modal-backdrop';
     backdrop.style.cssText = `
@@ -5666,27 +5685,100 @@ _isTouchGesture(e) {
         left: 0;
         width: 100%;
         height: 100%;
-        background: rgba(0,0,0,0.5);
+        background: rgba(0,0,0,0.3);
         z-index: 19999;
         pointer-events: auto;
     `;
     
-    // 🔥 CORREÇÃO RADICAL: Backdrop bloqueia TODOS os eventos
-    const bloquearEvento = (e) => {
-        console.log('🚫 Evento bloqueado pelo backdrop:', e.type);
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        return false;
+    // 🔥 CORREÇÃO: Variáveis para controle de gestos
+    let touchStartTime = 0;
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let isMultiTouch = false;
+    let isScrolling = false;
+    const touchMoveThreshold = 10; // pixels
+    
+    const handleBackdropTouchStart = (e) => {
+        touchStartTime = Date.now();
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+        isMultiTouch = e.touches.length >= 2;
+        isScrolling = false;
+        
+        // 🔥 PERMITIR multi-toque (zoom com pinça) - não bloquear
+        if (isMultiTouch) {
+            console.log('📱 Multi-toque detectado - permitindo zoom');
+            return; // Deixa o evento prosseguir para o navegador
+        }
+        
+        // Para toque único, prevenir apenas se for um toque rápido (possível clique)
+        const isFastTap = (Date.now() - touchStartTime) < 300;
+        if (isFastTap) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
     };
     
-    backdrop.addEventListener('click', bloquearEvento);
-    backdrop.addEventListener('touchstart', bloquearEvento, { passive: false });
-    backdrop.addEventListener('touchmove', bloquearEvento, { passive: false });
-    backdrop.addEventListener('touchend', bloquearEvento, { passive: false });
-    backdrop.addEventListener('touchenter', bloquearEvento, { passive: false });
-    backdrop.addEventListener('touchleave', bloquearEvento, { passive: false });
-    backdrop.addEventListener('touchcancel', bloquearEvento, { passive: false });
+    const handleBackdropTouchMove = (e) => {
+        // 🔥 SEMPRE permitir multi-toque
+        if (e.touches.length >= 2) {
+            isMultiTouch = true;
+            console.log('📱 Gestos de multi-toque - permitindo');
+            return; // Permite zoom com pinça
+        }
+        
+        // Verificar se é rolagem
+        if (!isMultiTouch && e.touches.length === 1) {
+            const currentX = e.touches[0].clientX;
+            const currentY = e.touches[0].clientY;
+            const deltaX = Math.abs(currentX - touchStartX);
+            const deltaY = Math.abs(currentY - touchStartY);
+            
+            // Se movimento significativo, considerar como rolagem
+            if (deltaX > touchMoveThreshold || deltaY > touchMoveThreshold) {
+                isScrolling = true;
+                console.log('📱 Rolagem detectada - permitindo');
+                return; // Permite rolagem
+            }
+        }
+        
+        // Se não é multi-toque nem rolagem, prevenir
+        e.preventDefault();
+        e.stopPropagation();
+    };
+    
+    const handleBackdropTouchEnd = (e) => {
+        // 🔥 Se foi multi-toque ou rolagem, não fazer nada
+        if (isMultiTouch || isScrolling) {
+            console.log('📱 Gestos de zoom/rolagem concluídos');
+            isMultiTouch = false;
+            isScrolling = false;
+            return;
+        }
+        
+        // Se foi um toque único rápido, prevenir desseleção
+        const isFastTap = (Date.now() - touchStartTime) < 300;
+        if (isFastTap) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('🚫 Toque rápido bloqueado - prevenindo desseleção');
+        }
+        
+        isMultiTouch = false;
+        isScrolling = false;
+    };
+    
+    // 🔥 CORREÇÃO: Aplicar event listeners
+    backdrop.addEventListener('touchstart', handleBackdropTouchStart, { passive: false });
+    backdrop.addEventListener('touchmove', handleBackdropTouchMove, { passive: false });
+    backdrop.addEventListener('touchend', handleBackdropTouchEnd, { passive: false });
+    backdrop.addEventListener('touchcancel', handleBackdropTouchEnd, { passive: false });
+    
+    // Para mouse, ainda prevenir cliques
+    backdrop.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+    });
     
     document.body.appendChild(backdrop);
     this.backdropEstilosAtual = backdrop;
@@ -5779,7 +5871,9 @@ _isTouchGesture(e) {
         </div>
         
         <div class="d-flex gap-2 mt-3">
-            
+            <button class="btn btn-primary flex-fill" id="aplicarEstilosBtn">
+                <i class="fas fa-check me-1"></i> Aplicar
+            </button>
             <button class="btn btn-success flex-fill" id="aplicarEFecharEstilosBtn">
                 <i class="fas fa-check-double me-1"></i> Aplicar e Fechar
             </button>
@@ -5789,7 +5883,7 @@ _isTouchGesture(e) {
     document.body.appendChild(modalEstilos);
     this.modalEstilosAtual = modalEstilos;
     
-    // 🔥 CORREÇÃO RADICAL: Bloquear eventos de toque no modal também
+    // 🔥 CORREÇÃO: Bloquear eventos de toque no modal também
     const bloquearToqueModal = (e) => {
         e.stopPropagation();
         // Não prevenir padrão para permitir interação com controles
@@ -5804,7 +5898,7 @@ _isTouchGesture(e) {
         this.configurarEventosModalEstilos();
     }, 10);
     
-    console.log('✅ Modal de estilos aberto - eventos bloqueados');
+    console.log('✅ Modal de estilos aberto - gestos de zoom/rolagem permitidos');
 }
 
 
@@ -6049,6 +6143,7 @@ configurarEventosModalEstilos() {
     console.log('✅ Eventos do modal de estilos configurados - propagação bloqueada');
 }
 
+
 aplicarEstilosEFechar() {
     console.log('🎨 Aplicando estilos e fechando modal...');
     
@@ -6122,11 +6217,10 @@ aplicarEstilosManterModal() {
     console.log('🎨 Aplicando estilos (mantendo modal aberto)...');
     
     try {
-        const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
+        const elementoAlvo = this.elementoSelecionado || this.elementoSelecionadoAntesDoModal;
         
         if (!elementoAlvo) {
-            console.log('⚠️ Nenhum elemento selecionado para aplicar estilos');
-            return;
+                        return;
         }
         
         console.log('🎨 Aplicando estilos ao elemento:', elementoAlvo);
@@ -6134,7 +6228,7 @@ aplicarEstilosManterModal() {
         // Aplicar estilos
         this.aplicarEstilosElemento(elementoAlvo);
         
-        // 🔥 CORREÇÃO: Não fechar o modal, apenas salvar no histórico
+        // Salvar no histórico
         this.salvarEstadoHistorico('Aplicar Estilos');
         
         console.log('✅ Estilos aplicados com sucesso (modal mantido aberto)');
@@ -6143,6 +6237,7 @@ aplicarEstilosManterModal() {
         console.error('❌ Erro ao aplicar estilos:', error);
     }
 }
+
 
       aplicarEstilosElemento(elemento, preview = false) {
     const cor = this.corSelecionada;
@@ -6188,6 +6283,9 @@ aplicarEstilosManterModal() {
     console.log('🔴 Fechando modal de estilos...');
     
     this.modalEstilosAberto = false;
+    
+    // Remover classe do body
+    document.body.classList.remove('modal-estilos-aberto');
     
     // Remover modal
     if (this.modalEstilosAtual) {
