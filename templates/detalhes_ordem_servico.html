@@ -1040,6 +1040,13 @@ right: -35px;
             this._lacoMoveHandler = null;
             this._lacoUpHandler = null;
             this._lacoPolygonElement = null;
+this.touchStartTime = 0;
+    this.touchStartX = 0;
+    this.touchStartY = 0;
+    this.touchMoveThreshold = 10; // pixels de movimento para considerar como arraste
+    this.isScrolling = false;
+    this.isZooming = false;
+    this.touchedOutside = false;
 
 
             
@@ -1077,6 +1084,84 @@ this.adicionarEstilosMobile();
 
             this.inicializar();
         }
+
+adicionarEstilosMobile() {
+    if (!document.getElementById('estilos-mobile-gestos')) {
+        const estiloMobile = `
+            /* 🔥 MELHORIA: Prevenir seleção de texto durante gestos */
+            .drawing-area {
+                -webkit-user-select: none;
+                -moz-user-select: none;
+                -ms-user-select: none;
+                user-select: none;
+                -webkit-tap-highlight-color: transparent;
+            }
+            
+            /* 🔥 MELHORIA: Feedback visual para elementos selecionados no mobile */
+            .elemento-selecionado {
+                outline: 3px solid #4e73df !important;
+                outline-offset: 2px;
+            }
+            
+            /* 🔥 MELHORIA: Zoom mais suave no mobile */
+            @media (max-width: 768px) {
+                .drawing-area {
+                    touch-action: pan-x pan-y pinch-zoom;
+                }
+                
+                .action-buttons-container {
+                    position: sticky;
+                    top: 0;
+                    z-index: 1000;
+                    background: rgba(248, 249, 250, 0.95);
+                    backdrop-filter: blur(10px);
+                }
+            }
+
+            /* 🔥 CORREÇÃO: Permitir zoom com pinça no modo borracha para mobile */
+            @media (max-width: 768px) {
+                .modo-borracha .drawing-area {
+                    touch-action: pan-x pan-y pinch-zoom !important;
+                    cursor: default !important;
+                }
+                
+                .modo-borracha .cursor-borracha {
+                    display: none !important;
+                }
+                
+                /* Manter o bloqueio de interação com elementos, mas permitir zoom */
+                .modo-borracha .peca,
+                .modo-borracha .cuba,
+                .modo-borracha .texto-legenda,
+                .modo-borracha .legenda-simplificada,
+                .modo-borracha .simbolo-linha,
+                .modo-borracha .titulo-grupo,
+                .modo-borracha .dimensoes,
+                .modo-borracha .quantidade-peca,
+                .modo-borracha .linha-peca,
+                .modo-borracha .grupo-temporario {
+                    pointer-events: none !important;
+                    touch-action: none !important;
+                }
+            }
+
+            @media (max-width: 768px) {
+                .cursor-borracha {
+                    width: 25px;
+                    height: 25px;
+                    border-width: 3px;
+                }
+            }
+        `;
+
+        const styleElement = document.createElement('style');
+        styleElement.id = 'estilos-mobile-gestos';
+        styleElement.textContent = estiloMobile;
+        document.head.appendChild(styleElement);
+        
+        console.log('✅ Estilos mobile para gestos adicionados');
+    }
+}
 
  adicionarEstilosMobile() {
         if (!document.getElementById('estilos-borracha-mobile')) {
@@ -2133,150 +2218,193 @@ refazer() {
         }
 
         configurarEventos() {
-            console.log('🔧 Configurando eventos...');
-            
-            const botoes = [
-                'btnSelecionar', 'btnBorracha', 'btnLaco', 'btnDesfazer', 'btnRefazer', 'btnAdicionarTexto',
-                'btnAdicionarCuba', 'btnLegendaSimplificada', 'btnDuplicar', 
-                'btnExcluir', 'btnSalvar', 'btnImprimir'
-            ];
+    console.log('🔧 Configurando eventos...');
+    
+    const botoes = [
+        'btnSelecionar', 'btnBorracha', 'btnLaco', 'btnDesfazer', 'btnRefazer', 'btnAdicionarTexto',
+        'btnAdicionarCuba', 'btnLegendaSimplificada', 'btnDuplicar', 
+        'btnExcluir', 'btnSalvar', 'btnImprimir'
+    ];
 
-            const prevenirZoomDuploToque = (e) => {
-                if (e.touches && e.touches.length > 1) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                }
-            };
-
-            botoes.forEach(botaoId => {
-                const botao = document.getElementById(botaoId);
-                if (botao) {
-                    botao.addEventListener('click', (e) => {
-                        console.log(`🖱️ Botão ${botaoId} clicado`);
-                        
-                        switch(botaoId) {
-                            case 'btnSelecionar': this.toggleModoSelecao(); break;
-                            case 'btnBorracha': this.toggleModoBorracha(); break;
-                            case 'btnLaco': this.toggleModoLaco(); break;
-                            case 'btnAdicionarTexto': this.ativarModoTexto(); break; // 🔥 MODIFICADO
-                            case 'btnAdicionarCuba': this.ativarModoDesenhos(); break; // 🔥 MODIFICADO
-                            case 'btnLegendaSimplificada': this.ativarModoLegenda(); break; // 🔥 MODIFICADO
-                            case 'btnDuplicar': this.duplicarElemento(); break;
-                            case 'btnExcluir': this.excluirElemento(); break;
-                            case 'btnSalvar': this.salvarDesenho(); break;
-                            case 'btnImprimir': this.imprimirDesenho(); break;
-                            case 'btnDesfazer': this.desfazer(); break;
-                            case 'btnRefazer': this.refazer(); break;
-                        }
-                    });
-
-                    botao.addEventListener('touchstart', prevenirZoomDuploToque, { passive: false });
-                    botao.addEventListener('touchmove', prevenirZoomDuploToque, { passive: false });
-                }
-            });
-
-            this.drawingArea.addEventListener('click', (e) => {
-                if (this.modoInsercaoAtivo) {
-                    this.manipularCliqueInsercao(e);
-                } else if (this.modoSelecaoAtivo) {
-                    this.manipularCliqueSelecao(e);
-                }
-            });
-            
-            document.addEventListener('click', (e) => {
-                const isDrawingArea = e.target.closest('#drawingArea');
-                const isHandle = e.target.closest('.handle');
-                const isActionButton = e.target.closest('.action-buttons-container');
-                const isTopButton = e.target.closest('.top-buttons-container');
-                
-                if (!isDrawingArea && !isHandle && !isActionButton && !isTopButton) {
-                    if (gerenciadorDesenho.grupoTemporario) {
-                        gerenciadorDesenho.limparGrupoTemporario();
-                    }
-                    gerenciadorDesenho.desselecionarElemento();
-                }
-            });
-
-            document.addEventListener('touchstart', (e) => {
-                const isDrawingArea = e.target.closest('#drawingArea');
-                const isHandle = e.target.closest('.handle');
-                const isActionButton = e.target.closest('.action-buttons-container');
-                const isTopButton = e.target.closest('.top-buttons-container');
-                
-                if (!isDrawingArea && !isHandle && !isActionButton && !isTopButton) {
-                    if (gerenciadorDesenho.grupoTemporario) {
-                        gerenciadorDesenho.limparGrupoTemporario();
-                    }
-                    gerenciadorDesenho.desselecionarElemento();
-                }
-            });
-
-            document.addEventListener('keydown', (e) => {
-                if (e.ctrlKey || e.metaKey) {
-                    if (e.key === 'z') {
-                        e.preventDefault();
-                        this.desfazer();
-                    } else if (e.key === 'y') {
-                        e.preventDefault();
-                        this.refazer();
-                    }
-                }
-                
-                if (e.key === 'Escape') {
-                    this.desselecionarElemento();
-                }
-            });
-            
-            this.configurarEventosAreaDesenho();
-            
-
-            const prevenirCliqueBotaoDesabilitado = (e) => {
-                const botao = e.target.closest('.btn');
-                if (botao && (botao.disabled || botao.classList.contains('btn-desabilitado-mobile'))) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    e.stopImmediatePropagation();
-                    console.log('🚫 Botão desabilitado - ação prevenida');
-                    return false;
-                }
-            };
-
-            const botoesAcao = document.querySelectorAll('.action-buttons-container .btn');
-            botoesAcao.forEach(botao => {
-                botao.addEventListener('click', prevenirCliqueBotaoDesabilitado, true);
-                botao.addEventListener('touchstart', prevenirCliqueBotaoDesabilitado, true);
-                botao.addEventListener('touchend', prevenirCliqueBotaoDesabilitado, true);
-            });
-
-            console.log('✅ Eventos configurados com sucesso!');
+    const prevenirZoomDuploToque = (e) => {
+        if (e.touches && e.touches.length > 1) {
+            e.preventDefault();
+            e.stopPropagation();
         }
+    };
 
-        configurarEventosAreaDesenho() {
-            this.drawingArea.addEventListener('click', (e) => {
-                if (e.target === this.drawingArea) {
-                    if (this.modoLacoAtivo) {
-                        console.log('❌ Laço cancelado - clique na área vazia');
-                        this.desativarModoLaco();
-                    } else if (this.modoSelecaoAtivo) {
-                        if (this.grupoTemporario) {
-                            console.log('🗑️ Clicou na área vazia - removendo grupo temporário');
-                            this.limparGrupoTemporario();
-                        }
-                        this.desselecionarElemento();
-                    }
+    botoes.forEach(botaoId => {
+        const botao = document.getElementById(botaoId);
+        if (botao) {
+            botao.addEventListener('click', (e) => {
+                console.log(`🖱️ Botão ${botaoId} clicado`);
+                
+                switch(botaoId) {
+                    case 'btnSelecionar': this.toggleModoSelecao(); break;
+                    case 'btnBorracha': this.toggleModoBorracha(); break;
+                    case 'btnLaco': this.toggleModoLaco(); break;
+                    case 'btnAdicionarTexto': this.ativarModoTexto(); break;
+                    case 'btnAdicionarCuba': this.ativarModoDesenhos(); break;
+                    case 'btnLegendaSimplificada': this.ativarModoLegenda(); break;
+                    case 'btnDuplicar': this.duplicarElemento(); break;
+                    case 'btnExcluir': this.excluirElemento(); break;
+                    case 'btnSalvar': this.salvarDesenho(); break;
+                    case 'btnImprimir': this.imprimirDesenho(); break;
+                    case 'btnDesfazer': this.desfazer(); break;
+                    case 'btnRefazer': this.refazer(); break;
                 }
             });
 
-            this.drawingArea.addEventListener('touchstart', (e) => {
-                if (e.target === this.drawingArea && this.modoSelecaoAtivo) {
-                    if (this.grupoTemporario) {
-                        console.log('🗑️ Tocou na área vazia - removendo grupo temporário');
-                        this.limparGrupoTemporario();
-                    }
-                    this.desselecionarElemento();
-                }
-            });
+            botao.addEventListener('touchstart', prevenirZoomDuploToque, { passive: false });
+            botao.addEventListener('touchmove', prevenirZoomDuploToque, { passive: false });
         }
+    });
+
+    this.drawingArea.addEventListener('click', (e) => {
+        if (this.modoInsercaoAtivo) {
+            this.manipularCliqueInsercao(e);
+        } else if (this.modoSelecaoAtivo) {
+            this.manipularCliqueSelecao(e);
+        }
+    });
+    
+    // 🔥 CORREÇÃO: Evento de document click melhorado para mobile
+    document.addEventListener('click', (e) => {
+        const isDrawingArea = e.target.closest('#drawingArea');
+        const isHandle = e.target.closest('.handle');
+        const isActionButton = e.target.closest('.action-buttons-container');
+        const isTopButton = e.target.closest('.top-buttons-container');
+        
+        // 🔥 CORREÇÃO: No mobile, verificar se foi um gesto de touch
+        if (this._isTouchGesture(e)) {
+            console.log('📱 Gesto de touch no document - ignorando desseleção');
+            return;
+        }
+        
+        if (!isDrawingArea && !isHandle && !isActionButton && !isTopButton) {
+            if (gerenciadorDesenho.grupoTemporario) {
+                gerenciadorDesenho.limparGrupoTemporario();
+            }
+            gerenciadorDesenho.desselecionarElemento();
+        }
+    });
+
+    // 🔥 CORREÇÃO: Evento de touchstart do document melhorado
+    document.addEventListener('touchstart', (e) => {
+        const isDrawingArea = e.target.closest('#drawingArea');
+        const isHandle = e.target.closest('.handle');
+        const isActionButton = e.target.closest('.action-buttons-container');
+        const isTopButton = e.target.closest('.top-buttons-container');
+        
+        // Inicializar variáveis de gesto
+        this._isTouchGesture(e);
+        
+        if (!isDrawingArea && !isHandle && !isActionButton && !isTopButton) {
+            // Marcar que tocou fora, mas aguardar touchend para confirmar
+            this.touchedOutside = true;
+        } else {
+            this.touchedOutside = false;
+        }
+    }, { passive: true });
+
+    document.addEventListener('touchend', (e) => {
+        // 🔥 CORREÇÃO: Só desselecionar se não foi um gesto e tocou fora
+        if (this.touchedOutside && !this._isTouchGesture(e)) {
+            if (gerenciadorDesenho.grupoTemporario) {
+                gerenciadorDesenho.limparGrupoTemporario();
+            }
+            gerenciadorDesenho.desselecionarElemento();
+        }
+        this.touchedOutside = false;
+    }, { passive: true });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.ctrlKey || e.metaKey) {
+            if (e.key === 'z') {
+                e.preventDefault();
+                this.desfazer();
+            } else if (e.key === 'y') {
+                e.preventDefault();
+                this.refazer();
+            }
+        }
+        
+        if (e.key === 'Escape') {
+            this.desselecionarElemento();
+        }
+    });
+    
+    this.configurarEventosAreaDesenho();
+    
+    const prevenirCliqueBotaoDesabilitado = (e) => {
+        const botao = e.target.closest('.btn');
+        if (botao && (botao.disabled || botao.classList.contains('btn-desabilitado-mobile'))) {
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            console.log('🚫 Botão desabilitado - ação prevenida');
+            return false;
+        }
+    };
+
+    const botoesAcao = document.querySelectorAll('.action-buttons-container .btn');
+    botoesAcao.forEach(botao => {
+        botao.addEventListener('click', prevenirCliqueBotaoDesabilitado, true);
+        botao.addEventListener('touchstart', prevenirCliqueBotaoDesabilitado, true);
+        botao.addEventListener('touchend', prevenirCliqueBotaoDesabilitado, true);
+    });
+
+    console.log('✅ Eventos configurados com sucesso!');
+}
+
+
+       configurarEventosAreaDesenho() {
+    // Eventos de mouse (mantidos)
+    this.drawingArea.addEventListener('click', (e) => {
+        if (e.target === this.drawingArea) {
+            if (this.modoLacoAtivo) {
+                console.log('❌ Laço cancelado - clique na área vazia');
+                this.desativarModoLaco();
+            } else if (this.modoSelecaoAtivo) {
+                if (this.grupoTemporario) {
+                    console.log('🗑️ Clicou na área vazia - removendo grupo temporário');
+                    this.limparGrupoTemporario();
+                }
+                this.desselecionarElemento();
+            }
+        }
+    });
+
+    // 🔥 CORREÇÃO: Eventos de touch melhorados
+    this.drawingArea.addEventListener('touchstart', (e) => {
+        // Marcar o início do toque
+        this._isTouchGesture(e);
+        
+        if (e.target === this.drawingArea && this.modoSelecaoAtivo) {
+            // Não fazer nada imediatamente - aguardar touchend para decidir
+        }
+    }, { passive: true });
+
+    this.drawingArea.addEventListener('touchmove', (e) => {
+        // Atualizar estado do gesto
+        this._isTouchGesture(e);
+    }, { passive: true });
+
+    this.drawingArea.addEventListener('touchend', (e) => {
+        // 🔥 CORREÇÃO: Só desselecionar se não foi um gesto de arraste/zoom
+        if (e.target === this.drawingArea && this.modoSelecaoAtivo) {
+            if (!this._isTouchGesture(e)) {
+                if (this.grupoTemporario) {
+                    console.log('🗑️ Toque simples na área vazia - removendo grupo temporário');
+                    this.limparGrupoTemporario();
+                }
+                this.desselecionarElemento();
+            } else {
+                console.log('📱 Gesto de touch detectado - mantendo seleção');
+            }
+        }
+    }, { passive: true });
+}
 
         // 🔥 MODIFICADO: Toggle do modo seleção
         toggleModoSelecao() {
@@ -3054,28 +3182,82 @@ refazer() {
             });
         }
 
-        manipularCliqueSelecao(e) {
-            if (e.target.classList.contains('handle')) return;
+      manipularCliqueSelecao(e) {
+    // 🔥 CORREÇÃO: Ignorar se for um gesto de arraste ou zoom
+    if (this._isTouchGesture(e)) {
+        console.log('📱 Gesto de touch detectado - ignorando seleção');
+        return;
+    }
+    
+    if (e.target.classList.contains('handle')) return;
+    
+    const elemento = e.target.closest('.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca, .grupo-temporario');
+    
+    if (!elemento) {
+        if (this.grupoTemporario) {
+            console.log('🗑️ Clicou fora - removendo grupo temporário');
+            this.limparGrupoTemporario();
+        }
+        this.desselecionarElemento();
+        return;
+    }
+    
+    if (elemento.classList.contains('selecionavel') || 
+        elemento.classList.contains('peca') || 
+        elemento.classList.contains('grupo-temporario')) {
+        this.selecionarElemento(elemento, e);
+    } else {
+        this.desselecionarElemento();
+    }
+}
+
+_isTouchGesture(e) {
+    // Se não é um evento de touch, não é um gesto
+    if (!e.type.includes('touch')) return false;
+    
+    // Se é um evento de touchstart, inicializar variáveis
+    if (e.type === 'touchstart') {
+        this.touchStartTime = Date.now();
+        this.touchStartX = e.touches[0].clientX;
+        this.touchStartY = e.touches[0].clientY;
+        this.isScrolling = false;
+        this.isZooming = false;
+        return false;
+    }
+    
+    // Se é um evento de touchmove, verificar se é arraste ou zoom
+    if (e.type === 'touchmove') {
+        // Verificar zoom (múltiplos toques)
+        if (e.touches.length >= 2) {
+            this.isZooming = true;
+            return true;
+        }
+        
+        // Verificar arraste (movimento significativo)
+        if (e.touches.length === 1) {
+            const currentX = e.touches[0].clientX;
+            const currentY = e.touches[0].clientY;
+            const deltaX = Math.abs(currentX - this.touchStartX);
+            const deltaY = Math.abs(currentY - this.touchStartY);
             
-            const elemento = e.target.closest('.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca, .grupo-temporario');
-            
-            if (!elemento) {
-                if (this.grupoTemporario) {
-                    console.log('🗑️ Clicou fora - removendo grupo temporário');
-                    this.limparGrupoTemporario();
-                }
-                this.desselecionarElemento();
-                return;
-            }
-            
-            if (elemento.classList.contains('selecionavel') || 
-                elemento.classList.contains('peca') || 
-                elemento.classList.contains('grupo-temporario')) {
-                this.selecionarElemento(elemento, e);
-            } else {
-                this.desselecionarElemento();
+            if (deltaX > this.touchMoveThreshold || deltaY > this.touchMoveThreshold) {
+                this.isScrolling = true;
+                return true;
             }
         }
+    }
+    
+    // Se é um evento de touchend, verificar se foi um gesto
+    if (e.type === 'touchend') {
+        const wasGesture = this.isScrolling || this.isZooming;
+        // Resetar variáveis
+        this.isScrolling = false;
+        this.isZooming = false;
+        return wasGesture;
+    }
+    
+    return false;
+}
         
         obterPosicaoComScroll(elemento) {
             const rect = elemento.getBoundingClientRect();
