@@ -10,7 +10,7 @@
         /* 🔥 CORREÇÃO: Aumentar z-index dos containers de botões */
         .top-buttons-container,
         .action-buttons-container {
-            z-index: 10000 !important; /* Acima de tudo */
+            z-index: 15 !important; /* Acima de tudo */
             position: relative; /* Para z-index funcionar */
         }
 
@@ -34,12 +34,12 @@
         .handles-container,
         .handle,
         .handle-rotacao {
-            z-index: 9999 !important; /* Logo abaixo dos botões */
+            z-index: 14 !important; /* Logo abaixo dos botões */
         }
 
         /* 🔥 CORREÇÃO: Cursor da borracha deve ficar acima de tudo */
         .cursor-borracha {
-            z-index: 10001 !important; /* Acima dos botões */
+            z-index: 14 !important; /* Acima dos botões */
         }
 
         /* 🔥 CORREÇÃO: Modais devem ficar acima de tudo */
@@ -430,6 +430,30 @@
             pointer-events: none; /* Container não bloqueia eventos */
             z-index: 1; /* Camada base */
         }
+/* 🔥 CORREÇÃO CSS: Garantir que elementos dentro de grupos sejam interativos */
+.area-pecas {
+    pointer-events: auto !important;
+}
+
+.area-pecas .peca,
+.area-pecas .cuba,
+.area-pecas .texto-legenda,
+.area-pecas .legenda-simplificada,
+.area-pecas .simbolo-linha,
+.area-pecas .titulo-grupo,
+.area-pecas .dimensoes,
+.area-pecas .quantidade-peca {
+    pointer-events: auto !important;
+}
+
+/* 🔥 CORREÇÃO: Garantir que elementos selecionáveis tenham cursor pointer */
+.selecionavel {
+    cursor: pointer !important;
+}
+
+.area-pecas .selecionavel {
+    cursor: pointer !important;
+}
         
         .linha-peca { 
             position: absolute; 
@@ -1293,6 +1317,8 @@ this.touchStartTime = 0;
     this.isScrolling = false;
     this.isZooming = false;
     this.touchedOutside = false;
+ this.modalEstilosAberto = false;
+    this.elementoSelecionadoAntesDoModal = null;
 
 
             
@@ -1664,7 +1690,7 @@ adicionarEstilosMobile() {
         }
 
        configurarEventosBorracha() {
-    // Mouse events (mantém o mesmo)
+    // Mouse events
     this.drawingArea.addEventListener('mousedown', (e) => {
         if (this.modoBorrachaAtivo && e.button === 0) {
             this.iniciarPinturaBorracha(e);
@@ -1686,13 +1712,24 @@ adicionarEstilosMobile() {
         }
     });
     
-    this.drawingArea.addEventListener('mouseleave', () => {
-        if (this.modoBorrachaAtivo && this.borrachaPressionada) {
-            this.pararPinturaBorracha();
+    // 🔥 CORREÇÃO ADICIONADA: Ocultar cursor quando mouse sair da área
+    this.drawingArea.addEventListener('mouseleave', (e) => {
+        if (this.modoBorrachaAtivo) {
+            this.ocultarCursorBorracha();
+            if (this.borrachaPressionada) {
+                this.pararPinturaBorracha();
+            }
         }
     });
     
-    // 🔥 CORREÇÃO MELHORADA: Touch events com delay para reconhecer zoom com pinça
+    // 🔥 CORREÇÃO ADICIONADA: Mostrar cursor quando mouse entrar na área
+    this.drawingArea.addEventListener('mouseenter', (e) => {
+        if (this.modoBorrachaAtivo) {
+            this.atualizarCursorBorracha(e);
+        }
+    });
+    
+    // Touch events (mantido igual)
     let touchStartTimeout = null;
     let currentTouches = 0;
     
@@ -1700,19 +1737,15 @@ adicionarEstilosMobile() {
         if (this.modoBorrachaAtivo) {
             currentTouches = e.touches.length;
             
-            // Se for toque único, aguardar um pouco para verificar se vira pinça
             if (currentTouches === 1) {
                 touchStartTimeout = setTimeout(() => {
-                    // Se ainda for toque único após o delay, iniciar borracha
                     if (e.touches.length === 1) {
                         e.preventDefault();
                         this.iniciarPinturaBorracha(e);
                     }
-                }, 30); // Delay de 150ms para reconhecer zoom com pinça
+                }, 30);
             } else {
-                // Se já for múltiplos toques, cancelar qualquer timeout e permitir zoom
                 clearTimeout(touchStartTimeout);
-                // Não prevenir comportamento padrão - permitir zoom
             }
         }
     }, { passive: false });
@@ -1721,14 +1754,11 @@ adicionarEstilosMobile() {
         if (this.modoBorrachaAtivo) {
             currentTouches = e.touches.length;
             
-            // Se for zoom com pinça (2+ dedos), permitir comportamento padrão
             if (currentTouches >= 2) {
                 clearTimeout(touchStartTimeout);
-                // Não fazer nada - permitir que o navegador gerencie o zoom
                 return;
             }
             
-            // Se for toque único após o timeout, permitir borracha
             if (currentTouches === 1 && this.borrachaPressionada) {
                 e.preventDefault();
                 this.atualizarCursorBorracha(e);
@@ -1741,18 +1771,16 @@ adicionarEstilosMobile() {
         if (this.modoBorrachaAtivo) {
             clearTimeout(touchStartTimeout);
             
-            // Se todos os toques foram removidos, parar borracha
             if (e.touches.length === 0) {
                 this.pararPinturaBorracha();
+                this.ocultarCursorBorracha();
             }
         }
     }, { passive: false });
     
-    // 🔥 NOVO: Cancelar timeout se novos toques forem adicionados rapidamente
     this.drawingArea.addEventListener('touchstart', (e) => {
         if (this.modoBorrachaAtivo && e.touches.length >= 2) {
             clearTimeout(touchStartTimeout);
-            console.log('📱 Zoom com pinça detectado - cancelando borracha');
         }
     }, { passive: true });
 }
@@ -1840,9 +1868,13 @@ salvarEstadoHistoricoForcado(descricao) {
         this.drawingArea.style.cursor = 'none';
     }
 }
-       ocultarCursorBorracha() {
+      ocultarCursorBorracha() {
     if (this.borrachaCursor) {
         this.borrachaCursor.style.display = 'none';
+    }
+    // Restaurar cursor padrão quando ocultar a borracha
+    if (this.modoBorrachaAtivo) {
+        this.drawingArea.style.cursor = 'default';
     }
 }
 
@@ -2101,17 +2133,11 @@ atualizarCursorBorracha(e) {
 
     const clone = this.drawingArea.cloneNode(true);
 
-    // 🔥 CORREÇÃO: Remover elementos temporários MAS PRESERVAR cursor da borracha se estiver ativo
+    // 🔥 CORREÇÃO: Remover elementos temporários INCLUINDO cursor da borracha
     const temporarios = clone.querySelectorAll(
-        '#laco-selecao, .laco-temporario, .linha-temporaria, .preview-laco'
+        '#laco-selecao, .laco-temporario, .linha-temporaria, .preview-laco, .cursor-borracha'
     );
     temporarios.forEach(el => el.remove());
-
-    // 🔥 CORREÇÃO: Se o modo borracha está ativo, preservar o cursor no snapshot
-    if (!this.modoBorrachaAtivo) {
-        const cursor = clone.querySelector('.cursor-borracha');
-        if (cursor) cursor.remove();
-    }
 
     const grupoTemp = clone.querySelector('.grupo-temporario');
     if (grupoTemp) grupoTemp.remove();
@@ -2527,6 +2553,14 @@ refazer() {
     
     // 🔥 CORREÇÃO: Evento de document click melhorado para mobile
     document.addEventListener('click', (e) => {
+        // 🔥 CORREÇÃO: Bloquear interações se modal de estilos estiver aberto
+        if (this.modalEstilosAberto) {
+            console.log('🚫 Modal de estilos aberto - interação bloqueada');
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+        }
+        
         const isDrawingArea = e.target.closest('#drawingArea');
         const isHandle = e.target.closest('.handle');
         const isActionButton = e.target.closest('.action-buttons-container');
@@ -3455,7 +3489,16 @@ forcarAtualizacaoInteratividade() {
     });
 }
 
-      manipularCliqueSelecao(e) {
+     manipularCliqueSelecao(e) {
+    // 🔥 CORREÇÃO: Bloquear completamente se modal de estilos estiver aberto
+    if (this.modalEstilosAberto) {
+        console.log('🚫 Modal de estilos aberto - seleção completamente bloqueada');
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        return;
+    }
+    
     // 🔥 CORREÇÃO: Ignorar se for um gesto de arraste ou zoom
     if (this._isTouchGesture(e)) {
         console.log('📱 Gesto de touch detectado - ignorando seleção');
@@ -4337,19 +4380,19 @@ _isTouchGesture(e) {
             };
         }
 
-        criarCuba(x, y, tipo, largura = 80, altura = 50) {
+       criarCuba(x, y, tipo, largura = 80, altura = 50) {
     const cubaElement = document.createElement('div');
     cubaElement.className = `cuba ${tipo}`;
     cubaElement.style.position = 'absolute';
     
-    // 🔥 CORREÇÃO: Posicionamento absoluto direto
+    // Posicionamento inicial
     cubaElement.style.left = `${x}px`;
     cubaElement.style.top = `${y}px`;
     cubaElement.style.transform = 'none';
     cubaElement.setAttribute('data-x', '0');
     cubaElement.setAttribute('data-y', '0');
     
-    // Resto do código de estilo permanece igual...
+    // Resto do estilo da cuba...
     if (tipo === 'linha-reta') {
         cubaElement.style.width = `${Math.max(largura, 100)}px`;
         cubaElement.style.height = '2px';
@@ -4370,13 +4413,26 @@ _isTouchGesture(e) {
 
     if (this.modoSelecaoAtivo) cubaElement.classList.add('selecionavel');
 
-    // 🔥 CORREÇÃO: Usar método corrigido para encontrar grupo
+    // 🔥 CORREÇÃO: Encontrar o grupo correto
     const grupo = this.encontrarGrupoNaPosicao(x, y);
     if (grupo) {
-        console.log('🔷 Adicionando cuba dentro do grupo');
+        console.log('🔷 Adicionando cuba DENTRO do grupo encontrado');
+        
+        // Calcular posição RELATIVA dentro do grupo
+        const grupoRect = grupo.getBoundingClientRect();
+        const drawingRect = this.drawingArea.getBoundingClientRect();
+        const grupoLeft = grupoRect.left - drawingRect.left;
+        const grupoTop = grupoRect.top - drawingRect.top;
+        
+        const xRelativo = x - grupoLeft;
+        const yRelativo = y - grupoTop;
+        
+        cubaElement.style.left = `${xRelativo}px`;
+        cubaElement.style.top = `${yRelativo}px`;
+        
         grupo.appendChild(cubaElement);
     } else {
-        console.log('🔷 Adicionando cuba na área principal');
+        console.log('🔷 Adicionando cuba na área PRINCIPAL');
         this.drawingArea.appendChild(cubaElement);
     }
 
@@ -4433,10 +4489,14 @@ _isTouchGesture(e) {
             }
         }
 
-      manipularCliqueInsercao(e) {
+     manipularCliqueInsercao(e) {
     if (!this.modoInsercaoAtivo) return;
     
-    // 🔥 CORREÇÃO: Obter coordenadas considerando scroll
+    // Prevenir comportamento padrão
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Obter coordenadas ABSOLUTAS dentro da drawingArea
     const rect = this.drawingArea.getBoundingClientRect();
     const scrollLeft = this.drawingArea.scrollLeft || 0;
     const scrollTop = this.drawingArea.scrollTop || 0;
@@ -4451,6 +4511,7 @@ _isTouchGesture(e) {
         clientY = e.clientY;
     }
     
+    // Coordenadas ABSOLUTAS dentro da drawingArea (incluindo scroll)
     const x = clientX - rect.left + scrollLeft;
     const y = clientY - rect.top + scrollTop;
     
@@ -4473,14 +4534,14 @@ _isTouchGesture(e) {
     this.desativarTodosOsModos();
 }
 
-      criarTexto(x, y, textoInicial = "") {
+     criarTexto(x, y, textoInicial = "") {
     const textoElement = document.createElement('textarea');
     textoElement.className = 'texto-legenda';
 
-    // 🔥 CORREÇÃO: Usar posicionamento absoluto direto em vez de transform
+    // Posicionamento ABSOLUTO dentro do container pai
     textoElement.style.left = `${x}px`;
     textoElement.style.top = `${y}px`;
-    textoElement.style.transform = 'none'; // Remover transform
+    textoElement.style.transform = 'none';
     textoElement.setAttribute('data-x', '0');
     textoElement.setAttribute('data-y', '0');
     
@@ -4493,17 +4554,30 @@ _isTouchGesture(e) {
         textoElement.classList.add('selecionavel');
     }
 
-    // 🔥 CORREÇÃO: Buscar grupo com as coordenadas corretas
+    // 🔥 CORREÇÃO: Encontrar o grupo correto
     const grupo = this.encontrarGrupoNaPosicao(x, y);
     if (grupo) {
-        console.log('📝 Adicionando texto dentro do grupo');
+        console.log('📝 Adicionando texto DENTRO do grupo encontrado');
+        
+        // Calcular posição RELATIVA dentro do grupo
+        const grupoRect = grupo.getBoundingClientRect();
+        const drawingRect = this.drawingArea.getBoundingClientRect();
+        const grupoLeft = grupoRect.left - drawingRect.left;
+        const grupoTop = grupoRect.top - drawingRect.top;
+        
+        const xRelativo = x - grupoLeft;
+        const yRelativo = y - grupoTop;
+        
+        textoElement.style.left = `${xRelativo}px`;
+        textoElement.style.top = `${yRelativo}px`;
+        
         grupo.appendChild(textoElement);
     } else {
-        console.log('📝 Adicionando texto na área principal');
+        console.log('📝 Adicionando texto na área PRINCIPAL');
         this.drawingArea.appendChild(textoElement);
     }
     
-    // Resto do método permanece igual...
+    // Resto do código permanece igual...
     this.salvarEstadoImediato('Adicionar Caixa de Texto');
     textoElement.focus();
 
@@ -4601,7 +4675,7 @@ _isTouchGesture(e) {
     const legendaElement = document.createElement('div');
     legendaElement.className = 'legenda-simplificada';
     
-    // 🔥 CORREÇÃO: Posicionamento absoluto direto
+    // Posicionamento inicial
     legendaElement.style.position = 'absolute';
     legendaElement.style.left = `${x}px`;
     legendaElement.style.top = `${y}px`;
@@ -4609,7 +4683,7 @@ _isTouchGesture(e) {
     legendaElement.setAttribute('data-x', '0');
     legendaElement.setAttribute('data-y', '0');
     
-    // Resto do método permanece igual...
+    // Resto do conteúdo...
     legendaElement.innerHTML = `
         <span class="legenda-simbolo-inline">${simbolo}</span> = <span class="legenda-descricao-inline" contenteditable="true">${descricao}</span>
     `;
@@ -4623,11 +4697,26 @@ _isTouchGesture(e) {
         spanDescricao.focus();
     });
     
-    // 🔥 CORREÇÃO: Usar método corrigido
+    // 🔥 CORREÇÃO: Encontrar o grupo correto
     const grupo = this.encontrarGrupoNaPosicao(x, y);
     if (grupo) {
+        console.log('🏷️ Adicionando legenda DENTRO do grupo encontrado');
+        
+        // Calcular posição RELATIVA dentro do grupo
+        const grupoRect = grupo.getBoundingClientRect();
+        const drawingRect = this.drawingArea.getBoundingClientRect();
+        const grupoLeft = grupoRect.left - drawingRect.left;
+        const grupoTop = grupoRect.top - drawingRect.top;
+        
+        const xRelativo = x - grupoLeft;
+        const yRelativo = y - grupoTop;
+        
+        legendaElement.style.left = `${xRelativo}px`;
+        legendaElement.style.top = `${yRelativo}px`;
+        
         grupo.appendChild(legendaElement);
     } else {
+        console.log('🏷️ Adicionando legenda na área PRINCIPAL');
         this.drawingArea.appendChild(legendaElement);
     }
     
@@ -4743,21 +4832,25 @@ _isTouchGesture(e) {
        encontrarGrupoNaPosicao(x, y) {
     const grupos = this.drawingArea.querySelectorAll('.area-pecas');
     
+    console.log(`🔍 Buscando grupo para posição x:${x}, y:${y}`);
+    
     for (const grupo of grupos) {
+        // Obter posição ABSOLUTA do grupo dentro da drawingArea
         const grupoRect = grupo.getBoundingClientRect();
         const drawingRect = this.drawingArea.getBoundingClientRect();
         
-        // 🔥 CORREÇÃO: Calcular posição absoluta considerando scroll
-        const grupoAbsLeft = grupoRect.left - drawingRect.left + this.drawingArea.scrollLeft;
-        const grupoAbsTop = grupoRect.top - drawingRect.top + this.drawingArea.scrollTop;
-        const grupoAbsRight = grupoAbsLeft + grupoRect.width;
-        const grupoAbsBottom = grupoAbsTop + grupoRect.height;
+        // Calcular posição relativa considerando scroll
+        const grupoRelLeft = grupoRect.left - drawingRect.left;
+        const grupoRelTop = grupoRect.top - drawingRect.top;
+        const grupoRelRight = grupoRelLeft + grupoRect.width;
+        const grupoRelBottom = grupoRelTop + grupoRect.height;
         
-        console.log(`🔍 Grupo: ${grupoAbsLeft},${grupoAbsTop} -> ${grupoAbsRight},${grupoAbsBottom} | Clique: ${x},${y}`);
+        console.log(`🔍 Grupo encontrado: ${grupoRelLeft},${grupoRelTop} -> ${grupoRelRight},${grupoRelBottom}`);
         
-        if (x >= grupoAbsLeft && x <= grupoAbsRight && 
-            y >= grupoAbsTop && y <= grupoAbsBottom) {
-            console.log('✅ Elemento será adicionado dentro do grupo');
+        // Verificar se o clique está dentro do grupo
+        if (x >= grupoRelLeft && x <= grupoRelRight && 
+            y >= grupoRelTop && y <= grupoRelBottom) {
+            console.log('✅ Elemento será adicionado DENTRO deste grupo');
             return grupo;
         }
     }
@@ -5492,6 +5585,10 @@ _isTouchGesture(e) {
     
     const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
     
+    // 🔥 CORREÇÃO: Salvar elemento selecionado antes de abrir o modal
+    this.elementoSelecionadoAntesDoModal = this.elementoSelecionado;
+    this.modalEstilosAberto = true;
+    
     // Criar backdrop primeiro
     const backdrop = document.createElement('div');
     backdrop.className = 'modal-backdrop';
@@ -5503,7 +5600,16 @@ _isTouchGesture(e) {
         height: 100%;
         background: rgba(0,0,0,0.5);
         z-index: 1999;
+        cursor: pointer;
     `;
+    
+    // 🔥 CORREÇÃO: Prevenir interação com elementos enquanto modal estiver aberto
+    backdrop.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('🚫 Backdrop clicado - interação bloqueada');
+    });
+    
     document.body.appendChild(backdrop);
     this.backdropEstilosAtual = backdrop;
     
@@ -5537,6 +5643,7 @@ _isTouchGesture(e) {
     // Obter estilos atuais do elemento
     const estilosAtuais = this.obterEstilosAtuais(elementoAlvo);
     
+    // 🔥 CORREÇÃO: HTML do modal com dois botões
     modalEstilos.innerHTML = `
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h6 style="margin: 0;">Estilos e Formatação</h6>
@@ -5593,15 +5700,13 @@ _isTouchGesture(e) {
             </div>
         </div>
         
-        <button class="botao-aplicar" id="aplicarEstilosBtn">
-            <i class="fas fa-check me-1"></i> Aplicar Estilos
-        </button>
-        
-        <div class="mt-3 small text-muted">
-            <i class="fas fa-info-circle me-1"></i>
-            Aplica aos elementos selecionados ou ao último elemento clicado
+       
+            <button class="btn btn-primary flex-fill" id="aplicarEFecharEstilosBtn">
+                <i class="fas fa-check-double me-1"></i> Aplicar e Fechar
+            </button>
         </div>
-    `;
+        
+            `;
     
     document.body.appendChild(modalEstilos);
     this.modalEstilosAtual = modalEstilos;
@@ -5759,17 +5864,40 @@ configurarEventosModalEstilos() {
         });
     }
     
-    // Botão aplicar
+    // Botão aplicar que mantém o modal aberto
     const aplicarBtn = this.modalEstilosAtual.querySelector('#aplicarEstilosBtn');
     if (aplicarBtn) {
-        aplicarBtn.addEventListener('click', () => {
-            this.aplicarEstilos();
+        // Remover event listener antigo se existir
+        aplicarBtn.replaceWith(aplicarBtn.cloneNode(true));
+        
+        // Adicionar novo event listener
+        const novoAplicarBtn = this.modalEstilosAtual.querySelector('#aplicarEstilosBtn');
+        novoAplicarBtn.addEventListener('click', () => {
+            this.aplicarEstilosManterModal();
         });
     }
     
-    // Backdrop - fechar ao clicar fora
+    // Botão aplicar e fechar
+    const aplicarFecharBtn = this.modalEstilosAtual.querySelector('#aplicarEFecharEstilosBtn');
+    if (aplicarFecharBtn) {
+        aplicarFecharBtn.addEventListener('click', () => {
+            this.aplicarEstilos(); // Este método fecha o modal
+        });
+    }
+    
+    // 🔥 CORREÇÃO: Backdrop - prevenir desseleção ao clicar fora
     if (this.backdropEstilosAtual) {
-        this.backdropEstilosAtual.addEventListener('click', () => {
+        // Remover qualquer evento anterior
+        this.backdropEstilosAtual.replaceWith(this.backdropEstilosAtual.cloneNode(true));
+        this.backdropEstilosAtual = document.querySelector('.modal-backdrop');
+        
+        this.backdropEstilosAtual.addEventListener('click', (e) => {
+            console.log('🚫 Backdrop clicado - prevenindo desseleção');
+            e.preventDefault();
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            
+            // 🔥 CORREÇÃO: Fechar o modal mas manter a seleção
             this.fecharModalEstilos();
         });
     }
@@ -5817,6 +5945,9 @@ configurarEventosModalEstilos() {
     console.log('✅ Eventos do modal de estilos configurados');
 }
 
+
+
+
        aplicarEstilos() {
     console.log('🎨 Aplicando estilos...');
     
@@ -5851,6 +5982,32 @@ configurarEventosModalEstilos() {
         console.error('❌ Erro ao aplicar estilos:', error);
         // Garantir que o modal feche mesmo em caso de erro
         this.fecharModalEstilos();
+    }
+}
+
+aplicarEstilosManterModal() {
+    console.log('🎨 Aplicando estilos (mantendo modal aberto)...');
+    
+    try {
+        const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
+        
+        if (!elementoAlvo) {
+            console.log('⚠️ Nenhum elemento selecionado para aplicar estilos');
+            return;
+        }
+        
+        console.log('🎨 Aplicando estilos ao elemento:', elementoAlvo);
+        
+        // Aplicar estilos
+        this.aplicarEstilosElemento(elementoAlvo);
+        
+        // 🔥 CORREÇÃO: Não fechar o modal, apenas salvar no histórico
+        this.salvarEstadoHistorico('Aplicar Estilos');
+        
+        console.log('✅ Estilos aplicados com sucesso (modal mantido aberto)');
+        
+    } catch (error) {
+        console.error('❌ Erro ao aplicar estilos:', error);
     }
 }
 
@@ -5916,6 +6073,18 @@ configurarEventosModalEstilos() {
 
       fecharModalEstilos() {
     console.log('🔴 Fechando modal de estilos...');
+    
+    this.modalEstilosAberto = false;
+    
+    // 🔥 CORREÇÃO: Restaurar estado de seleção se necessário
+    // Agora garantimos que o elemento continua selecionado
+    if (this.elementoSelecionadoAntesDoModal && !this.elementoSelecionado) {
+        console.log('🔄 Restaurando elemento selecionado após fechar modal');
+        this.selecionarElemento(this.elementoSelecionadoAntesDoModal, null);
+    }
+    
+    // 🔥 CORREÇÃO: Limpar a referência apenas, não restaurar automaticamente
+    this.elementoSelecionadoAntesDoModal = null;
     
     // Remover modal
     if (this.modalEstilosAtual) {
