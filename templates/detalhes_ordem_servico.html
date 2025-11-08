@@ -990,34 +990,15 @@
         }
 
 .cuba.linha-reta {
-    height: 2px !important;
-    min-height: 2px !important;
-    background-color: #333 !important;
-    border: none !important;
-    transform-origin: center center;
+    height: 0px !important;
+    border-top: 2px solid #333 !important;
+    background-color: transparent !important;
+    border-top: none !important; /* 🔥 ADICIONE ESTA LINHA */
 }
 
-/* 🔥 CORREÇÃO: Linha reta tracejada */
-.cuba.linha-reta.linha-tracejada-elemento {
-    background: repeating-linear-gradient(
-        to right,
-        #333,
-        #333 5px,
-        transparent 5px,
-        transparent 10px
-    ) !important;
-    border: none !important;
-}
-
-/* 🔥 CORREÇÃO: Para garantir que a cor seja aplicada */
-.cuba.linha-reta.linha-tracejada-elemento[style*="background-color"] {
-    background: repeating-linear-gradient(
-        to right,
-        var(--line-color, #333),
-        var(--line-color, #333) 5px,
-        transparent 5px,
-        transparent 10px
-    ) !important;
+/* 🔥 LINHA RETA TRACEJADA */
+.cuba.linha-reta[style*="border-style: dashed"] {
+    border-top-style: dashed !important;
 }
 
 /* 🔥 CORREÇÃO: Para garantir que a linha tracejada mantenha a cor */
@@ -1030,7 +1011,6 @@
         transparent 10px
     ) !important;
 }
-
         /* 🔥 NOVO: ESTILOS PARA O SISTEMA DE ESTILOS */
         .modal-estilos {
             position: fixed;
@@ -4430,19 +4410,18 @@ _isTouchGesture(e) {
     cubaElement.className = `cuba ${tipo}`;
     cubaElement.style.position = 'absolute';
     
-    // 🔥 CORREÇÃO: Posicionamento absoluto direto
     cubaElement.style.left = `${x}px`;
     cubaElement.style.top = `${y}px`;
     cubaElement.style.transform = 'none';
     cubaElement.setAttribute('data-x', '0');
     cubaElement.setAttribute('data-y', '0');
     
-    // 🔥 CORREÇÃO: Para linha reta, garantir altura fixa
+    // 🔥 AGORA LINHA RETA USA BORDA COMO OS OUTROS
     if (tipo === 'linha-reta') {
         cubaElement.style.width = `${Math.max(largura, 100)}px`;
-        cubaElement.style.height = '2px'; // 🔥 ALTURA FIXA
-        cubaElement.style.backgroundColor = '#333';
-        cubaElement.style.border = 'none';
+        cubaElement.style.height = '0px'; // Altura zero
+        cubaElement.style.borderTop = '2px solid #333'; // 🔥 BORDA EM VEZ DE BACKGROUND
+        cubaElement.style.backgroundColor = 'transparent';
     } else if (tipo === 'circulo') {
         const tamanho = Math.max(largura, altura);
         cubaElement.style.width = `${tamanho}px`;
@@ -4458,13 +4437,10 @@ _isTouchGesture(e) {
 
     if (this.modoSelecaoAtivo) cubaElement.classList.add('selecionavel');
 
-    // 🔥 CORREÇÃO: Usar método corrigido para encontrar grupo
     const grupo = this.encontrarGrupoNaPosicao(x, y);
     if (grupo) {
-        console.log('🔷 Adicionando cuba dentro do grupo');
         grupo.appendChild(cubaElement);
     } else {
-        console.log('🔷 Adicionando cuba na área principal');
         this.drawingArea.appendChild(cubaElement);
     }
 
@@ -5752,7 +5728,7 @@ _isTouchGesture(e) {
 }
 
 
-       obterEstilosAtuais(elemento) {
+     obterEstilosAtuais(elemento) {
     if (!elemento) {
         return {
             cor: '#000000',
@@ -5763,59 +5739,36 @@ _isTouchGesture(e) {
     }
     
     const estilos = window.getComputedStyle(elemento);
-    console.log('🎨 Obtendo estilos atuais para:', elemento.className);
     
-    // 🔥 CORREÇÃO: Determinar cor atual baseada no tipo de elemento
+    // 🔥 MESMA LÓGICA PARA TODOS
     let cor = '#000000';
-    
-    if (elemento.classList.contains('cuba') && elemento.classList.contains('linha-reta')) {
-        // Para linha reta, obter cor do background-color
-        cor = estilos.backgroundColor || '#333333';
-        console.log('🎨 Linha reta - cor do background:', cor);
-    } 
-    else if (elemento.classList.contains('peca') || elemento.classList.contains('cuba')) {
+    if (elemento.classList.contains('peca') || elemento.classList.contains('cuba')) {
         cor = estilos.borderColor || '#000000';
-        console.log('🎨 Peça/Cuba - cor da borda:', cor);
-    } 
-    else if (elemento.classList.contains('texto-legenda') || 
-             elemento.classList.contains('legenda-simplificada') ||
-             elemento.classList.contains('titulo-grupo') ||
-             elemento.classList.contains('simbolo-linha') ||
-             elemento.classList.contains('dimensoes') ||
-             elemento.classList.contains('quantidade-peca')) {
+    } else if (elemento.classList.contains('texto-legenda') || 
+               elemento.classList.contains('legenda-simplificada') ||
+               elemento.classList.contains('titulo-grupo') ||
+               elemento.classList.contains('simbolo-linha') ||
+               elemento.classList.contains('dimensoes') ||
+               elemento.classList.contains('quantidade-peca')) {
         cor = estilos.color || '#000000';
-        console.log('🎨 Texto - cor do texto:', cor);
-    } 
-    else if (elemento.classList.contains('linha-peca')) {
+    } else if (elemento.classList.contains('linha-peca')) {
         cor = estilos.backgroundColor || '#000000';
-        console.log('🎨 Linha peça - cor do background:', cor);
     }
     
-    // Converter cor RGB para HEX se necessário
+    // Converter cor RGB para HEX
     if (cor.startsWith('rgb')) {
         cor = this.rgbParaHex(cor);
-        console.log('🎨 Cor convertida para HEX:', cor);
     }
     
-    // Determinar tamanho da fonte
     let tamanhoFonte = parseInt(estilos.fontSize) || 16;
-    
-    // Determinar se é negrito
     const negrito = estilos.fontWeight === 'bold' || estilos.fontWeight === '700';
     
-    // Determinar estilo da linha
     let estiloLinha = 'solid';
-    if (elemento.classList.contains('peca') || 
-        (elemento.classList.contains('cuba') && !elemento.classList.contains('linha-reta'))) {
+    if (elemento.classList.contains('peca') || elemento.classList.contains('cuba')) {
         estiloLinha = estilos.borderStyle || 'solid';
-    } 
-    else if (elemento.classList.contains('linha-peca') || 
-             (elemento.classList.contains('cuba') && elemento.classList.contains('linha-reta'))) {
-        // Para linhas, usamos classes
-        estiloLinha = elemento.classList.contains('linha-tracejada-elemento') ? 'dashed' : 'solid';
+    } else if (elemento.classList.contains('linha-peca')) {
+        estiloLinha = estilos.borderStyle || 'solid';
     }
-    
-    console.log('🎨 Estilos obtidos:', { cor, tamanhoFonte, negrito, estiloLinha });
     
     return {
         cor: cor,
@@ -6068,107 +6021,30 @@ aplicarEstilosManterModal() {
     }
 }
 
-       aplicarEstilosElemento(elemento, preview = false) {
+      aplicarEstilosElemento(elemento, preview = false) {
     const cor = this.corSelecionada;
     const tamanhoFonte = this.tamanhoTextoSelecionado;
     const negrito = this.negritoAtivo;
     const estiloLinha = this.estiloLinhaSelecionado;
     
-    console.log('🎨 Aplicando estilos:', { 
-        elemento: elemento.className, 
-        cor, 
-        estiloLinha,
-        preview 
-    });
-    
-    // 🔥 CORREÇÃO: Aplicar estilos baseados no tipo de elemento
-    if (elemento.classList.contains('peca')) {
-        console.log('🎨 Aplicando em peça');
+    // 🔥 MESMA LÓGICA PARA TODOS OS ELEMENTOS
+    if (elemento.classList.contains('peca') || elemento.classList.contains('cuba')) {
+        // Para TODAS as cubas (incluindo linha reta) e peças
         if (cor) elemento.style.borderColor = cor;
-        if (estiloLinha) {
-            elemento.style.borderStyle = estiloLinha;
-            if (estiloLinha === 'dashed') {
-                elemento.classList.add('linha-tracejada-elemento');
-            } else {
-                elemento.classList.remove('linha-tracejada-elemento');
-            }
-        }
-    }
-    else if (elemento.classList.contains('cuba')) {
-        console.log('🎨 Aplicando em cuba:', elemento.classList);
-        
-        if (elemento.classList.contains('linha-reta')) {
-            console.log('🎨 É uma linha reta - aplicando estilos específicos');
-            // 🔥 CORREÇÃO CRÍTICA: Para linha reta
-            if (cor) {
-                console.log('🎨 Aplicando cor na linha reta:', cor);
-                elemento.style.backgroundColor = cor;
-                
-                // Se for tracejada, atualizar o gradiente
-                if (estiloLinha === 'dashed') {
-                    elemento.style.background = `repeating-linear-gradient(
-                        to right,
-                        ${cor},
-                        ${cor} 5px,
-                        transparent 5px,
-                        transparent 10px
-                    )`;
-                }
-            }
-            
-            if (estiloLinha) {
-                console.log('🎨 Aplicando estilo de linha:', estiloLinha);
-                if (estiloLinha === 'dashed') {
-                    elemento.classList.add('linha-tracejada-elemento');
-                    elemento.classList.remove('linha-solida-elemento');
-                    
-                    // Se já temos uma cor, aplicar no gradiente
-                    const currentColor = cor || elemento.style.backgroundColor || '#333';
-                    elemento.style.background = `repeating-linear-gradient(
-                        to right,
-                        ${currentColor},
-                        ${currentColor} 5px,
-                        transparent 5px,
-                        transparent 10px
-                    )`;
-                } else {
-                    elemento.classList.add('linha-solida-elemento');
-                    elemento.classList.remove('linha-tracejada-elemento');
-                    elemento.style.background = ''; // Remover gradiente
-                }
-            }
-        } else {
-            // Para outras cubas (retângulo, círculo, etc.)
-            console.log('🎨 Aplicando em cuba normal');
-            if (cor) elemento.style.borderColor = cor;
-            if (estiloLinha) {
-                elemento.style.borderStyle = estiloLinha;
-                if (estiloLinha === 'dashed') {
-                    elemento.classList.add('linha-tracejada-elemento');
-                } else {
-                    elemento.classList.remove('linha-tracejada-elemento');
-                }
-            }
-        }
+        if (estiloLinha) elemento.style.borderStyle = estiloLinha;
     }
     else if (elemento.classList.contains('texto-legenda') || 
              elemento.classList.contains('legenda-simplificada') ||
              elemento.classList.contains('titulo-grupo')) {
-        console.log('🎨 Aplicando em texto');
         if (cor) elemento.style.color = cor;
         if (tamanhoFonte) elemento.style.fontSize = `${tamanhoFonte}px`;
         if (negrito !== null) {
-            if (negrito) {
-                elemento.classList.add('texto-negrito');
-            } else {
-                elemento.classList.remove('texto-negrito');
-            }
+            elemento.style.fontWeight = negrito ? 'bold' : 'normal';
         }
     }
     else if (elemento.classList.contains('simbolo-linha') ||
              elemento.classList.contains('dimensoes') ||
              elemento.classList.contains('quantidade-peca')) {
-        console.log('🎨 Aplicando em símbolo/dimensão');
         if (cor) elemento.style.color = cor;
         if (tamanhoFonte) elemento.style.fontSize = `${tamanhoFonte}px`;
         if (negrito !== null) {
@@ -6176,29 +6052,13 @@ aplicarEstilosManterModal() {
         }
     }
     else if (elemento.classList.contains('linha-peca')) {
-        console.log('🎨 Aplicando em linha de peça');
         if (cor) elemento.style.backgroundColor = cor;
         if (estiloLinha === 'dashed') {
-            elemento.classList.add('linha-tracejada-elemento');
-            elemento.classList.remove('linha-solida-elemento');
+            elemento.style.borderStyle = 'dashed';
         } else {
-            elemento.classList.add('linha-solida-elemento');
-            elemento.classList.remove('linha-tracejada-elemento');
+            elemento.style.borderStyle = 'solid';
         }
     }
-    
-    // Se for um grupo temporário, aplicar a todos os elementos do grupo
-    if (elemento.classList.contains('grupo-temporario')) {
-        console.log('🎨 Aplicando em grupo temporário');
-        const elementosData = JSON.parse(elemento.getAttribute('data-elementos') || '[]');
-        elementosData.forEach(data => {
-            if (data.elemento && data.elemento.classList) {
-                this.aplicarEstilosElemento(data.elemento, preview);
-            }
-        });
-    }
-    
-    console.log('🎨 Estilos aplicados com sucesso');
 }
 
       fecharModalEstilos() {
