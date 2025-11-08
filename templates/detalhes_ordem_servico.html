@@ -1011,6 +1011,32 @@
         transparent 10px
     ) !important;
 }
+
+/* 🔥 AUMENTAR ÁREA CLICÁVEL DA LINHA (HANDLER) */
+.cuba.linha-reta {
+    position: relative;
+}
+
+.cuba.linha-reta::after {
+    content: '';
+    position: absolute;
+    top: -8px;
+    left: 0;
+    width: 100%;
+    height: 16px;
+    background: transparent;
+    z-index: 1;
+}
+
+/* 🔥 REMOVER HANDLER DO MEIO */
+.cuba.linha-reta .mxHandleCenter {
+    display: none !important;
+}
+
+/* 🔥 MANTER APENAS HANDLERS DAS PONTAS E ROTAÇÃO */
+.cuba.linha-reta .mxHandle:not(.mxHandleStart):not(.mxHandleEnd):not(.mxHandleRotate) {
+    display: none !important;
+}
         /* 🔥 NOVO: ESTILOS PARA O SISTEMA DE ESTILOS */
         .modal-estilos {
             position: fixed;
@@ -1183,6 +1209,29 @@
         .cuba.linha-tracejada-elemento {
             border-style: dashed !important;
         }
+
+.modal-backdrop {
+    z-index: 19999 !important;
+}
+
+.modal-estilos {
+    z-index: 20000 !important;
+}
+
+/* 🔥 CORREÇÃO: Garantir que elementos selecionados mantenham z-index alto */
+.elemento-selecionado {
+    z-index: 1000 !important;
+}
+
+/* 🔥 CORREÇÃO: Prevenir que toques no modal afetem elementos subjacentes */
+.modal-estilos * {
+    touch-action: manipulation;
+}
+
+.cor-opcao, .opcao-linha {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
        
     </style>
 
@@ -5585,7 +5634,7 @@ _isTouchGesture(e) {
 
         // 🔥🔥🔥 NOVOS MÉTODOS PARA O SISTEMA DE ESTILOS
 
-       mostrarModalEstilos() {
+      mostrarModalEstilos() {
     console.log('🎨 Abrindo modal de estilos...');
     
     // Fechar qualquer modal existente primeiro
@@ -5593,11 +5642,22 @@ _isTouchGesture(e) {
     
     const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
     
-    // 🔥 CORREÇÃO: Salvar elemento selecionado antes de abrir o modal
+    if (!elementoAlvo) {
+        console.log('⚠️ Nenhum elemento selecionado para aplicar estilos');
+        Swal.fire({
+            title: 'Nenhum elemento selecionado',
+            text: 'Por favor, selecione um elemento antes de abrir os estilos.',
+            icon: 'warning',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+    
+    // 🔥 CORREÇÃO CRÍTICA: Salvar referência ANTES de abrir o modal
     this.elementoSelecionadoAntesDoModal = this.elementoSelecionado;
     this.modalEstilosAberto = true;
     
-    // Criar backdrop primeiro
+    // Criar backdrop - BLOQUEAR COMPLETAMENTE interações externas
     const backdrop = document.createElement('div');
     backdrop.className = 'modal-backdrop';
     backdrop.style.cssText = `
@@ -5607,16 +5667,26 @@ _isTouchGesture(e) {
         width: 100%;
         height: 100%;
         background: rgba(0,0,0,0.5);
-        z-index: 1999;
-        cursor: pointer;
+        z-index: 19999;
+        pointer-events: auto;
     `;
     
-    // 🔥 CORREÇÃO: Prevenir interação com elementos enquanto modal estiver aberto
-    backdrop.addEventListener('click', (e) => {
+    // 🔥 CORREÇÃO RADICAL: Backdrop bloqueia TODOS os eventos
+    const bloquearEvento = (e) => {
+        console.log('🚫 Evento bloqueado pelo backdrop:', e.type);
         e.preventDefault();
         e.stopPropagation();
-        console.log('🚫 Backdrop clicado - interação bloqueada');
-    });
+        e.stopImmediatePropagation();
+        return false;
+    };
+    
+    backdrop.addEventListener('click', bloquearEvento);
+    backdrop.addEventListener('touchstart', bloquearEvento, { passive: false });
+    backdrop.addEventListener('touchmove', bloquearEvento, { passive: false });
+    backdrop.addEventListener('touchend', bloquearEvento, { passive: false });
+    backdrop.addEventListener('touchenter', bloquearEvento, { passive: false });
+    backdrop.addEventListener('touchleave', bloquearEvento, { passive: false });
+    backdrop.addEventListener('touchcancel', bloquearEvento, { passive: false });
     
     document.body.appendChild(backdrop);
     this.backdropEstilosAtual = backdrop;
@@ -5626,7 +5696,7 @@ _isTouchGesture(e) {
     modalEstilos.className = 'modal-estilos';
     modalEstilos.style.cssText = `
         position: fixed;
-        z-index: 2000;
+        z-index: 20000;
         background: white;
         padding: 20px;
         border-radius: 10px;
@@ -5638,6 +5708,7 @@ _isTouchGesture(e) {
         left: 50%;
         top: 50%;
         transform: translate(-50%, -50%);
+        pointer-events: auto;
     `;
     
     // Cores predefinidas
@@ -5651,7 +5722,6 @@ _isTouchGesture(e) {
     // Obter estilos atuais do elemento
     const estilosAtuais = this.obterEstilosAtuais(elementoAlvo);
     
-    // 🔥 CORREÇÃO: HTML do modal com dois botões
     modalEstilos.innerHTML = `
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h6 style="margin: 0;">Estilos e Formatação</h6>
@@ -5708,23 +5778,33 @@ _isTouchGesture(e) {
             </div>
         </div>
         
-       
-            <button class="btn btn-primary flex-fill" id="aplicarEFecharEstilosBtn">
+        <div class="d-flex gap-2 mt-3">
+            
+            <button class="btn btn-success flex-fill" id="aplicarEFecharEstilosBtn">
                 <i class="fas fa-check-double me-1"></i> Aplicar e Fechar
             </button>
         </div>
-        
-            `;
+    `;
     
     document.body.appendChild(modalEstilos);
     this.modalEstilosAtual = modalEstilos;
+    
+    // 🔥 CORREÇÃO RADICAL: Bloquear eventos de toque no modal também
+    const bloquearToqueModal = (e) => {
+        e.stopPropagation();
+        // Não prevenir padrão para permitir interação com controles
+    };
+    
+    modalEstilos.addEventListener('touchstart', bloquearToqueModal, { passive: true });
+    modalEstilos.addEventListener('touchend', bloquearToqueModal, { passive: true });
+    modalEstilos.addEventListener('touchmove', bloquearToqueModal, { passive: true });
     
     // Configurar eventos DEPOIS que o modal foi adicionado ao DOM
     setTimeout(() => {
         this.configurarEventosModalEstilos();
     }, 10);
     
-    console.log('✅ Modal de estilos aberto');
+    console.log('✅ Modal de estilos aberto - eventos bloqueados');
 }
 
 
@@ -5874,15 +5954,10 @@ configurarEventosModalEstilos() {
         });
     }
     
-    // Botão aplicar que mantém o modal aberto
+    // Botão aplicar (mantém modal aberto)
     const aplicarBtn = this.modalEstilosAtual.querySelector('#aplicarEstilosBtn');
     if (aplicarBtn) {
-        // Remover event listener antigo se existir
-        aplicarBtn.replaceWith(aplicarBtn.cloneNode(true));
-        
-        // Adicionar novo event listener
-        const novoAplicarBtn = this.modalEstilosAtual.querySelector('#aplicarEstilosBtn');
-        novoAplicarBtn.addEventListener('click', () => {
+        aplicarBtn.addEventListener('click', () => {
             this.aplicarEstilosManterModal();
         });
     }
@@ -5891,38 +5966,60 @@ configurarEventosModalEstilos() {
     const aplicarFecharBtn = this.modalEstilosAtual.querySelector('#aplicarEFecharEstilosBtn');
     if (aplicarFecharBtn) {
         aplicarFecharBtn.addEventListener('click', () => {
-            this.aplicarEstilos(); // Este método fecha o modal
+            this.aplicarEstilosEFechar();
         });
     }
     
-    // 🔥 CORREÇÃO: Backdrop - prevenir desseleção ao clicar fora
-    if (this.backdropEstilosAtual) {
-        // Remover qualquer evento anterior
-        this.backdropEstilosAtual.replaceWith(this.backdropEstilosAtual.cloneNode(true));
-        this.backdropEstilosAtual = document.querySelector('.modal-backdrop');
-        
-        this.backdropEstilosAtual.addEventListener('click', (e) => {
-            console.log('🚫 Backdrop clicado - prevenindo desseleção');
-            e.preventDefault();
+    // 🔥 CORREÇÃO: Configurar eventos das opções de cor para NÃO propagar
+    const coresOpcoes = this.modalEstilosAtual.querySelectorAll('.cor-opcao');
+    coresOpcoes.forEach(opcao => {
+        // Remover listeners antigos
+        opcao.replaceWith(opcao.cloneNode(true));
+    });
+    
+    // Re-selecionar após clonagem
+    const novasCoresOpcoes = this.modalEstilosAtual.querySelectorAll('.cor-opcao');
+    novasCoresOpcoes.forEach(opcao => {
+        opcao.addEventListener('click', (e) => {
+            console.log('🎨 Cor clicada - bloqueando propagação');
             e.stopPropagation();
             e.stopImmediatePropagation();
-            
-            // 🔥 CORREÇÃO: Fechar o modal mas manter a seleção
-            this.fecharModalEstilos();
+            const cor = opcao.getAttribute('data-cor');
+            this.selecionarCor(cor);
         });
-    }
+        
+        opcao.addEventListener('touchstart', (e) => {
+            console.log('📱 Toque na cor - bloqueando propagação');
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+        }, { passive: true });
+        
+        opcao.addEventListener('touchend', (e) => {
+            console.log('📱 Toque finalizado na cor - bloqueando propagação');
+            e.stopPropagation();
+            e.stopImmediatePropagation();
+            const cor = opcao.getAttribute('data-cor');
+            this.selecionarCor(cor);
+        }, { passive: true });
+    });
     
     // Eventos dos controles
     const corPersonalizada = this.modalEstilosAtual.querySelector('#corPersonalizada');
     if (corPersonalizada) {
         corPersonalizada.addEventListener('change', (e) => {
+            e.stopPropagation();
             this.selecionarCor(e.target.value);
         });
+        
+        corPersonalizada.addEventListener('touchstart', (e) => {
+            e.stopPropagation();
+        }, { passive: true });
     }
     
     const tamanhoTexto = this.modalEstilosAtual.querySelector('#tamanhoTexto');
     if (tamanhoTexto) {
         tamanhoTexto.addEventListener('input', (e) => {
+            e.stopPropagation();
             this.atualizarTamanhoTexto(e.target.value);
         });
     }
@@ -5930,32 +6027,58 @@ configurarEventosModalEstilos() {
     const textoNegrito = this.modalEstilosAtual.querySelector('#textoNegrito');
     if (textoNegrito) {
         textoNegrito.addEventListener('change', (e) => {
+            e.stopPropagation();
             this.toggleNegrito(e.target.checked);
         });
     }
     
-    // Eventos da paleta de cores
-    const coresOpcoes = this.modalEstilosAtual.querySelectorAll('.cor-opcao');
-    coresOpcoes.forEach(opcao => {
-        opcao.addEventListener('click', () => {
-            const cor = opcao.getAttribute('data-cor');
-            this.selecionarCor(cor);
-        });
-    });
-    
     // Eventos dos estilos de linha
     const opcoesLinha = this.modalEstilosAtual.querySelectorAll('.opcao-linha');
     opcoesLinha.forEach(opcao => {
-        opcao.addEventListener('click', () => {
+        opcao.addEventListener('click', (e) => {
+            e.stopPropagation();
             const estilo = opcao.getAttribute('data-estilo');
             this.selecionarEstiloLinha(estilo);
         });
+        
+        opcao.addEventListener('touchstart', (e) => {
+            e.stopPropagation();
+        }, { passive: true });
     });
     
-    console.log('✅ Eventos do modal de estilos configurados');
+    console.log('✅ Eventos do modal de estilos configurados - propagação bloqueada');
 }
 
-
+aplicarEstilosEFechar() {
+    console.log('🎨 Aplicando estilos e fechando modal...');
+    
+    try {
+        const elementoAlvo = this.elementoSelecionado || this.elementoSelecionadoAntesDoModal;
+        
+        if (!elementoAlvo) {
+            console.log('⚠️ Nenhum elemento encontrado para aplicar estilos');
+            this.fecharModalEstilos();
+            return;
+        }
+        
+        console.log('🎨 Aplicando estilos ao elemento:', elementoAlvo);
+        
+        // Aplicar estilos
+        this.aplicarEstilosElemento(elementoAlvo);
+        
+        // Salvar no histórico
+        this.salvarEstadoHistorico('Aplicar Estilos');
+        
+        // Fechar o modal
+        this.fecharModalEstilos();
+        
+        console.log('✅ Estilos aplicados e modal fechado');
+        
+    } catch (error) {
+        console.error('❌ Erro ao aplicar estilos:', error);
+        this.fecharModalEstilos();
+    }
+}
 
 
        aplicarEstilos() {
@@ -6061,24 +6184,13 @@ aplicarEstilosManterModal() {
     }
 }
 
-      fecharModalEstilos() {
+     fecharModalEstilos() {
     console.log('🔴 Fechando modal de estilos...');
     
     this.modalEstilosAberto = false;
     
-    // 🔥 CORREÇÃO: Restaurar estado de seleção se necessário
-    // Agora garantimos que o elemento continua selecionado
-    if (this.elementoSelecionadoAntesDoModal && !this.elementoSelecionado) {
-        console.log('🔄 Restaurando elemento selecionado após fechar modal');
-        this.selecionarElemento(this.elementoSelecionadoAntesDoModal, null);
-    }
-    
-    // 🔥 CORREÇÃO: Limpar a referência apenas, não restaurar automaticamente
-    this.elementoSelecionadoAntesDoModal = null;
-    
     // Remover modal
     if (this.modalEstilosAtual) {
-        console.log('🔴 Removendo modalEstilosAtual');
         try {
             if (this.modalEstilosAtual.parentNode) {
                 this.modalEstilosAtual.parentNode.removeChild(this.modalEstilosAtual);
@@ -6091,7 +6203,6 @@ aplicarEstilosManterModal() {
     
     // Remover backdrop
     if (this.backdropEstilosAtual) {
-        console.log('🔴 Removendo backdropEstilosAtual');
         try {
             if (this.backdropEstilosAtual.parentNode) {
                 this.backdropEstilosAtual.parentNode.removeChild(this.backdropEstilosAtual);
@@ -6100,27 +6211,6 @@ aplicarEstilosManterModal() {
             console.error('Erro ao remover backdrop:', e);
         }
         this.backdropEstilosAtual = null;
-    }
-    
-    // Limpeza adicional por classe (fallback)
-    try {
-        const modaisRemanescentes = document.querySelectorAll('.modal-estilos');
-        modaisRemanescentes.forEach(modal => {
-            if (modal.parentNode) {
-                console.log('🔴 Removendo modal por classe');
-                modal.parentNode.removeChild(modal);
-            }
-        });
-        
-        const backdropsRemanescentes = document.querySelectorAll('.modal-backdrop');
-        backdropsRemanescentes.forEach(backdrop => {
-            if (backdrop.parentNode) {
-                console.log('🔴 Removendo backdrop por classe');
-                backdrop.parentNode.removeChild(backdrop);
-            }
-        });
-    } catch (e) {
-        console.error('Erro na limpeza por classe:', e);
     }
     
     // Limpar seleções temporárias
