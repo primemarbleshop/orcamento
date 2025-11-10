@@ -2193,262 +2193,26 @@ atualizarCursorBorracha(e) {
     }
 }
 
-        // 🔥 NOVO MÉTODO: Duplicar elementos do grupo temporário
-        duplicarElementosGrupoTemporario() {
-    if (!this.grupoTemporario) {
-        console.log('⚠️ Nenhum grupo temporário para duplicar');
-        return;
-    }
-
-    console.log('🔹 Duplicando elementos do grupo temporário...');
-    
-    // Obter dados dos elementos do grupo
-    const elementosRaizData = JSON.parse(this.grupoTemporario.getAttribute('data-elementos-raiz') || '[]');
-    const elementosFilhosData = JSON.parse(this.grupoTemporario.getAttribute('data-elementos-filhos') || '[]');
-    
-    if (elementosRaizData.length === 0 && elementosFilhosData.length === 0) {
-        console.log('⚠️ Nenhum elemento no grupo temporário');
-        return;
-    }
-
-    // Salvar estado antes da duplicação
-    this.salvarEstadoHistorico('Antes de Duplicar Grupo');
-
-    // Calcular offset para posicionar cópias
-    const offset = 30;
-    const novosElementos = [];
-
-    console.log(`🔹 Encontrados ${elementosRaizData.length} elementos raiz e ${elementosFilhosData.length} elementos filhos`);
-
-    // 🔥 CORREÇÃO: Duplicar elementos raiz primeiro
-    elementosRaizData.forEach(data => {
-        if (data.elemento) {
-            try {
-                // Encontrar o elemento real no DOM
-                const elementoReal = this.encontrarElementoPorDados(data);
-                if (elementoReal && elementoReal.cloneNode) {
-                    const clone = elementoReal.cloneNode(true);
-                    
-                    // Aplicar offset na posição
-                    const originalLeft = parseFloat(elementoReal.style.left) || 0;
-                    const originalTop = parseFloat(elementoReal.style.top) || 0;
-                    
-                    clone.style.left = `${originalLeft + offset}px`;
-                    clone.style.top = `${originalTop + offset}px`;
-                    clone.classList.remove('elemento-selecionado', 'elemento-em-grupo');
-                    
-                    if (!this.modoSelecaoAtivo) {
-                        clone.classList.remove('selecionavel');
-                    }
-                    
-                    // Gerar novos IDs para evitar conflitos
-                    const timestamp = Date.now();
-                    if (clone.id) {
-                        clone.id = clone.id + '-copy-' + timestamp;
-                    }
-                    
-                    if (clone.classList.contains('peca')) {
-                        const novoPecaId = 'copy-' + timestamp;
-                        clone.setAttribute('data-peca-id', novoPecaId);
-                        clone.id = `peca-${novoPecaId}`;
-                        
-                        // Remover e recriar linhas e símbolos
-                        const linhasAntigas = clone.querySelectorAll('.linha-peca');
-                        linhasAntigas.forEach(linha => linha.remove());
-                        
-                        const simbolosAntigos = clone.querySelectorAll('.simbolo-linha');
-                        simbolosAntigos.forEach(simbolo => simbolo.remove());
-                        
-                        // Recriar linhas para a peça duplicada
-                        const width = parseFloat(clone.style.width);
-                        const height = parseFloat(clone.style.height);
-                        this.criarLinhasPeca(clone, novoPecaId, width, height);
-                    }
-                    
-                    // Adicionar ao drawing area
-                    this.drawingArea.appendChild(clone);
-                    novosElementos.push(clone);
-                    
-                    // Configurar interatividade
-                    this.configurarInteratividade(clone);
-                    
-                    if (clone.classList.contains('simbolo-linha')) {
-                        this.configurarInteratividadeSimbolo(clone);
-                    } else if (clone.classList.contains('cuba')) {
-                        this.configurarInteratividadeCuba(clone);
-                    } else if (clone.classList.contains('texto-legenda')) {
-                        this.configurarInteratividadeTexto(clone);
-                    } else if (clone.classList.contains('legenda-simplificada')) {
-                        this.configurarInteratividadeLegenda(clone);
-                    } else if (clone.classList.contains('titulo-grupo')) {
-                        // Configurar eventos para título editável
-                        let valorOriginal = clone.textContent;
-                        clone.addEventListener('blur', () => {
-                            if (clone.textContent !== valorOriginal) {
-                                this.salvarEstadoHistorico('Editar Título do Grupo Duplicado');
-                                valorOriginal = clone.textContent;
-                            }
-                        });
-                    }
-                    
-                    console.log('✅ Elemento raiz duplicado:', clone.className);
-                }
-            } catch (error) {
-                console.error('❌ Erro ao duplicar elemento raiz:', error);
-            }
-        }
-    });
-
-    // 🔥 CORREÇÃO: Duplicar elementos filhos (símbolos, dimensões, etc.)
-    elementosFilhosData.forEach(data => {
-        if (data.elemento) {
-            try {
-                // Encontrar o elemento real no DOM
-                const elementoReal = this.encontrarElementoPorDados(data);
-                if (elementoReal && elementoReal.cloneNode) {
-                    const clone = elementoReal.cloneNode(true);
-                    
-                    // Para elementos filhos, manter a relação com a peça pai se possível
-                    if (data.parentId && clone.classList.contains('simbolo-linha')) {
-                        // Encontrar a peça pai duplicada correspondente
-                        const pecaPaiOriginal = this.drawingArea.querySelector(`#peca-${data.parentId}`);
-                        if (pecaPaiOriginal) {
-                            // Encontrar a cópia da peça pai (mesma posição + offset)
-                            const originalLeft = parseFloat(pecaPaiOriginal.style.left) || 0;
-                            const originalTop = parseFloat(pecaPaiOriginal.style.top) || 0;
-                            
-                            const pecaPaiDuplicada = this.drawingArea.querySelector(`#peca-${data.parentId}-copy`);
-                            if (pecaPaiDuplicada) {
-                                pecaPaiDuplicada.appendChild(clone);
-                                this.configurarInteratividadeSimbolo(clone);
-                                console.log('✅ Símbolo duplicado e vinculado à peça pai');
-                            } else {
-                                // Se não encontrou a cópia específica, adicionar diretamente
-                                this.drawingArea.appendChild(clone);
-                                this.configurarInteratividade(clone);
-                            }
-                        } else {
-                            // Se não encontrou a peça pai, adicionar diretamente
-                            this.drawingArea.appendChild(clone);
-                            this.configurarInteratividade(clone);
-                        }
-                    } else {
-                        // Para outros elementos filhos, adicionar diretamente
-                        this.drawingArea.appendChild(clone);
-                        this.configurarInteratividade(clone);
-                    }
-                    
-                    novosElementos.push(clone);
-                    console.log('✅ Elemento filho duplicado:', clone.className);
-                }
-            } catch (error) {
-                console.error('❌ Erro ao duplicar elemento filho:', error);
-            }
-        }
-    });
-
-    // Criar novo grupo temporário com os elementos duplicados
-    if (novosElementos.length > 0) {
-        console.log(`🎯 Criando novo grupo temporário com ${novosElementos.length} elementos duplicados`);
-        
-        // Limpar grupo temporário atual
-        this.limparGrupoTemporario();
-        
-        // Criar novo grupo com elementos duplicados
-        this._criarGrupoTemporario(novosElementos);
-        
-        // Salvar no histórico
-        this.salvarEstadoHistorico('Duplicar Grupo de Elementos');
-        
-        console.log('✅ Grupo duplicado criado com sucesso');
-    } else {
-        console.log('⚠️ Nenhum elemento foi duplicado');
-    }
-}
-
-encontrarElementoPorDados(data) {
-    if (data.elemento && data.elemento.id) {
-        // Se o elemento tem ID, tentar encontrar pelo ID
-        const elemento = document.getElementById(data.elemento.id);
-        if (elemento) return elemento;
-    }
-    
-    // Se não encontrou pelo ID, tentar encontrar pela posição e tipo
-    const elementos = this.drawingArea.querySelectorAll(`.${data.elemento.className.split(' ')[0]}`);
-    for (const elemento of elementos) {
-        const left = parseFloat(elemento.style.left) || 0;
-        const top = parseFloat(elemento.style.top) || 0;
-        
-        if (Math.abs(left - data.left) < 1 && Math.abs(top - data.top) < 1) {
-            return elemento;
-        }
-    }
-    
-    return null;
-}
-
-        excluirGrupoTemporario() {
-    if (!this.grupoTemporario) return;
-    
-    console.log('🗑️ Excluindo grupo temporário...');
-    
-    try {
-        // Obter todos os elementos do grupo
-        const elementosRaizData = JSON.parse(this.grupoTemporario.getAttribute('data-elementos-raiz') || '[]');
-        const elementosFilhosData = JSON.parse(this.grupoTemporario.getAttribute('data-elementos-filhos') || '[]');
-        
-        console.log(`🗑️ Encontrados ${elementosRaizData.length} elementos raiz e ${elementosFilhosData.length} elementos filhos para excluir`);
-        
-        // Remover todos os elementos raiz do grupo
-        elementosRaizData.forEach(data => {
-            if (data.elemento) {
-                const elementoReal = this.encontrarElementoPorDados(data);
-                if (elementoReal && elementoReal.parentNode) {
-                    elementoReal.remove();
-                    console.log('🗑️ Elemento raiz excluído:', elementoReal.className);
-                }
-            }
-        });
-        
-        // Remover todos os elementos filhos do grupo
-        elementosFilhosData.forEach(data => {
-            if (data.elemento) {
-                const elementoReal = this.encontrarElementoPorDados(data);
-                if (elementoReal && elementoReal.parentNode) {
-                    elementoReal.remove();
-                    console.log('🗑️ Elemento filho excluído:', elementoReal.className);
-                }
-            }
-        });
-        
-        // Remover o grupo temporário
-        this.limparGrupoTemporario();
-        
-        // Salvar no histórico
-        this.salvarEstadoHistorico('Excluir Grupo de Elementos');
-        
-        console.log('✅ Grupo temporário excluído com sucesso');
-        
-    } catch (error) {
-        console.error('❌ Erro ao excluir grupo temporário:', error);
-    }
-}
-
         excluirElemento() {
-    const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
-    if (!elementoAlvo) return;
+            const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
+            if (!elementoAlvo) return;
 
-    // 🔥 CORREÇÃO: Verificar se é grupo temporário
-    if (elementoAlvo.classList.contains('grupo-temporario')) {
-        this.excluirGrupoTemporario();
-        return;
-    }
+            elementoAlvo.remove();
+            this.desselecionarElemento();
+            this.salvarEstadoHistorico('Excluir Elemento: ' + (elementoAlvo.className || 'Elemento'));
+        }
 
-    // Código original de exclusão de elemento único...
-    elementoAlvo.remove();
-    this.desselecionarElemento();
-    this.salvarEstadoHistorico('Excluir Elemento: ' + (elementoAlvo.className || 'Elemento'));
-}
+        carregarDesenhoSalvo() {
+            try {
+                this.drawingArea.innerHTML = this.desenhoSalvo;
+                this.restaurarElementosTexto();
+                this.reconfigurarElementosAposHistorico();
+                console.log('✅ Desenho salvo carregado com sucesso!');
+            } catch (error) {
+                console.error('❌ Erro ao carregar desenho salvo:', error);
+                this.criarPecasBase();
+            }
+        }
 
         restaurarElementosTexto() {
             const elementosTexto = this.drawingArea.querySelectorAll('.texto-legenda');
@@ -4003,9 +3767,7 @@ _isTouchGesture(e) {
             
             this.desabilitarLinhasPecas();
             
-            // 🔥 ATUALIZADO: Não criar handles para grupo temporário nem símbolos
-            if (!elemento.classList.contains('simbolo-linha') && 
-                !elemento.classList.contains('grupo-temporario')) {
+            if (!elemento.classList.contains('simbolo-linha') && !elemento.classList.contains('grupo-temporario')) {
                 this.criarHandles(elemento);
             }
             
@@ -4511,45 +4273,33 @@ _isTouchGesture(e) {
             });
         }
 
-       atualizarEstadoBotoes() {
-    const temElementoSelecionado = this.elementoSelecionado !== null;
-    
-    const isGrupoTemporario = this.elementoSelecionado && 
-                            this.elementoSelecionado.classList.contains('grupo-temporario');
-    const isModoLacoAtivo = this.modoLacoAtivo;
-    
-    // 🔥 CORREÇÃO: Permitir duplicação para grupo temporário mesmo durante seleção
-    // Agora só desabilita se NÃO for grupo temporário E modo laço estiver ativo
-    const desabilitarBotoes = !isGrupoTemporario && isModoLacoAtivo;
-    
-    const btnDuplicar = document.getElementById('btnDuplicar');
-    const btnExcluir = document.getElementById('btnExcluir');
-    
-    // 🔥 CORREÇÃO: Habilitar duplicação para grupo temporário
-    btnDuplicar.disabled = !temElementoSelecionado || desabilitarBotoes;
-    btnExcluir.disabled = !temElementoSelecionado || desabilitarBotoes;
-    
-    // 🔥 CORREÇÃO: Atualizar títulos dos botões
-    if (isGrupoTemporario) {
-        btnDuplicar.title = 'Duplicar Grupo Selecionado';
-        btnExcluir.title = 'Excluir Grupo Selecionado';
-    } else {
-        btnDuplicar.title = 'Duplicar Elemento Selecionado';
-        btnExcluir.title = 'Excluir Elemento Selecionado';
-    }
-    
-    if (desabilitarBotoes) {
-        btnDuplicar.classList.add('btn-desabilitado-mobile');
-        btnExcluir.classList.add('btn-desabilitado-mobile');
-        btnDuplicar.title = 'Ação não disponível durante seleção com laço';
-        btnExcluir.title = 'Ação não disponível durante seleção com laço';
-    } else {
-        btnDuplicar.classList.remove('btn-desabilitado-mobile');
-        btnExcluir.classList.remove('btn-desabilitado-mobile');
-    }
-    
-    console.log(`🔧 Estado botões: Duplicar=${!btnDuplicar.disabled}, Excluir=${!btnExcluir.disabled}, GrupoTemp=${isGrupoTemporario}, ModoLaco=${isModoLacoAtivo}`);
-}
+        atualizarEstadoBotoes() {
+            const temElementoSelecionado = this.elementoSelecionado !== null;
+            
+            const isGrupoTemporario = this.elementoSelecionado && 
+                                    this.elementoSelecionado.classList.contains('grupo-temporario');
+            const isModoLacoAtivo = this.modoLacoAtivo;
+            
+            const desabilitarBotoes = isGrupoTemporario || isModoLacoAtivo;
+            
+            const btnDuplicar = document.getElementById('btnDuplicar');
+            const btnExcluir = document.getElementById('btnExcluir');
+            
+            btnDuplicar.disabled = !temElementoSelecionado || desabilitarBotoes;
+            btnExcluir.disabled = !temElementoSelecionado || desabilitarBotoes;
+            
+            if (desabilitarBotoes) {
+                btnDuplicar.classList.add('btn-desabilitado-mobile');
+                btnExcluir.classList.add('btn-desabilitado-mobile');
+                btnDuplicar.title = 'Ação não disponível para grupo temporário';
+                btnExcluir.title = 'Ação não disponível para grupo temporário';
+            } else {
+                btnDuplicar.classList.remove('btn-desabilitado-mobile');
+                btnExcluir.classList.remove('btn-desabilitado-mobile');
+                btnDuplicar.title = 'Duplicar Elemento Selecionado';
+                btnExcluir.title = 'Excluir Elemento Selecionado';
+            }
+        }
 
         atualizarLinhasESimbolos(elemento) {
             const width = parseFloat(elemento.style.width);
@@ -4589,68 +4339,60 @@ _isTouchGesture(e) {
             this.atualizarHandles();
         }
 
-        // 🔥 MODIFICADO: Método duplicarElemento para lidar com grupo temporário
         duplicarElemento() {
-    const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
-    if (!elementoAlvo) return;
-    
-    // 🔥 CORREÇÃO: Verificar se é grupo temporário
-    if (elementoAlvo.classList.contains('grupo-temporario')) {
-        this.duplicarElementosGrupoTemporario();
-        return;
-    }
-    
-    // Código original de duplicação de elemento único...
-    const clone = elementoAlvo.cloneNode(true);
-    
-    const offset = 30;
-    clone.style.left = `${parseFloat(elementoAlvo.style.left) + offset}px`;
-    clone.style.top = `${parseFloat(elementoAlvo.style.top) + offset}px`;
-    clone.classList.remove('elemento-selecionado');
-    
-    if (!this.modoSelecaoAtivo) {
-        clone.classList.remove('selecionavel');
-    }
-    
-    const novoPecaId = 'copy-' + Date.now();
-    if (clone.id) {
-        clone.id = clone.id + '-copy-' + Date.now();
-    }
-    
-    if (clone.classList.contains('peca')) {
-        clone.setAttribute('data-peca-id', novoPecaId);
-        clone.id = `peca-${novoPecaId}`;
-    }
-    
-    const linhasAntigas = clone.querySelectorAll('.linha-peca');
-    linhasAntigas.forEach(linha => linha.remove());
-    
-    const simbolosAntigos = clone.querySelectorAll('.simbolo-linha');
-    simbolosAntigos.forEach(simbolo => simbolo.remove());
-    
-    this.drawingArea.appendChild(clone);
-    
-    if (clone.classList.contains('peca')) {
-        const width = parseFloat(clone.style.width);
-        const height = parseFloat(clone.style.height);
-        
-        this.criarLinhasPeca(clone, novoPecaId, width, height);
-    }
-    
-    this.configurarInteratividade(clone);
-    
-    if (clone.classList.contains('simbolo-linha')) {
-        this.configurarInteratividadeSimbolo(clone);
-    } else if (clone.classList.contains('cuba')) {
-        this.configurarInteratividadeCuba(clone);
-    } else if (clone.classList.contains('texto-legenda')) {
-        this.configurarInteratividadeTexto(clone);
-    }
-    
-    this.salvarEstadoHistorico('Duplicar Elemento: ' + (elementoAlvo.className || 'Elemento'));
-    
-    this.selecionarElemento(clone, null);
-}
+            const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
+            if (!elementoAlvo) return;
+            
+            const clone = elementoAlvo.cloneNode(true);
+            
+            const offset = 30;
+            clone.style.left = `${parseFloat(elementoAlvo.style.left) + offset}px`;
+            clone.style.top = `${parseFloat(elementoAlvo.style.top) + offset}px`;
+            clone.classList.remove('elemento-selecionado');
+            
+            if (!this.modoSelecaoAtivo) {
+                clone.classList.remove('selecionavel');
+            }
+            
+            const novoPecaId = 'copy-' + Date.now();
+            if (clone.id) {
+                clone.id = clone.id + '-copy-' + Date.now();
+            }
+            
+            if (clone.classList.contains('peca')) {
+                clone.setAttribute('data-peca-id', novoPecaId);
+                clone.id = `peca-${novoPecaId}`;
+            }
+            
+            const linhasAntigas = clone.querySelectorAll('.linha-peca');
+            linhasAntigas.forEach(linha => linha.remove());
+            
+            const simbolosAntigos = clone.querySelectorAll('.simbolo-linha');
+            simbolosAntigos.forEach(simbolo => simbolo.remove());
+            
+            this.drawingArea.appendChild(clone);
+            
+            if (clone.classList.contains('peca')) {
+                const width = parseFloat(clone.style.width);
+                const height = parseFloat(clone.style.height);
+                
+                this.criarLinhasPeca(clone, novoPecaId, width, height);
+            }
+            
+            this.configurarInteratividade(clone);
+            
+            if (clone.classList.contains('simbolo-linha')) {
+                this.configurarInteratividadeSimbolo(clone);
+            } else if (clone.classList.contains('cuba')) {
+                this.configurarInteratividadeCuba(clone);
+            } else if (clone.classList.contains('texto-legenda')) {
+                this.configurarInteratividadeTexto(clone);
+            }
+            
+            this.salvarEstadoHistorico('Duplicar Elemento: ' + (elementoAlvo.className || 'Elemento'));
+            
+            this.selecionarElemento(clone, null);
+        }
 
         criarPecasBase() {
             if (this.pecasCriadas) return;
