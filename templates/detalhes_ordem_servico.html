@@ -3919,74 +3919,82 @@ _isTouchGesture(e) {
         }
 
         criarHandles(elemento) {
-    if (elemento.classList.contains('simbolo-linha')) {
-        return;
-    }
-    
-    this.removerHandles();
-    
-    // Criar container de handles que será filho do elemento
-    const handlesContainer = document.createElement('div');
-    handlesContainer.className = 'handles-container';
-    handlesContainer.style.position = 'absolute';
-    handlesContainer.style.top = '0';
-    handlesContainer.style.left = '0';
-    handlesContainer.style.width = '100%';
-    handlesContainer.style.height = '100%';
-    handlesContainer.style.pointerEvents = 'none';
-    handlesContainer.style.zIndex = '1001';
-    
-    // Obter dimensões do elemento
-    const width = parseFloat(elemento.style.width);
-    const height = parseFloat(elemento.style.height);
-    
-    // Handles de redimensionamento (posições relativas)
-    const handles = [
-        { class: 'handle-n', left: '50%', top: '0%', cursor: 'n-resize' },
-        { class: 'handle-s', left: '50%', top: '100%', cursor: 's-resize' },
-        { class: 'handle-e', left: '100%', top: '50%', cursor: 'e-resize' },
-        { class: 'handle-w', left: '0%', top: '50%', cursor: 'w-resize' },
-        { class: 'handle-ne', left: '100%', top: '0%', cursor: 'ne-resize' },
-        { class: 'handle-nw', left: '0%', top: '0%', cursor: 'nw-resize' },
-        { class: 'handle-se', left: '100%', top: '100%', cursor: 'se-resize' },
-        { class: 'handle-sw', left: '0%', top: '100%', cursor: 'sw-resize' }
-    ];
+            console.log('🔧 Criando handles para:', elemento.className);
+            
+            const pos = this.obterPosicaoComScroll(elemento);
+            const left = pos.left;
+            const top = pos.top;
+            const width = pos.width;
+            const height = pos.height;
 
-    handles.forEach(handle => {
-        const handleElement = document.createElement('div');
-        handleElement.className = `handle ${handle.class}`;
-        handleElement.style.position = 'absolute';
-        handleElement.style.left = handle.left;
-        handleElement.style.top = handle.top;
-        handleElement.style.transform = 'translate(-50%, -50%)';
-        handleElement.style.cursor = handle.cursor;
-        handleElement.style.pointerEvents = 'all';
-        handleElement.style.zIndex = '1002';
-        
-        handlesContainer.appendChild(handleElement);
-        this.handles.push(handleElement);
-        
-        this.configurarHandle(handleElement, elemento, handle.class);
-    });
+            const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+            const rad = rotation * Math.PI / 180;
+            
+            const centerX = left + width / 2;
+            const centerY = top + height / 2;
 
-    // Handle de rotação
-    const handleRotacao = document.createElement('div');
-    handleRotacao.className = 'handle handle-rotacao';
-    handleRotacao.style.position = 'absolute';
-    handleRotacao.style.left = '50%';
-    handleRotacao.style.top = '-40px'; // Acima do elemento
-    handleRotacao.style.transform = 'translate(-50%, -50%)';
-    handleRotacao.style.cursor = 'grab';
-    handleRotacao.style.pointerEvents = 'all';
-    handleRotacao.style.zIndex = '1002';
-    
-    handlesContainer.appendChild(handleRotacao);
-    this.handles.push(handleRotacao);
-    this.handlesContainer = handlesContainer;
-    
-    elemento.appendChild(handlesContainer);
-    this.configurarHandleRotacao(handleRotacao, elemento);
-}
+            console.log(`🔧 Posição: left=${left}, top=${top}, width=${width}, height=${height}, rotation=${rotation}`);
+
+            const relativeHandles = [
+                { class: 'handle-n', relX: 0, relY: -height / 2 },
+                { class: 'handle-s', relX: 0, relY: height / 2 },
+                { class: 'handle-e', relX: width / 2, relY: 0 },
+                { class: 'handle-w', relX: -width / 2, relY: 0 },
+                { class: 'handle-ne', relX: width / 2, relY: -height / 2 },
+                { class: 'handle-nw', relX: -width / 2, relY: -height / 2 },
+                { class: 'handle-se', relX: width / 2, relY: height / 2 },
+                { class: 'handle-sw', relX: -width / 2, relY: height / 2 }
+            ];
+
+            const handles = relativeHandles.map(handle => {
+                const rotatedX = handle.relX * Math.cos(rad) - handle.relY * Math.sin(rad);
+                const rotatedY = handle.relX * Math.sin(rad) + handle.relY * Math.cos(rad);
+                
+                return {
+                    class: handle.class,
+                    x: centerX + rotatedX,
+                    y: centerY + rotatedY
+                };
+            });
+
+            this.removerHandles();
+
+            handles.forEach(handle => {
+                const handleElement = document.createElement('div');
+                handleElement.className = `handle ${handle.class}`;
+                handleElement.style.left = `${handle.x}px`;
+                handleElement.style.top = `${handle.y}px`;
+                handleElement.style.zIndex = '1002';
+                handleElement.style.position = 'absolute';
+                
+                console.log(`🔧 Criando handle ${handle.class} em x=${handle.x}, y=${handle.y}`);
+                
+                this.drawingArea.appendChild(handleElement);
+                this.handles.push(handleElement);
+                
+                this.configurarHandle(handleElement, elemento, handle.class);
+            });
+
+            const handleRotacaoRelY = -height / 2 - 40;
+            const handleRotacaoX = 0 * Math.cos(rad) - handleRotacaoRelY * Math.sin(rad);
+            const handleRotacaoY = 0 * Math.sin(rad) + handleRotacaoRelY * Math.cos(rad);
+
+            const handleRotacao = document.createElement('div');
+            handleRotacao.className = 'handle handle-rotacao';
+            handleRotacao.style.left = `${centerX + handleRotacaoX}px`;
+            handleRotacao.style.top = `${centerY + handleRotacaoY}px`;
+            handleRotacao.style.zIndex = '1002';
+            handleRotacao.style.position = 'absolute';
+            
+            console.log(`🔧 Criando handle de rotação em x=${centerX + handleRotacaoX}, y=${centerY + handleRotacaoY}`);
+            
+            this.drawingArea.appendChild(handleRotacao);
+            this.handles.push(handleRotacao);
+            
+            this.configurarHandleRotacao(handleRotacao, elemento);
+            
+            console.log(`✅ ${this.handles.length} handles criados com sucesso`);
+        }
 
         configurarHandle(handle, elemento, handleClass) {
             let initialX, initialY;
