@@ -4450,43 +4450,45 @@ _isTouchGesture(e) {
             });
         }
 
-        // 🔥 MODIFICADO: Método atualizarEstadoBotoes para incluir duplicação de grupo
-        atualizarEstadoBotoes() {
-            const temElementoSelecionado = this.elementoSelecionado !== null;
-            
-            const isGrupoTemporario = this.elementoSelecionado && 
-                                    this.elementoSelecionado.classList.contains('grupo-temporario');
-            const isModoLacoAtivo = this.modoLacoAtivo;
-            
-            // 🔥 ATUALIZADO: Permitir duplicação para grupo temporário
-            const desabilitarBotoes = isModoLacoAtivo; // Agora só desabilita no modo laço ativo
-            
-            const btnDuplicar = document.getElementById('btnDuplicar');
-            const btnExcluir = document.getElementById('btnExcluir');
-            
-            // 🔥 ATUALIZADO: Habilitar duplicação para grupo temporário
-            btnDuplicar.disabled = !temElementoSelecionado || desabilitarBotoes;
-            btnExcluir.disabled = !temElementoSelecionado || desabilitarBotoes;
-            
-            // 🔥 ATUALIZADO: Atualizar títulos dos botões
-            if (isGrupoTemporario) {
-                btnDuplicar.title = 'Duplicar Grupo Selecionado';
-                btnExcluir.title = 'Excluir Grupo Selecionado';
-            } else {
-                btnDuplicar.title = 'Duplicar Elemento Selecionado';
-                btnExcluir.title = 'Excluir Elemento Selecionado';
-            }
-            
-            if (desabilitarBotoes) {
-                btnDuplicar.classList.add('btn-desabilitado-mobile');
-                btnExcluir.classList.add('btn-desabilitado-mobile');
-                btnDuplicar.title = 'Ação não disponível durante seleção com laço';
-                btnExcluir.title = 'Ação não disponível durante seleção com laço';
-            } else {
-                btnDuplicar.classList.remove('btn-desabilitado-mobile');
-                btnExcluir.classList.remove('btn-desabilitado-mobile');
-            }
-        }
+       atualizarEstadoBotoes() {
+    const temElementoSelecionado = this.elementoSelecionado !== null;
+    
+    const isGrupoTemporario = this.elementoSelecionado && 
+                            this.elementoSelecionado.classList.contains('grupo-temporario');
+    const isModoLacoAtivo = this.modoLacoAtivo;
+    
+    // 🔥 CORREÇÃO: Permitir duplicação para grupo temporário mesmo durante seleção
+    // Agora só desabilita se NÃO for grupo temporário E modo laço estiver ativo
+    const desabilitarBotoes = !isGrupoTemporario && isModoLacoAtivo;
+    
+    const btnDuplicar = document.getElementById('btnDuplicar');
+    const btnExcluir = document.getElementById('btnExcluir');
+    
+    // 🔥 CORREÇÃO: Habilitar duplicação para grupo temporário
+    btnDuplicar.disabled = !temElementoSelecionado || desabilitarBotoes;
+    btnExcluir.disabled = !temElementoSelecionado || desabilitarBotoes;
+    
+    // 🔥 CORREÇÃO: Atualizar títulos dos botões
+    if (isGrupoTemporario) {
+        btnDuplicar.title = 'Duplicar Grupo Selecionado';
+        btnExcluir.title = 'Excluir Grupo Selecionado';
+    } else {
+        btnDuplicar.title = 'Duplicar Elemento Selecionado';
+        btnExcluir.title = 'Excluir Elemento Selecionado';
+    }
+    
+    if (desabilitarBotoes) {
+        btnDuplicar.classList.add('btn-desabilitado-mobile');
+        btnExcluir.classList.add('btn-desabilitado-mobile');
+        btnDuplicar.title = 'Ação não disponível durante seleção com laço';
+        btnExcluir.title = 'Ação não disponível durante seleção com laço';
+    } else {
+        btnDuplicar.classList.remove('btn-desabilitado-mobile');
+        btnExcluir.classList.remove('btn-desabilitado-mobile');
+    }
+    
+    console.log(`🔧 Estado botões: Duplicar=${!btnDuplicar.disabled}, Excluir=${!btnExcluir.disabled}, GrupoTemp=${isGrupoTemporario}, ModoLaco=${isModoLacoAtivo}`);
+}
 
         atualizarLinhasESimbolos(elemento) {
             const width = parseFloat(elemento.style.width);
