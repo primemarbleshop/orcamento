@@ -1049,6 +1049,148 @@ background-color: transparent !important;
     z-index: 1;
 }
 
+	    /* ======================== IMPRESSÃO ======================== */
+    @media print {
+        @page {
+            size: A4 portrait;
+            margin: 5mm;
+        }
+        
+        body {
+            background: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            font-size: 15px !important;
+            line-height: 1.2 !important;
+        }
+        
+        body * {
+            visibility: hidden;
+        }
+        
+        .main-container, .main-container * {
+            visibility: visible;
+        }
+        
+        .main-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 10px !important;
+            font-size: 18px !important;
+            background: white !important;
+            box-shadow: none !important;
+        }
+
+        .peca, .cuba, .texto-legenda, .legenda-simplificada, 
+        .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+        }
+        
+        .top-buttons-container,
+        .action-buttons-container,
+        .mobile-buttons-container,
+        .zoom-controls,
+        .handles-container,
+        .handle,
+        .handle-rotacao,
+        .elemento-selecionado,
+        .modal-controles,
+        .modal-backdrop { 
+            display: none !important; 
+        }
+
+        .drawing-area {
+            width: 1000px !important;
+            height: auto !important;
+            min-height: auto !important;
+            max-height: none !important;
+            border: 1px solid #ccc !important;
+            background: white !important;
+            margin: 0 auto !important;
+            padding: 0px !important;
+            overflow: visible !important;
+            box-shadow: none !important;
+            position: relative !important;
+            page-break-inside: avoid;
+        }
+        
+        .dimensoes-right {
+            right: -35px !important;
+        }
+
+        .peca, .cuba, .texto-legenda, .legenda-simplificada, 
+        .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
+            position: absolute !important;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+
+        .logo-empresa {
+            position: absolute !important;
+            right: 10px !important;
+            top: 10px !important;
+            max-width: 200px !important;
+            height: auto !important;
+        }
+
+        .texto-legenda, .legenda-simplificada {
+            background: transparent !important;
+        }
+        
+        .peca {
+            border: 2px solid #000 !important;
+            background: white !important;
+        }
+        
+        .cuba {
+            border: 2px solid #333 !important;
+            background: white !important;
+        }
+    }
+
+  .cuba.linha-reta {
+    height: 0px !important;
+    border-top: 3px solid transparent !important; /* 🔥 CORRIGIDO */
+ border-right: 1px solid transparent !important;
+    border-left: 1px solid transparent !important;    
+background-color: transparent !important;
+    /* 🔥 NOVO: Aumentar área clicável */
+    position: relative;
+}
+
+/* 🔥 NOVO: Criar área invisível maior para clique */
+.cuba.linha-reta::after {
+    content: '';
+    position: absolute;
+    top: -8px; /* 🔥 Aumenta área clicável para cima */
+    left: 0;
+    width: 100%;
+    height: 16px; /* 🔥 Aumenta área clicável verticalmente */
+    background-color: transparent;
+    cursor: pointer;
+    z-index: 1;
+}
+
+
+    .cuba.linha-reta[style*="border-style: dashed"] {
+        border-top-style: dashed !important;
+    }
+
+    .cuba.linha-reta.linha-tracejada-elemento[style*="border-color"] {
+        background: repeating-linear-gradient(
+            to right,
+            var(--line-color, #333),
+            var(--line-color, #333) 5px,
+            transparent 5px,
+            transparent 10px
+        ) !important;
+    }
+
 
     .cuba.linha-reta[style*="border-style: dashed"] {
         border-top-style: dashed !important;
