@@ -1011,34 +1011,34 @@
 
     // Função para verificar se todos os orçamentos selecionados são do mesmo cliente
     function verificarMesmoCliente(orcamentoIds) {
-        return fetch("/orcamentos/verificar_mesmo_cliente", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ orcamento_ids: orcamentoIds })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                return {
-                    mesmoCliente: data.mesmo_cliente,
-                    clienteNome: data.cliente_nome
-                };
-            } else {
-                throw new Error(data.error || "Erro ao verificar clientes");
-            }
-        });
-    }
+    return fetch("/orcamentos/verificar_mesmo_cliente", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orcamento_ids: orcamentoIds })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            return {
+                mesmoCliente: data.mesmo_cliente,
+                clienteNome: data.cliente_nome
+            };
+        } else {
+            throw new Error(data.error || "Erro ao verificar clientes");
+        }
+    });
+}
 
     // Função para mostrar alerta de clientes diferentes
     function mostrarAlertaClientesDiferentes() {
-        Swal.fire({
-            title: "Clientes Diferentes",
-            text: "Esta ação só pode ser executada com orçamentos do mesmo cliente!",
-            icon: "error",
-            confirmButtonColor: "#d33",
-            confirmButtonText: "Entendi"
-        });
-    }
+    Swal.fire({
+        title: "Clientes Diferentes",
+        text: "Esta ação só pode ser executada com orçamentos do mesmo cliente!",
+        icon: "error",
+        confirmButtonColor: "#d33",
+        confirmButtonText: "Entendi"
+    });
+}
 
     // Função atualizada para enviar orçamentos (Exibir Detalhes)
     function enviarOrcamentos() {
@@ -1298,128 +1298,147 @@
             });
         });
 
-        // Botão Editar Material/RT - BLOQUEIA CLIENTES DIFERENTES
-        document.getElementById('edit-selected').addEventListener('click', function() {
-            const selecionados = [];
-            document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
-                selecionados.push(checkbox.closest('tr').getAttribute('data-id'));
-            });
-            
-            if (selecionados.length === 0) {
-                Swal.fire("Atenção", "Selecione pelo menos um orçamento!", "warning");
-                return;
-            }
+      document.getElementById('edit-selected').addEventListener('click', function() {
+    const selecionados = [];
+    document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
+        selecionados.push(checkbox.closest('tr').getAttribute('data-id'));
+    });
+    
+    if (selecionados.length === 0) {
+        Swal.fire("Atenção", "Selecione pelo menos um orçamento!", "warning");
+        return;
+    }
 
-            // 🔥 VERIFICAR SE SÃO DO MESMO CLIENTE
-            verificarMesmoCliente(selecionados)
-            .then(resultado => {
-                if (!resultado.mesmoCliente) {
-                    mostrarAlertaClientesDiferentes();
-                    return;
-                }
+    // 🔥 VERIFICAR SE SÃO DO MESMO CLIENTE
+    verificarMesmoCliente(selecionados)
+    .then(resultado => {
+        if (!resultado.mesmoCliente) {
+            mostrarAlertaClientesDiferentes();
+            return;
+        }
 
-                // Se são do mesmo cliente, prosseguir com edição
-                Swal.fire({
-                    title: 'Editar Selecionados',
-                    html: `
-                        <div class="mb-3">
-                            <label for="select-material" class="form-label">Novo Material (opcional):</label>
-                            <select id="select-material" class="swal2-select" style="width: 100%">
-                                <option value="" selected>Manter material atual</option>
-                                {% for material in materiais %}
-                                    <option value="{{ material.id }}">{{ material.nome }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="mb-3">
-                            <label for="rt-option" class="form-label">RT (opcional):</label>
-                            <select id="rt-option" class="swal2-select" style="width: 100%">
-                                <option value="" selected>Manter RT atual</option>
-                                <option value="Não">Não</option>
-                                <option value="Sim">Sim</option>
-                            </select>
-                        </div>
-                        <div class="mb-3" id="rt-percent-field" style="display: none;">
-                            <label for="rt-percent" class="form-label">Porcentagem RT (%):</label>
-                            <input type="number" id="rt-percent" class="form-control" step="0.01" min="0" value="0">
-                        </div>
-                    `,
-                    didOpen: () => {
-                        $('#select-material').select2({
-                            dropdownParent: $('.swal2-popup'),
-                            placeholder: "Manter material atual",
-                            allowClear: true,
-                            width: '100%'
-                        });
-                        
-                        $('#rt-option').select2({
-                            dropdownParent: $('.swal2-popup'),
-                            placeholder: "Manter RT atual",
-                            allowClear: true,
-                            width: '100%'
-                        });
-                        
-                        $('#rt-option').on('change', function() {
-                            if ($(this).val() === 'Sim') {
-                                $('#rt-percent-field').show();
-                            } else {
-                                $('#rt-percent-field').hide();
-                            }
-                        });
-                    },
-                    preConfirm: () => {
-                        const materialId = $('#select-material').val();
-                        const rtOption = $('#rt-option').val();
-                        const rtPercent = rtOption === 'Sim' ? $('#rt-percent').val() : 0;
-                        
-                        if (rtOption === 'Sim' && (!rtPercent || parseFloat(rtPercent) <= 0)) {
-                            Swal.showValidationMessage('Por favor, informe uma porcentagem RT válida.');
-                            return false;
-                        }
-                        
-                        return {
-                            material_id: materialId || null,
-                            rt: rtOption || null,
-                            rt_percentual: parseFloat(rtPercent) || 0
-                        };
-                    },
-                    showCancelButton: true,
-                    confirmButtonText: 'Salvar',
-                    cancelButtonText: 'Cancelar',
-                    width: '600px'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        fetch("/orcamentos/editar_material_rt_selecionados", {
-                            method: "POST",
-                            headers: { "Content-Type": "application/json" },
-                            body: JSON.stringify({
-                                orcamento_ids: selecionados,
-                                material_id: result.value.material_id,
-                                rt: result.value.rt,
-                                rt_percentual: result.value.rt_percentual
-                            })
-                        })
-                        .then(response => response.json())
-                        .then(data => {
-                            if (data.success) {
-                                Swal.fire("Sucesso!", "Materiais e RT atualizados com sucesso!", "success").then(() => {
-                                    // Recarregar dados via AJAX após editar
-                                    buscarDadosOrcamentos();
-                                });
-                            } else {
-                                Swal.fire("Erro!", data.error || "Erro ao atualizar materiais e RT", "error");
-                            }
-                        })
-                        .catch(error => {
-                            Swal.fire("Erro!", "Erro ao atualizar materiais e RT!", "error");
-                        });
+        // Se são do mesmo cliente, prosseguir com edição
+        Swal.fire({
+            title: 'Editar Selecionados',
+            html: `
+                <div class="mb-3">
+                    <label for="select-cliente" class="form-label">Novo Cliente (opcional):</label>
+                    <select id="select-cliente" class="swal2-select" style="width: 100%">
+                        <option value="" selected>Manter cliente atual</option>
+                        {% for cliente in clientes %}
+                            <option value="{{ cliente.id }}">{{ cliente.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="select-material" class="form-label">Novo Material (opcional):</label>
+                    <select id="select-material" class="swal2-select" style="width: 100%">
+                        <option value="" selected>Manter material atual</option>
+                        {% for material in materiais %}
+                            <option value="{{ material.id }}">{{ material.nome }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="rt-option" class="form-label">RT (opcional):</label>
+                    <select id="rt-option" class="swal2-select" style="width: 100%">
+                        <option value="" selected>Manter RT atual</option>
+                        <option value="Não">Não</option>
+                        <option value="Sim">Sim</option>
+                    </select>
+                </div>
+                <div class="mb-3" id="rt-percent-field" style="display: none;">
+                    <label for="rt-percent" class="form-label">Porcentagem RT (%):</label>
+                    <input type="number" id="rt-percent" class="form-control" step="0.01" min="0" value="0">
+                </div>
+            `,
+            didOpen: () => {
+                // Inicializar Select2 para cliente
+                $('#select-cliente').select2({
+                    dropdownParent: $('.swal2-popup'),
+                    placeholder: "Manter cliente atual",
+                    allowClear: true,
+                    width: '100%'
+                });
+                
+                $('#select-material').select2({
+                    dropdownParent: $('.swal2-popup'),
+                    placeholder: "Manter material atual",
+                    allowClear: true,
+                    width: '100%'
+                });
+                
+                $('#rt-option').select2({
+                    dropdownParent: $('.swal2-popup'),
+                    placeholder: "Manter RT atual",
+                    allowClear: true,
+                    width: '100%'
+                });
+                
+                $('#rt-option').on('change', function() {
+                    if ($(this).val() === 'Sim') {
+                        $('#rt-percent-field').show();
+                    } else {
+                        $('#rt-percent-field').hide();
                     }
                 });
-            })
-            .catch(error => {
-                Swal.fire("Erro!", "Erro ao verificar clientes: " + error.message, "error");
-            });
+            },
+            preConfirm: () => {
+                const clienteId = $('#select-cliente').val();
+                const materialId = $('#select-material').val();
+                const rtOption = $('#rt-option').val();
+                const rtPercent = rtOption === 'Sim' ? $('#rt-percent').val() : 0;
+                
+                if (rtOption === 'Sim' && (!rtPercent || parseFloat(rtPercent) <= 0)) {
+                    Swal.showValidationMessage('Por favor, informe uma porcentagem RT válida.');
+                    return false;
+                }
+                
+                return {
+                    cliente_id: clienteId || null,
+                    material_id: materialId || null,
+                    rt: rtOption || null,
+                    rt_percentual: parseFloat(rtPercent) || 0
+                };
+            },
+            showCancelButton: true,
+            confirmButtonText: 'Salvar',
+            cancelButtonText: 'Cancelar',
+            width: '600px'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                fetch("/orcamentos/editar_material_rt_selecionados", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        orcamento_ids: selecionados,
+                        cliente_id: result.value.cliente_id,
+                        material_id: result.value.material_id,
+                        rt: result.value.rt,
+                        rt_percentual: result.value.rt_percentual
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        Swal.fire("Sucesso!", "Cliente, materiais e RT atualizados com sucesso!", "success").then(() => {
+                            // Recarregar dados via AJAX após editar
+                            buscarDadosOrcamentos();
+                        });
+                    } else {
+                        Swal.fire("Erro!", data.error || "Erro ao atualizar cliente, materiais e RT", "error");
+                    }
+                })
+                .catch(error => {
+                    Swal.fire("Erro!", "Erro ao atualizar cliente, materiais e RT!", "error");
+                });
+            }
         });
+    })
+    .catch(error => {
+        Swal.fire("Erro!", "Erro ao verificar clientes: " + error.message, "error");
+    });
+});
 
         // 🔥 FUNÇÃO PARA SELECIONAR AUTOMATICAMENTE OS ITENS DUPLICADOS
         function selecionarItensDuplicados() {
