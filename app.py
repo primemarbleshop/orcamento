@@ -1448,12 +1448,21 @@ def gerar_pdf_orcamento(codigo):
 def editar_material_rt_selecionados():
     data = request.get_json()
     orcamento_ids = data.get('orcamento_ids', [])
-    material_id = data.get('material_id')  # Pode ser None
-    rt = data.get('rt')  # Pode ser None (manter atual)
+    cliente_id = data.get('cliente_id')  # Novo campo
+    material_id = data.get('material_id')
+    rt = data.get('rt')
     rt_percentual = data.get('rt_percentual', 0.0)
 
     if not orcamento_ids:
         return jsonify({'erro': 'Nenhum orçamento selecionado.'}), 400
+
+    # Se cliente_id foi fornecido, validar se existe
+    if cliente_id:
+        cliente = Cliente.query.get(cliente_id)
+        if not cliente:
+            return jsonify({'erro': 'Cliente não encontrado.'}), 404
+    else:
+        cliente = None
 
     # Se material_id foi fornecido, validar se existe
     if material_id:
@@ -1480,6 +1489,10 @@ def editar_material_rt_selecionados():
     orcamentos = Orcamento.query.filter(Orcamento.id.in_(orcamento_ids)).all()
 
     for orcamento in orcamentos:
+        # Atualizar cliente apenas se foi fornecido
+        if cliente_id:
+            orcamento.cliente_id = cliente_id
+        
         # Atualizar material apenas se foi fornecido
         if material_id:
             orcamento.material_id = material_id
@@ -1607,7 +1620,7 @@ def editar_material_rt_selecionados():
     for orcamento_salvo in orcamentos_salvos:
         atualizar_valor_orcamento_salvo(orcamento_salvo.id)
 
-    return jsonify({'success': 'Materiais e RT atualizados, valores recalculados e orçamentos salvos atualizados.'})
+    return jsonify({'success': 'Cliente, materiais e RT atualizados, valores recalculados e orçamentos salvos atualizados.'})
 
 
 @app.route('/orcamentos/duplicar_selecionados', methods=['POST'])
