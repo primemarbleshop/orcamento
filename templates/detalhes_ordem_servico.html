@@ -1311,29 +1311,44 @@ height: 0px !important;
         }
     }
 
-    /* 🔥 NOVO: Estilos para modo escrita com caneta */
     .modo-escrita-ativa .drawing-area {
-        cursor: text !important;
-    }
+    cursor: text !important;
+    /* Garantir que a área inteira seja interativa */
+    pointer-events: auto !important;
+}
 
-    .texto-legenda.escrita-ativa {
-        background: white !important;
-        border: 2px solid #4e73df !important;
-        box-shadow: 0 0 10px rgba(78, 115, 223, 0.3) !important;
-        z-index: 1001 !important;
-    }
+.modo-escrita-ativa .texto-legenda.escrita-ativa {
+    background: white !important;
+    border: 2px solid #4e73df !important;
+    box-shadow: 0 0 15px rgba(78, 115, 223, 0.4) !important;
+    z-index: 1001 !important;
+}
 
-    .texto-legenda.escrita-ativa::after {
-        content: '|';
-        animation: piscar 1s infinite;
-        color: #4e73df;
-        font-weight: bold;
-    }
+.texto-legenda.escrita-ativa::after {
+    content: '|';
+    animation: piscar 1s infinite;
+    color: #4e73df;
+    font-weight: bold;
+    margin-left: 2px;
+}
 
-    @keyframes piscar {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0; }
-    }
+@keyframes piscar {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0; }
+}
+
+/* 🔥 CORREÇÃO: Garantir que a área de desenho seja interativa no modo escrita */
+.modo-escrita-ativa {
+    user-select: none; /* Prevenir seleção de texto durante escrita */
+}
+
+.modo-escrita-ativa .drawing-area *:not(.texto-legenda.escrita-ativa) {
+    pointer-events: none !important; /* Só o texto em edição é interativo */
+}
+
+.modo-escrita-ativa .texto-legenda.escrita-ativa {
+    pointer-events: auto !important;
+}
 </style>
 
 </head>
@@ -1651,102 +1666,184 @@ height: 0px !important;
 
         // 🔥 NOVO MÉTODO: Ativar modo escrita
         ativarModoEscrita() {
-            console.log('✏️ Ativando modo escrita...');
-            this.modoEscritaAtivo = true;
-            document.body.classList.add('modo-escrita-ativa');
-            this.drawingArea.style.cursor = 'text';
-        }
+    console.log('✏️ Ativando modo escrita...');
+    this.modoEscritaAtivo = true;
+    document.body.classList.add('modo-escrita-ativa');
+    this.drawingArea.style.cursor = 'text';
+    
+    // 🔥 IMPORTANTE: Garantir que a área de desenho permita interação
+    this.drawingArea.style.pointerEvents = 'auto';
+    
+    console.log('✅ Modo escrita ativado - toque em qualquer lugar para escrever');
+}
 
-        // 🔥 NOVO MÉTODO: Desativar modo escrita
-        desativarModoEscrita() {
-            console.log('✏️ Desativando modo escrita...');
-            this.modoEscritaAtivo = false;
-            document.body.classList.remove('modo-escrita-ativa');
-            
-            if (this.textoEmEdicao) {
-                this.textoEmEdicao.classList.remove('escrita-ativa');
-                this.textoEmEdicao = null;
-            }
-            
-            this.drawingArea.style.cursor = this.modoSelecaoAtivo ? 'pointer' : 'default';
-        }
+       desativarModoEscrita() {
+    console.log('✏️ Desativando modo escrita...');
+    this.modoEscritaAtivo = false;
+    document.body.classList.remove('modo-escrita-ativa');
+    
+    if (this.textoEmEdicao) {
+        this.textoEmEdicao.classList.remove('escrita-ativa');
+        this.textoEmEdicao = null;
+    }
+    
+    // Restaurar cursor padrão
+    this.drawingArea.style.cursor = this.modoSelecaoAtivo ? 'pointer' : 'default';
+    
+    this.removerEventosEscritaCaneta();
+    
+    console.log('✅ Modo escrita desativado');
+}
 
         // 🔥 NOVO MÉTODO: Iniciar escrita em texto selecionado
         iniciarEscritaTexto(textoElement) {
-            if (!this.modoSelecaoAtivo) return;
-            
-            console.log('✏️ Iniciando escrita no texto...');
-            this.ativarModoEscrita();
-            this.textoEmEdicao = textoElement;
-            textoElement.classList.add('escrita-ativa');
-            textoElement.focus();
-            
-            // Configurar eventos de escrita com caneta
-            this.configurarEventosEscritaCaneta();
-        }
+    if (!this.modoSelecaoAtivo) return;
+    
+    console.log('✏️ Iniciando escrita no texto...');
+    this.ativarModoEscrita();
+    this.textoEmEdicao = textoElement;
+    textoElement.classList.add('escrita-ativa');
+    
+    // Focar no texto para abrir teclado virtual
+    textoElement.focus();
+    
+    // Configurar eventos de escrita com caneta
+    this.configurarEventosEscritaCaneta();
+}
 
         // 🔥 NOVO MÉTODO: Configurar eventos para escrita com caneta
-        configurarEventosEscritaCaneta() {
-            // Remover event listeners anteriores para evitar duplicação
-            this.removerEventosEscritaCaneta();
-            
-            // Evento para capturar toques em qualquer lugar da área quando em modo escrita
-            this._escritaTouchHandler = (e) => {
-                if (!this.modoEscritaAtivo || !this.textoEmEdicao) return;
-                
-                e.preventDefault();
-                e.stopPropagation();
-                
-                // Focar no texto para abrir teclado virtual
-                this.textoEmEdicao.focus();
-            };
-            
-            this.drawingArea.addEventListener('touchstart', this._escritaTouchHandler, { passive: false });
-            
-            // Evento para finalizar escrita quando tocar fora
-            this._escritaBlurHandler = () => {
-                if (this.modoEscritaAtivo && this.textoEmEdicao) {
-                    setTimeout(() => {
-                        this.finalizarEscritaTexto();
-                    }, 100);
-                }
-            };
-            
+       configurarEventosEscritaCaneta() {
+    // Remover event listeners anteriores para evitar duplicação
+    this.removerEventosEscritaCaneta();
+    
+    console.log('📝 Configurando eventos de escrita com caneta...');
+    
+    // Evento para capturar toques em QUALQUER LUGAR da drawingArea quando em modo escrita
+    this._escritaTouchHandler = (e) => {
+        if (!this.modoEscritaAtivo || !this.textoEmEdicao) return;
+        
+        console.log('📱 Toque detectado na área de desenho durante escrita');
+        
+        // Prevenir comportamento padrão mas NÃO parar propagação
+        // para permitir que o toque seja capturado pelo textarea
+        e.preventDefault();
+        
+        // Focar no texto para abrir/manter teclado virtual
+        // Isso permite escrever tocando em qualquer lugar
+        setTimeout(() => {
             if (this.textoEmEdicao) {
-                this.textoEmEdicao.addEventListener('blur', this._escritaBlurHandler);
+                this.textoEmEdicao.focus();
+                console.log('⌨️ Foco mantido no texto para escrita');
             }
+        }, 10);
+    };
+    
+    // Usar capture phase para garantir que pegamos o evento primeiro
+    this.drawingArea.addEventListener('touchstart', this._escritaTouchHandler, { 
+        passive: false,
+        capture: true 
+    });
+    
+    // Também adicionar para mousedown para compatibilidade com dispositivos híbridos
+    this._escritaMouseHandler = (e) => {
+        if (!this.modoEscritaAtivo || !this.textoEmEdicao) return;
+        
+        console.log('🖱️ Clique detectado na área de desenho durante escrita');
+        e.preventDefault();
+        
+        setTimeout(() => {
+            if (this.textoEmEdicao) {
+                this.textoEmEdicao.focus();
+            }
+        }, 10);
+    };
+    
+    this.drawingArea.addEventListener('mousedown', this._escritaMouseHandler, {
+        capture: true
+    });
+    
+    // Evento para finalizar escrita quando tocar em elementos específicos
+    this._escritaBlurHandler = () => {
+        if (this.modoEscritaAtivo && this.textoEmEdicao) {
+            setTimeout(() => {
+                // Verificar se o blur foi causado por clique em outro elemento
+                if (this.modoEscritaAtivo) {
+                    console.log('✏️ Blur detectado - finalizando escrita');
+                    this.finalizarEscritaTexto();
+                }
+            }, 150);
         }
+    };
+    
+    if (this.textoEmEdicao) {
+        this.textoEmEdicao.addEventListener('blur', this._escritaBlurHandler);
+    }
+    
+    // 🔥 NOVO: Evento para detectar clique em botões durante escrita
+    this._botaoClickHandler = (e) => {
+        if (this.modoEscritaAtivo) {
+            console.log('🔘 Botão clicado durante escrita - finalizando');
+            this.finalizarEscritaTexto();
+        }
+    };
+    
+    // Adicionar a todos os botões de ação
+    const botoesAcao = document.querySelectorAll('.action-buttons-container .btn');
+    botoesAcao.forEach(botao => {
+        botao.addEventListener('click', this._botaoClickHandler);
+        botao.addEventListener('touchstart', this._botaoClickHandler);
+    });
+}
 
         // 🔥 NOVO MÉTODO: Remover eventos de escrita com caneta
         removerEventosEscritaCaneta() {
-            if (this._escritaTouchHandler) {
-                this.drawingArea.removeEventListener('touchstart', this._escritaTouchHandler);
-                this._escritaTouchHandler = null;
-            }
-            
-            if (this.textoEmEdicao && this._escritaBlurHandler) {
-                this.textoEmEdicao.removeEventListener('blur', this._escritaBlurHandler);
-                this._escritaBlurHandler = null;
-            }
-        }
+    console.log('🧹 Removendo eventos de escrita...');
+    
+    if (this._escritaTouchHandler) {
+        this.drawingArea.removeEventListener('touchstart', this._escritaTouchHandler, { 
+            capture: true 
+        });
+        this._escritaTouchHandler = null;
+    }
+    
+    if (this._escritaMouseHandler) {
+        this.drawingArea.removeEventListener('mousedown', this._escritaMouseHandler, {
+            capture: true
+        });
+        this._escritaMouseHandler = null;
+    }
+    
+    if (this.textoEmEdicao && this._escritaBlurHandler) {
+        this.textoEmEdicao.removeEventListener('blur', this._escritaBlurHandler);
+        this._escritaBlurHandler = null;
+    }
+    
+    if (this._botaoClickHandler) {
+        const botoesAcao = document.querySelectorAll('.action-buttons-container .btn');
+        botoesAcao.forEach(botao => {
+            botao.removeEventListener('click', this._botaoClickHandler);
+            botao.removeEventListener('touchstart', this._botaoClickHandler);
+        });
+        this._botaoClickHandler = null;
+    }
+}
 
         // 🔥 NOVO MÉTODO: Finalizar escrita
         finalizarEscritaTexto() {
-            console.log('✏️ Finalizando escrita...');
-            this.desativarModoEscrita();
-            this.removerEventosEscritaCaneta();
-            
-            if (this.textoEmEdicao) {
-                this.textoEmEdicao.classList.remove('escrita-ativa');
-                
-                // Salvar histórico se o texto foi modificado
-                if (this.textoEmEdicao.value.trim() !== '') {
-                    this.salvarEstadoHistorico('Editar Texto com Caneta');
-                }
-                
-                this.textoEmEdicao = null;
-            }
+    console.log('✏️ Finalizando escrita...');
+    this.desativarModoEscrita();
+    
+    if (this.textoEmEdicao) {
+        this.textoEmEdicao.classList.remove('escrita-ativa');
+        
+        // Salvar histórico se o texto foi modificado
+        if (this.textoEmEdicao.value.trim() !== '') {
+            this.salvarEstadoHistorico('Editar Texto com Caneta');
         }
+        
+        this.textoEmEdicao = null;
+    }
+}
 
         transformarCoordenadasParaLocal(dx, dy, rotacaoGraus) {
             const radianos = -rotacaoGraus * (Math.PI / 180);
@@ -4687,14 +4784,11 @@ height: 0px !important;
         }
 
         // 🔥 MODIFICADO: Configurar interatividade do texto com suporte a escrita
-        configurarInteratividadeTexto(elemento) {
+       configurarInteratividadeTexto(elemento) {
     this.removerInteratividade(elemento);
     
     // Só configurar se for selecionável E modo seleção ativo
     if (elemento.classList.contains('selecionavel') && this.modoSelecaoAtivo) {
-        
-        // Garantir que o texto seja editável apenas no modo seleção
-        elemento.setAttribute('contenteditable', 'false'); // Inicialmente não editável
         
         let originalBackground = elemento.style.backgroundColor;
         
@@ -4756,21 +4850,26 @@ height: 0px !important;
             ]
         });
         
-        // 🔥 NOVO: Sistema de duplo-clique para ativar edição apenas no modo seleção
-        elemento.addEventListener('dblclick', (e) => {
+        // 🔥 CORREÇÃO: Sistema de clique para ativar edição
+        elemento.addEventListener('click', (e) => {
             if (this.modoSelecaoAtivo && elemento.classList.contains('selecionavel')) {
                 e.stopPropagation();
+                
+                // Se já está em escrita, não fazer nada
+                if (this.modoEscritaAtivo) return;
+                
+                // Selecionar o elemento
+                this.selecionarElemento(elemento, e);
+                
+                // 🔥 INICIAR ESCRITA IMEDIATAMENTE no clique
+                console.log('🖱️ Clique no texto - iniciando escrita...');
                 this.iniciarEscritaTexto(elemento);
             }
         });
         
-        // 🔥 NOVO: Clique simples só seleciona, não edita
-        elemento.addEventListener('click', (e) => {
-            if (this.modoSelecaoAtivo && elemento.classList.contains('selecionavel')) {
-                e.stopPropagation();
-                // Apenas seleciona, não inicia edição imediatamente
-                this.selecionarElemento(elemento, e);
-            }
+        // Prevenir duplo-clique de selecionar texto dentro do textarea
+        elemento.addEventListener('dblclick', (e) => {
+            e.stopPropagation();
         });
     }
 }
