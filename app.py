@@ -1788,7 +1788,7 @@ def verificar_mesmo_cliente():
         primeiro_cliente_id = orcamentos[0].cliente_id
         mesmo_cliente = all(orc.cliente_id == primeiro_cliente_id for orc in orcamentos)
         
-        cliente_nome = orcamentos[0].cliente.nome if mesmo_cliente else ''
+        cliente_nome = orcamentos[0].cliente.nome if mesmo_cliente and orcamentos[0].cliente else ''
         
         return jsonify({
             'success': True, 
@@ -1797,6 +1797,7 @@ def verificar_mesmo_cliente():
         })
         
     except Exception as e:
+        print(f"Erro em verificar_mesmo_cliente: {str(e)}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/orcamentos/json', methods=['GET'])
