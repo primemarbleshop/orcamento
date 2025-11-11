@@ -1313,20 +1313,15 @@ height: 0px !important;
 
     .modo-escrita-ativa .drawing-area {
     cursor: text !important;
+    /* Garantir que a área inteira seja interativa */
+    pointer-events: auto !important;
 }
 
-.overlay-escrita-caneta {
-    /* Overlay transparente que cobre toda a área */
-    background: transparent !important;
-    cursor: text !important;
-}
-
-.texto-legenda.escrita-ativa {
+.modo-escrita-ativa .texto-legenda.escrita-ativa {
     background: white !important;
     border: 2px solid #4e73df !important;
-    box-shadow: 0 0 20px rgba(78, 115, 223, 0.5) !important;
-    z-index: 9999 !important; /* Acima do overlay */
-    position: relative; /* Garantir contexto de empilhamento */
+    box-shadow: 0 0 15px rgba(78, 115, 223, 0.4) !important;
+    z-index: 1001 !important;
 }
 
 .texto-legenda.escrita-ativa::after {
@@ -1342,20 +1337,17 @@ height: 0px !important;
     50% { opacity: 0; }
 }
 
-/* 🔥 CORREÇÃO: Garantir que o textarea seja interativo acima do overlay */
-.texto-legenda.escrita-ativa {
+/* 🔥 CORREÇÃO: Garantir que a área de desenho seja interativa no modo escrita */
+.modo-escrita-ativa {
+    user-select: none; /* Prevenir seleção de texto durante escrita */
+}
+
+.modo-escrita-ativa .drawing-area *:not(.texto-legenda.escrita-ativa) {
+    pointer-events: none !important; /* Só o texto em edição é interativo */
+}
+
+.modo-escrita-ativa .texto-legenda.escrita-ativa {
     pointer-events: auto !important;
-}
-
-.overlay-escrita-caneta {
-    pointer-events: auto !important; /* Capturar toques */
-}
-
-/* 🔥 CORREÇÃO: Botões devem ficar acima do overlay */
-.action-buttons-container .btn,
-.top-buttons-container .btn {
-    z-index: 10000 !important; /* Acima do overlay */
-    position: relative;
 }
 </style>
 
@@ -1679,23 +1671,23 @@ height: 0px !important;
     document.body.classList.add('modo-escrita-ativa');
     this.drawingArea.style.cursor = 'text';
     
-    console.log('✅ Modo escrita ativado - overlay criado');
+    // 🔥 IMPORTANTE: Garantir que a área de desenho permita interação
+    this.drawingArea.style.pointerEvents = 'auto';
+    
+    console.log('✅ Modo escrita ativado - toque em qualquer lugar para escrever');
 }
-desativarModoEscrita() {
+
+       desativarModoEscrita() {
     console.log('✏️ Desativando modo escrita...');
     this.modoEscritaAtivo = false;
     document.body.classList.remove('modo-escrita-ativa');
     
-    // Remover overlay
-    this.removerOverlayEscrita();
-    
     if (this.textoEmEdicao) {
         this.textoEmEdicao.classList.remove('escrita-ativa');
-        this.textoEmEdicao.blur(); // Remover foco
         this.textoEmEdicao = null;
     }
     
-    // Restaurar cursor
+    // Restaurar cursor padrão
     this.drawingArea.style.cursor = this.modoSelecaoAtivo ? 'pointer' : 'default';
     
     this.removerEventosEscritaCaneta();
@@ -1703,7 +1695,7 @@ desativarModoEscrita() {
     console.log('✅ Modo escrita desativado');
 }
 
-
+        // 🔥 NOVO MÉTODO: Iniciar escrita em texto selecionado
         iniciarEscritaTexto(textoElement) {
     if (!this.modoSelecaoAtivo) return;
     
@@ -1712,145 +1704,80 @@ desativarModoEscrita() {
     this.textoEmEdicao = textoElement;
     textoElement.classList.add('escrita-ativa');
     
-    // Criar overlay transparente para capturar toques
-    this.criarOverlayEscrita();
-    
     // Focar no texto para abrir teclado virtual
-    setTimeout(() => {
-        textoElement.focus();
-        textoElement.setSelectionRange(textoElement.value.length, textoElement.value.length); // Cursor no final
-    }, 100);
+    textoElement.focus();
+    
+    // Configurar eventos de escrita com caneta
+    this.configurarEventosEscritaCaneta();
 }
 
-// 🔥 NOVO: Criar overlay transparente para capturar toques
-criarOverlayEscrita() {
-    // Remover overlay anterior se existir
-    this.removerOverlayEscrita();
-    
-    // Criar overlay que cobre toda a drawingArea
-    this.overlayEscrita = document.createElement('div');
-    this.overlayEscrita.className = 'overlay-escrita-caneta';
-    this.overlayEscrita.style.cssText = `
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: transparent;
-        z-index: 9998;
-        cursor: text;
-    `;
-    
-    // Adicionar à drawingArea
-    this.drawingArea.appendChild(this.overlayEscrita);
-    
-    // Configurar eventos no overlay
-    this.configurarEventosOverlayEscrita();
-}
-
-// 🔥 NOVO: Configurar eventos no overlay
-configurarEventosOverlayEscrita() {
-    if (!this.overlayEscrita) return;
-    
-    // Touch events para iPad
-    this.overlayEscrita.addEventListener('touchstart', (e) => {
-        if (!this.modoEscritaAtivo || !this.textoEmEdicao) return;
-        
-        console.log('📱 Toque no overlay - focando no texto');
-        e.preventDefault();
-        e.stopPropagation();
-        
-        // Manter foco no textarea
-        setTimeout(() => {
-            if (this.textoEmEdicao) {
-                this.textoEmEdicao.focus();
-                // Manter cursor no final do texto
-                const length = this.textoEmEdicao.value.length;
-                this.textoEmEdicao.setSelectionRange(length, length);
-            }
-        }, 50);
-    }, { passive: false });
-    
-    this.overlayEscrita.addEventListener('touchmove', (e) => {
-        if (!this.modoEscritaAtivo || !this.textoEmEdicao) return;
-        e.preventDefault();
-        e.stopPropagation();
-    }, { passive: false });
-    
-    this.overlayEscrita.addEventListener('touchend', (e) => {
-        if (!this.modoEscritaAtivo || !this.textoEmEdicao) return;
-        e.preventDefault();
-        e.stopPropagation();
-    }, { passive: false });
-    
-    // Mouse events para compatibilidade
-    this.overlayEscrita.addEventListener('mousedown', (e) => {
-        if (!this.modoEscritaAtivo || !this.textoEmEdicao) return;
-        
-        console.log('🖱️ Clique no overlay - focando no texto');
-        e.preventDefault();
-        e.stopPropagation();
-        
-        setTimeout(() => {
-            if (this.textoEmEdicao) {
-                this.textoEmEdicao.focus();
-                const length = this.textoEmEdicao.value.length;
-                this.textoEmEdicao.setSelectionRange(length, length);
-            }
-        }, 50);
-    });
-    
-    // Clique em botões através do overlay
-    this.overlayEscrita.addEventListener('click', (e) => {
-        if (!this.modoEscritaAtivo) return;
-        
-        const botao = e.target.closest('.btn');
-        if (botao) {
-            console.log('🔘 Botão clicado através do overlay - finalizando escrita');
-            this.finalizarEscritaTexto();
-        }
-    });
-}
-
-// 🔥 NOVO: Remover overlay
-removerOverlayEscrita() {
-    if (this.overlayEscrita && this.overlayEscrita.parentNode) {
-        this.overlayEscrita.parentNode.removeChild(this.overlayEscrita);
-        this.overlayEscrita = null;
-    }
-}
-
-
+        // 🔥 NOVO MÉTODO: Configurar eventos para escrita com caneta
        configurarEventosEscritaCaneta() {
+    // Remover event listeners anteriores para evitar duplicação
     this.removerEventosEscritaCaneta();
     
     console.log('📝 Configurando eventos de escrita com caneta...');
     
-    // Evento global para detectar clique em botões durante escrita
-    this._botaoClickHandler = (e) => {
-        if (this.modoEscritaAtivo) {
-            console.log('🔘 Botão clicado - finalizando escrita');
-            this.finalizarEscritaTexto();
-        }
+    // Evento para capturar toques em QUALQUER LUGAR da drawingArea quando em modo escrita
+    this._escritaTouchHandler = (e) => {
+        if (!this.modoEscritaAtivo || !this.textoEmEdicao) return;
+        
+        console.log('📱 Toque detectado na área de desenho durante escrita');
+        
+        // Prevenir comportamento padrão mas NÃO parar propagação
+        // para permitir que o toque seja capturado pelo textarea
+        e.preventDefault();
+        
+        // Focar no texto para abrir/manter teclado virtual
+        // Isso permite escrever tocando em qualquer lugar
+        setTimeout(() => {
+            if (this.textoEmEdicao) {
+                this.textoEmEdicao.focus();
+                console.log('⌨️ Foco mantido no texto para escrita');
+            }
+        }, 10);
     };
     
-    // Adicionar a todos os botões de ação
-    const botoesAcao = document.querySelectorAll('.action-buttons-container .btn, .top-buttons-container .btn');
-    botoesAcao.forEach(botao => {
-        botao.addEventListener('click', this._botaoClickHandler);
-        botao.addEventListener('touchstart', this._botaoClickHandler);
+    // Usar capture phase para garantir que pegamos o evento primeiro
+    this.drawingArea.addEventListener('touchstart', this._escritaTouchHandler, { 
+        passive: false,
+        capture: true 
     });
     
-    // Evento para tecla Escape
-    this._escapeHandler = (e) => {
-        if (this.modoEscritaAtivo && e.key === 'Escape') {
-            console.log('⎋ Escape pressionado - finalizando escrita');
-            this.finalizarEscritaTexto();
+    // Também adicionar para mousedown para compatibilidade com dispositivos híbridos
+    this._escritaMouseHandler = (e) => {
+        if (!this.modoEscritaAtivo || !this.textoEmEdicao) return;
+        
+        console.log('🖱️ Clique detectado na área de desenho durante escrita');
+        e.preventDefault();
+        
+        setTimeout(() => {
+            if (this.textoEmEdicao) {
+                this.textoEmEdicao.focus();
+            }
+        }, 10);
+    };
+    
+    this.drawingArea.addEventListener('mousedown', this._escritaMouseHandler, {
+        capture: true
+    });
+    
+    // Evento para finalizar escrita quando tocar em elementos específicos
+    this._escritaBlurHandler = () => {
+        if (this.modoEscritaAtivo && this.textoEmEdicao) {
+            setTimeout(() => {
+                // Verificar se o blur foi causado por clique em outro elemento
+                if (this.modoEscritaAtivo) {
+                    console.log('✏️ Blur detectado - finalizando escrita');
+                    this.finalizarEscritaTexto();
+                }
+            }, 150);
         }
     };
     
-    document.addEventListener('keydown', this._escapeHandler);
-}
+    if (this.textoEmEdicao) {
+        this.textoEmEdicao.addEventListener('blur', this._escritaBlurHandler);
+    }
     
     // 🔥 NOVO: Evento para detectar clique em botões durante escrita
     this._botaoClickHandler = (e) => {
@@ -1868,37 +1795,55 @@ removerOverlayEscrita() {
     });
 }
 
+        // 🔥 NOVO MÉTODO: Remover eventos de escrita com caneta
         removerEventosEscritaCaneta() {
     console.log('🧹 Removendo eventos de escrita...');
     
+    if (this._escritaTouchHandler) {
+        this.drawingArea.removeEventListener('touchstart', this._escritaTouchHandler, { 
+            capture: true 
+        });
+        this._escritaTouchHandler = null;
+    }
+    
+    if (this._escritaMouseHandler) {
+        this.drawingArea.removeEventListener('mousedown', this._escritaMouseHandler, {
+            capture: true
+        });
+        this._escritaMouseHandler = null;
+    }
+    
+    if (this.textoEmEdicao && this._escritaBlurHandler) {
+        this.textoEmEdicao.removeEventListener('blur', this._escritaBlurHandler);
+        this._escritaBlurHandler = null;
+    }
+    
     if (this._botaoClickHandler) {
-        const botoesAcao = document.querySelectorAll('.action-buttons-container .btn, .top-buttons-container .btn');
+        const botoesAcao = document.querySelectorAll('.action-buttons-container .btn');
         botoesAcao.forEach(botao => {
             botao.removeEventListener('click', this._botaoClickHandler);
             botao.removeEventListener('touchstart', this._botaoClickHandler);
         });
         this._botaoClickHandler = null;
     }
-    
-    if (this._escapeHandler) {
-        document.removeEventListener('keydown', this._escapeHandler);
-        this._escapeHandler = null;
-    }
 }
 
-      finalizarEscritaTexto() {
+        // 🔥 NOVO MÉTODO: Finalizar escrita
+        finalizarEscritaTexto() {
     console.log('✏️ Finalizando escrita...');
+    this.desativarModoEscrita();
     
     if (this.textoEmEdicao) {
+        this.textoEmEdicao.classList.remove('escrita-ativa');
+        
         // Salvar histórico se o texto foi modificado
         if (this.textoEmEdicao.value.trim() !== '') {
             this.salvarEstadoHistorico('Editar Texto com Caneta');
         }
+        
+        this.textoEmEdicao = null;
     }
-    
-    this.desativarModoEscrita();
 }
-
 
         transformarCoordenadasParaLocal(dx, dy, rotacaoGraus) {
             const radianos = -rotacaoGraus * (Math.PI / 180);
@@ -4838,9 +4783,11 @@ removerOverlayEscrita() {
             return textoElement;
         }
 
-        configurarInteratividadeTexto(elemento) {
+        // 🔥 MODIFICADO: Configurar interatividade do texto com suporte a escrita
+       configurarInteratividadeTexto(elemento) {
     this.removerInteratividade(elemento);
     
+    // Só configurar se for selecionável E modo seleção ativo
     if (elemento.classList.contains('selecionavel') && this.modoSelecaoAtivo) {
         
         let originalBackground = elemento.style.backgroundColor;
@@ -4903,7 +4850,7 @@ removerOverlayEscrita() {
             ]
         });
         
-        // 🔥 CORREÇÃO: Clique único para iniciar escrita
+        // 🔥 CORREÇÃO: Sistema de clique para ativar edição
         elemento.addEventListener('click', (e) => {
             if (this.modoSelecaoAtivo && elemento.classList.contains('selecionavel')) {
                 e.stopPropagation();
@@ -4914,16 +4861,15 @@ removerOverlayEscrita() {
                 // Selecionar o elemento
                 this.selecionarElemento(elemento, e);
                 
-                // Iniciar escrita com overlay
-                console.log('🖱️ Clique no texto - iniciando escrita com overlay...');
+                // 🔥 INICIAR ESCRITA IMEDIATAMENTE no clique
+                console.log('🖱️ Clique no texto - iniciando escrita...');
                 this.iniciarEscritaTexto(elemento);
             }
         });
         
-        // Prevenir duplo-clique de selecionar texto
+        // Prevenir duplo-clique de selecionar texto dentro do textarea
         elemento.addEventListener('dblclick', (e) => {
             e.stopPropagation();
-            e.preventDefault();
         });
     }
 }
