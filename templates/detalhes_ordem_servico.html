@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -930,7 +929,6 @@
             margin: 5mm;
         }
 		
-		
         
         body {
             background: white !important;
@@ -1312,6 +1310,30 @@ height: 0px !important;
             pointer-events: auto !important;
         }
     }
+
+    /* 🔥 NOVO: Estilos para modo escrita com caneta */
+    .modo-escrita-ativa .drawing-area {
+        cursor: text !important;
+    }
+
+    .texto-legenda.escrita-ativa {
+        background: white !important;
+        border: 2px solid #4e73df !important;
+        box-shadow: 0 0 10px rgba(78, 115, 223, 0.3) !important;
+        z-index: 1001 !important;
+    }
+
+    .texto-legenda.escrita-ativa::after {
+        content: '|';
+        animation: piscar 1s infinite;
+        color: #4e73df;
+        font-weight: bold;
+    }
+
+    @keyframes piscar {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0; }
+    }
 </style>
 
 </head>
@@ -1460,27 +1482,30 @@ height: 0px !important;
             this._lacoMoveHandler = null;
             this._lacoUpHandler = null;
             this._lacoPolygonElement = null;
-this.touchStartTime = 0;
-    this.touchStartX = 0;
-    this.touchStartY = 0;
-    this.touchMoveThreshold = 10; // pixels de movimento para considerar como arraste
-    this.isScrolling = false;
-    this.isZooming = false;
-    this.touchedOutside = false;
- this.modalEstilosAberto = false;
-    this.elementoSelecionadoAntesDoModal = null;
+            this.touchStartTime = 0;
+            this.touchStartX = 0;
+            this.touchStartY = 0;
+            this.touchMoveThreshold = 10;
+            this.isScrolling = false;
+            this.isZooming = false;
+            this.touchedOutside = false;
+            this.modalEstilosAberto = false;
+            this.elementoSelecionadoAntesDoModal = null;
 
-
+            // 🔥 NOVO: Variáveis para controle de escrita com caneta
+            this.modoEscritaAtivo = false;
+            this.textoEmEdicao = null;
+            this.ultimaPosicaoToque = null;
             
             // Variáveis para o modo borracha
             this.borrachaCursor = null;
             this.borrachaPressionada = false;
             this.ultimaPosicaoBorracha = null;
             this.tamanhoBorracha = 10;
-		this.ultimoSalvamentoBorracha = 0;
-this.borrachaEmAndamento = false;
-    this.estadoAntesDaBorracha = null;
-this.borrachaAtiva = false;
+            this.ultimoSalvamentoBorracha = 0;
+            this.borrachaEmAndamento = false;
+            this.estadoAntesDaBorracha = null;
+            this.borrachaAtiva = false;
             
             this.ultimoElementoClicado = null;
             
@@ -1512,137 +1537,86 @@ this.borrachaAtiva = false;
             this.estiloLinhaSelecionado = null;
 
             this.adicionarEstilosMobile();
-
             this.inicializar();
         }
 
-adicionarEstilosMobile() {
-    if (!document.getElementById('estilos-mobile-gestos')) {
-        const estiloMobile = `
-            /* 🔥 MELHORIA: Prevenir seleção de texto durante gestos */
-            .drawing-area {
-                -webkit-user-select: none;
-                -moz-user-select: none;
-                -ms-user-select: none;
-                user-select: none;
-                -webkit-tap-highlight-color: transparent;
-            }
-            
-            /* 🔥 MELHORIA: Feedback visual para elementos selecionados no mobile */
-            .elemento-selecionado {
-                outline: 3px solid #4e73df !important;
-                outline-offset: 2px;
-            }
-            
-            /* 🔥 MELHORIA: Zoom mais suave no mobile */
-            @media (max-width: 768px) {
-                .drawing-area {
-                    touch-action: pan-x pan-y pinch-zoom;
-                }
-                
-                .action-buttons-container {
-                    position: sticky;
-                    top: 0;
-                    z-index: 1000;
-                    background: rgba(248, 249, 250, 0.95);
-                    backdrop-filter: blur(10px);
-                }
-            }
-
-            /* 🔥 CORREÇÃO: Permitir zoom com pinça no modo borracha para mobile */
-            @media (max-width: 768px) {
-                .modo-borracha .drawing-area {
-                    touch-action: pan-x pan-y pinch-zoom !important;
-                    cursor: default !important;
-                }
-                
-                .modo-borracha .cursor-borracha {
-                    display: none !important;
-                }
-                
-                /* Manter o bloqueio de interação com elementos, mas permitir zoom */
-                .modo-borracha .peca,
-                .modo-borracha .cuba,
-                .modo-borracha .texto-legenda,
-                .modo-borracha .legenda-simplificada,
-                .modo-borracha .simbolo-linha,
-                .modo-borracha .titulo-grupo,
-                .modo-borracha .dimensoes,
-                .modo-borracha .quantidade-peca,
-                .modo-borracha .linha-peca,
-                .modo-borracha .grupo-temporario {
-                    pointer-events: none !important;
-                    touch-action: none !important;
-                }
-            }
-
-            @media (max-width: 768px) {
-                .cursor-borracha {
-                    width: 25px;
-                    height: 25px;
-                    border-width: 3px;
-                }
-            }
-        `;
-
-        const styleElement = document.createElement('style');
-        styleElement.id = 'estilos-mobile-gestos';
-        styleElement.textContent = estiloMobile;
-        document.head.appendChild(styleElement);
-        
-        console.log('✅ Estilos mobile para gestos adicionados');
-    }
-}
-
- adicionarEstilosMobile() {
-        if (!document.getElementById('estilos-borracha-mobile')) {
-            const estiloMobile = `
-                /* 🔥 CORREÇÃO: Permitir zoom com pinça no modo borracha para mobile */
-                @media (max-width: 768px) {
-                    .modo-borracha .drawing-area {
-                        touch-action: pan-x pan-y pinch-zoom !important;
-                        cursor: default !important;
+        adicionarEstilosMobile() {
+            if (!document.getElementById('estilos-mobile-gestos')) {
+                const estiloMobile = `
+                    /* 🔥 MELHORIA: Prevenir seleção de texto durante gestos */
+                    .drawing-area {
+                        -webkit-user-select: none;
+                        -moz-user-select: none;
+                        -ms-user-select: none;
+                        user-select: none;
+                        -webkit-tap-highlight-color: transparent;
                     }
                     
-                    .modo-borracha .cursor-borracha {
-                        display: none !important;
+                    /* 🔥 MELHORIA: Feedback visual para elementos selecionados no mobile */
+                    .elemento-selecionado {
+                        outline: 3px solid #4e73df !important;
+                        outline-offset: 2px;
                     }
                     
-                    /* Manter o bloqueio de interação com elementos, mas permitir zoom */
-                    .modo-borracha .peca,
-                    .modo-borracha .cuba,
-                    .modo-borracha .texto-legenda,
-                    .modo-borracha .legenda-simplificada,
-                    .modo-borracha .simbolo-linha,
-                    .modo-borracha .titulo-grupo,
-                    .modo-borracha .dimensoes,
-                    .modo-borracha .quantidade-peca,
-                    .modo-borracha .linha-peca,
-                    .modo-borracha .grupo-temporario {
-                        pointer-events: none !important;
-                        touch-action: none !important;
+                    /* 🔥 MELHORIA: Zoom mais suave no mobile */
+                    @media (max-width: 768px) {
+                        .drawing-area {
+                            touch-action: pan-x pan-y pinch-zoom;
+                        }
+                        
+                        .action-buttons-container {
+                            position: sticky;
+                            top: 0;
+                            z-index: 1000;
+                            background: rgba(248, 249, 250, 0.95);
+                            backdrop-filter: blur(10px);
+                        }
                     }
-                }
 
-               
-
-                @media (max-width: 768px) {
-                    .cursor-borracha {
-                        width: 25px;
-                        height: 25px;
-                        border-width: 3px;
+                    /* 🔥 CORREÇÃO: Permitir zoom com pinça no modo borracha para mobile */
+                    @media (max-width: 768px) {
+                        .modo-borracha .drawing-area {
+                            touch-action: pan-x pan-y pinch-zoom !important;
+                            cursor: default !important;
+                        }
+                        
+                        .modo-borracha .cursor-borracha {
+                            display: none !important;
+                        }
+                        
+                        /* Manter o bloqueio de interação com elementos, mas permitir zoom */
+                        .modo-borracha .peca,
+                        .modo-borracha .cuba,
+                        .modo-borracha .texto-legenda,
+                        .modo-borracha .legenda-simplificada,
+                        .modo-borracha .simbolo-linha,
+                        .modo-borracha .titulo-grupo,
+                        .modo-borracha .dimensoes,
+                        .modo-borracha .quantidade-peca,
+                        .modo-borracha .linha-peca,
+                        .modo-borracha .grupo-temporario {
+                            pointer-events: none !important;
+                            touch-action: none !important;
+                        }
                     }
-                }
-            `;
 
-            const styleElement = document.createElement('style');
-            styleElement.id = 'estilos-borracha-mobile';
-            styleElement.textContent = estiloMobile;
-            document.head.appendChild(styleElement);
-            
-            console.log('✅ Estilos mobile para borracha adicionados');
+                    @media (max-width: 768px) {
+                        .cursor-borracha {
+                            width: 25px;
+                            height: 25px;
+                            border-width: 3px;
+                        }
+                    }
+                `;
+
+                const styleElement = document.createElement('style');
+                styleElement.id = 'estilos-mobile-gestos';
+                styleElement.textContent = estiloMobile;
+                document.head.appendChild(styleElement);
+                
+                console.log('✅ Estilos mobile para gestos adicionados');
+            }
         }
-    }
 
         // 🔥 NOVO MÉTODO: Desativar todos os modos
         desativarTodosOsModos() {
@@ -1652,6 +1626,7 @@ adicionarEstilosMobile() {
             if (this.modoSelecaoAtivo) this.desativarModoSelecao();
             if (this.modoBorrachaAtivo) this.desativarModoBorracha();
             if (this.modoLacoAtivo) this.desativarModoLaco();
+            if (this.modoEscritaAtivo) this.desativarModoEscrita();
             
             // Desativar modo de inserção
             this.modoInsercaoAtivo = null;
@@ -1661,7 +1636,7 @@ adicionarEstilosMobile() {
             const botoesModo = [
                 'btnSelecionar', 'btnBorracha', 'btnLaco', 
                 'btnAdicionarTexto', 'btnAdicionarCuba', 'btnLegendaSimplificada',
-                'btnEstilos' // 🔥 NOVO
+                'btnEstilos'
             ];
             
             botoesModo.forEach(botaoId => {
@@ -1672,6 +1647,105 @@ adicionarEstilosMobile() {
             });
             
             console.log('✅ Todos os modos desativados');
+        }
+
+        // 🔥 NOVO MÉTODO: Ativar modo escrita
+        ativarModoEscrita() {
+            console.log('✏️ Ativando modo escrita...');
+            this.modoEscritaAtivo = true;
+            document.body.classList.add('modo-escrita-ativa');
+            this.drawingArea.style.cursor = 'text';
+        }
+
+        // 🔥 NOVO MÉTODO: Desativar modo escrita
+        desativarModoEscrita() {
+            console.log('✏️ Desativando modo escrita...');
+            this.modoEscritaAtivo = false;
+            document.body.classList.remove('modo-escrita-ativa');
+            
+            if (this.textoEmEdicao) {
+                this.textoEmEdicao.classList.remove('escrita-ativa');
+                this.textoEmEdicao = null;
+            }
+            
+            this.drawingArea.style.cursor = this.modoSelecaoAtivo ? 'pointer' : 'default';
+        }
+
+        // 🔥 NOVO MÉTODO: Iniciar escrita em texto selecionado
+        iniciarEscritaTexto(textoElement) {
+            if (!this.modoSelecaoAtivo) return;
+            
+            console.log('✏️ Iniciando escrita no texto...');
+            this.ativarModoEscrita();
+            this.textoEmEdicao = textoElement;
+            textoElement.classList.add('escrita-ativa');
+            textoElement.focus();
+            
+            // Configurar eventos de escrita com caneta
+            this.configurarEventosEscritaCaneta();
+        }
+
+        // 🔥 NOVO MÉTODO: Configurar eventos para escrita com caneta
+        configurarEventosEscritaCaneta() {
+            // Remover event listeners anteriores para evitar duplicação
+            this.removerEventosEscritaCaneta();
+            
+            // Evento para capturar toques em qualquer lugar da área quando em modo escrita
+            this._escritaTouchHandler = (e) => {
+                if (!this.modoEscritaAtivo || !this.textoEmEdicao) return;
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                // Focar no texto para abrir teclado virtual
+                this.textoEmEdicao.focus();
+            };
+            
+            this.drawingArea.addEventListener('touchstart', this._escritaTouchHandler, { passive: false });
+            
+            // Evento para finalizar escrita quando tocar fora
+            this._escritaBlurHandler = () => {
+                if (this.modoEscritaAtivo && this.textoEmEdicao) {
+                    setTimeout(() => {
+                        this.finalizarEscritaTexto();
+                    }, 100);
+                }
+            };
+            
+            if (this.textoEmEdicao) {
+                this.textoEmEdicao.addEventListener('blur', this._escritaBlurHandler);
+            }
+        }
+
+        // 🔥 NOVO MÉTODO: Remover eventos de escrita com caneta
+        removerEventosEscritaCaneta() {
+            if (this._escritaTouchHandler) {
+                this.drawingArea.removeEventListener('touchstart', this._escritaTouchHandler);
+                this._escritaTouchHandler = null;
+            }
+            
+            if (this.textoEmEdicao && this._escritaBlurHandler) {
+                this.textoEmEdicao.removeEventListener('blur', this._escritaBlurHandler);
+                this._escritaBlurHandler = null;
+            }
+        }
+
+        // 🔥 NOVO MÉTODO: Finalizar escrita
+        finalizarEscritaTexto() {
+            console.log('✏️ Finalizando escrita...');
+            this.desativarModoEscrita();
+            this.removerEventosEscritaCaneta();
+            
+            if (this.textoEmEdicao) {
+                this.textoEmEdicao.classList.remove('escrita-ativa');
+                
+                // Salvar histórico se o texto foi modificado
+                if (this.textoEmEdicao.value.trim() !== '') {
+                    this.salvarEstadoHistorico('Editar Texto com Caneta');
+                }
+                
+                this.textoEmEdicao = null;
+            }
         }
 
         transformarCoordenadasParaLocal(dx, dy, rotacaoGraus) {
@@ -1839,237 +1913,187 @@ adicionarEstilosMobile() {
             console.log('✅ Gerenciador de Desenho inicializado com sucesso!');
         }
 
-       configurarEventosBorracha() {
-    // Mouse events
-    this.drawingArea.addEventListener('mousedown', (e) => {
-        if (this.modoBorrachaAtivo && e.button === 0) {
-            this.iniciarPinturaBorracha(e);
-        }
-    });
-    
-    this.drawingArea.addEventListener('mousemove', (e) => {
-        if (this.modoBorrachaAtivo) {
-            this.atualizarCursorBorracha(e);
-            if (this.borrachaPressionada) {
-                this.pintarComBorracha(e);
-            }
-        }
-    });
-    
-    this.drawingArea.addEventListener('mouseup', (e) => {
-        if (this.modoBorrachaAtivo && e.button === 0) {
-            this.pararPinturaBorracha();
-        }
-    });
-    
-    // 🔥 CORREÇÃO ADICIONADA: Ocultar cursor quando mouse sair da área
-    this.drawingArea.addEventListener('mouseleave', (e) => {
-        if (this.modoBorrachaAtivo) {
-            this.ocultarCursorBorracha();
-            if (this.borrachaPressionada) {
-                this.pararPinturaBorracha();
-            }
-        }
-    });
-    
-    // 🔥 CORREÇÃO ADICIONADA: Mostrar cursor quando mouse entrar na área
-    this.drawingArea.addEventListener('mouseenter', (e) => {
-        if (this.modoBorrachaAtivo) {
-            this.atualizarCursorBorracha(e);
-        }
-    });
-    
-    // Touch events (mantido igual)
-    let touchStartTimeout = null;
-    let currentTouches = 0;
-    
-    this.drawingArea.addEventListener('touchstart', (e) => {
-        if (this.modoBorrachaAtivo) {
-            currentTouches = e.touches.length;
+        configurarEventosBorracha() {
+            // Mouse events
+            this.drawingArea.addEventListener('mousedown', (e) => {
+                if (this.modoBorrachaAtivo && e.button === 0) {
+                    this.iniciarPinturaBorracha(e);
+                }
+            });
             
-            if (currentTouches === 1) {
-                touchStartTimeout = setTimeout(() => {
-                    if (e.touches.length === 1) {
-                        e.preventDefault();
-                        this.iniciarPinturaBorracha(e);
+            this.drawingArea.addEventListener('mousemove', (e) => {
+                if (this.modoBorrachaAtivo) {
+                    this.atualizarCursorBorracha(e);
+                    if (this.borrachaPressionada) {
+                        this.pintarComBorracha(e);
                     }
-                }, 30);
-            } else {
-                clearTimeout(touchStartTimeout);
-            }
-        }
-    }, { passive: false });
-    
-    this.drawingArea.addEventListener('touchmove', (e) => {
-        if (this.modoBorrachaAtivo) {
-            currentTouches = e.touches.length;
+                }
+            });
             
-            if (currentTouches >= 2) {
-                clearTimeout(touchStartTimeout);
-                return;
+            this.drawingArea.addEventListener('mouseup', (e) => {
+                if (this.modoBorrachaAtivo && e.button === 0) {
+                    this.pararPinturaBorracha();
+                }
+            });
+            
+            this.drawingArea.addEventListener('mouseleave', (e) => {
+                if (this.modoBorrachaAtivo) {
+                    this.ocultarCursorBorracha();
+                    if (this.borrachaPressionada) {
+                        this.pararPinturaBorracha();
+                    }
+                }
+            });
+            
+            this.drawingArea.addEventListener('mouseenter', (e) => {
+                if (this.modoBorrachaAtivo) {
+                    this.atualizarCursorBorracha(e);
+                }
+            });
+            
+            // Touch events
+            let touchStartTimeout = null;
+            let currentTouches = 0;
+            
+            this.drawingArea.addEventListener('touchstart', (e) => {
+                if (this.modoBorrachaAtivo) {
+                    currentTouches = e.touches.length;
+                    
+                    if (currentTouches === 1) {
+                        touchStartTimeout = setTimeout(() => {
+                            if (e.touches.length === 1) {
+                                e.preventDefault();
+                                this.iniciarPinturaBorracha(e);
+                            }
+                        }, 30);
+                    } else {
+                        clearTimeout(touchStartTimeout);
+                    }
+                }
+            }, { passive: false });
+            
+            this.drawingArea.addEventListener('touchmove', (e) => {
+                if (this.modoBorrachaAtivo) {
+                    currentTouches = e.touches.length;
+                    
+                    if (currentTouches >= 2) {
+                        clearTimeout(touchStartTimeout);
+                        return;
+                    }
+                    
+                    if (currentTouches === 1 && this.borrachaPressionada) {
+                        e.preventDefault();
+                        this.atualizarCursorBorracha(e);
+                        this.pintarComBorracha(e);
+                    }
+                }
+            }, { passive: false });
+            
+            this.drawingArea.addEventListener('touchend', (e) => {
+                if (this.modoBorrachaAtivo) {
+                    clearTimeout(touchStartTimeout);
+                    
+                    if (e.touches.length === 0) {
+                        this.pararPinturaBorracha();
+                        this.ocultarCursorBorracha();
+                    }
+                }
+            }, { passive: false });
+        }
+
+        iniciarPinturaBorracha(e) {
+            if (!this.modoBorrachaAtivo) return;
+            
+            this.borrachaPressionada = true;
+            this.ultimaPosicaoBorracha = null;
+            
+            this.salvarEstadoHistorico('Antes da Borracha');
+            console.log('🔧 Iniciando pintura com borracha');
+            this.pintarComBorracha(e);
+        }
+
+        pararPinturaBorracha() {
+            if (!this.borrachaPressionada) return;
+            
+            this.borrachaPressionada = false;
+            this.ultimaPosicaoBorracha = null;
+            
+            const elementosPintura = this.drawingArea.querySelectorAll('.pintura-borracha');
+            if (elementosPintura.length > 0) {
+                this.salvarEstadoHistorico('Pintar com Borracha');
+                console.log(`💾 Borracha salva: ${elementosPintura.length} elementos pintados`);
             }
             
-            if (currentTouches === 1 && this.borrachaPressionada) {
-                e.preventDefault();
-                this.atualizarCursorBorracha(e);
-                this.pintarComBorracha(e);
-            }
+            console.log('🔧 Parando pintura com borracha');
         }
-    }, { passive: false });
-    
-    this.drawingArea.addEventListener('touchend', (e) => {
-        if (this.modoBorrachaAtivo) {
-            clearTimeout(touchStartTimeout);
-            
-            if (e.touches.length === 0) {
-                this.pararPinturaBorracha();
-                this.ocultarCursorBorracha();
-            }
-        }
-    }, { passive: false });
-    
-    this.drawingArea.addEventListener('touchstart', (e) => {
-        if (this.modoBorrachaAtivo && e.touches.length >= 2) {
-            clearTimeout(touchStartTimeout);
-        }
-    }, { passive: true });
-}
-
-
-      iniciarPinturaBorracha(e) {
-    if (!this.modoBorrachaAtivo) return;
-    
-    this.borrachaPressionada = true;
-    this.ultimaPosicaoBorracha = null;
-    
-    // 🔥 CORREÇÃO: Salvar estado ANTES de começar a borracha
-    this.salvarEstadoHistorico('Antes da Borracha');
-    
-    console.log('🔧 Iniciando pintura com borracha');
-    this.pintarComBorracha(e);
-}
-
-pararPinturaBorracha() {
-    if (!this.borrachaPressionada) return;
-    
-    this.borrachaPressionada = false;
-    this.ultimaPosicaoBorracha = null;
-    
-    // 🔥 CORREÇÃO SIMPLES: Sempre salvar quando terminar a borracha
-    // Verificar se realmente houve alguma pintura
-    const elementosPintura = this.drawingArea.querySelectorAll('.pintura-borracha');
-    if (elementosPintura.length > 0) {
-        this.salvarEstadoHistorico('Pintar com Borracha');
-        console.log(`💾 Borracha salva: ${elementosPintura.length} elementos pintados`);
-    }
-    
-    console.log('🔧 Parando pintura com borracha');
-}
-
-salvarEstadoHistoricoForcado(descricao) {
-    if (this.indiceHistorico < this.historico.length - 1) {
-        this.historico = this.historico.slice(0, this.indiceHistorico + 1);
-    }
-    
-    // 🔥 CORREÇÃO: Preservar cursor da borracha durante o salvamento
-    let displayOriginal;
-    if (this.borrachaCursor) {
-        displayOriginal = this.borrachaCursor.style.display;
-        this.borrachaCursor.style.display = 'none';
-    }
-
-    const snapshot = { 
-        descricao: descricao, 
-        timestamp: new Date(), 
-        data: this.obterEstadoAtual() 
-    };
-    this.historico.push(snapshot);
-    this.indiceHistorico++;
-    
-    // 🔥 CORREÇÃO: Restaurar display do cursor após salvamento
-    if (this.borrachaCursor) {
-        this.borrachaCursor.style.display = displayOriginal || 'block';
-    }
-
-    if (this.historico.length > this.maximoHistorico) {
-        this.historico.shift();
-        this.indiceHistorico--;
-    }
-    
-    this.ultimoSalvamentoHistorico = Date.now();
-    this.atualizarBotoesHistorico();
-    console.log(`💾 Histórico salvo: ${descricao} (${this.historico.length} estados, índice: ${this.indiceHistorico})`);
-}
 
         atualizarCursorBorracha(e) {
-    if (!this.borrachaCursor) {
-        this.borrachaCursor = document.createElement('div');
-        this.borrachaCursor.className = 'cursor-borracha';
-        this.drawingArea.appendChild(this.borrachaCursor);
-    }
-    
-    const coords = this.obterCoordenadasBorracha(e);
-    this.borrachaCursor.style.left = `${coords.x - this.tamanhoBorracha/2}px`;
-    this.borrachaCursor.style.top = `${coords.y - this.tamanhoBorracha/2}px`;
-    this.borrachaCursor.style.display = 'block';
-    
-    // 🔥 NOVO: Garantir que o cursor padrão esteja oculto
-    if (this.modoBorrachaAtivo) {
-        this.drawingArea.style.cursor = 'none';
-    }
-}
-      ocultarCursorBorracha() {
-    if (this.borrachaCursor) {
-        this.borrachaCursor.style.display = 'none';
-    }
-    // Restaurar cursor padrão quando ocultar a borracha
-    if (this.modoBorrachaAtivo) {
-        this.drawingArea.style.cursor = 'default';
-    }
-}
+            if (!this.borrachaCursor) {
+                this.borrachaCursor = document.createElement('div');
+                this.borrachaCursor.className = 'cursor-borracha';
+                this.drawingArea.appendChild(this.borrachaCursor);
+            }
+            
+            const coords = this.obterCoordenadasBorracha(e);
+            this.borrachaCursor.style.left = `${coords.x - this.tamanhoBorracha/2}px`;
+            this.borrachaCursor.style.top = `${coords.y - this.tamanhoBorracha/2}px`;
+            this.borrachaCursor.style.display = 'block';
+            
+            if (this.modoBorrachaAtivo) {
+                this.drawingArea.style.cursor = 'none';
+            }
+        }
 
-       obterCoordenadasBorracha(e) {
-    let clientX, clientY;
-    
-    if (e.touches && e.touches[0]) {
-        clientX = e.touches[0].clientX;
-        clientY = e.touches[0].clientY;
-    } else {
-        clientX = e.clientX;
-        clientY = e.clientY;
-    }
-    
-    const rect = this.drawingArea.getBoundingClientRect();
-    const scrollLeft = this.drawingArea.scrollLeft || 0;
-    const scrollTop = this.drawingArea.scrollTop || 0;
-    
-    return { 
-        x: clientX - rect.left + scrollLeft, 
-        y: clientY - rect.top + scrollTop
-    }; 
-}
+        ocultarCursorBorracha() {
+            if (this.borrachaCursor) {
+                this.borrachaCursor.style.display = 'none';
+            }
+            if (this.modoBorrachaAtivo) {
+                this.drawingArea.style.cursor = 'default';
+            }
+        }
 
-      pintarComBorracha(e) {
-    if (!this.borrachaPressionada) return;
-    
-    const coords = this.obterCoordenadasBorracha(e);
-    
-    const pintura = document.createElement('div');
-    pintura.className = 'pintura-borracha';
-    pintura.style.left = `${coords.x - this.tamanhoBorracha/2}px`;
-    pintura.style.top = `${coords.y - this.tamanhoBorracha/2}px`;
-    pintura.style.width = `${this.tamanhoBorracha}px`;
-    pintura.style.height = `${this.tamanhoBorracha}px`;
-    
-    this.drawingArea.appendChild(pintura);
-    
-    if (this.ultimaPosicaoBorracha) {
-        this.preencherEspacoBorracha(this.ultimaPosicaoBorracha, coords);
-    }
-    
-    this.ultimaPosicaoBorracha = coords;
-}
+        obterCoordenadasBorracha(e) {
+            let clientX, clientY;
+            
+            if (e.touches && e.touches[0]) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            
+            const rect = this.drawingArea.getBoundingClientRect();
+            const scrollLeft = this.drawingArea.scrollLeft || 0;
+            const scrollTop = this.drawingArea.scrollTop || 0;
+            
+            return { 
+                x: clientX - rect.left + scrollLeft, 
+                y: clientY - rect.top + scrollTop
+            }; 
+        }
 
+        pintarComBorracha(e) {
+            if (!this.borrachaPressionada) return;
+            
+            const coords = this.obterCoordenadasBorracha(e);
+            
+            const pintura = document.createElement('div');
+            pintura.className = 'pintura-borracha';
+            pintura.style.left = `${coords.x - this.tamanhoBorracha/2}px`;
+            pintura.style.top = `${coords.y - this.tamanhoBorracha/2}px`;
+            pintura.style.width = `${this.tamanhoBorracha}px`;
+            pintura.style.height = `${this.tamanhoBorracha}px`;
+            
+            this.drawingArea.appendChild(pintura);
+            
+            if (this.ultimaPosicaoBorracha) {
+                this.preencherEspacoBorracha(this.ultimaPosicaoBorracha, coords);
+            }
+            
+            this.ultimaPosicaoBorracha = coords;
+        }
 
         preencherEspacoBorracha(inicio, fim) {
             const distancia = Math.sqrt(Math.pow(fim.x - inicio.x, 2) + Math.pow(fim.y - inicio.y, 2));
@@ -2100,95 +2124,63 @@ salvarEstadoHistoricoForcado(descricao) {
             }
         }
 
-       ativarModoBorracha() {
-    this.desativarTodosOsModos();
-    console.log('🔵 Ativando modo borracha...');
-    
-    this.modoBorrachaAtivo = true;
-    this.desselecionarElemento();
-    
-    document.body.classList.add('modo-borracha');
-    
-    // 🔥 CORREÇÃO: No mobile, manter cursor padrão para permitir zoom
-    if (this.ehDispositivoMobile()) {
-        this.drawingArea.style.cursor = 'default';
-        console.log('📱 Modo borracha ativado no mobile - zoom com pinça habilitado');
-    } else {
-        this.drawingArea.style.cursor = 'none';
-    }
-    
-    // Criar cursor da borracha
-    this.borrachaCursor = document.createElement('div');
-    this.borrachaCursor.className = 'cursor-borracha';
-    this.drawingArea.appendChild(this.borrachaCursor);
-    
-    const btnBorracha = document.getElementById('btnBorracha');
-    if (btnBorracha) {
-        btnBorracha.classList.add('btn-borracha-ativo');
-    }
-    
-    console.log('✅ Modo borracha ativado');
-}
-
-ehDispositivoMobile() {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-           (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
-}
-
-      desativarModoBorracha() {
-    console.log('🔵 Desativando modo borracha...');
-    
-    this.modoBorrachaAtivo = false;
-    this.borrachaPressionada = false;
-    this.ultimaPosicaoBorracha = null;
-    
-    document.body.classList.remove('modo-borracha');
-    
-    // 🔥 CORREÇÃO: Restaurar cursor padrão
-    this.drawingArea.style.cursor = 'default';
-    
-    // Remover cursor da borracha
-    this.ocultarCursorBorracha();
-    if (this.borrachaCursor && this.borrachaCursor.parentNode) {
-        this.borrachaCursor.parentNode.removeChild(this.borrachaCursor);
-        this.borrachaCursor = null;
-    }
-    
-    const btnBorracha = document.getElementById('btnBorracha');
-    if (btnBorracha) {
-        btnBorracha.classList.remove('btn-borracha-ativo');
-    }
-    
-    console.log('✅ Modo borracha desativado');
-}
-
-atualizarCursorBorracha(e) {
-    // 🔥 CORREÇÃO: No mobile, não mostrar cursor da borracha durante zoom com pinça
-    if (this.ehDispositivoMobile() && e.touches && e.touches.length >= 2) {
-        if (this.borrachaCursor) {
-            this.borrachaCursor.style.display = 'none';
+        ativarModoBorracha() {
+            this.desativarTodosOsModos();
+            console.log('🔵 Ativando modo borracha...');
+            
+            this.modoBorrachaAtivo = true;
+            this.desselecionarElemento();
+            
+            document.body.classList.add('modo-borracha');
+            
+            if (this.ehDispositivoMobile()) {
+                this.drawingArea.style.cursor = 'default';
+                console.log('📱 Modo borracha ativado no mobile - zoom com pinça habilitado');
+            } else {
+                this.drawingArea.style.cursor = 'none';
+            }
+            
+            this.borrachaCursor = document.createElement('div');
+            this.borrachaCursor.className = 'cursor-borracha';
+            this.drawingArea.appendChild(this.borrachaCursor);
+            
+            const btnBorracha = document.getElementById('btnBorracha');
+            if (btnBorracha) {
+                btnBorracha.classList.add('btn-borracha-ativo');
+            }
+            
+            console.log('✅ Modo borracha ativado');
         }
-        return;
-    }
-    
-    if (!this.borrachaCursor) {
-        this.borrachaCursor = document.createElement('div');
-        this.borrachaCursor.className = 'cursor-borracha';
-        this.drawingArea.appendChild(this.borrachaCursor);
-    }
-    
-    const coords = this.obterCoordenadasBorracha(e);
-    this.borrachaCursor.style.left = `${coords.x - this.tamanhoBorracha/2}px`;
-    this.borrachaCursor.style.top = `${coords.y - this.tamanhoBorracha/2}px`;
-    
-    // 🔥 CORREÇÃO: No mobile, mostrar cursor apenas durante uso ativo
-    if (this.ehDispositivoMobile()) {
-        this.borrachaCursor.style.display = this.borrachaPressionada ? 'block' : 'none';
-    } else {
-        this.borrachaCursor.style.display = 'block';
-        this.drawingArea.style.cursor = 'none';
-    }
-}
+
+        ehDispositivoMobile() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                   (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
+        }
+
+        desativarModoBorracha() {
+            console.log('🔵 Desativando modo borracha...');
+            
+            this.modoBorrachaAtivo = false;
+            this.borrachaPressionada = false;
+            this.ultimaPosicaoBorracha = null;
+            
+            document.body.classList.remove('modo-borracha');
+            
+            this.drawingArea.style.cursor = 'default';
+            
+            this.ocultarCursorBorracha();
+            if (this.borrachaCursor && this.borrachaCursor.parentNode) {
+                this.borrachaCursor.parentNode.removeChild(this.borrachaCursor);
+                this.borrachaCursor = null;
+            }
+            
+            const btnBorracha = document.getElementById('btnBorracha');
+            if (btnBorracha) {
+                btnBorracha.classList.remove('btn-borracha-ativo');
+            }
+            
+            console.log('✅ Modo borracha desativado');
+        }
 
         excluirElemento() {
             const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
@@ -2229,109 +2221,102 @@ atualizarCursorBorracha(e) {
             });
         }
 
-      salvarEstadoHistorico(descricao, forcarSalvamento = false) {
-    const agora = Date.now();
-    const tempoDesdeUltimoSalvamento = agora - (this.ultimoSalvamentoHistorico || 0);
+        salvarEstadoHistorico(descricao, forcarSalvamento = false) {
+            const agora = Date.now();
+            const tempoDesdeUltimoSalvamento = agora - (this.ultimoSalvamentoHistorico || 0);
 
-    // 🔥 CORREÇÃO: Sem throttle para operações de borracha
-    const ehBorracha = descricao.includes('Borracha');
-    
-    if (!ehBorracha && !forcarSalvamento && tempoDesdeUltimoSalvamento < 200) {
-        console.log(`⏱️ Ação rápida ignorada temporariamente: ${descricao}`);
-        return;
-    }
+            const ehBorracha = descricao.includes('Borracha');
+            
+            if (!ehBorracha && !forcarSalvamento && tempoDesdeUltimoSalvamento < 200) {
+                console.log(`⏱️ Ação rápida ignorada temporariamente: ${descricao}`);
+                return;
+            }
 
-    if (this.indiceHistorico < this.historico.length - 1) {
-        this.historico = this.historico.slice(0, this.indiceHistorico + 1);
-    }
-    
-    // Preservar cursor da borracha durante o salvamento
-    let displayOriginal;
-    if (this.borrachaCursor) {
-        displayOriginal = this.borrachaCursor.style.display;
-        this.borrachaCursor.style.display = 'none';
-    }
+            if (this.indiceHistorico < this.historico.length - 1) {
+                this.historico = this.historico.slice(0, this.indiceHistorico + 1);
+            }
+            
+            let displayOriginal;
+            if (this.borrachaCursor) {
+                displayOriginal = this.borrachaCursor.style.display;
+                this.borrachaCursor.style.display = 'none';
+            }
 
-    const snapshot = { 
-        descricao: descricao, 
-        timestamp: new Date(), 
-        data: this.obterEstadoAtual() 
-    };
-    this.historico.push(snapshot);
-    this.indiceHistorico++;
-    
-    // Restaurar display do cursor após salvamento
-    if (this.borrachaCursor) {
-        this.borrachaCursor.style.display = displayOriginal || 'block';
-    }
+            const snapshot = { 
+                descricao: descricao, 
+                timestamp: new Date(), 
+                data: this.obterEstadoAtual() 
+            };
+            this.historico.push(snapshot);
+            this.indiceHistorico++;
+            
+            if (this.borrachaCursor) {
+                this.borrachaCursor.style.display = displayOriginal || 'block';
+            }
 
-    if (this.historico.length > this.maximoHistorico) {
-        this.historico.shift();
-        this.indiceHistorico--;
-    }
-    
-    this.ultimoSalvamentoHistorico = agora;
-    this.atualizarBotoesHistorico();
-    console.log(`💾 Histórico salvo: ${descricao} (${this.historico.length} estados, índice: ${this.indiceHistorico})`);
-}
+            if (this.historico.length > this.maximoHistorico) {
+                this.historico.shift();
+                this.indiceHistorico--;
+            }
+            
+            this.ultimoSalvamentoHistorico = agora;
+            this.atualizarBotoesHistorico();
+            console.log(`💾 Histórico salvo: ${descricao} (${this.historico.length} estados, índice: ${this.indiceHistorico})`);
+        }
 
-       obterEstadoAtual() {
-    const elementosTexto = this.drawingArea.querySelectorAll('.texto-legenda');
-    elementosTexto.forEach(texto => {
-        texto.setAttribute('data-valor', texto.value);
-    });
+        obterEstadoAtual() {
+            const elementosTexto = this.drawingArea.querySelectorAll('.texto-legenda');
+            elementosTexto.forEach(texto => {
+                texto.setAttribute('data-valor', texto.value);
+            });
 
-    const clone = this.drawingArea.cloneNode(true);
+            const clone = this.drawingArea.cloneNode(true);
 
-    // 🔥 CORREÇÃO: Remover elementos temporários INCLUINDO cursor da borracha
-    const temporarios = clone.querySelectorAll(
-        '#laco-selecao, .laco-temporario, .linha-temporaria, .preview-laco, .cursor-borracha'
-    );
-    temporarios.forEach(el => el.remove());
+            const temporarios = clone.querySelectorAll(
+                '#laco-selecao, .laco-temporario, .linha-temporaria, .preview-laco, .cursor-borracha'
+            );
+            temporarios.forEach(el => el.remove());
 
-    const grupoTemp = clone.querySelector('.grupo-temporario');
-    if (grupoTemp) grupoTemp.remove();
+            const grupoTemp = clone.querySelector('.grupo-temporario');
+            if (grupoTemp) grupoTemp.remove();
 
-    const selecoes = clone.querySelectorAll('.selecionado, .laco-ativo, .modo-laco');
-    selecoes.forEach(s => s.classList.remove('selecionado', 'laco-ativo', 'modo-laco'));
+            const selecoes = clone.querySelectorAll('.selecionado, .laco-ativo, .modo-laco');
+            selecoes.forEach(s => s.classList.remove('selecionado', 'laco-ativo', 'modo-laco'));
 
-    return {
-        drawingAreaHTML: clone.innerHTML,
-        gruposPecas: JSON.parse(JSON.stringify(this.gruposPecas))
-    };
-}
+            return {
+                drawingAreaHTML: clone.innerHTML,
+                gruposPecas: JSON.parse(JSON.stringify(this.gruposPecas))
+            };
+        }
 
-limparPinturasBorracha() {
-    const pinturas = this.drawingArea.querySelectorAll('.pintura-borracha');
-    pinturas.forEach(pintura => pintura.remove());
-}
+        limparPinturasBorracha() {
+            const pinturas = this.drawingArea.querySelectorAll('.pintura-borracha');
+            pinturas.forEach(pintura => pintura.remove());
+        }
 
         salvarEstadoImediato(descricao) {
             this.salvarEstadoHistorico(descricao, true);
         }
 
         restaurarEstadoHistorico(estado) {
-    // 🔥 CORREÇÃO: Preservar cursor da borracha se o modo estiver ativo
-    const borrachaAtiva = this.modoBorrachaAtivo;
-    const cursorAtual = this.borrachaCursor;
-    
-    this.removerTodosOsHandles();
-    this.limparModoLacoCompletamente();
-    this.limparGrupoTemporario();
-    
-    this.drawingArea.innerHTML = estado.drawingAreaHTML;
-    this.gruposPecas = JSON.parse(JSON.stringify(estado.gruposPecas));
-    
-    // 🔥 CORREÇÃO: Restaurar cursor da borracha se necessário
-    if (borrachaAtiva && cursorAtual) {
-        this.borrachaCursor = cursorAtual;
-        this.drawingArea.appendChild(this.borrachaCursor);
-    }
-    
-    this.restaurarElementosTexto();
-    this.reconfigurarElementosAposHistorico();
-}
-
+            const borrachaAtiva = this.modoBorrachaAtivo;
+            const cursorAtual = this.borrachaCursor;
+            
+            this.removerTodosOsHandles();
+            this.limparModoLacoCompletamente();
+            this.limparGrupoTemporario();
+            
+            this.drawingArea.innerHTML = estado.drawingAreaHTML;
+            this.gruposPecas = JSON.parse(JSON.stringify(estado.gruposPecas));
+            
+            if (borrachaAtiva && cursorAtual) {
+                this.borrachaCursor = cursorAtual;
+                this.drawingArea.appendChild(this.borrachaCursor);
+            }
+            
+            this.restaurarElementosTexto();
+            this.reconfigurarElementosAposHistorico();
+        }
 
         reconfigurarElementosAposHistorico() {
             this.removerTodosOsHandles();
@@ -2462,88 +2447,40 @@ limparPinturasBorracha() {
             this.ultimoElementoClicado = null;
         }
 
-      desfazer() {
-    if (this.indiceHistorico > 0) {
-        this.removerTodosOsHandles();
-        
-        this.indiceHistorico--;
-        const estadoAnterior = this.historico[this.indiceHistorico];
-        
-        // 🔥 CORREÇÃO: Preservar estado do modo borracha
-        const modoBorrachaAtivoAntes = this.modoBorrachaAtivo;
-        
-        this.restaurarEstadoHistorico(estadoAnterior.data);
-        console.log('🔧 Desfazer executado - Estado:', this.indiceHistorico);
+        desfazer() {
+            if (this.indiceHistorico > 0) {
+                this.removerTodosOsHandles();
+                
+                this.indiceHistorico--;
+                const estadoAnterior = this.historico[this.indiceHistorico];
+                
+                const modoBorrachaAtivoAntes = this.modoBorrachaAtivo;
+                
+                this.restaurarEstadoHistorico(estadoAnterior.data);
+                console.log('🔧 Desfazer executado - Estado:', this.indiceHistorico);
 
-        // 🔥 CORREÇÃO SIMPLIFICADA: Restaurar modo borracha se estava ativo
-        if (modoBorrachaAtivoAntes) {
-            this.modoBorrachaAtivo = true;
-            document.body.classList.add('modo-borracha');
-            this.drawingArea.style.cursor = 'none';
-            
-            const btnBorracha = document.getElementById('btnBorracha');
-            if (btnBorracha) {
-                btnBorracha.classList.add('btn-borracha-ativo');
-            }
-            
-            // 🔥 CORREÇÃO: Recriar o cursor mas NÃO posicioná-lo ainda
-            // Ele será posicionado no próximo movimento do mouse
-            this.borrachaCursor = document.createElement('div');
-            this.borrachaCursor.className = 'cursor-borracha';
-            this.borrachaCursor.style.display = 'none'; // Inicialmente oculto
-            this.drawingArea.appendChild(this.borrachaCursor);
-            
-            console.log('✅ Modo borracha restaurado após desfazer - cursor será posicionado no movimento');
-        }
-    } else {
-        console.log('🔧 Não há ações para desfazer');
-    }
-    this.atualizarBotoesHistorico();
-}
-
-// 🔥 ADICIONAR: Corrigir também o método refazer para manter consistência
-refazer() {
-    if (this.indiceHistorico < this.historico.length - 1) {
-        this.removerTodosOsHandles();
-        
-        this.indiceHistorico++;
-        const estadoFuturo = this.historico[this.indiceHistorico];
-        
-        // 🔥 CORREÇÃO: Preservar estado do modo borracha
-        const modoBorrachaAtivoAntes = this.modoBorrachaAtivo;
-        
-        this.restaurarEstadoHistorico(estadoFuturo.data);
-        console.log('🔧 Refazer executado - Estado:', this.indiceHistorico);
-
-        // Restaurar modo borracha se estava ativo
-        if (modoBorrachaAtivoAntes) {
-            this.modoBorrachaAtivo = true;
-            document.body.classList.add('modo-borracha');
-            this.drawingArea.style.cursor = 'none';
-            
-            const btnBorracha = document.getElementById('btnBorracha');
-            if (btnBorracha) {
-                btnBorracha.classList.add('btn-borracha-ativo');
-            }
-            
-            // Recriar cursor
-            this.borrachaCursor = document.createElement('div');
-            this.borrachaCursor.className = 'cursor-borracha';
-            this.borrachaCursor.style.display = 'none';
-            this.drawingArea.appendChild(this.borrachaCursor);
-            
-            setTimeout(() => {
-                if (this.modoBorrachaAtivo && this.borrachaCursor) {
-                    this.borrachaCursor.style.display = 'block';
+                if (modoBorrachaAtivoAntes) {
+                    this.modoBorrachaAtivo = true;
+                    document.body.classList.add('modo-borracha');
+                    this.drawingArea.style.cursor = 'none';
+                    
+                    const btnBorracha = document.getElementById('btnBorracha');
+                    if (btnBorracha) {
+                        btnBorracha.classList.add('btn-borracha-ativo');
+                    }
+                    
+                    this.borrachaCursor = document.createElement('div');
+                    this.borrachaCursor.className = 'cursor-borracha';
+                    this.borrachaCursor.style.display = 'none';
+                    this.drawingArea.appendChild(this.borrachaCursor);
+                    
+                    console.log('✅ Modo borracha restaurado após desfazer');
                 }
-            }, 50);
+            } else {
+                console.log('🔧 Não há ações para desfazer');
+            }
+            this.atualizarBotoesHistorico();
         }
-    } else {
-        console.log('🔧 Não há ações para refazer');
-    }
-    this.atualizarBotoesHistorico();
-}
-
 
         refazer() {
             if (this.indiceHistorico < this.historico.length - 1) {
@@ -2551,8 +2488,33 @@ refazer() {
                 
                 this.indiceHistorico++;
                 const estadoFuturo = this.historico[this.indiceHistorico];
+                
+                const modoBorrachaAtivoAntes = this.modoBorrachaAtivo;
+                
                 this.restaurarEstadoHistorico(estadoFuturo.data);
                 console.log('🔧 Refazer executado - Estado:', this.indiceHistorico);
+
+                if (modoBorrachaAtivoAntes) {
+                    this.modoBorrachaAtivo = true;
+                    document.body.classList.add('modo-borracha');
+                    this.drawingArea.style.cursor = 'none';
+                    
+                    const btnBorracha = document.getElementById('btnBorracha');
+                    if (btnBorracha) {
+                        btnBorracha.classList.add('btn-borracha-ativo');
+                    }
+                    
+                    this.borrachaCursor = document.createElement('div');
+                    this.borrachaCursor.className = 'cursor-borracha';
+                    this.borrachaCursor.style.display = 'none';
+                    this.drawingArea.appendChild(this.borrachaCursor);
+                    
+                    setTimeout(() => {
+                        if (this.modoBorrachaAtivo && this.borrachaCursor) {
+                            this.borrachaCursor.style.display = 'block';
+                        }
+                    }, 50);
+                }
             } else {
                 console.log('🔧 Não há ações para refazer');
             }
@@ -2650,202 +2612,192 @@ refazer() {
         }
 
         configurarEventos() {
-    console.log('🔧 Configurando eventos...');
-    
-    const botoes = [
-        'btnSelecionar', 'btnBorracha', 'btnLaco', 'btnDesfazer', 'btnRefazer', 'btnAdicionarTexto',
-        'btnAdicionarCuba', 'btnLegendaSimplificada', 'btnEstilos', 'btnDuplicar', // 🔥 ADICIONADO btnEstilos
-        'btnExcluir', 'btnSalvar', 'btnImprimir'
-    ];
+            console.log('🔧 Configurando eventos...');
+            
+            const botoes = [
+                'btnSelecionar', 'btnBorracha', 'btnLaco', 'btnDesfazer', 'btnRefazer', 'btnAdicionarTexto',
+                'btnAdicionarCuba', 'btnLegendaSimplificada', 'btnEstilos', 'btnDuplicar',
+                'btnExcluir', 'btnSalvar', 'btnImprimir'
+            ];
 
-    const prevenirZoomDuploToque = (e) => {
-        if (e.touches && e.touches.length > 1) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-    };
+            const prevenirZoomDuploToque = (e) => {
+                if (e.touches && e.touches.length > 1) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            };
 
-    botoes.forEach(botaoId => {
-        const botao = document.getElementById(botaoId);
-        if (botao) {
-            botao.addEventListener('click', (e) => {
-                console.log(`🖱️ Botão ${botaoId} clicado`);
-                
-                switch(botaoId) {
-                    case 'btnSelecionar': this.toggleModoSelecao(); break;
-                    case 'btnBorracha': this.toggleModoBorracha(); break;
-                    case 'btnLaco': this.toggleModoLaco(); break;
-                    case 'btnAdicionarTexto': this.ativarModoTexto(); break;
-                    case 'btnAdicionarCuba': this.ativarModoDesenhos(); break;
-                    case 'btnLegendaSimplificada': this.ativarModoLegenda(); break;
-                    case 'btnEstilos': this.mostrarModalEstilos(); break; // 🔥 NOVO
-                    case 'btnDuplicar': this.duplicarElemento(); break;
-                    case 'btnExcluir': this.excluirElemento(); break;
-                    case 'btnSalvar': this.salvarDesenho(); break;
-                    case 'btnImprimir': this.imprimirDesenho(); break;
-                    case 'btnDesfazer': this.desfazer(); break;
-                    case 'btnRefazer': this.refazer(); break;
+            botoes.forEach(botaoId => {
+                const botao = document.getElementById(botaoId);
+                if (botao) {
+                    botao.addEventListener('click', (e) => {
+                        console.log(`🖱️ Botão ${botaoId} clicado`);
+                        
+                        switch(botaoId) {
+                            case 'btnSelecionar': this.toggleModoSelecao(); break;
+                            case 'btnBorracha': this.toggleModoBorracha(); break;
+                            case 'btnLaco': this.toggleModoLaco(); break;
+                            case 'btnAdicionarTexto': this.ativarModoTexto(); break;
+                            case 'btnAdicionarCuba': this.ativarModoDesenhos(); break;
+                            case 'btnLegendaSimplificada': this.ativarModoLegenda(); break;
+                            case 'btnEstilos': this.mostrarModalEstilos(); break;
+                            case 'btnDuplicar': this.duplicarElemento(); break;
+                            case 'btnExcluir': this.excluirElemento(); break;
+                            case 'btnSalvar': this.salvarDesenho(); break;
+                            case 'btnImprimir': this.imprimirDesenho(); break;
+                            case 'btnDesfazer': this.desfazer(); break;
+                            case 'btnRefazer': this.refazer(); break;
+                        }
+                    });
+
+                    botao.addEventListener('touchstart', prevenirZoomDuploToque, { passive: false });
+                    botao.addEventListener('touchmove', prevenirZoomDuploToque, { passive: false });
                 }
             });
 
-            botao.addEventListener('touchstart', prevenirZoomDuploToque, { passive: false });
-            botao.addEventListener('touchmove', prevenirZoomDuploToque, { passive: false });
-        }
-    });
-
-    this.drawingArea.addEventListener('click', (e) => {
-        if (this.modoInsercaoAtivo) {
-            this.manipularCliqueInsercao(e);
-        } else if (this.modoSelecaoAtivo) {
-            this.manipularCliqueSelecao(e);
-        }
-    });
-    
-    // 🔥 CORREÇÃO: Evento de document click melhorado para mobile
-    document.addEventListener('click', (e) => {
-        // 🔥 CORREÇÃO: Bloquear interações se modal de estilos estiver aberto
-        if (this.modalEstilosAberto) {
-            console.log('🚫 Modal de estilos aberto - interação bloqueada');
-            e.preventDefault();
-            e.stopPropagation();
-            return;
-        }
-        
-        const isDrawingArea = e.target.closest('#drawingArea');
-        const isHandle = e.target.closest('.handle');
-        const isActionButton = e.target.closest('.action-buttons-container');
-        const isTopButton = e.target.closest('.top-buttons-container');
-        
-        // 🔥 CORREÇÃO: No mobile, verificar se foi um gesto de touch
-        if (this._isTouchGesture(e)) {
-            console.log('📱 Gesto de touch no document - ignorando desseleção');
-            return;
-        }
-        
-        if (!isDrawingArea && !isHandle && !isActionButton && !isTopButton) {
-            if (gerenciadorDesenho.grupoTemporario) {
-                gerenciadorDesenho.limparGrupoTemporario();
-            }
-            gerenciadorDesenho.desselecionarElemento();
-        }
-    });
-
-    // 🔥 CORREÇÃO: Evento de touchstart do document melhorado
-    document.addEventListener('touchstart', (e) => {
-        const isDrawingArea = e.target.closest('#drawingArea');
-        const isHandle = e.target.closest('.handle');
-        const isActionButton = e.target.closest('.action-buttons-container');
-        const isTopButton = e.target.closest('.top-buttons-container');
-        
-        // Inicializar variáveis de gesto
-        this._isTouchGesture(e);
-        
-        if (!isDrawingArea && !isHandle && !isActionButton && !isTopButton) {
-            // Marcar que tocou fora, mas aguardar touchend para confirmar
-            this.touchedOutside = true;
-        } else {
-            this.touchedOutside = false;
-        }
-    }, { passive: true });
-
-    document.addEventListener('touchend', (e) => {
-        // 🔥 CORREÇÃO: Só desselecionar se não foi um gesto e tocou fora
-        if (this.touchedOutside && !this._isTouchGesture(e)) {
-            if (gerenciadorDesenho.grupoTemporario) {
-                gerenciadorDesenho.limparGrupoTemporario();
-            }
-            gerenciadorDesenho.desselecionarElemento();
-        }
-        this.touchedOutside = false;
-    }, { passive: true });
-
-    document.addEventListener('keydown', (e) => {
-        if (e.ctrlKey || e.metaKey) {
-            if (e.key === 'z') {
-                e.preventDefault();
-                this.desfazer();
-            } else if (e.key === 'y') {
-                e.preventDefault();
-                this.refazer();
-            }
-        }
-        
-        if (e.key === 'Escape') {
-            this.desselecionarElemento();
-        }
-    });
-    
-    this.configurarEventosAreaDesenho();
-    
-    const prevenirCliqueBotaoDesabilitado = (e) => {
-        const botao = e.target.closest('.btn');
-        if (botao && (botao.disabled || botao.classList.contains('btn-desabilitado-mobile'))) {
-            e.preventDefault();
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-            console.log('🚫 Botão desabilitado - ação prevenida');
-            return false;
-        }
-    };
-
-    const botoesAcao = document.querySelectorAll('.action-buttons-container .btn');
-    botoesAcao.forEach(botao => {
-        botao.addEventListener('click', prevenirCliqueBotaoDesabilitado, true);
-        botao.addEventListener('touchstart', prevenirCliqueBotaoDesabilitado, true);
-        botao.addEventListener('touchend', prevenirCliqueBotaoDesabilitado, true);
-    });
-
-    console.log('✅ Eventos configurados com sucesso!');
-}
-
-
-       configurarEventosAreaDesenho() {
-    // Eventos de mouse (mantidos)
-    this.drawingArea.addEventListener('click', (e) => {
-        if (e.target === this.drawingArea) {
-            if (this.modoLacoAtivo) {
-                console.log('❌ Laço cancelado - clique na área vazia');
-                this.desativarModoLaco();
-            } else if (this.modoSelecaoAtivo) {
-                if (this.grupoTemporario) {
-                    console.log('🗑️ Clicou na área vazia - removendo grupo temporário');
-                    this.limparGrupoTemporario();
+            this.drawingArea.addEventListener('click', (e) => {
+                if (this.modoInsercaoAtivo) {
+                    this.manipularCliqueInsercao(e);
+                } else if (this.modoSelecaoAtivo) {
+                    this.manipularCliqueSelecao(e);
                 }
-                this.desselecionarElemento();
-            }
-        }
-    });
-
-    // 🔥 CORREÇÃO: Eventos de touch melhorados
-    this.drawingArea.addEventListener('touchstart', (e) => {
-        // Marcar o início do toque
-        this._isTouchGesture(e);
-        
-        if (e.target === this.drawingArea && this.modoSelecaoAtivo) {
-            // Não fazer nada imediatamente - aguardar touchend para decidir
-        }
-    }, { passive: true });
-
-    this.drawingArea.addEventListener('touchmove', (e) => {
-        // Atualizar estado do gesto
-        this._isTouchGesture(e);
-    }, { passive: true });
-
-    this.drawingArea.addEventListener('touchend', (e) => {
-        // 🔥 CORREÇÃO: Só desselecionar se não foi um gesto de arraste/zoom
-        if (e.target === this.drawingArea && this.modoSelecaoAtivo) {
-            if (!this._isTouchGesture(e)) {
-                if (this.grupoTemporario) {
-                    console.log('🗑️ Toque simples na área vazia - removendo grupo temporário');
-                    this.limparGrupoTemporario();
+            });
+            
+            document.addEventListener('click', (e) => {
+                if (this.modalEstilosAberto) {
+                    console.log('🚫 Modal de estilos aberto - interação bloqueada');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
                 }
-                this.desselecionarElemento();
-            } else {
-                console.log('📱 Gesto de touch detectado - mantendo seleção');
-            }
+                
+                const isDrawingArea = e.target.closest('#drawingArea');
+                const isHandle = e.target.closest('.handle');
+                const isActionButton = e.target.closest('.action-buttons-container');
+                const isTopButton = e.target.closest('.top-buttons-container');
+                
+                if (this._isTouchGesture(e)) {
+                    console.log('📱 Gesto de touch no document - ignorando desseleção');
+                    return;
+                }
+                
+                if (!isDrawingArea && !isHandle && !isActionButton && !isTopButton) {
+                    if (gerenciadorDesenho.grupoTemporario) {
+                        gerenciadorDesenho.limparGrupoTemporario();
+                    }
+                    gerenciadorDesenho.desselecionarElemento();
+                }
+            });
+
+            document.addEventListener('touchstart', (e) => {
+                const isDrawingArea = e.target.closest('#drawingArea');
+                const isHandle = e.target.closest('.handle');
+                const isActionButton = e.target.closest('.action-buttons-container');
+                const isTopButton = e.target.closest('.top-buttons-container');
+                
+                this._isTouchGesture(e);
+                
+                if (!isDrawingArea && !isHandle && !isActionButton && !isTopButton) {
+                    this.touchedOutside = true;
+                } else {
+                    this.touchedOutside = false;
+                }
+            }, { passive: true });
+
+            document.addEventListener('touchend', (e) => {
+                if (this.touchedOutside && !this._isTouchGesture(e)) {
+                    if (gerenciadorDesenho.grupoTemporario) {
+                        gerenciadorDesenho.limparGrupoTemporario();
+                    }
+                    gerenciadorDesenho.desselecionarElemento();
+                }
+                this.touchedOutside = false;
+            }, { passive: true });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey || e.metaKey) {
+                    if (e.key === 'z') {
+                        e.preventDefault();
+                        this.desfazer();
+                    } else if (e.key === 'y') {
+                        e.preventDefault();
+                        this.refazer();
+                    }
+                }
+                
+                if (e.key === 'Escape') {
+                    this.desselecionarElemento();
+                    if (this.modoEscritaAtivo) {
+                        this.finalizarEscritaTexto();
+                    }
+                }
+            });
+            
+            this.configurarEventosAreaDesenho();
+            
+            const prevenirCliqueBotaoDesabilitado = (e) => {
+                const botao = e.target.closest('.btn');
+                if (botao && (botao.disabled || botao.classList.contains('btn-desabilitado-mobile'))) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    console.log('🚫 Botão desabilitado - ação prevenida');
+                    return false;
+                }
+            };
+
+            const botoesAcao = document.querySelectorAll('.action-buttons-container .btn');
+            botoesAcao.forEach(botao => {
+                botao.addEventListener('click', prevenirCliqueBotaoDesabilitado, true);
+                botao.addEventListener('touchstart', prevenirCliqueBotaoDesabilitado, true);
+                botao.addEventListener('touchend', prevenirCliqueBotaoDesabilitado, true);
+            });
+
+            console.log('✅ Eventos configurados com sucesso!');
         }
-    }, { passive: true });
-}
+
+        configurarEventosAreaDesenho() {
+            this.drawingArea.addEventListener('click', (e) => {
+                if (e.target === this.drawingArea) {
+                    if (this.modoLacoAtivo) {
+                        console.log('❌ Laço cancelado - clique na área vazia');
+                        this.desativarModoLaco();
+                    } else if (this.modoSelecaoAtivo) {
+                        if (this.grupoTemporario) {
+                            console.log('🗑️ Clicou na área vazia - removendo grupo temporário');
+                            this.limparGrupoTemporario();
+                        }
+                        this.desselecionarElemento();
+                    }
+                }
+            });
+
+            this.drawingArea.addEventListener('touchstart', (e) => {
+                this._isTouchGesture(e);
+                
+                if (e.target === this.drawingArea && this.modoSelecaoAtivo) {
+                    // Não fazer nada imediatamente - aguardar touchend para decidir
+                }
+            }, { passive: true });
+
+            this.drawingArea.addEventListener('touchmove', (e) => {
+                this._isTouchGesture(e);
+            }, { passive: true });
+
+            this.drawingArea.addEventListener('touchend', (e) => {
+                if (e.target === this.drawingArea && this.modoSelecaoAtivo) {
+                    if (!this._isTouchGesture(e)) {
+                        if (this.grupoTemporario) {
+                            console.log('🗑️ Toque simples na área vazia - removendo grupo temporário');
+                            this.limparGrupoTemporario();
+                        }
+                        this.desselecionarElemento();
+                    } else {
+                        console.log('📱 Gesto de touch detectado - mantendo seleção');
+                    }
+                }
+            }, { passive: true });
+        }
 
         // 🔥 MODIFICADO: Toggle do modo seleção
         toggleModoSelecao() {
@@ -2856,26 +2808,25 @@ refazer() {
             }
         }
 
-       ativarModoSelecao() {
-    this.desativarTodosOsModos();
-    console.log('🔵 Ativando modo seleção...');
-    
-    this.modoSelecaoAtivo = true;
-    this.desselecionarElemento();
-    this.drawingArea.style.cursor = 'pointer';
-    
-    const btnSelecionar = document.getElementById('btnSelecionar');
-    if (btnSelecionar) btnSelecionar.classList.add('btn-selecao-ativo');
-    
-    this.tornarElementosSelecionaveis(true);
-    this.desabilitarLinhasPecas();
-    this.atualizarInteratividadeTextos();
-    
-    // 🔥 CORREÇÃO: Forçar atualização de interatividade
-    this.forcarAtualizacaoInteratividade();
-    
-    console.log('✅ Modo seleção ativado');
-}
+        ativarModoSelecao() {
+            this.desativarTodosOsModos();
+            console.log('🔵 Ativando modo seleção...');
+            
+            this.modoSelecaoAtivo = true;
+            this.desselecionarElemento();
+            this.drawingArea.style.cursor = 'pointer';
+            
+            const btnSelecionar = document.getElementById('btnSelecionar');
+            if (btnSelecionar) btnSelecionar.classList.add('btn-selecao-ativo');
+            
+            this.tornarElementosSelecionaveis(true);
+            this.desabilitarLinhasPecas();
+            this.atualizarInteratividadeTextos();
+            
+            this.forcarAtualizacaoInteratividade();
+            
+            console.log('✅ Modo seleção ativado');
+        }
 
         // 🔥 MODIFICADO: Desativar modo seleção
         desativarModoSelecao() {
@@ -2908,152 +2859,134 @@ refazer() {
         }
 
         // 🔥 MODIFICADO: Ativar modo laço
-       ativarModoLaco() {
-    this.desativarTodosOsModos();
-    console.log('🔵 Ativando modo laço...');
-    
-    this.modoLacoAtivo = true;
-    this.desselecionarElemento();
-    this.drawingArea.style.cursor = 'crosshair';
-    
-    const btnLaco = document.getElementById('btnLaco');
-    if (btnLaco) btnLaco.classList.add('btn-modo-ativo');
-    
-    this.lacoPontos = [];
-    
-    if (!this.svgOverlay) {
-        const svgns = "http://www.w3.org/2000/svg";
-        const svg = document.createElementNS(svgns, 'svg');
-        svg.setAttribute('class', 'laco-overlay');
-        svg.style.position = 'absolute';
-        svg.style.left = '0';
-        svg.style.top = '0';
-        svg.style.width = '100%';
-        svg.style.height = '100%';
-        svg.style.pointerEvents = 'none';
-        svg.style.zIndex = '999';
-        this.drawingArea.appendChild(svg);
-        this.svgOverlay = svg;
-    }
-    
-    // 🔥 NOVO: Variáveis para controle do delay no modo laço
-    this.lacoTouchStartTimeout = null;
-    this.lacoCurrentTouches = 0;
-    this.lacoIniciado = false;
-    
-    // Event listeners para mouse (mantém o mesmo)
-    this._lacoMouseDownHandler = (e) => this._iniciarLaco(e);
-    this._lacoMoveHandler = (e) => this._atualizarLaco(e);
-    this._lacoUpHandler = (e) => this._finalizarLaco(e);
+        ativarModoLaco() {
+            this.desativarTodosOsModos();
+            console.log('🔵 Ativando modo laço...');
+            
+            this.modoLacoAtivo = true;
+            this.desselecionarElemento();
+            this.drawingArea.style.cursor = 'crosshair';
+            
+            const btnLaco = document.getElementById('btnLaco');
+            if (btnLaco) btnLaco.classList.add('btn-modo-ativo');
+            
+            this.lacoPontos = [];
+            
+            if (!this.svgOverlay) {
+                const svgns = "http://www.w3.org/2000/svg";
+                const svg = document.createElementNS(svgns, 'svg');
+                svg.setAttribute('class', 'laco-overlay');
+                svg.style.position = 'absolute';
+                svg.style.left = '0';
+                svg.style.top = '0';
+                svg.style.width = '100%';
+                svg.style.height = '100%';
+                svg.style.pointerEvents = 'none';
+                svg.style.zIndex = '999';
+                this.drawingArea.appendChild(svg);
+                this.svgOverlay = svg;
+            }
+            
+            this.lacoTouchStartTimeout = null;
+            this.lacoCurrentTouches = 0;
+            this.lacoIniciado = false;
+            
+            this._lacoMouseDownHandler = (e) => this._iniciarLaco(e);
+            this._lacoMoveHandler = (e) => this._atualizarLaco(e);
+            this._lacoUpHandler = (e) => this._finalizarLaco(e);
 
-    this.drawingArea.addEventListener('mousedown', this._lacoMouseDownHandler);
-    this.drawingArea.addEventListener('mousemove', this._lacoMoveHandler);
-    this.drawingArea.addEventListener('mouseup', this._lacoUpHandler);
-    
-    // 🔥 CORREÇÃO MELHORADA: Touch events com delay para reconhecer zoom com pinça
-    this._lacoTouchStartHandler = (e) => {
-        if (!this.modoLacoAtivo) return;
-        
-        this.lacoCurrentTouches = e.touches.length;
-        
-        // 🔥 CORREÇÃO: Prevenir comportamento padrão imediatamente
-        e.preventDefault();
-        e.stopPropagation();
-        
-        // Se for toque único, aguardar um pouco para verificar se vira pinça
-        if (this.lacoCurrentTouches === 1) {
-            this.lacoTouchStartTimeout = setTimeout(() => {
-                // Se ainda for toque único após o delay, iniciar laço
-                if (e.touches.length === 1) {
-                    this.lacoIniciado = true;
-                    this._iniciarLaco(e);
+            this.drawingArea.addEventListener('mousedown', this._lacoMouseDownHandler);
+            this.drawingArea.addEventListener('mousemove', this._lacoMoveHandler);
+            this.drawingArea.addEventListener('mouseup', this._lacoUpHandler);
+            
+            this._lacoTouchStartHandler = (e) => {
+                if (!this.modoLacoAtivo) return;
+                
+                this.lacoCurrentTouches = e.touches.length;
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                if (this.lacoCurrentTouches === 1) {
+                    this.lacoTouchStartTimeout = setTimeout(() => {
+                        if (e.touches.length === 1) {
+                            this.lacoIniciado = true;
+                            this._iniciarLaco(e);
+                        }
+                    }, 150);
+                } else {
+                    clearTimeout(this.lacoTouchStartTimeout);
+                    this.lacoIniciado = false;
                 }
-            }, 150); // Delay de 150ms para reconhecer zoom com pinça
-        } else {
-            // Se já for múltiplos toques, cancelar qualquer timeout e permitir zoom
-            clearTimeout(this.lacoTouchStartTimeout);
-            this.lacoIniciado = false;
+            };
+            
+            this._lacoTouchMoveHandler = (e) => {
+                if (!this.modoLacoAtivo) return;
+                
+                this.lacoCurrentTouches = e.touches.length;
+                
+                if (this.lacoCurrentTouches >= 2) {
+                    clearTimeout(this.lacoTouchStartTimeout);
+                    this.lacoIniciado = false;
+                    return;
+                }
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                if (this.lacoCurrentTouches === 1 && this.lacoIniciado) {
+                    this._atualizarLaco(e);
+                }
+            };
+            
+            this._lacoTouchEndHandler = (e) => {
+                if (!this.modoLacoAtivo) return;
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                clearTimeout(this.lacoTouchStartTimeout);
+                
+                if (this.lacoIniciado && e.touches.length === 0) {
+                    this._finalizarLaco(e);
+                    this.lacoIniciado = false;
+                } else if (e.touches.length >= 2) {
+                    this.lacoIniciado = false;
+                }
+            };
+            
+            this.drawingArea.addEventListener('touchstart', this._lacoTouchStartHandler, { passive: false });
+            this.drawingArea.addEventListener('touchmove', this._lacoTouchMoveHandler, { passive: false });
+            this.drawingArea.addEventListener('touchend', this._lacoTouchEndHandler, { passive: false });
+            this.drawingArea.addEventListener('touchcancel', this._lacoTouchEndHandler, { passive: false });
+            
+            this.drawingArea.addEventListener('touchstart', (e) => {
+                if (this.modoLacoAtivo && e.touches.length >= 2) {
+                    clearTimeout(this.lacoTouchStartTimeout);
+                    this.lacoIniciado = false;
+                    console.log('📱 Zoom com pinça detectado no modo laço - cancelando laço');
+                }
+            }, { passive: true });
+            
+            console.log('✅ Modo laço ativado');
         }
-    };
-    
-    this._lacoTouchMoveHandler = (e) => {
-        if (!this.modoLacoAtivo) return;
-        
-        this.lacoCurrentTouches = e.touches.length;
-        
-        // Se for zoom com pinça (2+ dedos), permitir comportamento padrão
-        if (this.lacoCurrentTouches >= 2) {
-            clearTimeout(this.lacoTouchStartTimeout);
-            this.lacoIniciado = false;
-            // Não fazer nada - permitir que o navegador gerencie o zoom
-            return;
-        }
-        
-        // 🔥 CORREÇÃO: Prevenir comportamento padrão para toque único
-        e.preventDefault();
-        e.stopPropagation();
-        
-        // Se for toque único após o timeout e laço iniciado, permitir atualização
-        if (this.lacoCurrentTouches === 1 && this.lacoIniciado) {
-            this._atualizarLaco(e);
-        }
-    };
-    
-    this._lacoTouchEndHandler = (e) => {
-        if (!this.modoLacoAtivo) return;
-        
-        // 🔥 CORREÇÃO: Prevenir comportamento padrão
-        e.preventDefault();
-        e.stopPropagation();
-        
-        clearTimeout(this.lacoTouchStartTimeout);
-        
-        // Se o laço foi iniciado e todos os toques foram removidos, finalizar
-        if (this.lacoIniciado && e.touches.length === 0) {
-            this._finalizarLaco(e);
-            this.lacoIniciado = false;
-        } else if (e.touches.length >= 2) {
-            // Se ainda há múltiplos toques, manter o laço cancelado
-            this.lacoIniciado = false;
-        }
-    };
-    
-    this.drawingArea.addEventListener('touchstart', this._lacoTouchStartHandler, { passive: false });
-    this.drawingArea.addEventListener('touchmove', this._lacoTouchMoveHandler, { passive: false });
-    this.drawingArea.addEventListener('touchend', this._lacoTouchEndHandler, { passive: false });
-    this.drawingArea.addEventListener('touchcancel', this._lacoTouchEndHandler, { passive: false });
-    
-    // 🔥 NOVO: Cancelar timeout se novos toques forem adicionados rapidamente
-    this.drawingArea.addEventListener('touchstart', (e) => {
-        if (this.modoLacoAtivo && e.touches.length >= 2) {
-            clearTimeout(this.lacoTouchStartTimeout);
-            this.lacoIniciado = false;
-            console.log('📱 Zoom com pinça detectado no modo laço - cancelando laço');
-        }
-    }, { passive: true });
-    
-    console.log('✅ Modo laço ativado');
-}
-
-
 
         // 🔥 MODIFICADO: Desativar modo laço
         desativarModoLaco() {
-    console.log('🔵 Desativando modo laço...');
-    this.modoLacoAtivo = false;
-    this.drawingArea.style.cursor = 'default';
-    
-    const btnLaco = document.getElementById('btnLaco');
-    if (btnLaco) btnLaco.classList.remove('btn-modo-ativo');
-    
-    // Limpar timeouts
-    clearTimeout(this.lacoTouchStartTimeout);
-    this.lacoIniciado = false;
-    
-    this.limparModoLacoCompletamente();
-    
-    console.log('✅ Modo laço desativado');
-}
+            console.log('🔵 Desativando modo laço...');
+            this.modoLacoAtivo = false;
+            this.drawingArea.style.cursor = 'default';
+            
+            const btnLaco = document.getElementById('btnLaco');
+            if (btnLaco) btnLaco.classList.remove('btn-modo-ativo');
+            
+            clearTimeout(this.lacoTouchStartTimeout);
+            this.lacoIniciado = false;
+            
+            this.limparModoLacoCompletamente();
+            
+            console.log('✅ Modo laço desativado');
+        }
 
         // 🔥 NOVO: Ativar modo texto
         ativarModoTexto() {
@@ -3109,34 +3042,33 @@ refazer() {
             this.reconfigurarElementosAposHistorico();
         }
 
-       _iniciarLaco(e) {
-    if (!this.modoLacoAtivo) return;
-    
-    // 🔥 CORREÇÃO: Prevenir comportamento padrão também aqui
-    if (e.type.includes('touch')) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-    
-    const coords = this._obterCoordenadasLaco(e);
-    this.lacoPontos = [coords];
-    
-    if (this.svgOverlay) {
-        this.svgOverlay.innerHTML = '';
-        const svgns = "http://www.w3.org/2000/svg";
-        const poly = document.createElementNS(svgns, 'polygon');
-        poly.setAttribute('class', 'laco-polygon');
-        poly.setAttribute('fill', 'rgba(46, 89, 217, 0.1)');
-        poly.setAttribute('stroke', '#2e59d9');
-        poly.setAttribute('stroke-width', '2');
-        poly.setAttribute('stroke-dasharray', '5,5');
-        poly.setAttribute('points', `${coords.x},${coords.y}`);
-        this.svgOverlay.appendChild(poly);
-        this._lacoPolygonElement = poly;
-    }
-    
-    console.log('🎯 Iniciando laço...');
-}
+        _iniciarLaco(e) {
+            if (!this.modoLacoAtivo) return;
+            
+            if (e.type.includes('touch')) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            const coords = this._obterCoordenadasLaco(e);
+            this.lacoPontos = [coords];
+            
+            if (this.svgOverlay) {
+                this.svgOverlay.innerHTML = '';
+                const svgns = "http://www.w3.org/2000/svg";
+                const poly = document.createElementNS(svgns, 'polygon');
+                poly.setAttribute('class', 'laco-polygon');
+                poly.setAttribute('fill', 'rgba(46, 89, 217, 0.1)');
+                poly.setAttribute('stroke', '#2e59d9');
+                poly.setAttribute('stroke-width', '2');
+                poly.setAttribute('stroke-dasharray', '5,5');
+                poly.setAttribute('points', `${coords.x},${coords.y}`);
+                this.svgOverlay.appendChild(poly);
+                this._lacoPolygonElement = poly;
+            }
+            
+            console.log('🎯 Iniciando laço...');
+        }
 
         _atualizarLaco(e) {
             if (!this.modoLacoAtivo || !this._lacoPolygonElement) return;
@@ -3541,49 +3473,46 @@ refazer() {
         }
 
         limparModoLacoCompletamente() {
-    if (this.svgOverlay && this.svgOverlay.parentNode) {
-        this.svgOverlay.parentNode.removeChild(this.svgOverlay);
-        this.svgOverlay = null;
-    }
-    
-    this._lacoPolygonElement = null;
-    this.lacoPontos = [];
-    
-    // Remover event listeners de mouse
-    if (this._lacoMouseDownHandler) {
-        this.drawingArea.removeEventListener('mousedown', this._lacoMouseDownHandler);
-    }
-    if (this._lacoMoveHandler) {
-        this.drawingArea.removeEventListener('mousemove', this._lacoMoveHandler);
-    }
-    if (this._lacoUpHandler) {
-        this.drawingArea.removeEventListener('mouseup', this._lacoUpHandler);
-    }
-    
-    // Remover event listeners de touch
-    if (this._lacoTouchStartHandler) {
-        this.drawingArea.removeEventListener('touchstart', this._lacoTouchStartHandler);
-    }
-    if (this._lacoTouchMoveHandler) {
-        this.drawingArea.removeEventListener('touchmove', this._lacoTouchMoveHandler);
-    }
-    if (this._lacoTouchEndHandler) {
-        this.drawingArea.removeEventListener('touchend', this._lacoTouchEndHandler);
-    }
-    
-    this._lacoMouseDownHandler = null;
-    this._lacoMoveHandler = null;
-    this._lacoUpHandler = null;
-    this._lacoTouchStartHandler = null;
-    this._lacoTouchMoveHandler = null;
-    this._lacoTouchEndHandler = null;
-    
-    // Limpar variáveis de controle
-    clearTimeout(this.lacoTouchStartTimeout);
-    this.lacoTouchStartTimeout = null;
-    this.lacoCurrentTouches = 0;
-    this.lacoIniciado = false;
-}
+            if (this.svgOverlay && this.svgOverlay.parentNode) {
+                this.svgOverlay.parentNode.removeChild(this.svgOverlay);
+                this.svgOverlay = null;
+            }
+            
+            this._lacoPolygonElement = null;
+            this.lacoPontos = [];
+            
+            if (this._lacoMouseDownHandler) {
+                this.drawingArea.removeEventListener('mousedown', this._lacoMouseDownHandler);
+            }
+            if (this._lacoMoveHandler) {
+                this.drawingArea.removeEventListener('mousemove', this._lacoMoveHandler);
+            }
+            if (this._lacoUpHandler) {
+                this.drawingArea.removeEventListener('mouseup', this._lacoUpHandler);
+            }
+            
+            if (this._lacoTouchStartHandler) {
+                this.drawingArea.removeEventListener('touchstart', this._lacoTouchStartHandler);
+            }
+            if (this._lacoTouchMoveHandler) {
+                this.drawingArea.removeEventListener('touchmove', this._lacoTouchMoveHandler);
+            }
+            if (this._lacoTouchEndHandler) {
+                this.drawingArea.removeEventListener('touchend', this._lacoTouchEndHandler);
+            }
+            
+            this._lacoMouseDownHandler = null;
+            this._lacoMoveHandler = null;
+            this._lacoUpHandler = null;
+            this._lacoTouchStartHandler = null;
+            this._lacoTouchMoveHandler = null;
+            this._lacoTouchEndHandler = null;
+            
+            clearTimeout(this.lacoTouchStartTimeout);
+            this.lacoTouchStartTimeout = null;
+            this.lacoCurrentTouches = 0;
+            this.lacoIniciado = false;
+        }
 
         limparGrupoTemporario() {
             if (this.grupoTemporario && this.grupoTemporario.parentNode) {
@@ -3603,141 +3532,137 @@ refazer() {
         }
 
         tornarElementosSelecionaveis(selecionavel) {
-    const elementos = this.drawingArea.querySelectorAll(
-        '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca, .grupo-temporario'
-    );
-    
-    elementos.forEach(elemento => {
-        if (selecionavel) {
-            elemento.classList.add('selecionavel');
-            if (elemento.classList.contains('simbolo-linha')) {
-                this.configurarInteratividadeSimbolo(elemento);
-            } else if (elemento.classList.contains('legenda-simplificada')) {
-                this.configurarInteratividadeLegenda(elemento);
-            } else if (elemento.classList.contains('texto-legenda')) {
-                // 🔥 CORREÇÃO: Configurar interatividade para textos
-                this.configurarInteratividadeTexto(elemento);
-            } else if (elemento.classList.contains('grupo-temporario')) {
-                this._configurarInteratividadeGrupo(elemento, []);
-            }
-        } else {
-            elemento.classList.remove('selecionavel');
-            this.removerInteratividade(elemento);
-        }
-    });
-}
-
-// 🔥 NOVO MÉTODO: Forçar atualização de interatividade para todos os elementos
-forcarAtualizacaoInteratividade() {
-    const elementosTexto = this.drawingArea.querySelectorAll('.texto-legenda');
-    elementosTexto.forEach(texto => {
-        if (this.modoSelecaoAtivo) {
-            texto.classList.add('selecionavel');
-        }
-        this.configurarInteratividadeTexto(texto);
-    });
-}
-
-     manipularCliqueSelecao(e) {
-    // 🔥 CORREÇÃO: Bloquear completamente se modal de estilos estiver aberto
-    if (this.modalEstilosAberto) {
-        console.log('🚫 Modal de estilos aberto - seleção completamente bloqueada');
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        return;
-    }
-    
-    // 🔥 CORREÇÃO: Ignorar se for um gesto de arraste ou zoom
-    if (this._isTouchGesture(e)) {
-        console.log('📱 Gesto de touch detectado - ignorando seleção');
-        return;
-    }
-    
-    if (e.target.classList.contains('handle')) return;
-    
-    const elemento = e.target.closest('.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca, .grupo-temporario');
-    
-    if (!elemento) {
-        if (this.grupoTemporario) {
-            console.log('🗑️ Clicou fora - removendo grupo temporário');
-            this.limparGrupoTemporario();
-        }
-        this.desselecionarElemento();
-        return;
-    }
-    
-    if (elemento.classList.contains('selecionavel') || 
-        elemento.classList.contains('peca') || 
-        elemento.classList.contains('grupo-temporario')) {
-        this.selecionarElemento(elemento, e);
-    } else {
-        this.desselecionarElemento();
-    }
-}
-
-_isTouchGesture(e) {
-    // Se não é um evento de touch, não é um gesto
-    if (!e.type.includes('touch')) return false;
-    
-    // Se é um evento de touchstart, inicializar variáveis
-    if (e.type === 'touchstart') {
-        this.touchStartTime = Date.now();
-        this.touchStartX = e.touches[0].clientX;
-        this.touchStartY = e.touches[0].clientY;
-        this.isScrolling = false;
-        this.isZooming = false;
-        return false;
-    }
-    
-    // Se é um evento de touchmove, verificar se é arraste ou zoom
-    if (e.type === 'touchmove') {
-        // Verificar zoom (múltiplos toques)
-        if (e.touches.length >= 2) {
-            this.isZooming = true;
-            return true;
-        }
-        
-        // Verificar arraste (movimento significativo)
-        if (e.touches.length === 1) {
-            const currentX = e.touches[0].clientX;
-            const currentY = e.touches[0].clientY;
-            const deltaX = Math.abs(currentX - this.touchStartX);
-            const deltaY = Math.abs(currentY - this.touchStartY);
+            const elementos = this.drawingArea.querySelectorAll(
+                '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca, .grupo-temporario'
+            );
             
-            if (deltaX > this.touchMoveThreshold || deltaY > this.touchMoveThreshold) {
-                this.isScrolling = true;
-                return true;
+            elementos.forEach(elemento => {
+                if (selecionavel) {
+                    elemento.classList.add('selecionavel');
+                    if (elemento.classList.contains('simbolo-linha')) {
+                        this.configurarInteratividadeSimbolo(elemento);
+                    } else if (elemento.classList.contains('legenda-simplificada')) {
+                        this.configurarInteratividadeLegenda(elemento);
+                    } else if (elemento.classList.contains('texto-legenda')) {
+                        this.configurarInteratividadeTexto(elemento);
+                    } else if (elemento.classList.contains('grupo-temporario')) {
+                        this._configurarInteratividadeGrupo(elemento, []);
+                    }
+                } else {
+                    elemento.classList.remove('selecionavel');
+                    this.removerInteratividade(elemento);
+                }
+            });
+        }
+
+        // 🔥 NOVO MÉTODO: Forçar atualização de interatividade para todos os elementos
+        forcarAtualizacaoInteratividade() {
+            const elementosTexto = this.drawingArea.querySelectorAll('.texto-legenda');
+            elementosTexto.forEach(texto => {
+                if (this.modoSelecaoAtivo) {
+                    texto.classList.add('selecionavel');
+                }
+                this.configurarInteratividadeTexto(texto);
+            });
+        }
+
+        // 🔥 MODIFICADO: Manipular clique de seleção com suporte a escrita
+        manipularCliqueSelecao(e) {
+            if (this.modalEstilosAberto) {
+                console.log('🚫 Modal de estilos aberto - seleção completamente bloqueada');
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                return;
+            }
+            
+            if (this._isTouchGesture(e)) {
+                console.log('📱 Gesto de touch detectado - ignorando seleção');
+                return;
+            }
+            
+            if (e.target.classList.contains('handle')) return;
+            
+            const elemento = e.target.closest('.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca, .grupo-temporario');
+            
+            if (!elemento) {
+                if (this.grupoTemporario) {
+                    console.log('🗑️ Clicou fora - removendo grupo temporário');
+                    this.limparGrupoTemporario();
+                }
+                this.desselecionarElemento();
+                return;
+            }
+            
+            if (elemento.classList.contains('selecionavel') || 
+                elemento.classList.contains('peca') || 
+                elemento.classList.contains('grupo-temporario')) {
+                
+                this.selecionarElemento(elemento, e);
+                
+                // 🔥 CORREÇÃO: Se for um texto e modo seleção ativo, iniciar escrita
+                if (elemento.classList.contains('texto-legenda') && this.modoSelecaoAtivo) {
+                    this.iniciarEscritaTexto(elemento);
+                }
+            } else {
+                this.desselecionarElemento();
             }
         }
-    }
-    
-    // Se é um evento de touchend, verificar se foi um gesto
-    if (e.type === 'touchend') {
-        const wasGesture = this.isScrolling || this.isZooming;
-        // Resetar variáveis
-        this.isScrolling = false;
-        this.isZooming = false;
-        return wasGesture;
-    }
-    
-    return false;
-}
+
+        _isTouchGesture(e) {
+            if (!e.type.includes('touch')) return false;
+            
+            if (e.type === 'touchstart') {
+                this.touchStartTime = Date.now();
+                this.touchStartX = e.touches[0].clientX;
+                this.touchStartY = e.touches[0].clientY;
+                this.isScrolling = false;
+                this.isZooming = false;
+                return false;
+            }
+            
+            if (e.type === 'touchmove') {
+                if (e.touches.length >= 2) {
+                    this.isZooming = true;
+                    return true;
+                }
+                
+                if (e.touches.length === 1) {
+                    const currentX = e.touches[0].clientX;
+                    const currentY = e.touches[0].clientY;
+                    const deltaX = Math.abs(currentX - this.touchStartX);
+                    const deltaY = Math.abs(currentY - this.touchStartY);
+                    
+                    if (deltaX > this.touchMoveThreshold || deltaY > this.touchMoveThreshold) {
+                        this.isScrolling = true;
+                        return true;
+                    }
+                }
+            }
+            
+            if (e.type === 'touchend') {
+                const wasGesture = this.isScrolling || this.isZooming;
+                this.isScrolling = false;
+                this.isZooming = false;
+                return wasGesture;
+            }
+            
+            return false;
+        }
         
         obterPosicaoComScroll(elemento) {
-    const rect = elemento.getBoundingClientRect();
-    const drawingAreaRect = this.drawingArea.getBoundingClientRect();
-    const scrollLeft = this.drawingArea.scrollLeft || 0;
-    const scrollTop = this.drawingArea.scrollTop || 0;
-    
-    // 🔥 CORREÇÃO: Considerar scroll na posição
-    return {
-        left: rect.left - drawingAreaRect.left + scrollLeft,
-        top: rect.top - drawingAreaRect.top + scrollTop,
-        width: rect.width,
-        height: rect.height
-    };
-}
+            const rect = elemento.getBoundingClientRect();
+            const drawingAreaRect = this.drawingArea.getBoundingClientRect();
+            const scrollLeft = this.drawingArea.scrollLeft || 0;
+            const scrollTop = this.drawingArea.scrollTop || 0;
+            
+            return {
+                left: rect.left - drawingAreaRect.left + scrollLeft,
+                top: rect.top - drawingAreaRect.top + scrollTop,
+                width: rect.width,
+                height: rect.height
+            };
+        }
 
         atualizarOrdemEmpilhamento() {
             const todasPecas = this.drawingArea.querySelectorAll('.peca');
@@ -3752,6 +3677,7 @@ _isTouchGesture(e) {
             });
         }
 
+        // 🔥 MODIFICADO: Selecionar elemento com suporte a escrita
         selecionarElemento(elemento, event) {
             this.desselecionarElemento();
             
@@ -3994,181 +3920,170 @@ _isTouchGesture(e) {
         }
 
         configurarHandle(handle, elemento, handleClass) {
-    let initialX, initialY;
-    let initialWidth, initialHeight;
-    let initialLeft, initialTop;
-    let initialRatio; // 🔥 NOVO: Guardar a proporção inicial
+            let initialX, initialY;
+            let initialWidth, initialHeight;
+            let initialLeft, initialTop;
+            let initialRatio;
 
-    handle.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-    }, { passive: false });
+            handle.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, { passive: false });
 
-    handle.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-    }, { passive: false });
+            handle.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, { passive: false });
 
-    interact(handle).draggable({
-        preventDefault: 'always',
-        
-        listeners: {
-            start: (event) => {
-                if (event.type.includes('touch')) {
-                    event.preventDefault();
-                    event.stopPropagation();
+            interact(handle).draggable({
+                preventDefault: 'always',
+                
+                listeners: {
+                    start: (event) => {
+                        if (event.type.includes('touch')) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+                        
+                        const style = window.getComputedStyle(elemento);
+                        initialWidth = parseFloat(style.width);
+                        initialHeight = parseFloat(style.height);
+                        initialLeft = parseFloat(style.left);
+                        initialTop = parseFloat(style.top);
+                        
+                        initialRatio = initialWidth / initialHeight;
+                        
+                        initialX = event.clientX || (event.touches && event.touches[0].clientX);
+                        initialY = event.clientY || (event.touches && event.touches[0].clientY);
+
+                        handle.style.cursor = 'grabbing';
+                        console.log('🔧 Iniciando redimensionamento proporcional');
+                    },
+                    move: (event) => {
+                        if (event.type.includes('touch')) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+
+                        const currentX = event.clientX || (event.touches && event.touches[0].clientX);
+                        const currentY = event.clientY || (event.touches && event.touches[0].clientY);
+                        
+                        const deltaX = currentX - initialX;
+                        const deltaY = currentY - initialY;
+
+                        const handleClasses = handle.classList;
+                        let isEast = handleClasses.contains('handle-e');
+                        let isWest = handleClasses.contains('handle-w');
+                        let isNorth = handleClasses.contains('handle-n');
+                        let isSouth = handleClasses.contains('handle-s');
+                        let isNorthEast = handleClasses.contains('handle-ne');
+                        let isNorthWest = handleClasses.contains('handle-nw');
+                        let isSouthEast = handleClasses.contains('handle-se');
+                        let isSouthWest = handleClasses.contains('handle-sw');
+
+                        let newWidth = initialWidth;
+                        let newHeight = initialHeight;
+                        let newLeft = initialLeft;
+                        let newTop = initialTop;
+
+                        if (elemento.classList.contains('linha-reta')) {
+                            const minSize = 1;
+                            
+                            if (isEast) {
+                                newWidth = Math.max(initialWidth + deltaX, minSize);
+                                newHeight = 2;
+                            }
+                            else if (isWest) {
+                                newWidth = Math.max(initialWidth - deltaX, minSize);
+                                newHeight = 2;
+                                newLeft = initialLeft + deltaX;
+                            }
+                            else if (isNorth) {
+                                newHeight = 2;
+                                newTop = initialTop + deltaY;
+                            }
+                            else if (isSouth) {
+                                newHeight = 2;
+                            }
+                            else if (isNorthEast) {
+                                newWidth = Math.max(initialWidth + deltaX, minSize);
+                                newHeight = 2;
+                                newTop = initialTop + deltaY;
+                            }
+                            else if (isNorthWest) {
+                                newWidth = Math.max(initialWidth - deltaX, minSize);
+                                newHeight = 2;
+                                newLeft = initialLeft + deltaX;
+                                newTop = initialTop + deltaY;
+                            }
+                            else if (isSouthEast) {
+                                newWidth = Math.max(initialWidth + deltaX, minSize);
+                                newHeight = 2;
+                            }
+                            else if (isSouthWest) {
+                                newWidth = Math.max(initialWidth - deltaX, minSize);
+                                newHeight = 2;
+                                newLeft = initialLeft + deltaX;
+                            }
+                        } else {
+                            if (isEast) {
+                                newWidth = Math.max(initialWidth + deltaX, 10);
+                            }
+                            else if (isWest) {
+                                newWidth = Math.max(initialWidth - deltaX, 10);
+                                newLeft = initialLeft + deltaX;
+                            }
+                            else if (isNorth) {
+                                newHeight = Math.max(initialHeight - deltaY, 10);
+                                newTop = initialTop + deltaY;
+                            }
+                            else if (isSouth) {
+                                newHeight = Math.max(initialHeight + deltaY, 10);
+                            }
+                            else if (isNorthEast) {
+                                newWidth = Math.max(initialWidth + deltaX, 10);
+                                newHeight = newWidth / initialRatio;
+                                newTop = initialTop + (initialHeight - newHeight);
+                            }
+                            else if (isNorthWest) {
+                                newWidth = Math.max(initialWidth - deltaX, 10);
+                                newHeight = newWidth / initialRatio;
+                                newLeft = initialLeft + deltaX;
+                                newTop = initialTop + (initialHeight - newHeight);
+                            }
+                            else if (isSouthEast) {
+                                newWidth = Math.max(initialWidth + deltaX, 10);
+                                newHeight = newWidth / initialRatio;
+                            }
+                            else if (isSouthWest) {
+                                newWidth = Math.max(initialWidth - deltaX, 10);
+                                newHeight = newWidth / initialRatio;
+                                newLeft = initialLeft + deltaX;
+                            }
+                        }
+
+                        elemento.style.width = newWidth + 'px';
+                        elemento.style.height = newHeight + 'px';
+                        
+                        if (isWest || isNorthWest || isSouthWest) {
+                            elemento.style.left = newLeft + 'px';
+                        }
+                        
+                        if (isNorth || isNorthEast || isNorthWest) {
+                            elemento.style.top = newTop + 'px';
+                        }
+
+                        this.atualizarLinhasESimbolos(elemento);
+                        this.atualizarHandles();
+                    },
+                    end: () => {
+                        handle.style.cursor = 'grab';
+                        this.salvarEstadoHistorico('Redimensionar Elemento');
+                        console.log('🔧 Redimensionamento proporcional concluído');
+                    }
                 }
-                
-                const style = window.getComputedStyle(elemento);
-                initialWidth = parseFloat(style.width);
-                initialHeight = parseFloat(style.height);
-                initialLeft = parseFloat(style.left);
-                initialTop = parseFloat(style.top);
-                
-                initialRatio = initialWidth / initialHeight; // 🔥 CALCULAR PROPORÇÃO
-                
-                initialX = event.clientX || (event.touches && event.touches[0].clientX);
-                initialY = event.clientY || (event.touches && event.touches[0].clientY);
-
-                handle.style.cursor = 'grabbing';
-                console.log('🔧 Iniciando redimensionamento proporcional');
-            },
-            move: (event) => {
-                if (event.type.includes('touch')) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-
-                const currentX = event.clientX || (event.touches && event.touches[0].clientX);
-                const currentY = event.clientY || (event.touches && event.touches[0].clientY);
-                
-                const deltaX = currentX - initialX;
-                const deltaY = currentY - initialY;
-
-                const handleClasses = handle.classList;
-                let isEast = handleClasses.contains('handle-e');
-                let isWest = handleClasses.contains('handle-w');
-                let isNorth = handleClasses.contains('handle-n');
-                let isSouth = handleClasses.contains('handle-s');
-                let isNorthEast = handleClasses.contains('handle-ne');
-                let isNorthWest = handleClasses.contains('handle-nw');
-                let isSouthEast = handleClasses.contains('handle-se');
-                let isSouthWest = handleClasses.contains('handle-sw');
-
-                let newWidth = initialWidth;
-                let newHeight = initialHeight;
-                let newLeft = initialLeft;
-                let newTop = initialTop;
-
-                if (elemento.classList.contains('linha-reta')) {
-                    // 🔥 MANTÉM LÓGICA EXISTENTE PARA LINHA RETA
-                    const minSize = 1;
-                    
-                    if (isEast) {
-                        newWidth = Math.max(initialWidth + deltaX, minSize);
-                        newHeight = 2;
-                    }
-                    else if (isWest) {
-                        newWidth = Math.max(initialWidth - deltaX, minSize);
-                        newHeight = 2;
-                        newLeft = initialLeft + deltaX;
-                    }
-                    else if (isNorth) {
-                        newHeight = 2;
-                        newTop = initialTop + deltaY;
-                    }
-                    else if (isSouth) {
-                        newHeight = 2;
-                    }
-                    else if (isNorthEast) {
-                        newWidth = Math.max(initialWidth + deltaX, minSize);
-                        newHeight = 2;
-                        newTop = initialTop + deltaY;
-                    }
-                    else if (isNorthWest) {
-                        newWidth = Math.max(initialWidth - deltaX, minSize);
-                        newHeight = 2;
-                        newLeft = initialLeft + deltaX;
-                        newTop = initialTop + deltaY;
-                    }
-                    else if (isSouthEast) {
-                        newWidth = Math.max(initialWidth + deltaX, minSize);
-                        newHeight = 2;
-                    }
-                    else if (isSouthWest) {
-                        newWidth = Math.max(initialWidth - deltaX, minSize);
-                        newHeight = 2;
-                        newLeft = initialLeft + deltaX;
-                    }
-                } else {
-                    // 🔥 LÓGICA PARA CUBAS NÃO-LINHA (COM PROPORÇÃO)
-                    if (isEast) {
-                        // Handle leste - ajusta apenas largura
-                        newWidth = Math.max(initialWidth + deltaX, 10);
-                    }
-                    else if (isWest) {
-                        // Handle oeste - ajusta largura e posição
-                        newWidth = Math.max(initialWidth - deltaX, 10);
-                        newLeft = initialLeft + deltaX;
-                    }
-                    else if (isNorth) {
-                        // Handle norte - ajusta altura e posição
-                        newHeight = Math.max(initialHeight - deltaY, 10);
-                        newTop = initialTop + deltaY;
-                    }
-                    else if (isSouth) {
-                        // Handle sul - ajusta apenas altura
-                        newHeight = Math.max(initialHeight + deltaY, 10);
-                    }
-                    // 🔥 HANDLES DE QUINA - MANTÊM PROPORÇÃO
-                    else if (isNorthEast) {
-                        // Nordeste - usa deltaX como referência e mantém proporção
-                        newWidth = Math.max(initialWidth + deltaX, 10);
-                        newHeight = newWidth / initialRatio;
-                        newTop = initialTop + (initialHeight - newHeight);
-                    }
-                    else if (isNorthWest) {
-                        // Noroeste - usa deltaX como referência e mantém proporção
-                        newWidth = Math.max(initialWidth - deltaX, 10);
-                        newHeight = newWidth / initialRatio;
-                        newLeft = initialLeft + deltaX;
-                        newTop = initialTop + (initialHeight - newHeight);
-                    }
-                    else if (isSouthEast) {
-                        // Sudeste - usa deltaX como referência e mantém proporção
-                        newWidth = Math.max(initialWidth + deltaX, 10);
-                        newHeight = newWidth / initialRatio;
-                    }
-                    else if (isSouthWest) {
-                        // Sudoeste - usa deltaX como referência e mantém proporção
-                        newWidth = Math.max(initialWidth - deltaX, 10);
-                        newHeight = newWidth / initialRatio;
-                        newLeft = initialLeft + deltaX;
-                    }
-                }
-
-                elemento.style.width = newWidth + 'px';
-                elemento.style.height = newHeight + 'px';
-                
-                if (isWest || isNorthWest || isSouthWest) {
-                    elemento.style.left = newLeft + 'px';
-                }
-                
-                if (isNorth || isNorthEast || isNorthWest) {
-                    elemento.style.top = newTop + 'px';
-                }
-
-                this.atualizarLinhasESimbolos(elemento);
-                this.atualizarHandles();
-            },
-            end: () => {
-                handle.style.cursor = 'grab';
-                this.salvarEstadoHistorico('Redimensionar Elemento');
-                console.log('🔧 Redimensionamento proporcional concluído');
-            }
+            });
         }
-    });
-}
 
         configurarHandleRotacao(handle, elemento) {
             let initialAngle = parseFloat(elemento.getAttribute('data-rotate')) || 0;
@@ -4545,49 +4460,48 @@ _isTouchGesture(e) {
             };
         }
 
-      criarCuba(x, y, tipo, largura = 80, altura = 50) {
-    const cubaElement = document.createElement('div');
-    cubaElement.className = `cuba ${tipo}`;
-    cubaElement.style.position = 'absolute';
-    
-    cubaElement.style.left = `${x}px`;
-    cubaElement.style.top = `${y}px`;
-    cubaElement.style.transform = 'none';
-    cubaElement.setAttribute('data-x', '0');
-    cubaElement.setAttribute('data-y', '0');
-    
-    // 🔥 AGORA LINHA RETA USA BORDA COMO OS OUTROS
-    if (tipo === 'linha-reta') {
-        cubaElement.style.width = `${Math.max(largura, 100)}px`;
-        cubaElement.style.height = '0px'; // Altura zero
-        cubaElement.style.borderTop = '2px solid #333'; // 🔥 BORDA EM VEZ DE BACKGROUND
-        cubaElement.style.backgroundColor = 'transparent';
-    } else if (tipo === 'circulo') {
-        const tamanho = Math.max(largura, altura);
-        cubaElement.style.width = `${tamanho}px`;
-        cubaElement.style.height = `${tamanho}px`;
-        cubaElement.style.borderRadius = '50%';
-    } else {
-        cubaElement.style.width = `${largura}px`;
-        cubaElement.style.height = `${altura}px`;
-        if (tipo === 'oval') cubaElement.style.borderRadius = '50%';
-        else if (tipo === 'elipse') cubaElement.style.borderRadius = '40%';
-        else cubaElement.style.borderRadius = '0';
-    }
+        criarCuba(x, y, tipo, largura = 80, altura = 50) {
+            const cubaElement = document.createElement('div');
+            cubaElement.className = `cuba ${tipo}`;
+            cubaElement.style.position = 'absolute';
+            
+            cubaElement.style.left = `${x}px`;
+            cubaElement.style.top = `${y}px`;
+            cubaElement.style.transform = 'none';
+            cubaElement.setAttribute('data-x', '0');
+            cubaElement.setAttribute('data-y', '0');
+            
+            if (tipo === 'linha-reta') {
+                cubaElement.style.width = `${Math.max(largura, 100)}px`;
+                cubaElement.style.height = '0px';
+                cubaElement.style.borderTop = '2px solid #333';
+                cubaElement.style.backgroundColor = 'transparent';
+            } else if (tipo === 'circulo') {
+                const tamanho = Math.max(largura, altura);
+                cubaElement.style.width = `${tamanho}px`;
+                cubaElement.style.height = `${tamanho}px`;
+                cubaElement.style.borderRadius = '50%';
+            } else {
+                cubaElement.style.width = `${largura}px`;
+                cubaElement.style.height = `${altura}px`;
+                if (tipo === 'oval') cubaElement.style.borderRadius = '50%';
+                else if (tipo === 'elipse') cubaElement.style.borderRadius = '40%';
+                else cubaElement.style.borderRadius = '0';
+            }
 
-    if (this.modoSelecaoAtivo) cubaElement.classList.add('selecionavel');
+            if (this.modoSelecaoAtivo) cubaElement.classList.add('selecionavel');
 
-    const grupo = this.encontrarGrupoNaPosicao(x, y);
-    if (grupo) {
-        grupo.appendChild(cubaElement);
-    } else {
-        this.drawingArea.appendChild(cubaElement);
-    }
+            const grupo = this.encontrarGrupoNaPosicao(x, y);
+            if (grupo) {
+                grupo.appendChild(cubaElement);
+            } else {
+                this.drawingArea.appendChild(cubaElement);
+            }
 
-    this.configurarInteratividadeCuba(cubaElement, tipo);
-    this.salvarEstadoHistorico('Adicionar Cuba');
-    return cubaElement;
-}
+            this.configurarInteratividadeCuba(cubaElement, tipo);
+            this.salvarEstadoHistorico('Adicionar Cuba');
+            return cubaElement;
+        }
 
         configurarInteratividadeCuba(elemento, tipo) {
             interact(elemento).draggable({
@@ -4637,242 +4551,229 @@ _isTouchGesture(e) {
             }
         }
 
-     manipularCliqueInsercao(e) {
-    if (!this.modoInsercaoAtivo) return;
-    
-    // Prevenir comportamento padrão
-    e.preventDefault();
-    e.stopPropagation();
-    
-    // Obter coordenadas ABSOLUTAS dentro da drawingArea
-    const rect = this.drawingArea.getBoundingClientRect();
-    const scrollLeft = this.drawingArea.scrollLeft || 0;
-    const scrollTop = this.drawingArea.scrollTop || 0;
-    
-    let clientX, clientY;
-    
-    if (e.touches && e.touches[0]) {
-        clientX = e.touches[0].clientX;
-        clientY = e.touches[0].clientY;
-    } else {
-        clientX = e.clientX;
-        clientY = e.clientY;
-    }
-    
-    // Coordenadas ABSOLUTAS dentro da drawingArea (incluindo scroll)
-    const x = clientX - rect.left + scrollLeft;
-    const y = clientY - rect.top + scrollTop;
-    
-    console.log(`🎯 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y} (scroll: ${scrollLeft}, ${scrollTop})`);
-
-    switch(this.modoInsercaoAtivo) {
-        case 'texto':
-            this.criarTexto(x, y, '');
-            break;
-        case 'cuba':
-            this.mostrarSeletorCuba(x, y);
-            break;
-        case 'legenda':
-            this.mostrarSeletorLegenda(x, y);
-            break;
-        default:
-            console.warn('⚠️ Modo de inserção desconhecido:', this.modoInsercaoAtivo);
-    }
-    
-    this.desativarTodosOsModos();
-}
-
-     criarTexto(x, y, textoInicial = "") {
-    const textoElement = document.createElement('textarea');
-    textoElement.className = 'texto-legenda';
-
-    // Posicionamento ABSOLUTO dentro do container pai
-    textoElement.style.left = `${x}px`;
-    textoElement.style.top = `${y}px`;
-    textoElement.style.transform = 'none';
-    textoElement.setAttribute('data-x', '0');
-    textoElement.setAttribute('data-y', '0');
-    
-    textoElement.value = textoInicial;
-    textoElement.setAttribute('data-valor', textoInicial);
-    textoElement.rows = 1;
-    textoElement.placeholder = "Digite seu texto";
-
-    if (this.modoSelecaoAtivo) {
-        textoElement.classList.add('selecionavel');
-    }
-
-    // 🔥 CORREÇÃO: Encontrar o grupo correto
-    const grupo = this.encontrarGrupoNaPosicao(x, y);
-    if (grupo) {
-        console.log('📝 Adicionando texto DENTRO do grupo encontrado');
-        
-        // Calcular posição RELATIVA dentro do grupo
-        const grupoRect = grupo.getBoundingClientRect();
-        const drawingRect = this.drawingArea.getBoundingClientRect();
-        const grupoLeft = grupoRect.left - drawingRect.left;
-        const grupoTop = grupoRect.top - drawingRect.top;
-        
-        const xRelativo = x - grupoLeft;
-        const yRelativo = y - grupoTop;
-        
-        textoElement.style.left = `${xRelativo}px`;
-        textoElement.style.top = `${yRelativo}px`;
-        
-        grupo.appendChild(textoElement);
-    } else {
-        console.log('📝 Adicionando texto na área PRINCIPAL');
-        this.drawingArea.appendChild(textoElement);
-    }
-    
-    // Resto do código permanece igual...
-    this.salvarEstadoImediato('Adicionar Caixa de Texto');
-    textoElement.focus();
-
-    textoElement.addEventListener('input', () => {
-        textoElement.style.height = 'auto';
-        textoElement.style.height = (textoElement.scrollHeight) + 'px';
-        textoElement.setAttribute('data-valor', textoElement.value);
-    });
-    
-    textoElement.addEventListener('blur', () => {
-        textoElement.setAttribute('data-valor', textoElement.value);
-        if (textoElement.value.trim() === '') {
-            textoElement.remove();
-            this.salvarEstadoImediato('Remover Texto Vazio');
-        } else {
-            this.salvarEstadoImediato('Editar Texto: ' + textoElement.value.substring(0, 20));
-        }
-    });
-
-    this.configurarInteratividadeTexto(textoElement);
-    
-    return textoElement;
-}
-
-
-        configurarInteratividadeTexto(elemento) {
-    this.removerInteratividade(elemento);
-    
-    // 🔥 CORREÇÃO: Configurar interatividade apenas se for selecionável
-    if (elemento.classList.contains('selecionavel') || this.modoSelecaoAtivo) {
-        let originalBackground = elemento.style.backgroundColor;
-        
-        interact(elemento).draggable({
-            allowFrom: '.texto-legenda',
-            ignoreFrom: 'input, textarea, button, select',
-            modifiers: [
-                interact.modifiers.restrictRect({
-                    restriction: 'parent',
-                    endOnly: true
-                })
-            ],
-            preventDefault: 'always',
-
-            listeners: {
-                start: (event) => {
-                    if (event.type.includes('touch')) {
-                        event.preventDefault();
-                    }
-
-                    elemento.style.zIndex = '1000';
-                    elemento.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
-                },
-                move: (event) => {
-                    if (event.type.includes('touch')) {
-                        event.preventDefault();
-                    }
-
-                    let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                    let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-                    const rotacao = parseFloat(elemento.getAttribute('data-rotacao')) || 0;
-
-                    elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotacao}deg)`;
-                    elemento.setAttribute('data-x', x);
-                    elemento.setAttribute('data-y', y);
-                },
-                end: () => {
-                    elemento.style.zIndex = '';
-                    elemento.style.backgroundColor = originalBackground;
-                    this.salvarEstadoHistorico('Mover Texto');
-                }
+        manipularCliqueInsercao(e) {
+            if (!this.modoInsercaoAtivo) return;
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const rect = this.drawingArea.getBoundingClientRect();
+            const scrollLeft = this.drawingArea.scrollLeft || 0;
+            const scrollTop = this.drawingArea.scrollTop || 0;
+            
+            let clientX, clientY;
+            
+            if (e.touches && e.touches[0]) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
             }
-        });
+            
+            const x = clientX - rect.left + scrollLeft;
+            const y = clientY - rect.top + scrollTop;
+            
+            console.log(`🎯 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y} (scroll: ${scrollLeft}, ${scrollTop})`);
 
-        // 🔥 CORREÇÃO: Permitir redimensionamento do texto
-        interact(elemento).resizable({
-            edges: { left: false, right: true, bottom: true, top: false },
-            listeners: {
-                move: function (event) {
-                    Object.assign(event.target.style, {
-                        width: `${event.rect.width}px`,
-                        height: `${event.rect.height}px`
-                    });
+            switch(this.modoInsercaoAtivo) {
+                case 'texto':
+                    this.criarTexto(x, y, '');
+                    break;
+                case 'cuba':
+                    this.mostrarSeletorCuba(x, y);
+                    break;
+                case 'legenda':
+                    this.mostrarSeletorLegenda(x, y);
+                    break;
+                default:
+                    console.warn('⚠️ Modo de inserção desconhecido:', this.modoInsercaoAtivo);
+            }
+            
+            this.desativarTodosOsModos();
+        }
+
+        criarTexto(x, y, textoInicial = "") {
+            const textoElement = document.createElement('textarea');
+            textoElement.className = 'texto-legenda';
+
+            textoElement.style.left = `${x}px`;
+            textoElement.style.top = `${y}px`;
+            textoElement.style.transform = 'none';
+            textoElement.setAttribute('data-x', '0');
+            textoElement.setAttribute('data-y', '0');
+            
+            textoElement.value = textoInicial;
+            textoElement.setAttribute('data-valor', textoInicial);
+            textoElement.rows = 1;
+            textoElement.placeholder = "Digite seu texto";
+
+            if (this.modoSelecaoAtivo) {
+                textoElement.classList.add('selecionavel');
+            }
+
+            const grupo = this.encontrarGrupoNaPosicao(x, y);
+            if (grupo) {
+                console.log('📝 Adicionando texto DENTRO do grupo encontrado');
+                
+                const grupoRect = grupo.getBoundingClientRect();
+                const drawingRect = this.drawingArea.getBoundingClientRect();
+                const grupoLeft = grupoRect.left - drawingRect.left;
+                const grupoTop = grupoRect.top - drawingRect.top;
+                
+                const xRelativo = x - grupoLeft;
+                const yRelativo = y - grupoTop;
+                
+                textoElement.style.left = `${xRelativo}px`;
+                textoElement.style.top = `${yRelativo}px`;
+                
+                grupo.appendChild(textoElement);
+            } else {
+                console.log('📝 Adicionando texto na área PRINCIPAL');
+                this.drawingArea.appendChild(textoElement);
+            }
+            
+            this.salvarEstadoImediato('Adicionar Caixa de Texto');
+            textoElement.focus();
+
+            textoElement.addEventListener('input', () => {
+                textoElement.style.height = 'auto';
+                textoElement.style.height = (textoElement.scrollHeight) + 'px';
+                textoElement.setAttribute('data-valor', textoElement.value);
+            });
+            
+            textoElement.addEventListener('blur', () => {
+                textoElement.setAttribute('data-valor', textoElement.value);
+                if (textoElement.value.trim() === '') {
+                    textoElement.remove();
+                    this.salvarEstadoImediato('Remover Texto Vazio');
+                } else {
+                    this.salvarEstadoImediato('Editar Texto: ' + textoElement.value.substring(0, 20));
                 }
-            },
-            modifiers: [
-                interact.modifiers.restrictSize({
-                    min: { width: 50, height: 20 }
-                })
-            ]
-        });
-    }
-}
+            });
+
+            this.configurarInteratividadeTexto(textoElement);
+            
+            return textoElement;
+        }
+
+        // 🔥 MODIFICADO: Configurar interatividade do texto com suporte a escrita
+        configurarInteratividadeTexto(elemento) {
+            this.removerInteratividade(elemento);
+            
+            if (elemento.classList.contains('selecionavel') || this.modoSelecaoAtivo) {
+                let originalBackground = elemento.style.backgroundColor;
+                
+                interact(elemento).draggable({
+                    allowFrom: '.texto-legenda',
+                    ignoreFrom: 'input, textarea, button, select',
+                    modifiers: [
+                        interact.modifiers.restrictRect({
+                            restriction: 'parent',
+                            endOnly: true
+                        })
+                    ],
+                    preventDefault: 'always',
+
+                    listeners: {
+                        start: (event) => {
+                            if (event.type.includes('touch')) {
+                                event.preventDefault();
+                            }
+
+                            elemento.style.zIndex = '1000';
+                            elemento.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+                        },
+                        move: (event) => {
+                            if (event.type.includes('touch')) {
+                                event.preventDefault();
+                            }
+
+                            let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                            let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                            const rotacao = parseFloat(elemento.getAttribute('data-rotacao')) || 0;
+
+                            elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotacao}deg)`;
+                            elemento.setAttribute('data-x', x);
+                            elemento.setAttribute('data-y', y);
+                        },
+                        end: () => {
+                            elemento.style.zIndex = '';
+                            elemento.style.backgroundColor = originalBackground;
+                            this.salvarEstadoHistorico('Mover Texto');
+                        }
+                    }
+                });
+
+                interact(elemento).resizable({
+                    edges: { left: false, right: true, bottom: true, top: false },
+                    listeners: {
+                        move: function (event) {
+                            Object.assign(event.target.style, {
+                                width: `${event.rect.width}px`,
+                                height: `${event.rect.height}px`
+                            });
+                        }
+                    },
+                    modifiers: [
+                        interact.modifiers.restrictSize({
+                            min: { width: 50, height: 20 }
+                        })
+                    ]
+                });
+            }
+        }
 
         criarLegendaSimplificada(x, y, simbolo = "C", descricao = "Acabamento") {
-    const legendaElement = document.createElement('div');
-    legendaElement.className = 'legenda-simplificada';
-    
-    // Posicionamento inicial
-    legendaElement.style.position = 'absolute';
-    legendaElement.style.left = `${x}px`;
-    legendaElement.style.top = `${y}px`;
-    legendaElement.style.transform = 'none';
-    legendaElement.setAttribute('data-x', '0');
-    legendaElement.setAttribute('data-y', '0');
-    
-    // Resto do conteúdo...
-    legendaElement.innerHTML = `
-        <span class="legenda-simbolo-inline">${simbolo}</span> = <span class="legenda-descricao-inline" contenteditable="true">${descricao}</span>
-    `;
-    
-    if (this.modoSelecaoAtivo) {
-        legendaElement.classList.add('selecionavel');
-    }
-    
-    legendaElement.addEventListener('dblclick', () => {
-        const spanDescricao = legendaElement.querySelector('.legenda-descricao-inline');
-        spanDescricao.focus();
-    });
-    
-    // 🔥 CORREÇÃO: Encontrar o grupo correto
-    const grupo = this.encontrarGrupoNaPosicao(x, y);
-    if (grupo) {
-        console.log('🏷️ Adicionando legenda DENTRO do grupo encontrado');
-        
-        // Calcular posição RELATIVA dentro do grupo
-        const grupoRect = grupo.getBoundingClientRect();
-        const drawingRect = this.drawingArea.getBoundingClientRect();
-        const grupoLeft = grupoRect.left - drawingRect.left;
-        const grupoTop = grupoRect.top - drawingRect.top;
-        
-        const xRelativo = x - grupoLeft;
-        const yRelativo = y - grupoTop;
-        
-        legendaElement.style.left = `${xRelativo}px`;
-        legendaElement.style.top = `${yRelativo}px`;
-        
-        grupo.appendChild(legendaElement);
-    } else {
-        console.log('🏷️ Adicionando legenda na área PRINCIPAL');
-        this.drawingArea.appendChild(legendaElement);
-    }
-    
-    this.salvarEstadoHistorico('Adicionar Legenda');
-    this.configurarInteratividadeLegenda(legendaElement);
-    
-    return legendaElement;
-}
+            const legendaElement = document.createElement('div');
+            legendaElement.className = 'legenda-simplificada';
+            
+            legendaElement.style.position = 'absolute';
+            legendaElement.style.left = `${x}px`;
+            legendaElement.style.top = `${y}px`;
+            legendaElement.style.transform = 'none';
+            legendaElement.setAttribute('data-x', '0');
+            legendaElement.setAttribute('data-y', '0');
+            
+            legendaElement.innerHTML = `
+                <span class="legenda-simbolo-inline">${simbolo}</span> = <span class="legenda-descricao-inline" contenteditable="true">${descricao}</span>
+            `;
+            
+            if (this.modoSelecaoAtivo) {
+                legendaElement.classList.add('selecionavel');
+            }
+            
+            legendaElement.addEventListener('dblclick', () => {
+                const spanDescricao = legendaElement.querySelector('.legenda-descricao-inline');
+                spanDescricao.focus();
+            });
+            
+            const grupo = this.encontrarGrupoNaPosicao(x, y);
+            if (grupo) {
+                console.log('🏷️ Adicionando legenda DENTRO do grupo encontrado');
+                
+                const grupoRect = grupo.getBoundingClientRect();
+                const drawingRect = this.drawingArea.getBoundingClientRect();
+                const grupoLeft = grupoRect.left - drawingRect.left;
+                const grupoTop = grupoRect.top - drawingRect.top;
+                
+                const xRelativo = x - grupoLeft;
+                const yRelativo = y - grupoTop;
+                
+                legendaElement.style.left = `${xRelativo}px`;
+                legendaElement.style.top = `${yRelativo}px`;
+                
+                grupo.appendChild(legendaElement);
+            } else {
+                console.log('🏷️ Adicionando legenda na área PRINCIPAL');
+                this.drawingArea.appendChild(legendaElement);
+            }
+            
+            this.salvarEstadoHistorico('Adicionar Legenda');
+            this.configurarInteratividadeLegenda(legendaElement);
+            
+            return legendaElement;
+        }
 
         configurarInteratividadeLegenda(elemento) {
             const transformInicial = window.getComputedStyle(elemento).transform;
@@ -4977,35 +4878,32 @@ _isTouchGesture(e) {
             }, { passive: false });
         }
 
-       encontrarGrupoNaPosicao(x, y) {
-    const grupos = this.drawingArea.querySelectorAll('.area-pecas');
-    
-    console.log(`🔍 Buscando grupo para posição x:${x}, y:${y}`);
-    
-    for (const grupo of grupos) {
-        // Obter posição ABSOLUTA do grupo dentro da drawingArea
-        const grupoRect = grupo.getBoundingClientRect();
-        const drawingRect = this.drawingArea.getBoundingClientRect();
-        
-        // Calcular posição relativa considerando scroll
-        const grupoRelLeft = grupoRect.left - drawingRect.left;
-        const grupoRelTop = grupoRect.top - drawingRect.top;
-        const grupoRelRight = grupoRelLeft + grupoRect.width;
-        const grupoRelBottom = grupoRelTop + grupoRect.height;
-        
-        console.log(`🔍 Grupo encontrado: ${grupoRelLeft},${grupoRelTop} -> ${grupoRelRight},${grupoRelBottom}`);
-        
-        // Verificar se o clique está dentro do grupo
-        if (x >= grupoRelLeft && x <= grupoRelRight && 
-            y >= grupoRelTop && y <= grupoRelBottom) {
-            console.log('✅ Elemento será adicionado DENTRO deste grupo');
-            return grupo;
+        encontrarGrupoNaPosicao(x, y) {
+            const grupos = this.drawingArea.querySelectorAll('.area-pecas');
+            
+            console.log(`🔍 Buscando grupo para posição x:${x}, y:${y}`);
+            
+            for (const grupo of grupos) {
+                const grupoRect = grupo.getBoundingClientRect();
+                const drawingRect = this.drawingArea.getBoundingClientRect();
+                
+                const grupoRelLeft = grupoRect.left - drawingRect.left;
+                const grupoRelTop = grupoRect.top - drawingRect.top;
+                const grupoRelRight = grupoRelLeft + grupoRect.width;
+                const grupoRelBottom = grupoRelTop + grupoRect.height;
+                
+                console.log(`🔍 Grupo encontrado: ${grupoRelLeft},${grupoRelTop} -> ${grupoRelRight},${grupoRelBottom}`);
+                
+                if (x >= grupoRelLeft && x <= grupoRelRight && 
+                    y >= grupoRelTop && y <= grupoRelBottom) {
+                    console.log('✅ Elemento será adicionado DENTRO deste grupo');
+                    return grupo;
+                }
+            }
+            
+            console.log('❌ Nenhum grupo encontrado na posição, adicionando na área principal');
+            return null;
         }
-    }
-    
-    console.log('❌ Nenhum grupo encontrado na posição, adicionando na área principal');
-    return null;
-}
 
         criarDimensoes(pecaElement, peca, width, height) {
             const pecaId = pecaElement.getAttribute('data-peca-id');
@@ -5723,339 +5621,309 @@ _isTouchGesture(e) {
             });
         }
 
-        // 🔥🔥🔥 NOVOS MÉTODOS PARA O SISTEMA DE ESTILOS
+        // 🔥🔥🔥 MÉTODOS PARA O SISTEMA DE ESTILOS
 
-      mostrarModalEstilos() {
-    console.log('🎨 Abrindo modal de estilos...');
-    
-    // Fechar qualquer modal existente primeiro
-    this.fecharModalEstilos();
-    
-    const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
-    
-    if (!elementoAlvo) {
-        console.log('⚠️ Nenhum elemento selecionado para aplicar estilos');
-        Swal.fire({
-            title: 'Nenhum elemento selecionado',
-            text: 'Por favor, selecione um elemento antes de abrir os estilos.',
-            icon: 'warning',
-            confirmButtonText: 'OK'
-        });
-        return;
-    }
-    
-    // Salvar referência ANTES de abrir o modal
-    this.elementoSelecionadoAntesDoModal = this.elementoSelecionado;
-    this.modalEstilosAberto = true;
-    
-    // Adicionar classe ao body para controle CSS
-    document.body.classList.add('modal-estilos-aberto');
-    
-    // 🔥 CORREÇÃO: Backdrop inteligente que permite gestos de multi-toque e rolagem
-    const backdrop = document.createElement('div');
-    backdrop.className = 'modal-backdrop';
-    backdrop.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.3);
-        z-index: 19999;
-        pointer-events: auto;
-    `;
-    
-    // 🔥 CORREÇÃO: Variáveis para controle de gestos
-    let touchStartTime = 0;
-    let touchStartX = 0;
-    let touchStartY = 0;
-    let isMultiTouch = false;
-    let isScrolling = false;
-    const touchMoveThreshold = 10; // pixels
-    
-    const handleBackdropTouchStart = (e) => {
-        touchStartTime = Date.now();
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
-        isMultiTouch = e.touches.length >= 2;
-        isScrolling = false;
-        
-        // 🔥 PERMITIR multi-toque (zoom com pinça) - não bloquear
-        if (isMultiTouch) {
-            console.log('📱 Multi-toque detectado - permitindo zoom');
-            return; // Deixa o evento prosseguir para o navegador
-        }
-        
-        // Para toque único, prevenir apenas se for um toque rápido (possível clique)
-        const isFastTap = (Date.now() - touchStartTime) < 300;
-        if (isFastTap) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-    };
-    
-    const handleBackdropTouchMove = (e) => {
-        // 🔥 SEMPRE permitir multi-toque
-        if (e.touches.length >= 2) {
-            isMultiTouch = true;
-            console.log('📱 Gestos de multi-toque - permitindo');
-            return; // Permite zoom com pinça
-        }
-        
-        // Verificar se é rolagem
-        if (!isMultiTouch && e.touches.length === 1) {
-            const currentX = e.touches[0].clientX;
-            const currentY = e.touches[0].clientY;
-            const deltaX = Math.abs(currentX - touchStartX);
-            const deltaY = Math.abs(currentY - touchStartY);
+        mostrarModalEstilos() {
+            console.log('🎨 Abrindo modal de estilos...');
             
-            // Se movimento significativo, considerar como rolagem
-            if (deltaX > touchMoveThreshold || deltaY > touchMoveThreshold) {
-                isScrolling = true;
-                console.log('📱 Rolagem detectada - permitindo');
-                return; // Permite rolagem
+            this.fecharModalEstilos();
+            
+            const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
+            
+            if (!elementoAlvo) {
+                console.log('⚠️ Nenhum elemento selecionado para aplicar estilos');
+                Swal.fire({
+                    title: 'Nenhum elemento selecionado',
+                    text: 'Por favor, selecione um elemento antes de abrir os estilos.',
+                    icon: 'warning',
+                    confirmButtonText: 'OK'
+                });
+                return;
             }
-        }
-        
-        // Se não é multi-toque nem rolagem, prevenir
-        e.preventDefault();
-        e.stopPropagation();
-    };
-    
-    const handleBackdropTouchEnd = (e) => {
-        // 🔥 Se foi multi-toque ou rolagem, não fazer nada
-        if (isMultiTouch || isScrolling) {
-            console.log('📱 Gestos de zoom/rolagem concluídos');
-            isMultiTouch = false;
-            isScrolling = false;
-            return;
-        }
-        
-        // Se foi um toque único rápido, prevenir desseleção
-        const isFastTap = (Date.now() - touchStartTime) < 300;
-        if (isFastTap) {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('🚫 Toque rápido bloqueado - prevenindo desseleção');
-        }
-        
-        isMultiTouch = false;
-        isScrolling = false;
-    };
-    
-    // 🔥 CORREÇÃO: Aplicar event listeners
-    backdrop.addEventListener('touchstart', handleBackdropTouchStart, { passive: false });
-    backdrop.addEventListener('touchmove', handleBackdropTouchMove, { passive: false });
-    backdrop.addEventListener('touchend', handleBackdropTouchEnd, { passive: false });
-    backdrop.addEventListener('touchcancel', handleBackdropTouchEnd, { passive: false });
-    
-    // Para mouse, ainda prevenir cliques
-    backdrop.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-    });
-    
-    document.body.appendChild(backdrop);
-    this.backdropEstilosAtual = backdrop;
-    
-    // Criar modal
-    const modalEstilos = document.createElement('div');
-    modalEstilos.className = 'modal-estilos';
-    modalEstilos.style.cssText = `
-        position: fixed;
-        z-index: 20000;
-        background: white;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        max-width: 400px;
-        width: 90vw;
-        max-height: 80vh;
-        overflow-y: auto;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-        pointer-events: auto;
-    `;
-    
-    // Cores predefinidas
-    const cores = [
-        '#000000', '#333333', '#666666', '#999999', '#cccccc',
-        '#ff0000', '#ff6b6b', '#ffa500', '#ffd700', '#ffff00',
-        '#00ff00', '#90ee90', '#0000ff', '#87ceeb', '#4e73df',
-        '#8a2be2', '#ee82ee', '#a52a2a', '#deb887', '#ffffff'
-    ];
-    
-    // Obter estilos atuais do elemento
-    const estilosAtuais = this.obterEstilosAtuais(elementoAlvo);
-    
-    modalEstilos.innerHTML = `
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 style="margin: 0;">Estilos e Formatação</h6>
-            <button type="button" class="btn-close" id="fecharModalEstilosBtn"></button>
-        </div>
-        
-        <div class="estilos-secao">
-            <h7>Cores</h7>
-            <div class="paleta-cores" id="paletaCores">
-                ${cores.map(cor => `
-                    <div class="cor-opcao ${estilosAtuais.cor === cor ? 'selecionada' : ''}" 
-                         style="background-color: ${cor}; border: 2px solid ${cor === '#ffffff' ? '#ccc' : cor}"
-                         data-cor="${cor}">
-                    </div>
-                `).join('')}
-            </div>
-            <div class="controle-grupo mt-2">
-                <label>Cor personalizada:</label>
-                <input type="color" id="corPersonalizada" value="${estilosAtuais.cor || '#000000'}">
-                <div class="preview-cor" style="background-color: ${estilosAtuais.cor || '#000000'}" id="previewCor"></div>
-            </div>
-        </div>
-        
-        <div class="estilos-secao">
-            <h7>Texto</h7>
-            <div class="controles-texto">
-                <div class="controle-grupo">
-                    <label>Tamanho:</label>
-                    <input type="range" id="tamanhoTexto" min="8" max="72" value="${estilosAtuais.tamanhoFonte || 16}">
-                    <span id="valorTamanho">${estilosAtuais.tamanhoFonte || 16}px</span>
-                </div>
-                <div class="controle-grupo">
-                    <label>
-                        <input type="checkbox" id="textoNegrito" ${estilosAtuais.negrito ? 'checked' : ''}>
-                        Negrito
-                    </label>
-                </div>
-            </div>
-        </div>
-        
-        <div class="estilos-secao">
-            <h7>Estilo de Linha</h7>
-            <div class="estilos-linha">
-                <div class="opcao-linha ${estilosAtuais.estiloLinha === 'solid' ? 'selecionada' : ''}" 
-                     data-estilo="solid">
-                    <div class="linha-solida"></div>
-                    <small>Contínua</small>
-                </div>
-                <div class="opcao-linha ${estilosAtuais.estiloLinha === 'dashed' ? 'selecionada' : ''}" 
-                     data-estilo="dashed">
-                    <div class="linha-tracejada"></div>
-                    <small>Tracejada</small>
-                </div>
-            </div>
-        </div>
-        
-        <div class="d-flex gap-2 mt-3">
             
-            <button class="btn btn-success flex-fill" id="aplicarEFecharEstilosBtn">
-                <i class="fas fa-check-double me-1"></i> Aplicar e Fechar
-            </button>
-        </div>
-    `;
-    
-    document.body.appendChild(modalEstilos);
-    this.modalEstilosAtual = modalEstilos;
-    
-    // 🔥 CORREÇÃO: Bloquear eventos de toque no modal também
-    const bloquearToqueModal = (e) => {
-        e.stopPropagation();
-        // Não prevenir padrão para permitir interação com controles
-    };
-    
-    modalEstilos.addEventListener('touchstart', bloquearToqueModal, { passive: true });
-    modalEstilos.addEventListener('touchend', bloquearToqueModal, { passive: true });
-    modalEstilos.addEventListener('touchmove', bloquearToqueModal, { passive: true });
-    
-    // Configurar eventos DEPOIS que o modal foi adicionado ao DOM
-    setTimeout(() => {
-        this.configurarEventosModalEstilos();
-    }, 10);
-    
-    console.log('✅ Modal de estilos aberto - gestos de zoom/rolagem permitidos');
-}
+            this.elementoSelecionadoAntesDoModal = this.elementoSelecionado;
+            this.modalEstilosAberto = true;
+            
+            document.body.classList.add('modal-estilos-aberto');
+            
+            const backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop';
+            backdrop.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.3);
+                z-index: 19999;
+                pointer-events: auto;
+            `;
+            
+            let touchStartTime = 0;
+            let touchStartX = 0;
+            let touchStartY = 0;
+            let isMultiTouch = false;
+            let isScrolling = false;
+            const touchMoveThreshold = 10;
+            
+            const handleBackdropTouchStart = (e) => {
+                touchStartTime = Date.now();
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+                isMultiTouch = e.touches.length >= 2;
+                isScrolling = false;
+                
+                if (isMultiTouch) {
+                    console.log('📱 Multi-toque detectado - permitindo zoom');
+                    return;
+                }
+                
+                const isFastTap = (Date.now() - touchStartTime) < 300;
+                if (isFastTap) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            };
+            
+            const handleBackdropTouchMove = (e) => {
+                if (e.touches.length >= 2) {
+                    isMultiTouch = true;
+                    console.log('📱 Gestos de multi-toque - permitindo');
+                    return;
+                }
+                
+                if (!isMultiTouch && e.touches.length === 1) {
+                    const currentX = e.touches[0].clientX;
+                    const currentY = e.touches[0].clientY;
+                    const deltaX = Math.abs(currentX - touchStartX);
+                    const deltaY = Math.abs(currentY - touchStartY);
+                    
+                    if (deltaX > touchMoveThreshold || deltaY > touchMoveThreshold) {
+                        isScrolling = true;
+                        console.log('📱 Rolagem detectada - permitindo');
+                        return;
+                    }
+                }
+                
+                e.preventDefault();
+                e.stopPropagation();
+            };
+            
+            const handleBackdropTouchEnd = (e) => {
+                if (isMultiTouch || isScrolling) {
+                    console.log('📱 Gestos de zoom/rolagem concluídos');
+                    isMultiTouch = false;
+                    isScrolling = false;
+                    return;
+                }
+                
+                const isFastTap = (Date.now() - touchStartTime) < 300;
+                if (isFastTap) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('🚫 Toque rápido bloqueado - prevenindo desseleção');
+                }
+                
+                isMultiTouch = false;
+                isScrolling = false;
+            };
+            
+            backdrop.addEventListener('touchstart', handleBackdropTouchStart, { passive: false });
+            backdrop.addEventListener('touchmove', handleBackdropTouchMove, { passive: false });
+            backdrop.addEventListener('touchend', handleBackdropTouchEnd, { passive: false });
+            backdrop.addEventListener('touchcancel', handleBackdropTouchEnd, { passive: false });
+            
+            backdrop.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+            
+            document.body.appendChild(backdrop);
+            this.backdropEstilosAtual = backdrop;
+            
+            const modalEstilos = document.createElement('div');
+            modalEstilos.className = 'modal-estilos';
+            modalEstilos.style.cssText = `
+                position: fixed;
+                z-index: 20000;
+                background: white;
+                padding: 20px;
+                border-radius: 10px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                max-width: 400px;
+                width: 90vw;
+                max-height: 80vh;
+                overflow-y: auto;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
+                pointer-events: auto;
+            `;
+            
+            const cores = [
+                '#000000', '#333333', '#666666', '#999999', '#cccccc',
+                '#ff0000', '#ff6b6b', '#ffa500', '#ffd700', '#ffff00',
+                '#00ff00', '#90ee90', '#0000ff', '#87ceeb', '#4e73df',
+                '#8a2be2', '#ee82ee', '#a52a2a', '#deb887', '#ffffff'
+            ];
+            
+            const estilosAtuais = this.obterEstilosAtuais(elementoAlvo);
+            
+            modalEstilos.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 style="margin: 0;">Estilos e Formatação</h6>
+                    <button type="button" class="btn-close" id="fecharModalEstilosBtn"></button>
+                </div>
+                
+                <div class="estilos-secao">
+                    <h7>Cores</h7>
+                    <div class="paleta-cores" id="paletaCores">
+                        ${cores.map(cor => `
+                            <div class="cor-opcao ${estilosAtuais.cor === cor ? 'selecionada' : ''}" 
+                                 style="background-color: ${cor}; border: 2px solid ${cor === '#ffffff' ? '#ccc' : cor}"
+                                 data-cor="${cor}">
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="controle-grupo mt-2">
+                        <label>Cor personalizada:</label>
+                        <input type="color" id="corPersonalizada" value="${estilosAtuais.cor || '#000000'}">
+                        <div class="preview-cor" style="background-color: ${estilosAtuais.cor || '#000000'}" id="previewCor"></div>
+                    </div>
+                </div>
+                
+                <div class="estilos-secao">
+                    <h7>Texto</h7>
+                    <div class="controles-texto">
+                        <div class="controle-grupo">
+                            <label>Tamanho:</label>
+                            <input type="range" id="tamanhoTexto" min="8" max="72" value="${estilosAtuais.tamanhoFonte || 16}">
+                            <span id="valorTamanho">${estilosAtuais.tamanhoFonte || 16}px</span>
+                        </div>
+                        <div class="controle-grupo">
+                            <label>
+                                <input type="checkbox" id="textoNegrito" ${estilosAtuais.negrito ? 'checked' : ''}>
+                                Negrito
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="estilos-secao">
+                    <h7>Estilo de Linha</h7>
+                    <div class="estilos-linha">
+                        <div class="opcao-linha ${estilosAtuais.estiloLinha === 'solid' ? 'selecionada' : ''}" 
+                             data-estilo="solid">
+                            <div class="linha-solida"></div>
+                            <small>Contínua</small>
+                        </div>
+                        <div class="opcao-linha ${estilosAtuais.estiloLinha === 'dashed' ? 'selecionada' : ''}" 
+                             data-estilo="dashed">
+                            <div class="linha-tracejada"></div>
+                            <small>Tracejada</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex gap-2 mt-3">
+                    
+                    <button class="btn btn-success flex-fill" id="aplicarEFecharEstilosBtn">
+                        <i class="fas fa-check-double me-1"></i> Aplicar e Fechar
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(modalEstilos);
+            this.modalEstilosAtual = modalEstilos;
+            
+            const bloquearToqueModal = (e) => {
+                e.stopPropagation();
+            };
+            
+            modalEstilos.addEventListener('touchstart', bloquearToqueModal, { passive: true });
+            modalEstilos.addEventListener('touchend', bloquearToqueModal, { passive: true });
+            modalEstilos.addEventListener('touchmove', bloquearToqueModal, { passive: true });
+            
+            setTimeout(() => {
+                this.configurarEventosModalEstilos();
+            }, 10);
+            
+            console.log('✅ Modal de estilos aberto - gestos de zoom/rolagem permitidos');
+        }
 
-
-     obterEstilosAtuais(elemento) {
-    if (!elemento) {
-        return {
-            cor: '#000000',
-            tamanhoFonte: 16,
-            negrito: false,
-            estiloLinha: 'solid'
-        };
-    }
-    
-    const estilos = window.getComputedStyle(elemento);
-    
-    // 🔥 MESMA LÓGICA PARA TODOS
-    let cor = '#000000';
-    if (elemento.classList.contains('peca') || elemento.classList.contains('cuba')) {
-        cor = estilos.borderColor || '#000000';
-    } else if (elemento.classList.contains('texto-legenda') || 
-               elemento.classList.contains('legenda-simplificada') ||
-               elemento.classList.contains('titulo-grupo') ||
-               elemento.classList.contains('simbolo-linha') ||
-               elemento.classList.contains('dimensoes') ||
-               elemento.classList.contains('quantidade-peca')) {
-        cor = estilos.color || '#000000';
-    } else if (elemento.classList.contains('linha-peca')) {
-        cor = estilos.backgroundColor || '#000000';
-    }
-    
-    // Converter cor RGB para HEX
-    if (cor.startsWith('rgb')) {
-        cor = this.rgbParaHex(cor);
-    }
-    
-    let tamanhoFonte = parseInt(estilos.fontSize) || 16;
-    const negrito = estilos.fontWeight === 'bold' || estilos.fontWeight === '700';
-    
-    let estiloLinha = 'solid';
-    if (elemento.classList.contains('peca') || elemento.classList.contains('cuba')) {
-        estiloLinha = estilos.borderStyle || 'solid';
-    } else if (elemento.classList.contains('linha-peca')) {
-        estiloLinha = estilos.borderStyle || 'solid';
-    }
-    
-    return {
-        cor: cor,
-        tamanhoFonte: tamanhoFonte,
-        negrito: negrito,
-        estiloLinha: estiloLinha
-    };
-}
-
-
+        obterEstilosAtuais(elemento) {
+            if (!elemento) {
+                return {
+                    cor: '#000000',
+                    tamanhoFonte: 16,
+                    negrito: false,
+                    estiloLinha: 'solid'
+                };
+            }
+            
+            const estilos = window.getComputedStyle(elemento);
+            
+            let cor = '#000000';
+            if (elemento.classList.contains('peca') || elemento.classList.contains('cuba')) {
+                cor = estilos.borderColor || '#000000';
+            } else if (elemento.classList.contains('texto-legenda') || 
+                       elemento.classList.contains('legenda-simplificada') ||
+                       elemento.classList.contains('titulo-grupo') ||
+                       elemento.classList.contains('simbolo-linha') ||
+                       elemento.classList.contains('dimensoes') ||
+                       elemento.classList.contains('quantidade-peca')) {
+                cor = estilos.color || '#000000';
+            } else if (elemento.classList.contains('linha-peca')) {
+                cor = estilos.backgroundColor || '#000000';
+            }
+            
+            if (cor.startsWith('rgb')) {
+                cor = this.rgbParaHex(cor);
+            }
+            
+            let tamanhoFonte = parseInt(estilos.fontSize) || 16;
+            const negrito = estilos.fontWeight === 'bold' || estilos.fontWeight === '700';
+            
+            let estiloLinha = 'solid';
+            if (elemento.classList.contains('peca') || elemento.classList.contains('cuba')) {
+                estiloLinha = estilos.borderStyle || 'solid';
+            } else if (elemento.classList.contains('linha-peca')) {
+                estiloLinha = estilos.borderStyle || 'solid';
+            }
+            
+            return {
+                cor: cor,
+                tamanhoFonte: tamanhoFonte,
+                negrito: negrito,
+                estiloLinha: estiloLinha
+            };
+        }
 
         rgbParaHex(rgb) {
-    // Converter rgb(r, g, b) para hexadecimal
-    const match = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
-    if (!match) return '#000000';
-    
-    const r = parseInt(match[1]).toString(16).padStart(2, '0');
-    const g = parseInt(match[2]).toString(16).padStart(2, '0');
-    const b = parseInt(match[3]).toString(16).padStart(2, '0');
-    
-    return `#${r}${g}${b}`;
-}
+            const match = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+            if (!match) return '#000000';
+            
+            const r = parseInt(match[1]).toString(16).padStart(2, '0');
+            const g = parseInt(match[2]).toString(16).padStart(2, '0');
+            const b = parseInt(match[3]).toString(16).padStart(2, '0');
+            
+            return `#${r}${g}${b}`;
+        }
 
         selecionarCor(cor) {
             console.log('🎨 Selecionando cor:', cor);
             this.corSelecionada = cor;
             
-            // Atualizar preview
             const preview = document.getElementById('previewCor');
             if (preview) {
                 preview.style.backgroundColor = cor;
             }
             
-            // Atualizar seletor de cor personalizada
             const corPersonalizada = document.getElementById('corPersonalizada');
             if (corPersonalizada) {
                 corPersonalizada.value = cor;
             }
             
-            // Atualizar seleção na paleta
             document.querySelectorAll('.cor-opcao').forEach(opcao => {
                 opcao.classList.remove('selecionada');
                 if (opcao.getAttribute('data-cor') === cor) {
@@ -6063,7 +5931,6 @@ _isTouchGesture(e) {
                 }
             });
             
-            // Aplicar cor imediatamente para preview em tempo real
             this.aplicarEstilosPreview();
         }
 
@@ -6071,13 +5938,11 @@ _isTouchGesture(e) {
             console.log('📐 Atualizando tamanho do texto:', tamanho);
             this.tamanhoTextoSelecionado = parseInt(tamanho);
             
-            // Atualizar display do valor
             const valorTamanho = document.getElementById('valorTamanho');
             if (valorTamanho) {
                 valorTamanho.textContent = `${tamanho}px`;
             }
             
-            // Aplicar preview em tempo real
             this.aplicarEstilosPreview();
         }
 
@@ -6091,7 +5956,6 @@ _isTouchGesture(e) {
             console.log('📏 Selecionando estilo de linha:', estilo);
             this.estiloLinhaSelecionado = estilo;
             
-            // Atualizar seleção visual
             document.querySelectorAll('.opcao-linha').forEach(opcao => {
                 opcao.classList.remove('selecionada');
                 if (opcao.getAttribute('data-estilo') === estilo) {
@@ -6099,7 +5963,6 @@ _isTouchGesture(e) {
                 }
             });
             
-            // Aplicar preview em tempo real
             this.aplicarEstilosPreview();
         }
 
@@ -6110,288 +5973,229 @@ _isTouchGesture(e) {
             this.aplicarEstilosElemento(elementoAlvo, true);
         }
 
-configurarEventosModalEstilos() {
-    if (!this.modalEstilosAtual) return;
-    
-    // Botão fechar
-    const fecharBtn = this.modalEstilosAtual.querySelector('#fecharModalEstilosBtn');
-    if (fecharBtn) {
-        fecharBtn.addEventListener('click', () => {
-            this.fecharModalEstilos();
-        });
-    }
-    
-    // Botão aplicar (mantém modal aberto)
-    const aplicarBtn = this.modalEstilosAtual.querySelector('#aplicarEstilosBtn');
-    if (aplicarBtn) {
-        aplicarBtn.addEventListener('click', () => {
-            this.aplicarEstilosManterModal();
-        });
-    }
-    
-    // Botão aplicar e fechar
-    const aplicarFecharBtn = this.modalEstilosAtual.querySelector('#aplicarEFecharEstilosBtn');
-    if (aplicarFecharBtn) {
-        aplicarFecharBtn.addEventListener('click', () => {
-            this.aplicarEstilosEFechar();
-        });
-    }
-    
-    // 🔥 CORREÇÃO: Configurar eventos das opções de cor para NÃO propagar
-    const coresOpcoes = this.modalEstilosAtual.querySelectorAll('.cor-opcao');
-    coresOpcoes.forEach(opcao => {
-        // Remover listeners antigos
-        opcao.replaceWith(opcao.cloneNode(true));
-    });
-    
-    // Re-selecionar após clonagem
-    const novasCoresOpcoes = this.modalEstilosAtual.querySelectorAll('.cor-opcao');
-    novasCoresOpcoes.forEach(opcao => {
-        opcao.addEventListener('click', (e) => {
-            console.log('🎨 Cor clicada - bloqueando propagação');
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-            const cor = opcao.getAttribute('data-cor');
-            this.selecionarCor(cor);
-        });
-        
-        opcao.addEventListener('touchstart', (e) => {
-            console.log('📱 Toque na cor - bloqueando propagação');
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-        }, { passive: true });
-        
-        opcao.addEventListener('touchend', (e) => {
-            console.log('📱 Toque finalizado na cor - bloqueando propagação');
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-            const cor = opcao.getAttribute('data-cor');
-            this.selecionarCor(cor);
-        }, { passive: true });
-    });
-    
-    // Eventos dos controles
-    const corPersonalizada = this.modalEstilosAtual.querySelector('#corPersonalizada');
-    if (corPersonalizada) {
-        corPersonalizada.addEventListener('change', (e) => {
-            e.stopPropagation();
-            this.selecionarCor(e.target.value);
-        });
-        
-        corPersonalizada.addEventListener('touchstart', (e) => {
-            e.stopPropagation();
-        }, { passive: true });
-    }
-    
-    const tamanhoTexto = this.modalEstilosAtual.querySelector('#tamanhoTexto');
-    if (tamanhoTexto) {
-        tamanhoTexto.addEventListener('input', (e) => {
-            e.stopPropagation();
-            this.atualizarTamanhoTexto(e.target.value);
-        });
-    }
-    
-    const textoNegrito = this.modalEstilosAtual.querySelector('#textoNegrito');
-    if (textoNegrito) {
-        textoNegrito.addEventListener('change', (e) => {
-            e.stopPropagation();
-            this.toggleNegrito(e.target.checked);
-        });
-    }
-    
-    // Eventos dos estilos de linha
-    const opcoesLinha = this.modalEstilosAtual.querySelectorAll('.opcao-linha');
-    opcoesLinha.forEach(opcao => {
-        opcao.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const estilo = opcao.getAttribute('data-estilo');
-            this.selecionarEstiloLinha(estilo);
-        });
-        
-        opcao.addEventListener('touchstart', (e) => {
-            e.stopPropagation();
-        }, { passive: true });
-    });
-    
-    console.log('✅ Eventos do modal de estilos configurados - propagação bloqueada');
-}
-
-
-aplicarEstilosEFechar() {
-    console.log('🎨 Aplicando estilos e fechando modal...');
-    
-    try {
-        const elementoAlvo = this.elementoSelecionado || this.elementoSelecionadoAntesDoModal;
-        
-        if (!elementoAlvo) {
-            console.log('⚠️ Nenhum elemento encontrado para aplicar estilos');
-            this.fecharModalEstilos();
-            return;
-        }
-        
-        console.log('🎨 Aplicando estilos ao elemento:', elementoAlvo);
-        
-        // Aplicar estilos
-        this.aplicarEstilosElemento(elementoAlvo);
-        
-        // Salvar no histórico
-        this.salvarEstadoHistorico('Aplicar Estilos');
-        
-        // Fechar o modal
-        this.fecharModalEstilos();
-        
-        console.log('✅ Estilos aplicados e modal fechado');
-        
-    } catch (error) {
-        console.error('❌ Erro ao aplicar estilos:', error);
-        this.fecharModalEstilos();
-    }
-}
-
-
-       aplicarEstilos() {
-    console.log('🎨 Aplicando estilos...');
-    
-    try {
-        const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
-        
-        if (!elementoAlvo) {
-           
-            this.fecharModalEstilos();
+        configurarEventosModalEstilos() {
+            if (!this.modalEstilosAtual) return;
             
-           
+            const fecharBtn = this.modalEstilosAtual.querySelector('#fecharModalEstilosBtn');
+            if (fecharBtn) {
+                fecharBtn.addEventListener('click', () => {
+                    this.fecharModalEstilos();
+                });
+            }
+            
+            const aplicarBtn = this.modalEstilosAtual.querySelector('#aplicarEstilosBtn');
+            if (aplicarBtn) {
+                aplicarBtn.addEventListener('click', () => {
+                    this.aplicarEstilosManterModal();
+                });
+            }
+            
+            const aplicarFecharBtn = this.modalEstilosAtual.querySelector('#aplicarEFecharEstilosBtn');
+            if (aplicarFecharBtn) {
+                aplicarFecharBtn.addEventListener('click', () => {
+                    this.aplicarEstilosEFechar();
+                });
+            }
+            
+            const coresOpcoes = this.modalEstilosAtual.querySelectorAll('.cor-opcao');
+            coresOpcoes.forEach(opcao => {
+                opcao.replaceWith(opcao.cloneNode(true));
+            });
+            
+            const novasCoresOpcoes = this.modalEstilosAtual.querySelectorAll('.cor-opcao');
+            novasCoresOpcoes.forEach(opcao => {
+                opcao.addEventListener('click', (e) => {
+                    console.log('🎨 Cor clicada - bloqueando propagação');
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    const cor = opcao.getAttribute('data-cor');
+                    this.selecionarCor(cor);
+                });
                 
-            return;
-        }
-        
-        console.log('🎨 Aplicando estilos ao elemento:', elementoAlvo);
-        
-        // Aplicar estilos
-        this.aplicarEstilosElemento(elementoAlvo);
-        
-        // Fechar o modal IMEDIATAMENTE
-        this.fecharModalEstilos();
-        
-        // Salvar no histórico DEPOIS de fechar o modal
-        setTimeout(() => {
-            this.salvarEstadoHistorico('Aplicar Estilos');
-        }, 50);
-        
-        console.log('✅ Estilos aplicados com sucesso');
-        
-    } catch (error) {
-        console.error('❌ Erro ao aplicar estilos:', error);
-        // Garantir que o modal feche mesmo em caso de erro
-        this.fecharModalEstilos();
-    }
-}
-
-aplicarEstilosManterModal() {
-    console.log('🎨 Aplicando estilos (mantendo modal aberto)...');
-    
-    try {
-        const elementoAlvo = this.elementoSelecionado || this.elementoSelecionadoAntesDoModal;
-        
-        if (!elementoAlvo) {
-                        return;
-        }
-        
-        console.log('🎨 Aplicando estilos ao elemento:', elementoAlvo);
-        
-        // Aplicar estilos
-        this.aplicarEstilosElemento(elementoAlvo);
-        
-        // Salvar no histórico
-        this.salvarEstadoHistorico('Aplicar Estilos');
-        
-        console.log('✅ Estilos aplicados com sucesso (modal mantido aberto)');
-        
-    } catch (error) {
-        console.error('❌ Erro ao aplicar estilos:', error);
-    }
-}
-
-
-      aplicarEstilosElemento(elemento, preview = false) {
-    const cor = this.corSelecionada;
-    const tamanhoFonte = this.tamanhoTextoSelecionado;
-    const negrito = this.negritoAtivo;
-    const estiloLinha = this.estiloLinhaSelecionado;
-    
-    // 🔥 MESMA LÓGICA PARA TODOS OS ELEMENTOS
-    if (elemento.classList.contains('peca') || elemento.classList.contains('cuba')) {
-        // Para TODAS as cubas (incluindo linha reta) e peças
-        if (cor) elemento.style.borderColor = cor;
-        if (estiloLinha) elemento.style.borderStyle = estiloLinha;
-    }
-    else if (elemento.classList.contains('texto-legenda') || 
-             elemento.classList.contains('legenda-simplificada') ||
-             elemento.classList.contains('titulo-grupo')) {
-        if (cor) elemento.style.color = cor;
-        if (tamanhoFonte) elemento.style.fontSize = `${tamanhoFonte}px`;
-        if (negrito !== null) {
-            elemento.style.fontWeight = negrito ? 'bold' : 'normal';
-        }
-    }
-    else if (elemento.classList.contains('simbolo-linha') ||
-             elemento.classList.contains('dimensoes') ||
-             elemento.classList.contains('quantidade-peca')) {
-        if (cor) elemento.style.color = cor;
-        if (tamanhoFonte) elemento.style.fontSize = `${tamanhoFonte}px`;
-        if (negrito !== null) {
-            elemento.style.fontWeight = negrito ? 'bold' : 'normal';
-        }
-    }
-    else if (elemento.classList.contains('linha-peca')) {
-        if (cor) elemento.style.backgroundColor = cor;
-        if (estiloLinha === 'dashed') {
-            elemento.style.borderStyle = 'dashed';
-        } else {
-            elemento.style.borderStyle = 'solid';
-        }
-    }
-}
-
-     fecharModalEstilos() {
-    console.log('🔴 Fechando modal de estilos...');
-    
-    this.modalEstilosAberto = false;
-    
-    // Remover classe do body
-    document.body.classList.remove('modal-estilos-aberto');
-    
-    // Remover modal
-    if (this.modalEstilosAtual) {
-        try {
-            if (this.modalEstilosAtual.parentNode) {
-                this.modalEstilosAtual.parentNode.removeChild(this.modalEstilosAtual);
+                opcao.addEventListener('touchstart', (e) => {
+                    console.log('📱 Toque na cor - bloqueando propagação');
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                }, { passive: true });
+                
+                opcao.addEventListener('touchend', (e) => {
+                    console.log('📱 Toque finalizado na cor - bloqueando propagação');
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    const cor = opcao.getAttribute('data-cor');
+                    this.selecionarCor(cor);
+                }, { passive: true });
+            });
+            
+            const corPersonalizada = this.modalEstilosAtual.querySelector('#corPersonalizada');
+            if (corPersonalizada) {
+                corPersonalizada.addEventListener('change', (e) => {
+                    e.stopPropagation();
+                    this.selecionarCor(e.target.value);
+                });
+                
+                corPersonalizada.addEventListener('touchstart', (e) => {
+                    e.stopPropagation();
+                }, { passive: true });
             }
-        } catch (e) {
-            console.error('Erro ao remover modal:', e);
-        }
-        this.modalEstilosAtual = null;
-    }
-    
-    // Remover backdrop
-    if (this.backdropEstilosAtual) {
-        try {
-            if (this.backdropEstilosAtual.parentNode) {
-                this.backdropEstilosAtual.parentNode.removeChild(this.backdropEstilosAtual);
+            
+            const tamanhoTexto = this.modalEstilosAtual.querySelector('#tamanhoTexto');
+            if (tamanhoTexto) {
+                tamanhoTexto.addEventListener('input', (e) => {
+                    e.stopPropagation();
+                    this.atualizarTamanhoTexto(e.target.value);
+                });
             }
-        } catch (e) {
-            console.error('Erro ao remover backdrop:', e);
+            
+            const textoNegrito = this.modalEstilosAtual.querySelector('#textoNegrito');
+            if (textoNegrito) {
+                textoNegrito.addEventListener('change', (e) => {
+                    e.stopPropagation();
+                    this.toggleNegrito(e.target.checked);
+                });
+            }
+            
+            const opcoesLinha = this.modalEstilosAtual.querySelectorAll('.opcao-linha');
+            opcoesLinha.forEach(opcao => {
+                opcao.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const estilo = opcao.getAttribute('data-estilo');
+                    this.selecionarEstiloLinha(estilo);
+                });
+                
+                opcao.addEventListener('touchstart', (e) => {
+                    e.stopPropagation();
+                }, { passive: true });
+            });
+            
+            console.log('✅ Eventos do modal de estilos configurados - propagação bloqueada');
         }
-        this.backdropEstilosAtual = null;
-    }
-    
-    // Limpar seleções temporárias
-    this.corSelecionada = null;
-    this.tamanhoTextoSelecionado = null;
-    this.negritoAtivo = null;
-    this.estiloLinhaSelecionado = null;
-    
-    console.log('✅ Modal de estilos fechado completamente');
-}
+
+        aplicarEstilosEFechar() {
+            console.log('🎨 Aplicando estilos e fechando modal...');
+            
+            try {
+                const elementoAlvo = this.elementoSelecionado || this.elementoSelecionadoAntesDoModal;
+                
+                if (!elementoAlvo) {
+                    console.log('⚠️ Nenhum elemento encontrado para aplicar estilos');
+                    this.fecharModalEstilos();
+                    return;
+                }
+                
+                console.log('🎨 Aplicando estilos ao elemento:', elementoAlvo);
+                
+                this.aplicarEstilosElemento(elementoAlvo);
+                
+                this.salvarEstadoHistorico('Aplicar Estilos');
+                
+                this.fecharModalEstilos();
+                
+                console.log('✅ Estilos aplicados e modal fechado');
+                
+            } catch (error) {
+                console.error('❌ Erro ao aplicar estilos:', error);
+                this.fecharModalEstilos();
+            }
+        }
+
+        aplicarEstilosManterModal() {
+            console.log('🎨 Aplicando estilos (mantendo modal aberto)...');
+            
+            try {
+                const elementoAlvo = this.elementoSelecionado || this.elementoSelecionadoAntesDoModal;
+                
+                if (!elementoAlvo) {
+                    return;
+                }
+                
+                console.log('🎨 Aplicando estilos ao elemento:', elementoAlvo);
+                
+                this.aplicarEstilosElemento(elementoAlvo);
+                
+                this.salvarEstadoHistorico('Aplicar Estilos');
+                
+                console.log('✅ Estilos aplicados com sucesso (modal mantido aberto)');
+                
+            } catch (error) {
+                console.error('❌ Erro ao aplicar estilos:', error);
+            }
+        }
+
+        aplicarEstilosElemento(elemento, preview = false) {
+            const cor = this.corSelecionada;
+            const tamanhoFonte = this.tamanhoTextoSelecionado;
+            const negrito = this.negritoAtivo;
+            const estiloLinha = this.estiloLinhaSelecionado;
+            
+            if (elemento.classList.contains('peca') || elemento.classList.contains('cuba')) {
+                if (cor) elemento.style.borderColor = cor;
+                if (estiloLinha) elemento.style.borderStyle = estiloLinha;
+            }
+            else if (elemento.classList.contains('texto-legenda') || 
+                     elemento.classList.contains('legenda-simplificada') ||
+                     elemento.classList.contains('titulo-grupo')) {
+                if (cor) elemento.style.color = cor;
+                if (tamanhoFonte) elemento.style.fontSize = `${tamanhoFonte}px`;
+                if (negrito !== null) {
+                    elemento.style.fontWeight = negrito ? 'bold' : 'normal';
+                }
+            }
+            else if (elemento.classList.contains('simbolo-linha') ||
+                     elemento.classList.contains('dimensoes') ||
+                     elemento.classList.contains('quantidade-peca')) {
+                if (cor) elemento.style.color = cor;
+                if (tamanhoFonte) elemento.style.fontSize = `${tamanhoFonte}px`;
+                if (negrito !== null) {
+                    elemento.style.fontWeight = negrito ? 'bold' : 'normal';
+                }
+            }
+            else if (elemento.classList.contains('linha-peca')) {
+                if (cor) elemento.style.backgroundColor = cor;
+                if (estiloLinha === 'dashed') {
+                    elemento.style.borderStyle = 'dashed';
+                } else {
+                    elemento.style.borderStyle = 'solid';
+                }
+            }
+        }
+
+        fecharModalEstilos() {
+            console.log('🔴 Fechando modal de estilos...');
+            
+            this.modalEstilosAberto = false;
+            
+            document.body.classList.remove('modal-estilos-aberto');
+            
+            if (this.modalEstilosAtual) {
+                try {
+                    if (this.modalEstilosAtual.parentNode) {
+                        this.modalEstilosAtual.parentNode.removeChild(this.modalEstilosAtual);
+                    }
+                } catch (e) {
+                    console.error('Erro ao remover modal:', e);
+                }
+                this.modalEstilosAtual = null;
+            }
+            
+            if (this.backdropEstilosAtual) {
+                try {
+                    if (this.backdropEstilosAtual.parentNode) {
+                        this.backdropEstilosAtual.parentNode.removeChild(this.backdropEstilosAtual);
+                    }
+                } catch (e) {
+                    console.error('Erro ao remover backdrop:', e);
+                }
+                this.backdropEstilosAtual = null;
+            }
+            
+            this.corSelecionada = null;
+            this.tamanhoTextoSelecionado = null;
+            this.negritoAtivo = null;
+            this.estiloLinhaSelecionado = null;
+            
+            console.log('✅ Modal de estilos fechado completamente');
+        }
 
     } // 🔥 FIM DA CLASSE GerenciadorDesenho
 
