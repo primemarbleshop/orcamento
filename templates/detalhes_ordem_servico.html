@@ -2319,23 +2319,34 @@ height: 0px !important;
         }
 
         reconfigurarElementosAposHistorico() {
-            this.removerTodosOsHandles();
-            
-            const elementosInterativos = this.drawingArea.querySelectorAll(
-                '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca'
-            );
-            
-            elementosInterativos.forEach(elemento => {
-                elemento.classList.remove('selecionavel');
-                
-                if (elemento.classList.contains('simbolo-linha')) {
-                    this.configurarInteratividadeSimbolo(elemento);
-                } else if (elemento.classList.contains('cuba')) {
-                    this.configurarInteratividadeCuba(elemento);
-                } else if (elemento.classList.contains('texto-legenda')) {
-                    this.configurarInteratividadeTexto(elemento);
-                }
-            });
+    this.removerTodosOsHandles();
+    
+    const elementosInterativos = this.drawingArea.querySelectorAll(
+        '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca'
+    );
+    
+    elementosInterativos.forEach(elemento => {
+        elemento.classList.remove('selecionavel');
+        
+        // 🔥 CORREÇÃO: Aplicar bloqueio baseado no modo atual
+        if (elemento.classList.contains('texto-legenda')) {
+            if (this.modoSelecaoAtivo) {
+                elemento.style.pointerEvents = 'auto';
+                elemento.classList.add('selecionavel');
+            } else {
+                elemento.style.pointerEvents = 'none';
+                elemento.removeAttribute('contenteditable');
+            }
+        }
+        
+        if (elemento.classList.contains('simbolo-linha')) {
+            this.configurarInteratividadeSimbolo(elemento);
+        } else if (elemento.classList.contains('cuba')) {
+            this.configurarInteratividadeCuba(elemento);
+        } else if (elemento.classList.contains('texto-legenda') && this.modoSelecaoAtivo) {
+            this.configurarInteratividadeTexto(elemento);
+        }
+    });
 
             const linhas = this.drawingArea.querySelectorAll('.linha-peca');
             linhas.forEach(linha => {
@@ -2809,41 +2820,41 @@ height: 0px !important;
         }
 
         ativarModoSelecao() {
-            this.desativarTodosOsModos();
-            console.log('🔵 Ativando modo seleção...');
-            
-            this.modoSelecaoAtivo = true;
-            this.desselecionarElemento();
-            this.drawingArea.style.cursor = 'pointer';
-            
-            const btnSelecionar = document.getElementById('btnSelecionar');
-            if (btnSelecionar) btnSelecionar.classList.add('btn-selecao-ativo');
-            
-            this.tornarElementosSelecionaveis(true);
-            this.desabilitarLinhasPecas();
-            this.atualizarInteratividadeTextos();
-            
-            this.forcarAtualizacaoInteratividade();
-            
-            console.log('✅ Modo seleção ativado');
-        }
+    this.desativarTodosOsModos();
+    console.log('🔵 Ativando modo seleção...');
+    
+    this.modoSelecaoAtivo = true;
+    this.desselecionarElemento();
+    this.drawingArea.style.cursor = 'pointer';
+    
+    const btnSelecionar = document.getElementById('btnSelecionar');
+    if (btnSelecionar) btnSelecionar.classList.add('btn-selecao-ativo');
+    
+    this.tornarElementosSelecionaveis(true);
+    this.desabilitarLinhasPecas();
+    this.atualizarInteratividadeTextos();
+    
+    this.forcarAtualizacaoInteratividade();
+    
+    console.log('✅ Modo seleção ativado - textos agora são selecionáveis');
+}
 
         // 🔥 MODIFICADO: Desativar modo seleção
         desativarModoSelecao() {
-            console.log('🔵 Desativando modo seleção...');
-            this.modoSelecaoAtivo = false;
-            this.desselecionarElemento();
-            this.drawingArea.style.cursor = 'default';
-            
-            const btnSelecionar = document.getElementById('btnSelecionar');
-            if (btnSelecionar) btnSelecionar.classList.remove('btn-selecao-ativo');
-            
-            this.tornarElementosSelecionaveis(false);
-            this.reabilitarLinhasPecas();
-            this.atualizarInteratividadeTextos();
-            
-            console.log('✅ Modo seleção desativado');
-        }
+    console.log('🔵 Desativando modo seleção...');
+    this.modoSelecaoAtivo = false;
+    this.desselecionarElemento();
+    this.drawingArea.style.cursor = 'default';
+    
+    const btnSelecionar = document.getElementById('btnSelecionar');
+    if (btnSelecionar) btnSelecionar.classList.remove('btn-selecao-ativo');
+    
+    this.tornarElementosSelecionaveis(false);
+    this.reabilitarLinhasPecas();
+    this.atualizarInteratividadeTextos();
+    
+    console.log('✅ Modo seleção desativado - textos agora são bloqueados');
+}
 
         // =============================================
         // MÉTODOS DO MODO LAÇO (BOUNDING BOX INTERSECTION)
@@ -3531,29 +3542,44 @@ height: 0px !important;
             }
         }
 
-        tornarElementosSelecionaveis(selecionavel) {
-            const elementos = this.drawingArea.querySelectorAll(
-                '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca, .grupo-temporario'
-            );
+       tornarElementosSelecionaveis(selecionavel) {
+    const elementos = this.drawingArea.querySelectorAll(
+        '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca, .grupo-temporario'
+    );
+    
+    elementos.forEach(elemento => {
+        if (selecionavel) {
+            elemento.classList.add('selecionavel');
             
-            elementos.forEach(elemento => {
-                if (selecionavel) {
-                    elemento.classList.add('selecionavel');
-                    if (elemento.classList.contains('simbolo-linha')) {
-                        this.configurarInteratividadeSimbolo(elemento);
-                    } else if (elemento.classList.contains('legenda-simplificada')) {
-                        this.configurarInteratividadeLegenda(elemento);
-                    } else if (elemento.classList.contains('texto-legenda')) {
-                        this.configurarInteratividadeTexto(elemento);
-                    } else if (elemento.classList.contains('grupo-temporario')) {
-                        this._configurarInteratividadeGrupo(elemento, []);
-                    }
-                } else {
-                    elemento.classList.remove('selecionavel');
-                    this.removerInteratividade(elemento);
-                }
-            });
+            // Habilitar interação completa
+            elemento.style.pointerEvents = 'auto';
+            
+            if (elemento.classList.contains('simbolo-linha')) {
+                this.configurarInteratividadeSimbolo(elemento);
+            } else if (elemento.classList.contains('legenda-simplificada')) {
+                this.configurarInteratividadeLegenda(elemento);
+            } else if (elemento.classList.contains('texto-legenda')) {
+                this.configurarInteratividadeTexto(elemento);
+            } else if (elemento.classList.contains('grupo-temporario')) {
+                this._configurarInteratividadeGrupo(elemento, []);
+            }
+        } else {
+            elemento.classList.remove('selecionavel');
+            
+            // 🔥 CORREÇÃO CRÍTICA: Para textos, bloquear completamente quando não estiver no modo seleção
+            if (elemento.classList.contains('texto-legenda')) {
+                elemento.style.pointerEvents = 'none';
+                this.removerInteratividade(elemento);
+                
+                // Remover também o contenteditable para prevenir qualquer edição
+                elemento.removeAttribute('contenteditable');
+                elemento.blur(); // Remover foco se estiver focado
+            } else {
+                this.removerInteratividade(elemento);
+            }
         }
+    });
+}
 
         // 🔥 NOVO MÉTODO: Forçar atualização de interatividade para todos os elementos
         forcarAtualizacaoInteratividade() {
@@ -3568,46 +3594,49 @@ height: 0px !important;
 
         // 🔥 MODIFICADO: Manipular clique de seleção com suporte a escrita
         manipularCliqueSelecao(e) {
-            if (this.modalEstilosAberto) {
-                console.log('🚫 Modal de estilos aberto - seleção completamente bloqueada');
-                e.preventDefault();
-                e.stopPropagation();
-                e.stopImmediatePropagation();
-                return;
-            }
-            
-            if (this._isTouchGesture(e)) {
-                console.log('📱 Gesto de touch detectado - ignorando seleção');
-                return;
-            }
-            
-            if (e.target.classList.contains('handle')) return;
-            
-            const elemento = e.target.closest('.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca, .grupo-temporario');
-            
-            if (!elemento) {
-                if (this.grupoTemporario) {
-                    console.log('🗑️ Clicou fora - removendo grupo temporário');
-                    this.limparGrupoTemporario();
-                }
-                this.desselecionarElemento();
-                return;
-            }
-            
-            if (elemento.classList.contains('selecionavel') || 
-                elemento.classList.contains('peca') || 
-                elemento.classList.contains('grupo-temporario')) {
-                
-                this.selecionarElemento(elemento, e);
-                
-                // 🔥 CORREÇÃO: Se for um texto e modo seleção ativo, iniciar escrita
-                if (elemento.classList.contains('texto-legenda') && this.modoSelecaoAtivo) {
-                    this.iniciarEscritaTexto(elemento);
-                }
-            } else {
-                this.desselecionarElemento();
-            }
+    if (this.modalEstilosAberto) {
+        console.log('🚫 Modal de estilos aberto - seleção completamente bloqueada');
+        e.preventDefault();
+        e.stopPropagation();
+        e.stopImmediatePropagation();
+        return;
+    }
+    
+    if (this._isTouchGesture(e)) {
+        console.log('📱 Gesto de touch detectado - ignorando seleção');
+        return;
+    }
+    
+    if (e.target.classList.contains('handle')) return;
+    
+    const elemento = e.target.closest('.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca, .grupo-temporario');
+    
+    if (!elemento) {
+        if (this.grupoTemporario) {
+            console.log('🗑️ Clicou fora - removendo grupo temporário');
+            this.limparGrupoTemporario();
         }
+        this.desselecionarElemento();
+        return;
+    }
+    
+    // 🔥 CORREÇÃO: Só permitir seleção se for selecionável E modo seleção ativo
+    if ((elemento.classList.contains('selecionavel') || 
+         elemento.classList.contains('peca') || 
+         elemento.classList.contains('grupo-temporario')) && 
+        this.modoSelecaoAtivo) {
+        
+        this.selecionarElemento(elemento, e);
+        
+        // 🔥 CORREÇÃO: Para textos, NÃO iniciar escrita automaticamente no clique simples
+        // A escrita só será iniciada no duplo-clique (configurado acima)
+        if (elemento.classList.contains('texto-legenda')) {
+            console.log('📝 Texto selecionado - use duplo-clique para editar');
+        }
+    } else {
+        this.desselecionarElemento();
+    }
+}
 
         _isTouchGesture(e) {
             if (!e.type.includes('touch')) return false;
@@ -4659,70 +4688,92 @@ height: 0px !important;
 
         // 🔥 MODIFICADO: Configurar interatividade do texto com suporte a escrita
         configurarInteratividadeTexto(elemento) {
-            this.removerInteratividade(elemento);
-            
-            if (elemento.classList.contains('selecionavel') || this.modoSelecaoAtivo) {
-                let originalBackground = elemento.style.backgroundColor;
-                
-                interact(elemento).draggable({
-                    allowFrom: '.texto-legenda',
-                    ignoreFrom: 'input, textarea, button, select',
-                    modifiers: [
-                        interact.modifiers.restrictRect({
-                            restriction: 'parent',
-                            endOnly: true
-                        })
-                    ],
-                    preventDefault: 'always',
+    this.removerInteratividade(elemento);
+    
+    // Só configurar se for selecionável E modo seleção ativo
+    if (elemento.classList.contains('selecionavel') && this.modoSelecaoAtivo) {
+        
+        // Garantir que o texto seja editável apenas no modo seleção
+        elemento.setAttribute('contenteditable', 'false'); // Inicialmente não editável
+        
+        let originalBackground = elemento.style.backgroundColor;
+        
+        interact(elemento).draggable({
+            allowFrom: '.texto-legenda',
+            ignoreFrom: 'input, textarea, button, select',
+            modifiers: [
+                interact.modifiers.restrictRect({
+                    restriction: 'parent',
+                    endOnly: true
+                })
+            ],
+            preventDefault: 'always',
 
-                    listeners: {
-                        start: (event) => {
-                            if (event.type.includes('touch')) {
-                                event.preventDefault();
-                            }
-
-                            elemento.style.zIndex = '1000';
-                            elemento.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
-                        },
-                        move: (event) => {
-                            if (event.type.includes('touch')) {
-                                event.preventDefault();
-                            }
-
-                            let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                            let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-                            const rotacao = parseFloat(elemento.getAttribute('data-rotacao')) || 0;
-
-                            elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotacao}deg)`;
-                            elemento.setAttribute('data-x', x);
-                            elemento.setAttribute('data-y', y);
-                        },
-                        end: () => {
-                            elemento.style.zIndex = '';
-                            elemento.style.backgroundColor = originalBackground;
-                            this.salvarEstadoHistorico('Mover Texto');
-                        }
+            listeners: {
+                start: (event) => {
+                    if (event.type.includes('touch')) {
+                        event.preventDefault();
                     }
-                });
 
-                interact(elemento).resizable({
-                    edges: { left: false, right: true, bottom: true, top: false },
-                    listeners: {
-                        move: function (event) {
-                            Object.assign(event.target.style, {
-                                width: `${event.rect.width}px`,
-                                height: `${event.rect.height}px`
-                            });
-                        }
-                    },
-                    modifiers: [
-                        interact.modifiers.restrictSize({
-                            min: { width: 50, height: 20 }
-                        })
-                    ]
-                });
+                    elemento.style.zIndex = '1000';
+                    elemento.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+                },
+                move: (event) => {
+                    if (event.type.includes('touch')) {
+                        event.preventDefault();
+                    }
+
+                    let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                    let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                    const rotacao = parseFloat(elemento.getAttribute('data-rotacao')) || 0;
+
+                    elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotacao}deg)`;
+                    elemento.setAttribute('data-x', x);
+                    elemento.setAttribute('data-y', y);
+                },
+                end: () => {
+                    elemento.style.zIndex = '';
+                    elemento.style.backgroundColor = originalBackground;
+                    this.salvarEstadoHistorico('Mover Texto');
+                }
             }
-        }
+        });
+
+        interact(elemento).resizable({
+            edges: { left: false, right: true, bottom: true, top: false },
+            listeners: {
+                move: function (event) {
+                    Object.assign(event.target.style, {
+                        width: `${event.rect.width}px`,
+                        height: `${event.rect.height}px`
+                    });
+                }
+            },
+            modifiers: [
+                interact.modifiers.restrictSize({
+                    min: { width: 50, height: 20 }
+                })
+            ]
+        });
+        
+        // 🔥 NOVO: Sistema de duplo-clique para ativar edição apenas no modo seleção
+        elemento.addEventListener('dblclick', (e) => {
+            if (this.modoSelecaoAtivo && elemento.classList.contains('selecionavel')) {
+                e.stopPropagation();
+                this.iniciarEscritaTexto(elemento);
+            }
+        });
+        
+        // 🔥 NOVO: Clique simples só seleciona, não edita
+        elemento.addEventListener('click', (e) => {
+            if (this.modoSelecaoAtivo && elemento.classList.contains('selecionavel')) {
+                e.stopPropagation();
+                // Apenas seleciona, não inicia edição imediatamente
+                this.selecionarElemento(elemento, e);
+            }
+        });
+    }
+}
 
         criarLegendaSimplificada(x, y, simbolo = "C", descricao = "Acabamento") {
             const legendaElement = document.createElement('div');
