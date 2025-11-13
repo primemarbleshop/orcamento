@@ -1988,15 +1988,37 @@ def salvar_desenho_ordem_servico(codigo):
 
 @app.route('/detalhes_ordem_servico/<codigo>')
 def detalhes_ordem_servico(codigo):
+    # 🔥 VERIFICAÇÃO DE LOGIN - ADICIONE ESTAS LINHAS
+    if 'user_cpf' not in session:
+        flash("Você precisa fazer login para acessar esta página.", "error")
+        return redirect(url_for('login'))
+
     orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
 
     if not orcamento_salvo:
         flash("Ordem de serviço não encontrada!", "danger")
         return redirect(url_for('ordens_servico'))
 
+    # 🔥 VERIFICAÇÃO DE PERMISSÃO - ADICIONE ESTAS LINHAS
+    user_cpf = session.get('user_cpf')
+    is_admin = session.get('admin')
+    
+    # Pegar o primeiro orçamento para verificar o dono do cliente
     ids = [int(id) for id in orcamento_salvo.orcamentos_ids.split(",")]
     orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
     
+    if not orcamentos:
+        flash("Ordem de serviço não contém orçamentos!", "danger")
+        return redirect(url_for('ordens_servico'))
+    
+    cliente = orcamentos[0].cliente
+    
+    # Verificar se o usuário tem permissão para ver esta ordem de serviço
+    if not is_admin and cliente.dono != user_cpf:
+        flash("Você não tem permissão para acessar esta ordem de serviço.", "error")
+        return redirect(url_for('ordens_servico'))
+
+    # ... o resto do seu código atual continua aqui ...
     # Agrupar por material
     materiais_agrupados = {}
     for orcamento in orcamentos:
@@ -2009,7 +2031,7 @@ def detalhes_ordem_servico(codigo):
 
     logo_url = "https://orcamento-t9w2.onrender.com/static/logo.jpg"
     
-    usuario = Usuario.query.filter_by(cpf=session.get('user_cpf')).first()
+    usuario = Usuario.query.filter_by(cpf=user_cpf).first()
     telefone_usuario = usuario.telefone if usuario else ""
 
     # 🔥 CORREÇÃO: Carregar o desenho salvo corretamente
