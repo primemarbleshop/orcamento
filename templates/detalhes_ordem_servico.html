@@ -1308,43 +1308,192 @@ height: 0px !important;
         }
     }
 
-	   @media print {
-    /* 🔥 CORREÇÃO: Remover link do rodapé no Safari */
+	  /* ======================== IMPRESSÃO ======================== */
+@media print {
+    /* 🔥 CORREÇÃO COMPLETA: Remover rodapé em todos os navegadores, especialmente mobile */
     @page {
-        margin: 0;
+        margin: 0 !important;
+        padding: 0 !important;
         size: A4 portrait;
-    }
-    
-    /* 🔥 CORREÇÃO: Esconder URL e título da página no Safari */
-    body {
         -webkit-print-color-adjust: exact !important;
         print-color-adjust: exact !important;
+        marks: none !important;
     }
     
-    /* 🔥 CORREÇÃO: Remover qualquer rodapé gerado pelo navegador */
-    html::after,
-    body::after {
-        display: none !important;
-        content: none !important;
+    /* 🔥 CORREÇÃO ESPECÍFICA PARA SAFARI MOBILE */
+    @page :first {
+        margin: 0 !important;
+        margin-top: 0 !important;
+        margin-bottom: 0 !important;
     }
     
-    /* 🔥 CORREÇÃO: Prevenir que o Safari adicione headers/footers */
     @page :left {
-        margin: 0;
+        margin: 0 !important;
     }
     
     @page :right {
-        margin: 0;
+        margin: 0 !important;
     }
     
-    @page :first {
-        margin: 0;
+    body {
+        background: white !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        font-size: 15px !important;
+        line-height: 1.2 !important;
+        width: 100% !important;
+        height: 100% !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+        /* 🔥 REMOVER QUALQUER ESPAÇO PARA RODAPÉ */
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
     }
     
-    @page {
-        margin: 0;
-        marks: none;
-        -webkit-print-color-adjust: exact;
+    /* 🔥 REMOVER HEADERS/FOOTERS DO NAVEGADOR */
+    body::before,
+    body::after,
+    html::before,
+    html::after {
+        display: none !important;
+        content: none !important;
+        height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    
+    body * {
+        visibility: hidden;
+    }
+    
+    .main-container, .main-container * {
+        visibility: visible;
+    }
+    
+    .main-container {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 10px !important;
+        font-size: 18px !important;
+        background: white !important;
+        box-shadow: none !important;
+        /* 🔥 GARANTIR QUE NÃO HAJA MARGEM PARA RODAPÉ */
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
+    }
+
+    .peca, .cuba, .texto-legenda, .legenda-simplificada, 
+    .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+    
+    /* 🔥 ESCONDER TODOS OS ELEMENTOS DE INTERFACE */
+    .top-buttons-container,
+    .action-buttons-container,
+    .mobile-buttons-container,
+    .zoom-controls,
+    .handles-container,
+    .handle,
+    .handle-rotacao,
+    .elemento-selecionado,
+    .modal-controles,
+    .modal-backdrop,
+    .cursor-borracha,
+    .pintura-borracha,
+    .laco-overlay,
+    .grupo-temporario { 
+        display: none !important; 
+        visibility: hidden !important;
+        opacity: 0 !important;
+        height: 0 !important;
+        width: 0 !important;
+    }
+
+    .drawing-area {
+        width: 100% !important;
+        height: auto !important;
+        min-height: auto !important;
+        max-height: none !important;
+        border: 1px solid #ccc !important;
+        background: white !important;
+        margin: 0 auto !important;
+        padding: 0px !important;
+        overflow: visible !important;
+        box-shadow: none !important;
+        position: relative !important;
+        page-break-inside: avoid;
+        /* 🔥 REMOVER MARGENS QUE PODEM CAUSAR RODAPÉ */
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
+    }
+    
+    .dimensoes-right {
+        right: -35px !important;
+    }
+
+    .peca, .cuba, .texto-legenda, .legenda-simplificada, 
+    .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
+        position: absolute !important;
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+
+    .logo-empresa {
+        position: absolute !important;
+        right: 10px !important;
+        top: 10px !important;
+        max-width: 200px !important;
+        height: auto !important;
+    }
+
+    .texto-legenda, .legenda-simplificada {
+        background: transparent !important;
+    }
+    
+    /* 🔥 CORREÇÃO EXTRA PARA MOBILE - PREVENIR QUEBRA DE PÁGINA INDESEJADA */
+    @media (max-width: 768px) {
+        @page {
+            margin: 0 !important;
+            size: auto;
+        }
+        
+        body {
+            margin: 0 !important;
+            padding: 0 !important;
+            width: 100% !important;
+        }
+        
+        .main-container {
+            padding: 5px !important;
+            margin: 0 !important;
+        }
+        
+        .drawing-area {
+            width: 100% !important;
+            margin: 0 !important;
+            border: 1px solid #000 !important;
+        }
+    }
+    
+    /* 🔥 CORREÇÃO ESPECÍFICA PARA IMPRESSÃO VERTICAL */
+    @media print and (orientation: portrait) {
+        @page {
+            size: portrait;
+            margin: 0;
+        }
+    }
+    
+    /* 🔥 CORREÇÃO ESPECÍFICA PARA IMPRESSÃO HORIZONTAL */
+    @media print and (orientation: landscape) {
+        @page {
+            size: landscape;
+            margin: 0;
+        }
     }
 }
 </style>
