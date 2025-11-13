@@ -922,140 +922,108 @@
         touch-action: none !important;
     }
 
-  /* ======================== IMPRESSÃO ======================== */
-@media print {
-    @page {
-        size: A4 portrait;
-        margin: 5 !important; /* ✅ força sem margem, igual PC */
-    }
-
-    html, body {
-        background: white !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        font-size: 15px !important;
-        line-height: 1.2 !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
-    }
-
-    /* ✅ Força escala e margens idênticas ao PC */
-    html {
-        transform: scale(0.97); /* compensa zoom automático no iPhone */
-        transform-origin: top center;
-    }
-
-    /* 🔥 TAMPA cabeçalho e rodapé automáticos do Safari (iPhone/iPad) */
-    @supports (-webkit-touch-callout: none) {
-        html::before,
-        html::after {
-            content: "";
-            position: fixed;
-            left: 0;
-            width: 100vw;
+    /* ======================== IMPRESSION ======================== */
+    @media print {
+        @page {
+            size: A4 portrait;
+            margin: 5mm;
+        }
+        
+        body {
             background: white !important;
-            z-index: 9999999 !important;
-            pointer-events: none !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            font-size: 15px !important;
+            line-height: 1.2 !important;
         }
-
-        html::before {
+        
+        body * {
+            visibility: hidden;
+        }
+        
+        .main-container, .main-container * {
+            visibility: visible;
+        }
+        
+        .main-container {
+            position: absolute;
+            left: 0;
             top: 0;
-            height: 25px; /* cobre o cabeçalho */
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 10px !important;
+            font-size: 18px !important;
+            background: white !important;
+            box-shadow: none !important;
         }
 
-        html::after {
-            bottom: 0;
-            height: 65px; /* cobre o rodapé (ajuste se necessário) */
+        .peca, .cuba, .texto-legenda, .legenda-simplificada, 
+        .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
         }
+        
+        .top-buttons-container,
+        .action-buttons-container,
+        .mobile-buttons-container,
+        .zoom-controls,
+        .handles-container,
+        .handle,
+        .handle-rotacao,
+        .elemento-selecionado,
+        .modal-controles,
+        .modal-backdrop { 
+            display: none !important; 
+        }
+
+        .drawing-area {
+            width: 1000px !important;
+            height: auto !important;
+            min-height: auto !important;
+            max-height: none !important;
+            border: 1px solid #ccc !important;
+            background: white !important;
+            margin: 0 auto !important;
+            padding: 0px !important;
+            overflow: visible !important;
+            box-shadow: none !important;
+            position: relative !important;
+            page-break-inside: avoid;
+        }
+        
+        .dimensoes-right {
+            right: -35px !important;
+        }
+
+        .peca, .cuba, .texto-legenda, .legenda-simplificada, 
+        .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
+            position: absolute !important;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+
+        .logo-empresa {
+            position: absolute !important;
+            right: 10px !important;
+            top: 10px !important;
+            max-width: 200px !important;
+            height: auto !important;
+        }
+
+        .texto-legenda, .legenda-simplificada {
+            background: transparent !important;
+        }
+        
+    
     }
 
-    /* 🔒 Oculta tudo, exceto o conteúdo principal */
-    body * {
-        visibility: hidden !important;
-    }
-
-    .main-container, .main-container * {
-        visibility: visible !important;
-    }
-
-    .main-container {
-        position: absolute;
-        left: 0;
-        top: 0;
-        width: 100% !important;
-        max-width: 100% !important;
-        margin: 0 !important;
-        padding: 10px !important;
-        font-size: 18px !important;
-        background: white !important;
-        box-shadow: none !important;
-    }
-
-    /* Evita quebras internas em blocos */
-    .peca, .cuba, .texto-legenda, .legenda-simplificada,
-    .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-        position: absolute !important;
-    }
-
-    /* Oculta elementos desnecessários na impressão */
-    .top-buttons-container,
-    .action-buttons-container,
-    .mobile-buttons-container,
-    .zoom-controls,
-    .handles-container,
-    .handle,
-    .handle-rotacao,
-    .elemento-selecionado,
-    .modal-controles,
-    .modal-backdrop {
-        display: none !important;
-    }
-
-    /* Área principal de desenho */
-    .drawing-area {
-        width: 1000px !important;
-        height: auto !important;
-        min-height: auto !important;
-        max-height: none !important;
-        border: 1px solid #ccc !important;
-        background: white !important;
-        margin: 0 auto !important;
-        padding: 0 !important;
-        overflow: visible !important;
-        box-shadow: none !important;
-        position: relative !important;
-        page-break-inside: avoid;
-    }
-
-    .dimensoes-right {
-        right: -35px !important;
-    }
-
-    .logo-empresa {
-        position: absolute !important;
-        right: 10px !important;
-        top: 10px !important;
-        max-width: 200px !important;
-        height: auto !important;
-    }
-
-    .texto-legenda, .legenda-simplificada {
-        background: transparent !important;
-    }
-}
-
-
-
-/* ======================== RESTANTE DO CSS ORIGINAL ======================== */
-
-.cuba.linha-reta {
+  .cuba.linha-reta {
     height: 0px !important;
     border-top: 3px solid transparent !important; /* 🔥 CORRIGIDO */
-    border-right: 1px solid transparent !important;
+ border-right: 1px solid transparent !important;
     border-left: 1px solid transparent !important;    
-    background-color: transparent !important;
+background-color: transparent !important;
     /* 🔥 NOVO: Aumentar área clicável */
     position: relative;
 }
@@ -1073,27 +1041,28 @@
     z-index: 1;
 }
 
-.cuba.linha-reta[style*="border-style: dashed"] {
-    border-top-style: dashed !important;
-}
 
-.cuba.linha-reta.linha-tracejada-elemento[style*="border-color"] {
-    background: repeating-linear-gradient(
-        to right,
-        var(--line-color, #333),
-        var(--line-color, #333) 5px,
-        transparent 5px,
-        transparent 10px
-    ) !important;
-}
+    .cuba.linha-reta[style*="border-style: dashed"] {
+        border-top-style: dashed !important;
+    }
 
-/* 🔥 CORREÇÃO: MOBILE - MESMA APARÊNCIA DO PC */
-@media (max-width: 768px) {
-    .cuba.linha-reta {
-        border-top: 3px solid transparent !important;
-        border-right: 1px solid transparent !important;
-        border-left: 1px solid transparent !important;        
-        height: 0px !important;
+    .cuba.linha-reta.linha-tracejada-elemento[style*="border-color"] {
+        background: repeating-linear-gradient(
+            to right,
+            var(--line-color, #333),
+            var(--line-color, #333) 5px,
+            transparent 5px,
+            transparent 10px
+        ) !important;
+    }
+
+    /* 🔥 CORREÇÃO: MOBILE - MESMA APARÊNCIA DO PC */
+    @media (max-width: 768px) {
+        .cuba.linha-reta {
+        border-top: 3px solid transparent !important; /* 🔥 CORRIGIDO */
+ border-right: 1px solid transparent !important;
+    border-left: 1px solid transparent !important;        
+height: 0px !important;
         background-color: transparent !important;
     }
     
@@ -1102,431 +1071,247 @@
         height: 24px;
     }
         
-    .cuba.linha-reta[style*="border-style: dashed"] {
-        border-top-style: dashed !important;
-    }
-}
-
-/* 🔥 ESTILOS PARA O SISTEMA DE ESTILOS */
-.modal-estilos {
-    position: fixed;
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-    max-width: 400px;
-    width: 90vw;
-    max-height: 80vh;
-    overflow-y: auto;
-    pointer-events: auto !important;
-    touch-action: auto !important;
-}
-
-.modal-estilos h6 {
-    font-weight: bold;
-    margin-bottom: 15px;
-    color: #2e59d9;
-}
-
-.estilos-secao {
-    margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid #eee;
-}
-
-.estilos-secao:last-child {
-    border-bottom: none;
-}
-
-.estilos-secao h7 {
-    font-weight: 600;
-    margin-bottom: 10px;
-    display: block;
-    color: #495057;
-}
-
-.paleta-cores {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    margin-bottom: 10px;
-}
-
-.cor-opcao {
-    width: 30px;
-    height: 30px;
-    border-radius: 50%;
-    border: 2px solid #ddd;
-    cursor: pointer;
-    transition: all 0.2s ease;
-}
-
-.cor-opcao:hover {
-    transform: scale(1.1);
-    border-color: #999;
-}
-
-.cor-opcao.selecionada {
-    border-color: #2e59d9;
-    transform: scale(1.1);
-}
-
-.controles-texto {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.controle-grupo {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.controle-grupo label {
-    margin-bottom: 0;
-    min-width: 80px;
-    font-size: 0.9rem;
-}
-
-.controle-grupo input[type="number"] {
-    width: 70px;
-    padding: 5px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-}
-
-.controle-grupo input[type="range"] {
-    flex: 1;
-}
-
-.estilos-linha {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.opcao-linha {
-    padding: 8px 12px;
-    border: 2px solid #dee2e6;
-    border-radius: 6px;
-    cursor: pointer;
-    text-align: center;
-    flex: 1;
-    min-width: 80px;
-    transition: all 0.2s ease;
-}
-
-.opcao-linha:hover {
-    border-color: #4e73df;
-}
-
-.opcao-linha.selecionada {
-    border-color: #4e73df;
-    background-color: #f8f9ff;
-}
-
-.linha-solida {
-    border-bottom: 3px solid #333;
-}
-
-.linha-tracejada {
-    border-bottom: 3px dashed #333;
-}
-
-.botao-aplicar {
-    background-color: #4e73df;
-    color: white;
-    border: none;
-    padding: 10px 20px;
-    border-radius: 6px;
-    cursor: pointer;
-    font-weight: 600;
-    transition: background-color 0.2s ease;
-    width: 100%;
-    margin-top: 10px;
-}
-
-.botao-aplicar:hover {
-    background-color: #2e59d9;
-}
-
-.texto-negrito {
-    font-weight: bold !important;
-}
-
-.linha-tracejada-elemento {
-    border-style: dashed !important;
-}
-
-.linha-solida-elemento {
-    border-style: solid !important;
-}
-
-.preview-cor {
-    width: 20px;
-    height: 20px;
-    border-radius: 4px;
-    border: 1px solid #ddd;
-    margin-left: 10px;
-}
-
-.peca.linha-tracejada-elemento {
-    border-style: dashed !important;
-}
-
-.cuba.linha-tracejada-elemento {
-    border-style: dashed !important;
-}
-
-.modal-backdrop {
-    z-index: 19999 !important;
-    pointer-events: none !important;
-}
-
-.modal-estilos {
-    z-index: 20000 !important;
-    pointer-events: auto !important;
-}
-
-.elemento-selecionado {
-    z-index: 1000 !important;
-}
-
-.modal-estilos * {
-    touch-action: auto !important;
-}
-
-.cor-opcao, .opcao-linha {
-    touch-action: manipulation;
-    -webkit-tap-highlight-color: transparent;
-}
-
-/* 🔥 CORREÇÃO CRÍTICA: Prevenir seleção de texto durante gestos */
-.drawing-area {
-    -webkit-user-select: none;
-    -moz-user-select: none;
-    -ms-user-select: none;
-    user-select: none;
-    -webkit-tap-highlight-color: transparent;
-}
-
-/* 🔥 CORREÇÃO: Feedback visual para elementos selecionados no mobile */
-.elemento-selecionado {
-    outline: 3px solid #4e73df !important;
-    outline-offset: 2px;
-}
-
-/* 🔥 CORREÇÃO: Zoom mais suave no mobile */
-@media (max-width: 768px) {
-    .drawing-area {
-        touch-action: pan-x pan-y pinch-zoom !important;
-    }
-    
-    .action-buttons-container {
-        position: sticky;
-        top: 0;
-        z-index: 1000;
-        background: rgba(248, 249, 250, 0.95);
-        backdrop-filter: blur(10px);
+        .cuba.linha-reta[style*="border-style: dashed"] {
+            border-top-style: dashed !important;
+        }
     }
 
-    /* 🔥 CORREÇÃO: Garantir que modais não bloqueiem a área de desenho */
-    .modal-controles,
+    /* 🔥 ESTILOS PARA O SISTEMA DE ESTILOS */
     .modal-estilos {
+        position: fixed;
+        background: white;
+        padding: 20px;
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        max-width: 400px;
+        width: 90vw;
+        max-height: 80vh;
+        overflow-y: auto;
+        pointer-events: auto !important;
         touch-action: auto !important;
+    }
+
+    .modal-estilos h6 {
+        font-weight: bold;
+        margin-bottom: 15px;
+        color: #2e59d9;
+    }
+
+    .estilos-secao {
+        margin-bottom: 20px;
+        padding-bottom: 15px;
+        border-bottom: 1px solid #eee;
+    }
+
+    .estilos-secao:last-child {
+        border-bottom: none;
+    }
+
+    .estilos-secao h7 {
+        font-weight: 600;
+        margin-bottom: 10px;
+        display: block;
+        color: #495057;
+    }
+
+    .paleta-cores {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    .cor-opcao {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        border: 2px solid #ddd;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .cor-opcao:hover {
+        transform: scale(1.1);
+        border-color: #999;
+    }
+
+    .cor-opcao.selecionada {
+        border-color: #2e59d9;
+        transform: scale(1.1);
+    }
+
+    .controles-texto {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .controle-grupo {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .controle-grupo label {
+        margin-bottom: 0;
+        min-width: 80px;
+        font-size: 0.9rem;
+    }
+
+    .controle-grupo input[type="number"] {
+        width: 70px;
+        padding: 5px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    .controle-grupo input[type="range"] {
+        flex: 1;
+    }
+
+    .estilos-linha {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .opcao-linha {
+        padding: 8px 12px;
+        border: 2px solid #dee2e6;
+        border-radius: 6px;
+        cursor: pointer;
+        text-align: center;
+        flex: 1;
+        min-width: 80px;
+        transition: all 0.2s ease;
+    }
+
+    .opcao-linha:hover {
+        border-color: #4e73df;
+    }
+
+    .opcao-linha.selecionada {
+        border-color: #4e73df;
+        background-color: #f8f9ff;
+    }
+
+    .linha-solida {
+        border-bottom: 3px solid #333;
+    }
+
+    .linha-tracejada {
+        border-bottom: 3px dashed #333;
+    }
+
+    .botao-aplicar {
+        background-color: #4e73df;
+        color: white;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background-color 0.2s ease;
+        width: 100%;
+        margin-top: 10px;
+    }
+
+    .botao-aplicar:hover {
+        background-color: #2e59d9;
+    }
+
+    .texto-negrito {
+        font-weight: bold !important;
+    }
+
+    .linha-tracejada-elemento {
+        border-style: dashed !important;
+    }
+
+    .linha-solida-elemento {
+        border-style: solid !important;
+    }
+
+    .preview-cor {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+        margin-left: 10px;
+    }
+
+    .peca.linha-tracejada-elemento {
+        border-style: dashed !important;
+    }
+
+    .cuba.linha-tracejada-elemento {
+        border-style: dashed !important;
+    }
+
+    .modal-backdrop {
+        z-index: 19999 !important;
+        pointer-events: none !important;
+    }
+
+    .modal-estilos {
+        z-index: 20000 !important;
         pointer-events: auto !important;
     }
-}
+
+    .elemento-selecionado {
+        z-index: 1000 !important;
+    }
+
+    .modal-estilos * {
+        touch-action: auto !important;
+    }
+
+    .cor-opcao, .opcao-linha {
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+    }
+
+    /* 🔥 CORREÇÃO CRÍTICA: Prevenir seleção de texto durante gestos */
+    .drawing-area {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* 🔥 CORREÇÃO: Feedback visual para elementos selecionados no mobile */
+    .elemento-selecionado {
+        outline: 3px solid #4e73df !important;
+        outline-offset: 2px;
+    }
+    
+    /* 🔥 CORREÇÃO: Zoom mais suave no mobile */
+    @media (max-width: 768px) {
+        .drawing-area {
+            touch-action: pan-x pan-y pinch-zoom !important;
+        }
+        
+        .action-buttons-container {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: rgba(248, 249, 250, 0.95);
+            backdrop-filter: blur(10px);
+        }
+
+        /* 🔥 CORREÇÃO: Garantir que modais não bloqueiem a área de desenho */
+        .modal-controles,
+        .modal-estilos {
+            touch-action: auto !important;
+            pointer-events: auto !important;
+        }
+    }
 
 	
 </style>
 
 </head>
-
-	<script>
-/*
-  Script para:
-  - adicionar overlays brancos fixos em <html> cobrindo cabeçalho/rodapé gerados pelo Safari mobile
-  - ajustar escala/margem temporariamente para aproximar impressão do PC
-  - ativar automaticamente em onbeforeprint / matchMedia('print') e via botão manual
-*/
-
-(function() {
-  const OVERLAY_ID_TOP = 'print-overlay-top';
-  const OVERLAY_ID_BOTTOM = 'print-overlay-bottom';
-  const PRINT_CLASS = 'printing-with-overlay';
-  let cleanupTimeout = null;
-
-  function createOverlay(id, position, heightPx) {
-    let el = document.getElementById(id);
-    if (!el) {
-      el = document.createElement('div');
-      el.id = id;
-      // estilo inline para garantir que renderize antes do print
-      Object.assign(el.style, {
-        position: 'fixed',
-        left: '0',
-        width: '100vw',
-        height: heightPx + 'px',
-        background: 'white',
-        zIndex: '99999999',
-        pointerEvents: 'none',
-        // ensure it's painted above everything
-        WebkitPrintColorAdjust: 'exact',
-        printColorAdjust: 'exact'
-      });
-      document.documentElement.appendChild(el);
-    }
-    if (position === 'top') {
-      el.style.top = '0';
-      el.style.bottom = '';
-    } else {
-      el.style.bottom = '0';
-      el.style.top = '';
-    }
-    return el;
-  }
-
-  function removeOverlay(id) {
-    const el = document.getElementById(id);
-    if (el) el.remove();
-  }
-
-  function applyPrintAdjustments(opts = {}) {
-    // opts: { topHeight, bottomHeight, scale }
-    const topH = (typeof opts.topHeight === 'number') ? opts.topHeight : 24;
-    const bottomH = (typeof opts.bottomHeight === 'number') ? opts.bottomHeight : 70;
-    const scale = (typeof opts.scale === 'number') ? opts.scale : 0.97;
-
-    // create overlays on html (not body)
-    createOverlay(OVERLAY_ID_TOP, 'top', topH);
-    createOverlay(OVERLAY_ID_BOTTOM, 'bottom', bottomH);
-
-    // apply transform to html to compensate iOS zoom/padding
-    document.documentElement.style.transformOrigin = 'top center';
-    document.documentElement.style.transform = 'scale(' + scale + ')';
-    // ensure no margins/padding interfere
-    document.documentElement.style.margin = '0 !important';
-    document.documentElement.style.padding = '0 !important';
-
-    // add class for possible CSS targetting
-    document.documentElement.classList.add(PRINT_CLASS);
-  }
-
-  function clearPrintAdjustments() {
-    // remove overlays
-    removeOverlay(OVERLAY_ID_TOP);
-    removeOverlay(OVERLAY_ID_BOTTOM);
-    // remove transform
-    document.documentElement.style.transform = '';
-    document.documentElement.style.transformOrigin = '';
-    document.documentElement.style.margin = '';
-    document.documentElement.style.padding = '';
-    document.documentElement.classList.remove(PRINT_CLASS);
-  }
-
-  // Handler to run BEFORE print preview
-  function beforePrintHandler() {
-    // Increase heights if device is small (heuristic)
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    if (isMobile) {
-      // iPhones may need larger bottom overlay
-      applyPrintAdjustments({ topHeight: 28, bottomHeight: 80, scale: 0.97 });
-    } else {
-      applyPrintAdjustments({ topHeight: 20, bottomHeight: 50, scale: 0.99 });
-    }
-
-    // Safety: keep overlays at least 2s after print to ensure not cut
-    if (cleanupTimeout) clearTimeout(cleanupTimeout);
-    cleanupTimeout = setTimeout(() => {
-      // don't remove immediately — let onafterprint handle, but as fallback:
-      clearPrintAdjustments();
-    }, 4000);
-  }
-
-  // Handler to run AFTER print dialog closed
-  function afterPrintHandler() {
-    if (cleanupTimeout) {
-      clearTimeout(cleanupTimeout);
-      cleanupTimeout = null;
-    }
-    // Small delay to avoid race with print rendering
-    setTimeout(clearPrintAdjustments, 200);
-  }
-
-  // Modern event registration
-  if ('onbeforeprint' in window) {
-    window.addEventListener('beforeprint', beforePrintHandler);
-  } else {
-    // fallback: matchMedia
-    const mql = window.matchMedia('print');
-    mql.addEventListener && mql.addEventListener('change', (m) => {
-      if (m.matches) beforePrintHandler();
-      else afterPrintHandler();
-    });
-  }
-
-  if ('onafterprint' in window) {
-    window.addEventListener('afterprint', afterPrintHandler);
-  } else {
-    const mql = window.matchMedia('print');
-    mql.addEventListener && mql.addEventListener('change', (m) => {
-      if (!m.matches) afterPrintHandler();
-    });
-  }
-
-  // Fallback manual button: some iOS flows don't fire beforeprint.
-  // Expose a function to run adjustments, wait a bit, then window.print()
-  window.generatePdfNoFooter = function(options) {
-    // options: { topHeight, bottomHeight, scale, delayMs }
-    const top = options && options.topHeight || 28;
-    const bottom = options && options.bottomHeight || 80;
-    const scale = options && options.scale || 0.97;
-    const delayMs = options && options.delayMs || 400;
-
-    applyPrintAdjustments({ topHeight: top, bottomHeight: bottom, scale });
-
-    // Force reflow so overlays are painted
-    document.documentElement.offsetHeight;
-
-    setTimeout(() => {
-      try {
-        window.print();
-      } catch (e) {
-        console.warn('window.print failed', e);
-      }
-      // clean up after some time in case afterprint isn't triggered
-      setTimeout(clearPrintAdjustments, 1200);
-    }, delayMs);
-  };
-
-  // Optional: create a small hidden button in the DOM so you can click on mobile easily
-  // If you already have a "Gerar PDF" place, call window.generatePdfNoFooter() there.
-  //
-  // Example to auto-create a floating button (commented out by default):
-  /*
-  const btn = document.createElement('button');
-  btn.textContent = 'Gerar PDF sem rodapé';
-  Object.assign(btn.style, {
-    position: 'fixed',
-    right: '12px',
-    bottom: '12px',
-    zIndex: '999999999',
-    padding: '8px 10px',
-    background: '#4e73df',
-    color: 'white',
-    border: 'none',
-    borderRadius: '8px',
-    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-    display: 'none' // set to 'block' to show
-  });
-  btn.addEventListener('click', function() { window.generatePdfNoFooter({}); });
-  document.body.appendChild(btn);
-  */
-})();
-</script>
-
 <body>
     <div class="main-container">
         <!-- Botão Voltar no topo -->
@@ -6621,9 +6406,6 @@ aplicarEstilosManterModal() {
 
 
 </script>
-
-
-
 
 
 </body>
