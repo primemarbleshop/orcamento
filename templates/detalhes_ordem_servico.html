@@ -923,107 +923,124 @@
     }
 
     /* ======================== IMPRESSION ======================== */
-    @media print {
-        @page {
-            size: A4 portrait;
-            margin: 5mm;
-        }
-        
-        body {
-            background: white !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            font-size: 15px !important;
-            line-height: 1.2 !important;
-        }
-        
-        body * {
-            visibility: hidden;
-        }
-        
-        .main-container, .main-container * {
-            visibility: visible;
-        }
-        
-        .main-container {
-            position: absolute;
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: 5mm !important; /* ✅ mesmo valor do PC */
+    }
+
+    body {
+        background: white !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        font-size: 15px !important;
+        line-height: 1.2 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    /* ✅ Ocultar o rodapé automático no PDF gerado pelo celular (Safari/Chrome mobile) */
+    @supports (-webkit-touch-callout: none) {
+        body::after {
+            content: "";
+            position: fixed;
+            bottom: 0;
             left: 0;
-            top: 0;
-            width: 100% !important;
-            max-width: 100% !important;
-            margin: 0 !important;
-            padding: 10px !important;
-            font-size: 18px !important;
-            background: white !important;
-            box-shadow: none !important;
-        }
-
-        .peca, .cuba, .texto-legenda, .legenda-simplificada, 
-        .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-        }
-        
-        .top-buttons-container,
-        .action-buttons-container,
-        .mobile-buttons-container,
-        .zoom-controls,
-        .handles-container,
-        .handle,
-        .handle-rotacao,
-        .elemento-selecionado,
-        .modal-controles,
-        .modal-backdrop { 
-            display: none !important; 
-        }
-
-        .drawing-area {
-            width: 1000px !important;
-            height: auto !important;
-            min-height: auto !important;
-            max-height: none !important;
-            border: 1px solid #ccc !important;
-            background: white !important;
-            margin: 0 auto !important;
-            padding: 0px !important;
-            overflow: visible !important;
-            box-shadow: none !important;
-            position: relative !important;
-            page-break-inside: avoid;
-        }
-        
-        .dimensoes-right {
-            right: -35px !important;
-        }
-
-        .peca, .cuba, .texto-legenda, .legenda-simplificada, 
-        .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
-            position: absolute !important;
-            page-break-inside: avoid;
-            break-inside: avoid;
-        }
-
-        .logo-empresa {
-            position: absolute !important;
-            right: 10px !important;
-            top: 10px !important;
-            max-width: 200px !important;
-            height: auto !important;
-        }
-
-        .texto-legenda, .legenda-simplificada {
+            width: 100%;
+            height: 25px; /* cobre o rodapé */
             background: transparent !important;
+            color: transparent !important;
+            z-index: 99999;
         }
-        
-    
     }
 
-  .cuba.linha-reta {
+    body * {
+        visibility: hidden;
+    }
+
+    .main-container, .main-container * {
+        visibility: visible;
+    }
+
+    .main-container {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        padding: 10px !important;
+        font-size: 18px !important;
+        background: white !important;
+        box-shadow: none !important;
+    }
+
+    .peca, .cuba, .texto-legenda, .legenda-simplificada, 
+    .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    .top-buttons-container,
+    .action-buttons-container,
+    .mobile-buttons-container,
+    .zoom-controls,
+    .handles-container,
+    .handle,
+    .handle-rotacao,
+    .elemento-selecionado,
+    .modal-controles,
+    .modal-backdrop { 
+        display: none !important; 
+    }
+
+    .drawing-area {
+        width: 1000px !important;
+        height: auto !important;
+        min-height: auto !important;
+        max-height: none !important;
+        border: 1px solid #ccc !important;
+        background: white !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        box-shadow: none !important;
+        position: relative !important;
+        page-break-inside: avoid;
+    }
+
+    .dimensoes-right {
+        right: -35px !important;
+    }
+
+    .peca, .cuba, .texto-legenda, .legenda-simplificada, 
+    .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
+        position: absolute !important;
+        page-break-inside: avoid;
+        break-inside: avoid;
+    }
+
+    .logo-empresa {
+        position: absolute !important;
+        right: 10px !important;
+        top: 10px !important;
+        max-width: 200px !important;
+        height: auto !important;
+    }
+
+    .texto-legenda, .legenda-simplificada {
+        background: transparent !important;
+    }
+}
+
+/* ======================== RESTANTE DO CSS ORIGINAL ======================== */
+
+.cuba.linha-reta {
     height: 0px !important;
     border-top: 3px solid transparent !important; /* 🔥 CORRIGIDO */
- border-right: 1px solid transparent !important;
+    border-right: 1px solid transparent !important;
     border-left: 1px solid transparent !important;    
-background-color: transparent !important;
+    background-color: transparent !important;
     /* 🔥 NOVO: Aumentar área clicável */
     position: relative;
 }
@@ -1041,28 +1058,27 @@ background-color: transparent !important;
     z-index: 1;
 }
 
+.cuba.linha-reta[style*="border-style: dashed"] {
+    border-top-style: dashed !important;
+}
 
-    .cuba.linha-reta[style*="border-style: dashed"] {
-        border-top-style: dashed !important;
-    }
+.cuba.linha-reta.linha-tracejada-elemento[style*="border-color"] {
+    background: repeating-linear-gradient(
+        to right,
+        var(--line-color, #333),
+        var(--line-color, #333) 5px,
+        transparent 5px,
+        transparent 10px
+    ) !important;
+}
 
-    .cuba.linha-reta.linha-tracejada-elemento[style*="border-color"] {
-        background: repeating-linear-gradient(
-            to right,
-            var(--line-color, #333),
-            var(--line-color, #333) 5px,
-            transparent 5px,
-            transparent 10px
-        ) !important;
-    }
-
-    /* 🔥 CORREÇÃO: MOBILE - MESMA APARÊNCIA DO PC */
-    @media (max-width: 768px) {
-        .cuba.linha-reta {
-        border-top: 3px solid transparent !important; /* 🔥 CORRIGIDO */
- border-right: 1px solid transparent !important;
-    border-left: 1px solid transparent !important;        
-height: 0px !important;
+/* 🔥 CORREÇÃO: MOBILE - MESMA APARÊNCIA DO PC */
+@media (max-width: 768px) {
+    .cuba.linha-reta {
+        border-top: 3px solid transparent !important;
+        border-right: 1px solid transparent !important;
+        border-left: 1px solid transparent !important;        
+        height: 0px !important;
         background-color: transparent !important;
     }
     
@@ -1071,532 +1087,242 @@ height: 0px !important;
         height: 24px;
     }
         
-        .cuba.linha-reta[style*="border-style: dashed"] {
-            border-top-style: dashed !important;
-        }
+    .cuba.linha-reta[style*="border-style: dashed"] {
+        border-top-style: dashed !important;
     }
-
-    /* 🔥 ESTILOS PARA O SISTEMA DE ESTILOS */
-    .modal-estilos {
-        position: fixed;
-        background: white;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        max-width: 400px;
-        width: 90vw;
-        max-height: 80vh;
-        overflow-y: auto;
-        pointer-events: auto !important;
-        touch-action: auto !important;
-    }
-
-    .modal-estilos h6 {
-        font-weight: bold;
-        margin-bottom: 15px;
-        color: #2e59d9;
-    }
-
-    .estilos-secao {
-        margin-bottom: 20px;
-        padding-bottom: 15px;
-        border-bottom: 1px solid #eee;
-    }
-
-    .estilos-secao:last-child {
-        border-bottom: none;
-    }
-
-    .estilos-secao h7 {
-        font-weight: 600;
-        margin-bottom: 10px;
-        display: block;
-        color: #495057;
-    }
-
-    .paleta-cores {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-bottom: 10px;
-    }
-
-    .cor-opcao {
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        border: 2px solid #ddd;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
-
-    .cor-opcao:hover {
-        transform: scale(1.1);
-        border-color: #999;
-    }
-
-    .cor-opcao.selecionada {
-        border-color: #2e59d9;
-        transform: scale(1.1);
-    }
-
-    .controles-texto {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .controle-grupo {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
-
-    .controle-grupo label {
-        margin-bottom: 0;
-        min-width: 80px;
-        font-size: 0.9rem;
-    }
-
-    .controle-grupo input[type="number"] {
-        width: 70px;
-        padding: 5px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-    }
-
-    .controle-grupo input[type="range"] {
-        flex: 1;
-    }
-
-    .estilos-linha {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
-
-    .opcao-linha {
-        padding: 8px 12px;
-        border: 2px solid #dee2e6;
-        border-radius: 6px;
-        cursor: pointer;
-        text-align: center;
-        flex: 1;
-        min-width: 80px;
-        transition: all 0.2s ease;
-    }
-
-    .opcao-linha:hover {
-        border-color: #4e73df;
-    }
-
-    .opcao-linha.selecionada {
-        border-color: #4e73df;
-        background-color: #f8f9ff;
-    }
-
-    .linha-solida {
-        border-bottom: 3px solid #333;
-    }
-
-    .linha-tracejada {
-        border-bottom: 3px dashed #333;
-    }
-
-    .botao-aplicar {
-        background-color: #4e73df;
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 600;
-        transition: background-color 0.2s ease;
-        width: 100%;
-        margin-top: 10px;
-    }
-
-    .botao-aplicar:hover {
-        background-color: #2e59d9;
-    }
-
-    .texto-negrito {
-        font-weight: bold !important;
-    }
-
-    .linha-tracejada-elemento {
-        border-style: dashed !important;
-    }
-
-    .linha-solida-elemento {
-        border-style: solid !important;
-    }
-
-    .preview-cor {
-        width: 20px;
-        height: 20px;
-        border-radius: 4px;
-        border: 1px solid #ddd;
-        margin-left: 10px;
-    }
-
-    .peca.linha-tracejada-elemento {
-        border-style: dashed !important;
-    }
-
-    .cuba.linha-tracejada-elemento {
-        border-style: dashed !important;
-    }
-
-    .modal-backdrop {
-        z-index: 19999 !important;
-        pointer-events: none !important;
-    }
-
-    .modal-estilos {
-        z-index: 20000 !important;
-        pointer-events: auto !important;
-    }
-
-    .elemento-selecionado {
-        z-index: 1000 !important;
-    }
-
-    .modal-estilos * {
-        touch-action: auto !important;
-    }
-
-    .cor-opcao, .opcao-linha {
-        touch-action: manipulation;
-        -webkit-tap-highlight-color: transparent;
-    }
-
-    /* 🔥 CORREÇÃO CRÍTICA: Prevenir seleção de texto durante gestos */
-    .drawing-area {
-        -webkit-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-        user-select: none;
-        -webkit-tap-highlight-color: transparent;
-    }
-    
-    /* 🔥 CORREÇÃO: Feedback visual para elementos selecionados no mobile */
-    .elemento-selecionado {
-        outline: 3px solid #4e73df !important;
-        outline-offset: 2px;
-    }
-    
-    /* 🔥 CORREÇÃO: Zoom mais suave no mobile */
-    @media (max-width: 768px) {
-        .drawing-area {
-            touch-action: pan-x pan-y pinch-zoom !important;
-        }
-        
-        .action-buttons-container {
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            background: rgba(248, 249, 250, 0.95);
-            backdrop-filter: blur(10px);
-        }
-
-        /* 🔥 CORREÇÃO: Garantir que modais não bloqueiem a área de desenho */
-        .modal-controles,
-        .modal-estilos {
-            touch-action: auto !important;
-            pointer-events: auto !important;
-        }
-    }
-
-  .cuba.linha-reta {
-    height: 0px !important;
-    border-top: 3px solid transparent !important; /* 🔥 CORRIGIDO */
- border-right: 1px solid transparent !important;
-    border-left: 1px solid transparent !important;    
-background-color: transparent !important;
-    /* 🔥 NOVO: Aumentar área clicável */
-    position: relative;
 }
 
-/* 🔥 NOVO: Criar área invisível maior para clique */
-.cuba.linha-reta::after {
-    content: '';
-    position: absolute;
-    top: -8px; /* 🔥 Aumenta área clicável para cima */
-    left: 0;
-    width: 100%;
-    height: 16px; /* 🔥 Aumenta área clicável verticalmente */
-    background-color: transparent;
+/* 🔥 ESTILOS PARA O SISTEMA DE ESTILOS */
+.modal-estilos {
+    position: fixed;
+    background: white;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    max-width: 400px;
+    width: 90vw;
+    max-height: 80vh;
+    overflow-y: auto;
+    pointer-events: auto !important;
+    touch-action: auto !important;
+}
+
+.modal-estilos h6 {
+    font-weight: bold;
+    margin-bottom: 15px;
+    color: #2e59d9;
+}
+
+.estilos-secao {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee;
+}
+
+.estilos-secao:last-child {
+    border-bottom: none;
+}
+
+.estilos-secao h7 {
+    font-weight: 600;
+    margin-bottom: 10px;
+    display: block;
+    color: #495057;
+}
+
+.paleta-cores {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.cor-opcao {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 2px solid #ddd;
     cursor: pointer;
-    z-index: 1;
+    transition: all 0.2s ease;
 }
 
+.cor-opcao:hover {
+    transform: scale(1.1);
+    border-color: #999;
+}
 
-    .cuba.linha-reta[style*="border-style: dashed"] {
-        border-top-style: dashed !important;
-    }
+.cor-opcao.selecionada {
+    border-color: #2e59d9;
+    transform: scale(1.1);
+}
 
-    .cuba.linha-reta.linha-tracejada-elemento[style*="border-color"] {
-        background: repeating-linear-gradient(
-            to right,
-            var(--line-color, #333),
-            var(--line-color, #333) 5px,
-            transparent 5px,
-            transparent 10px
-        ) !important;
-    }
+.controles-texto {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
 
-    /* 🔥 CORREÇÃO: MOBILE - MESMA APARÊNCIA DO PC */
-    @media (max-width: 768px) {
-        .cuba.linha-reta {
-        border-top: 3px solid transparent !important; /* 🔥 CORRIGIDO */
- border-right: 1px solid transparent !important;
-    border-left: 1px solid transparent !important;        
-height: 0px !important;
-        background-color: transparent !important;
-    }
-    
-    .cuba.linha-reta::after {
-        top: -12px; /* 🔥 Área ainda maior no mobile para facilitar toque */
-        height: 24px;
-    }
-        
-        .cuba.linha-reta[style*="border-style: dashed"] {
-            border-top-style: dashed !important;
-        }
-    }
+.controle-grupo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
 
-    /* 🔥 ESTILOS PARA O SISTEMA DE ESTILOS */
-    .modal-estilos {
-        position: fixed;
-        background: white;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        max-width: 400px;
-        width: 90vw;
-        max-height: 80vh;
-        overflow-y: auto;
-        pointer-events: auto !important;
-        touch-action: auto !important;
-    }
+.controle-grupo label {
+    margin-bottom: 0;
+    min-width: 80px;
+    font-size: 0.9rem;
+}
 
-    .modal-estilos h6 {
-        font-weight: bold;
-        margin-bottom: 15px;
-        color: #2e59d9;
-    }
+.controle-grupo input[type="number"] {
+    width: 70px;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
 
-    .estilos-secao {
-        margin-bottom: 20px;
-        padding-bottom: 15px;
-        border-bottom: 1px solid #eee;
-    }
+.controle-grupo input[type="range"] {
+    flex: 1;
+}
 
-    .estilos-secao:last-child {
-        border-bottom: none;
-    }
+.estilos-linha {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
 
-    .estilos-secao h7 {
-        font-weight: 600;
-        margin-bottom: 10px;
-        display: block;
-        color: #495057;
-    }
+.opcao-linha {
+    padding: 8px 12px;
+    border: 2px solid #dee2e6;
+    border-radius: 6px;
+    cursor: pointer;
+    text-align: center;
+    flex: 1;
+    min-width: 80px;
+    transition: all 0.2s ease;
+}
 
-    .paleta-cores {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-bottom: 10px;
-    }
+.opcao-linha:hover {
+    border-color: #4e73df;
+}
 
-    .cor-opcao {
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        border: 2px solid #ddd;
-        cursor: pointer;
-        transition: all 0.2s ease;
-    }
+.opcao-linha.selecionada {
+    border-color: #4e73df;
+    background-color: #f8f9ff;
+}
 
-    .cor-opcao:hover {
-        transform: scale(1.1);
-        border-color: #999;
-    }
+.linha-solida {
+    border-bottom: 3px solid #333;
+}
 
-    .cor-opcao.selecionada {
-        border-color: #2e59d9;
-        transform: scale(1.1);
-    }
+.linha-tracejada {
+    border-bottom: 3px dashed #333;
+}
 
-    .controles-texto {
-        display: flex;
-        flex-direction: column;
-        gap: 10px;
-    }
+.botao-aplicar {
+    background-color: #4e73df;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background-color 0.2s ease;
+    width: 100%;
+    margin-top: 10px;
+}
 
-    .controle-grupo {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-    }
+.botao-aplicar:hover {
+    background-color: #2e59d9;
+}
 
-    .controle-grupo label {
-        margin-bottom: 0;
-        min-width: 80px;
-        font-size: 0.9rem;
-    }
+.texto-negrito {
+    font-weight: bold !important;
+}
 
-    .controle-grupo input[type="number"] {
-        width: 70px;
-        padding: 5px;
-        border: 1px solid #ddd;
-        border-radius: 4px;
-    }
+.linha-tracejada-elemento {
+    border-style: dashed !important;
+}
 
-    .controle-grupo input[type="range"] {
-        flex: 1;
-    }
+.linha-solida-elemento {
+    border-style: solid !important;
+}
 
-    .estilos-linha {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-    }
+.preview-cor {
+    width: 20px;
+    height: 20px;
+    border-radius: 4px;
+    border: 1px solid #ddd;
+    margin-left: 10px;
+}
 
-    .opcao-linha {
-        padding: 8px 12px;
-        border: 2px solid #dee2e6;
-        border-radius: 6px;
-        cursor: pointer;
-        text-align: center;
-        flex: 1;
-        min-width: 80px;
-        transition: all 0.2s ease;
-    }
+.peca.linha-tracejada-elemento {
+    border-style: dashed !important;
+}
 
-    .opcao-linha:hover {
-        border-color: #4e73df;
-    }
+.cuba.linha-tracejada-elemento {
+    border-style: dashed !important;
+}
 
-    .opcao-linha.selecionada {
-        border-color: #4e73df;
-        background-color: #f8f9ff;
-    }
+.modal-backdrop {
+    z-index: 19999 !important;
+    pointer-events: none !important;
+}
 
-    .linha-solida {
-        border-bottom: 3px solid #333;
-    }
+.modal-estilos {
+    z-index: 20000 !important;
+    pointer-events: auto !important;
+}
 
-    .linha-tracejada {
-        border-bottom: 3px dashed #333;
-    }
+.elemento-selecionado {
+    z-index: 1000 !important;
+}
 
-    .botao-aplicar {
-        background-color: #4e73df;
-        color: white;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 6px;
-        cursor: pointer;
-        font-weight: 600;
-        transition: background-color 0.2s ease;
-        width: 100%;
-        margin-top: 10px;
-    }
+.modal-estilos * {
+    touch-action: auto !important;
+}
 
-    .botao-aplicar:hover {
-        background-color: #2e59d9;
-    }
+.cor-opcao, .opcao-linha {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
 
-    .texto-negrito {
-        font-weight: bold !important;
-    }
+/* 🔥 CORREÇÃO CRÍTICA: Prevenir seleção de texto durante gestos */
+.drawing-area {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    -ms-user-select: none;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
 
-    .linha-tracejada-elemento {
-        border-style: dashed !important;
-    }
+/* 🔥 CORREÇÃO: Feedback visual para elementos selecionados no mobile */
+.elemento-selecionado {
+    outline: 3px solid #4e73df !important;
+    outline-offset: 2px;
+}
 
-    .linha-solida-elemento {
-        border-style: solid !important;
-    }
-
-    .preview-cor {
-        width: 20px;
-        height: 20px;
-        border-radius: 4px;
-        border: 1px solid #ddd;
-        margin-left: 10px;
-    }
-
-    .peca.linha-tracejada-elemento {
-        border-style: dashed !important;
-    }
-
-    .cuba.linha-tracejada-elemento {
-        border-style: dashed !important;
-    }
-
-    .modal-backdrop {
-        z-index: 19999 !important;
-        pointer-events: none !important;
-    }
-
-    .modal-estilos {
-        z-index: 20000 !important;
-        pointer-events: auto !important;
-    }
-
-    .elemento-selecionado {
-        z-index: 1000 !important;
-    }
-
-    .modal-estilos * {
-        touch-action: auto !important;
-    }
-
-    .cor-opcao, .opcao-linha {
-        touch-action: manipulation;
-        -webkit-tap-highlight-color: transparent;
-    }
-
-    /* 🔥 CORREÇÃO CRÍTICA: Prevenir seleção de texto durante gestos */
+/* 🔥 CORREÇÃO: Zoom mais suave no mobile */
+@media (max-width: 768px) {
     .drawing-area {
-        -webkit-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-        user-select: none;
-        -webkit-tap-highlight-color: transparent;
+        touch-action: pan-x pan-y pinch-zoom !important;
     }
     
-    /* 🔥 CORREÇÃO: Feedback visual para elementos selecionados no mobile */
-    .elemento-selecionado {
-        outline: 3px solid #4e73df !important;
-        outline-offset: 2px;
+    .action-buttons-container {
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+        background: rgba(248, 249, 250, 0.95);
+        backdrop-filter: blur(10px);
     }
-    
-    /* 🔥 CORREÇÃO: Zoom mais suave no mobile */
-    @media (max-width: 768px) {
-        .drawing-area {
-            touch-action: pan-x pan-y pinch-zoom !important;
-        }
-        
-        .action-buttons-container {
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            background: rgba(248, 249, 250, 0.95);
-            backdrop-filter: blur(10px);
-        }
 
-        /* 🔥 CORREÇÃO: Garantir que modais não bloqueiem a área de desenho */
-        .modal-controles,
-        .modal-estilos {
-            touch-action: auto !important;
-            pointer-events: auto !important;
-        }
+    /* 🔥 CORREÇÃO: Garantir que modais não bloqueiem a área de desenho */
+    .modal-controles,
+    .modal-estilos {
+        touch-action: auto !important;
+        pointer-events: auto !important;
     }
+}
 
 	
 </style>
