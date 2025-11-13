@@ -922,11 +922,11 @@
         touch-action: none !important;
     }
 
-    /* ======================== IMPRESSION ======================== */
+   /* ======================== IMPRESSION ======================== */
 @media print {
     @page {
         size: A4 portrait;
-        margin: 0 !important; /* ✅ remove margem imposta pelo iOS */
+        margin: 0 !important; /* ✅ força sem margem, igual PC */
     }
 
     html, body {
@@ -939,23 +939,36 @@
         print-color-adjust: exact !important;
     }
 
-    /* ✅ Corrige zoom e posição da página no iPhone */
+    /* ✅ Força escala e margens iguais ao PC */
     html {
-        transform: scale(0.95); /* Ajusta ligeiramente o zoom pra igualar o PC */
+        transform: scale(0.97); /* ajusta o zoom do iPhone */
         transform-origin: top center;
     }
 
-    /* ✅ Ocultar o rodapé padrão do Safari (força sobreposição branca) */
+    /* ✅ TAMPA RODAPÉ DO SAFARI (camada branca real) */
     @supports (-webkit-touch-callout: none) {
         body::after {
             content: "";
             position: fixed;
             bottom: 0;
             left: 0;
-            width: 100%;
-            height: 40px; /* cobre completamente o rodapé */
-            background: white !important; /* tem que ser branco, não transparente */
-            z-index: 99999;
+            width: 100vw;
+            height: 60px; /* cobre completamente o rodapé */
+            background: white !important; /* precisa ser branco, não transparente */
+            z-index: 9999999 !important;
+            pointer-events: none !important;
+        }
+
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 20px; /* cobre cabeçalho também, se houver */
+            background: white !important;
+            z-index: 9999999 !important;
+            pointer-events: none !important;
         }
     }
 
@@ -1037,6 +1050,7 @@
         background: transparent !important;
     }
 }
+
 
 /* ======================== RESTANTE DO CSS ORIGINAL ======================== */
 
