@@ -922,7 +922,7 @@
         touch-action: none !important;
     }
 
-   /* ======================== IMPRESSION ======================== */
+  /* ======================== IMPRESSÃO ======================== */
 @media print {
     @page {
         size: A4 portrait;
@@ -939,39 +939,37 @@
         print-color-adjust: exact !important;
     }
 
-    /* ✅ Força escala e margens iguais ao PC */
+    /* ✅ Força escala e margens idênticas ao PC */
     html {
-        transform: scale(0.97); /* ajusta o zoom do iPhone */
+        transform: scale(0.97); /* compensa zoom automático no iPhone */
         transform-origin: top center;
     }
 
-    /* ✅ TAMPA RODAPÉ DO SAFARI (camada branca real) */
+    /* 🔥 TAMPA cabeçalho e rodapé automáticos do Safari (iPhone/iPad) */
     @supports (-webkit-touch-callout: none) {
-        body::after {
+        html::before,
+        html::after {
             content: "";
             position: fixed;
-            bottom: 0;
             left: 0;
             width: 100vw;
-            height: 60px; /* cobre completamente o rodapé */
-            background: white !important; /* precisa ser branco, não transparente */
-            z-index: 9999999 !important;
-            pointer-events: none !important;
-        }
-
-        body::before {
-            content: "";
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 20px; /* cobre cabeçalho também, se houver */
             background: white !important;
             z-index: 9999999 !important;
             pointer-events: none !important;
         }
+
+        html::before {
+            top: 0;
+            height: 25px; /* cobre o cabeçalho */
+        }
+
+        html::after {
+            bottom: 0;
+            height: 65px; /* cobre o rodapé (ajuste se necessário) */
+        }
     }
 
+    /* 🔒 Oculta tudo, exceto o conteúdo principal */
     body * {
         visibility: hidden !important;
     }
@@ -993,12 +991,15 @@
         box-shadow: none !important;
     }
 
+    /* Evita quebras internas em blocos */
     .peca, .cuba, .texto-legenda, .legenda-simplificada,
     .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
+        position: absolute !important;
     }
 
+    /* Oculta elementos desnecessários na impressão */
     .top-buttons-container,
     .action-buttons-container,
     .mobile-buttons-container,
@@ -1012,6 +1013,7 @@
         display: none !important;
     }
 
+    /* Área principal de desenho */
     .drawing-area {
         width: 1000px !important;
         height: auto !important;
@@ -1031,13 +1033,6 @@
         right: -35px !important;
     }
 
-    .peca, .cuba, .texto-legenda, .legenda-simplificada,
-    .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
-        position: absolute !important;
-        page-break-inside: avoid;
-        break-inside: avoid;
-    }
-
     .logo-empresa {
         position: absolute !important;
         right: 10px !important;
@@ -1050,6 +1045,7 @@
         background: transparent !important;
     }
 }
+
 
 
 /* ======================== RESTANTE DO CSS ORIGINAL ======================== */
