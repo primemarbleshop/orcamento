@@ -926,10 +926,10 @@
 @media print {
     @page {
         size: A4 portrait;
-        margin: 5mm !important; /* ✅ mesmo valor do PC */
+        margin: 0 !important; /* ✅ remove margem imposta pelo iOS */
     }
 
-    body {
+    html, body {
         background: white !important;
         margin: 0 !important;
         padding: 0 !important;
@@ -939,7 +939,13 @@
         print-color-adjust: exact !important;
     }
 
-    /* ✅ Ocultar o rodapé automático no PDF gerado pelo celular (Safari/Chrome mobile) */
+    /* ✅ Corrige zoom e posição da página no iPhone */
+    html {
+        transform: scale(0.95); /* Ajusta ligeiramente o zoom pra igualar o PC */
+        transform-origin: top center;
+    }
+
+    /* ✅ Ocultar o rodapé padrão do Safari (força sobreposição branca) */
     @supports (-webkit-touch-callout: none) {
         body::after {
             content: "";
@@ -947,19 +953,18 @@
             bottom: 0;
             left: 0;
             width: 100%;
-            height: 25px; /* cobre o rodapé */
-            background: transparent !important;
-            color: transparent !important;
+            height: 40px; /* cobre completamente o rodapé */
+            background: white !important; /* tem que ser branco, não transparente */
             z-index: 99999;
         }
     }
 
     body * {
-        visibility: hidden;
+        visibility: hidden !important;
     }
 
     .main-container, .main-container * {
-        visibility: visible;
+        visibility: visible !important;
     }
 
     .main-container {
@@ -975,7 +980,7 @@
         box-shadow: none !important;
     }
 
-    .peca, .cuba, .texto-legenda, .legenda-simplificada, 
+    .peca, .cuba, .texto-legenda, .legenda-simplificada,
     .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
@@ -990,8 +995,8 @@
     .handle-rotacao,
     .elemento-selecionado,
     .modal-controles,
-    .modal-backdrop { 
-        display: none !important; 
+    .modal-backdrop {
+        display: none !important;
     }
 
     .drawing-area {
@@ -1013,7 +1018,7 @@
         right: -35px !important;
     }
 
-    .peca, .cuba, .texto-legenda, .legenda-simplificada, 
+    .peca, .cuba, .texto-legenda, .legenda-simplificada,
     .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
         position: absolute !important;
         page-break-inside: avoid;
