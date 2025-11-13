@@ -6438,6 +6438,190 @@ aplicarEstilosManterModal() {
 
 </script>
 
+	<script>
+/*
+  Script para:
+  - adicionar overlays brancos fixos em <html> cobrindo cabeçalho/rodapé gerados pelo Safari mobile
+  - ajustar escala/margem temporariamente para aproximar impressão do PC
+  - ativar automaticamente em onbeforeprint / matchMedia('print') e via botão manual
+*/
+
+(function() {
+  const OVERLAY_ID_TOP = 'print-overlay-top';
+  const OVERLAY_ID_BOTTOM = 'print-overlay-bottom';
+  const PRINT_CLASS = 'printing-with-overlay';
+  let cleanupTimeout = null;
+
+  function createOverlay(id, position, heightPx) {
+    let el = document.getElementById(id);
+    if (!el) {
+      el = document.createElement('div');
+      el.id = id;
+      // estilo inline para garantir que renderize antes do print
+      Object.assign(el.style, {
+        position: 'fixed',
+        left: '0',
+        width: '100vw',
+        height: heightPx + 'px',
+        background: 'white',
+        zIndex: '99999999',
+        pointerEvents: 'none',
+        // ensure it's painted above everything
+        WebkitPrintColorAdjust: 'exact',
+        printColorAdjust: 'exact'
+      });
+      document.documentElement.appendChild(el);
+    }
+    if (position === 'top') {
+      el.style.top = '0';
+      el.style.bottom = '';
+    } else {
+      el.style.bottom = '0';
+      el.style.top = '';
+    }
+    return el;
+  }
+
+  function removeOverlay(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  }
+
+  function applyPrintAdjustments(opts = {}) {
+    // opts: { topHeight, bottomHeight, scale }
+    const topH = (typeof opts.topHeight === 'number') ? opts.topHeight : 24;
+    const bottomH = (typeof opts.bottomHeight === 'number') ? opts.bottomHeight : 70;
+    const scale = (typeof opts.scale === 'number') ? opts.scale : 0.97;
+
+    // create overlays on html (not body)
+    createOverlay(OVERLAY_ID_TOP, 'top', topH);
+    createOverlay(OVERLAY_ID_BOTTOM, 'bottom', bottomH);
+
+    // apply transform to html to compensate iOS zoom/padding
+    document.documentElement.style.transformOrigin = 'top center';
+    document.documentElement.style.transform = 'scale(' + scale + ')';
+    // ensure no margins/padding interfere
+    document.documentElement.style.margin = '0 !important';
+    document.documentElement.style.padding = '0 !important';
+
+    // add class for possible CSS targetting
+    document.documentElement.classList.add(PRINT_CLASS);
+  }
+
+  function clearPrintAdjustments() {
+    // remove overlays
+    removeOverlay(OVERLAY_ID_TOP);
+    removeOverlay(OVERLAY_ID_BOTTOM);
+    // remove transform
+    document.documentElement.style.transform = '';
+    document.documentElement.style.transformOrigin = '';
+    document.documentElement.style.margin = '';
+    document.documentElement.style.padding = '';
+    document.documentElement.classList.remove(PRINT_CLASS);
+  }
+
+  // Handler to run BEFORE print preview
+  function beforePrintHandler() {
+    // Increase heights if device is small (heuristic)
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+      // iPhones may need larger bottom overlay
+      applyPrintAdjustments({ topHeight: 28, bottomHeight: 80, scale: 0.97 });
+    } else {
+      applyPrintAdjustments({ topHeight: 20, bottomHeight: 50, scale: 0.99 });
+    }
+
+    // Safety: keep overlays at least 2s after print to ensure not cut
+    if (cleanupTimeout) clearTimeout(cleanupTimeout);
+    cleanupTimeout = setTimeout(() => {
+      // don't remove immediately — let onafterprint handle, but as fallback:
+      clearPrintAdjustments();
+    }, 4000);
+  }
+
+  // Handler to run AFTER print dialog closed
+  function afterPrintHandler() {
+    if (cleanupTimeout) {
+      clearTimeout(cleanupTimeout);
+      cleanupTimeout = null;
+    }
+    // Small delay to avoid race with print rendering
+    setTimeout(clearPrintAdjustments, 200);
+  }
+
+  // Modern event registration
+  if ('onbeforeprint' in window) {
+    window.addEventListener('beforeprint', beforePrintHandler);
+  } else {
+    // fallback: matchMedia
+    const mql = window.matchMedia('print');
+    mql.addEventListener && mql.addEventListener('change', (m) => {
+      if (m.matches) beforePrintHandler();
+      else afterPrintHandler();
+    });
+  }
+
+  if ('onafterprint' in window) {
+    window.addEventListener('afterprint', afterPrintHandler);
+  } else {
+    const mql = window.matchMedia('print');
+    mql.addEventListener && mql.addEventListener('change', (m) => {
+      if (!m.matches) afterPrintHandler();
+    });
+  }
+
+  // Fallback manual button: some iOS flows don't fire beforeprint.
+  // Expose a function to run adjustments, wait a bit, then window.print()
+  window.generatePdfNoFooter = function(options) {
+    // options: { topHeight, bottomHeight, scale, delayMs }
+    const top = options && options.topHeight || 28;
+    const bottom = options && options.bottomHeight || 80;
+    const scale = options && options.scale || 0.97;
+    const delayMs = options && options.delayMs || 400;
+
+    applyPrintAdjustments({ topHeight: top, bottomHeight: bottom, scale });
+
+    // Force reflow so overlays are painted
+    document.documentElement.offsetHeight;
+
+    setTimeout(() => {
+      try {
+        window.print();
+      } catch (e) {
+        console.warn('window.print failed', e);
+      }
+      // clean up after some time in case afterprint isn't triggered
+      setTimeout(clearPrintAdjustments, 1200);
+    }, delayMs);
+  };
+
+  // Optional: create a small hidden button in the DOM so you can click on mobile easily
+  // If you already have a "Gerar PDF" place, call window.generatePdfNoFooter() there.
+  //
+  // Example to auto-create a floating button (commented out by default):
+  /*
+  const btn = document.createElement('button');
+  btn.textContent = 'Gerar PDF sem rodapé';
+  Object.assign(btn.style, {
+    position: 'fixed',
+    right: '12px',
+    bottom: '12px',
+    zIndex: '999999999',
+    padding: '8px 10px',
+    background: '#4e73df',
+    color: 'white',
+    border: 'none',
+    borderRadius: '8px',
+    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+    display: 'none' // set to 'block' to show
+  });
+  btn.addEventListener('click', function() { window.generatePdfNoFooter({}); });
+  document.body.appendChild(btn);
+  */
+})();
+</script>
+
+
 
 </body>
 </html>
