@@ -1988,22 +1988,23 @@ def salvar_desenho_ordem_servico(codigo):
 
 @app.route('/detalhes_ordem_servico/<codigo>')
 def detalhes_ordem_servico(codigo):
-    # 🔥 VERIFICAÇÃO DE LOGIN - ADICIONE ESTAS LINHAS
+    # 🔥 VERIFICAÇÃO DE LOGIN - IMPEDIR ACESSO SEM LOGIN
     if 'user_cpf' not in session:
         flash("Você precisa fazer login para acessar esta página.", "error")
         return redirect(url_for('login'))
 
+    # 🔥 OBTER DADOS DO USUÁRIO LOGADO
+    user_cpf = session.get('user_cpf')
+    is_admin = session.get('admin')
+
+    # 🔥 BUSCAR ORÇAMENTO SALVO
     orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
 
     if not orcamento_salvo:
         flash("Ordem de serviço não encontrada!", "danger")
         return redirect(url_for('ordens_servico'))
 
-    # 🔥 VERIFICAÇÃO DE PERMISSÃO - ADICIONE ESTAS LINHAS
-    user_cpf = session.get('user_cpf')
-    is_admin = session.get('admin')
-    
-    # Pegar o primeiro orçamento para verificar o dono do cliente
+    # 🔥 BUSCAR ORÇAMENTOS VINCULADOS
     ids = [int(id) for id in orcamento_salvo.orcamentos_ids.split(",")]
     orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
     
@@ -2011,15 +2012,15 @@ def detalhes_ordem_servico(codigo):
         flash("Ordem de serviço não contém orçamentos!", "danger")
         return redirect(url_for('ordens_servico'))
     
+    # 🔥 VERIFICAÇÃO DE PERMISSÃO - USUÁRIO PODE VER ESTA ORDEM?
     cliente = orcamentos[0].cliente
     
-    # Verificar se o usuário tem permissão para ver esta ordem de serviço
+    # Admin pode ver tudo, usuário comum só vê seus próprios clientes
     if not is_admin and cliente.dono != user_cpf:
         flash("Você não tem permissão para acessar esta ordem de serviço.", "error")
         return redirect(url_for('ordens_servico'))
 
-    # ... o resto do seu código atual continua aqui ...
-    # Agrupar por material
+    # 🔥 AGRUPAR POR MATERIAL (SUA LÓGICA ORIGINAL)
     materiais_agrupados = {}
     for orcamento in orcamentos:
         material_nome = orcamento.material.nome
@@ -2034,7 +2035,7 @@ def detalhes_ordem_servico(codigo):
     usuario = Usuario.query.filter_by(cpf=user_cpf).first()
     telefone_usuario = usuario.telefone if usuario else ""
 
-    # 🔥 CORREÇÃO: Carregar o desenho salvo corretamente
+    # 🔥 CARREGAR DESENHO SALVO
     desenho_salvo = None
     desenho_registro = DesenhoOrdemServico.query.filter_by(
         orcamento_salvo_codigo=codigo
@@ -2045,6 +2046,7 @@ def detalhes_ordem_servico(codigo):
     elif orcamento_salvo.desenho_ordem_servico:
         desenho_salvo = orcamento_salvo.desenho_ordem_servico
 
+    # 🔥 RENDERIZAR TEMPLATE COM TODOS OS DADOS
     return render_template(
         "detalhes_ordem_servico.html",
         logo_url=logo_url,
@@ -2054,7 +2056,7 @@ def detalhes_ordem_servico(codigo):
         orcamentos=orcamentos,
         materiais_agrupados=materiais_agrupados,
         telefone_usuario=telefone_usuario,
-        desenho_salvo=desenho_salvo  # 🔥 Passar o desenho salvo para o template
+        desenho_salvo=desenho_salvo
     )
 
 if __name__ == '__main__':
