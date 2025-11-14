@@ -941,8 +941,8 @@
         touch-action: none !important;
     }
 
-   /* ======================== IMPRESSÃO DINÂMICA ======================== */
-@media print {
+    /* ======================== IMPRESSION ======================== */
+    @media print {
     @page {
         size: A4 portrait;
         margin: 10mm;
@@ -957,6 +957,8 @@
         width: 100% !important;
         height: auto !important;
         overflow: visible !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
     }
     
     body * {
@@ -972,14 +974,14 @@
         width: 100% !important;
         max-width: 100% !important;
         margin: 0 auto !important;
-        padding: 0 !important;
+        padding: 10mm !important;
         background: white !important;
         box-shadow: none !important;
         page-break-after: auto;
-        page-break-inside: avoid;
+        break-after: auto;
     }
 
-    /* 🔥 NOVO: Controle de quebra de página dinâmico */
+    /* 🔥 ÁREA DE DESENHO DINÂMICA */
     .drawing-area {
         width: 100% !important;
         height: auto !important;
@@ -993,38 +995,33 @@
         box-shadow: none !important;
         position: relative !important;
         page-break-inside: avoid;
-        page-break-after: auto;
-        
-        /* 🔥 DETECÇÃO AUTOMÁTICA DE TAMANHO */
-        display: block;
+        break-inside: avoid;
     }
 
-    /* 🔥 NOVO: Forçar quebra de página quando necessário */
-    .pagina-separadora {
+    /* 🔥 QUEBRAS DE PÁGINA DINÂMICAS */
+    .quebra-pagina-automatica {
         page-break-before: always;
+        break-before: page;
         display: block;
         height: 0;
         width: 100%;
+        position: relative;
     }
 
     /* Elementos que devem evitar quebras */
     .peca, .cuba, .texto-legenda, .legenda-simplificada, 
-    .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
+    .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca,
+    .area-pecas {
         page-break-inside: avoid !important;
         break-inside: avoid !important;
     }
 
-    /* Grupos de material - permitir quebra entre grupos */
-    .area-pecas {
+    /* Grupos completos - permitir quebra entre eles */
+    .grupo-material {
         page-break-inside: auto;
         break-inside: auto;
     }
 
-    .titulo-grupo {
-        page-break-after: avoid;
-        break-after: avoid;
-    }
-    
     .top-buttons-container,
     .action-buttons-container,
     .mobile-buttons-container,
@@ -1034,17 +1031,10 @@
     .handle-rotacao,
     .elemento-selecionado,
     .modal-controles,
-    .modal-backdrop { 
+    .modal-backdrop,
+    .cursor-borracha,
+    .pintura-borracha { 
         display: none !important; 
-    }
-
-    .dimensoes-right {
-        right: -35px !important;
-    }
-
-    .peca, .cuba, .texto-legenda, .legenda-simplificada, 
-    .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
-        position: absolute !important;
     }
 
     .logo-empresa {
@@ -1053,10 +1043,6 @@
         top: 10px !important;
         max-width: 200px !important;
         height: auto !important;
-    }
-
-    .texto-legenda, .legenda-simplificada {
-        background: transparent !important;
     }
 }
 
@@ -1508,6 +1494,8 @@ this.touchStartTime = 0;
     this.touchedOutside = false;
  this.modalEstilosAberto = false;
     this.elementoSelecionadoAntesDoModal = null;
+ this.layoutAtualizado = false;
+    this.observadorMudancas = null;
 
 
             
@@ -1553,6 +1541,11 @@ this.borrachaAtiva = false;
             this.adicionarEstilosMobile();
 
             this.inicializar();
+
+setTimeout(() => {
+        this.configurarObservadorDeMudancas();
+    }, 1000);
+
         }
 
 adicionarEstilosMobile() {
@@ -2677,118 +2670,190 @@ refazer() {
             });
         }
 
-        imprimirDesenho() {
-    console.log('🖨️ Preparando impressão com detecção automática de páginas...');
+        configurarObservadorDeMudancas() {
+    // Observar mudanças na área de desenho
+    this.observadorMudancas = new MutationObserver((mutations) => {
+        mutations.forEach((mutation) => {
+            // Se elementos foram adicionados, removidos ou movidos
+            if (mutation.type === 'childList' || mutation.type === 'attributes') {
+                this.layoutAtualizado = true;
+                console.log('🔄 Layout modificado - recálculo necessário');
+            }
+        });
+    });
+
+    // Configurar o observador
+    this.observadorMudancas.observe(this.drawingArea, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['style', 'class']
+    });
+
+    console.log('👀 Observador de mudanças configurado');
+}
+
+// 🔥 MÉTODO PRINCIPAL ATUALIZADO
+imprimirDesenho() {
+    console.log('🖨️ Iniciando impressão com detecção dinâmica...');
     
     this.salvarEstadoHistorico('Antes da Impressão');
     this.desselecionarElemento();
     
-    // 🔥 NOVO: Preparar layout para impressão
-    this.prepararParaImpressao();
+    // Forçar recálculo do layout
+    this.calcularEPrepararImpressao();
     
+    // Pequeno delay para garantir processamento
     setTimeout(() => {
         window.print();
         
-        // 🔥 NOVO: Restaurar layout após impressão
+        // Restaurar após impressão
         setTimeout(() => {
             this.restaurarAposImpressao();
-        }, 1000);
-    }, 500);
+        }, 500);
+    }, 300);
 }
 
-// 🔥 MÉTODO DE DETECÇÃO PRECISA
-calcularPaginasNecessarias() {
-    const drawingRect = this.drawingArea.getBoundingClientRect();
-    const elementos = this.drawingArea.querySelectorAll('*');
-    
-    let bottomMaisAlto = 0;
-    elementos.forEach(elemento => {
-        const rect = elemento.getBoundingClientRect();
-        const bottomRelativo = rect.bottom - drawingRect.top;
-        if (bottomRelativo > bottomMaisAlto) {
-            bottomMaisAlto = bottomRelativo;
-        }
-    });
-    
-    // Altura A4 em pixels (297mm ≈ 1123px em 96 DPI)
-    const alturaA4 = 1123;
-    return Math.ceil(bottomMaisAlto / alturaA4);
-}
-
-// 🔥 NOVO MÉTODO: Preparar layout para impressão
-prepararParaImpressao() {
-    console.log('📐 Preparando layout para impressão...');
-    
-    const drawingArea = this.drawingArea;
-    const elementos = drawingArea.querySelectorAll('.peca, .cuba, .texto-legenda, .legenda-simplificada, .titulo-grupo');
-    
-    // Calcular altura total do conteúdo
-    let alturaTotal = 0;
-    let maiorY = 0;
-    
-    elementos.forEach(elemento => {
-        const rect = elemento.getBoundingClientRect();
-        const elementoBottom = rect.bottom + parseFloat(elemento.style.top || 0);
-        if (elementoBottom > maiorY) {
-            maiorY = elementoBottom;
-        }
-    });
-    
-    // Altura máxima por página A4 (aproximadamente 1123px considerando margens)
-    const alturaMaximaPorPagina = 1123;
-    const numeroDePaginas = Math.ceil(maiorY / alturaMaximaPorPagina);
-    
-    console.log(`📄 Detecção: ${numeroDePaginas} página(s) necessária(s)`);
-    
-    // Ajustar altura da área de desenho
-    drawingArea.style.height = `${maiorY + 100}px`;
-    
-    // Adicionar marcadores de quebra de página se necessário
-    if (numeroDePaginas > 1) {
-        this.adicionarQuebrasDePagina(alturaMaximaPorPagina, numeroDePaginas);
-    }
-}
-
-// 🔥 NOVO MÉTODO: Adicionar quebras de página
-adicionarQuebrasDePagina(alturaPorPagina, totalPaginas) {
-    console.log(`📑 Adicionando ${totalPaginas - 1} quebras de página...`);
+// 🔥 MÉTODO MELHORADO: Calcular e preparar impressão
+calcularEPrepararImpressao() {
+    console.log('📐 Calculando layout para impressão...');
     
     // Remover quebras anteriores
-    const quebrasExistentes = this.drawingArea.querySelectorAll('.pagina-separadora');
-    quebrasExistentes.forEach(quebra => queebra.remove());
+    this.removerQuebrasPagina();
     
-    // Adicionar novas quebras
-    for (let i = 1; i < totalPaginas; i++) {
-        const quebra = document.createElement('div');
-        quebra.className = 'pagina-separadora';
-        quebra.style.height = '0';
-        quebra.style.pageBreakBefore = 'always';
-        quebra.style.breakBefore = 'page';
+    // Calcular dimensões atuais
+    const { alturaTotal, elementosPorAltura } = this.calcularDimensoesConteudo();
+    
+    // Altura máxima por página A4 (em pixels)
+    const ALTURA_PAGINA_A4 = 1050; // 297mm ≈ 1050px (considerando margens)
+    const numeroPaginas = Math.ceil(alturaTotal / ALTURA_PAGINA_A4);
+    
+    console.log(`📊 Detecção: ${alturaTotal}px total → ${numeroPaginas} página(s)`);
+    
+    if (numeroPaginas > 1) {
+        this.inserirQuebrasPaginaDinamicas(ALTURA_PAGINA_A4, numeroPaginas, elementosPorAltura);
+    }
+    
+    // Ajustar altura da área de desenho
+    this.drawingArea.style.height = `${alturaTotal + 100}px`;
+}
+
+// 🔥 MÉTODO PRECISO: Calcular dimensões do conteúdo
+calcularDimensoesConteudo() {
+    const elementos = this.drawingArea.querySelectorAll(
+        '.peca, .cuba, .texto-legenda, .legenda-simplificada, .titulo-grupo, .area-pecas'
+    );
+    
+    let alturaMaxima = 0;
+    let elementosPorAltura = [];
+    
+    elementos.forEach(elemento => {
+        const retangulo = elemento.getBoundingClientRect();
+        const drawingRect = this.drawingArea.getBoundingClientRect();
         
-        // Posicionar a quebra no início de cada nova página
-        const posicaoY = i * alturaPorPagina;
-        quebra.style.position = 'absolute';
-        quebra.style.top = `${posicaoY}px`;
-        quebra.style.left = '0';
-        quebra.style.width = '100%';
-        quebra.style.zIndex = '-1';
+        // Posição relativa dentro da drawingArea
+        const topRelativo = retangulo.top - drawingRect.top + this.drawingArea.scrollTop;
+        const bottomRelativo = topRelativo + retangulo.height;
         
-        this.drawingArea.appendChild(quebra);
+        elementosPorAltura.push({
+            elemento: elemento,
+            top: topRelativo,
+            bottom: bottomRelativo,
+            height: retangulo.height
+        });
+        
+        // Atualizar altura máxima
+        if (bottomRelativo > alturaMaxima) {
+            alturaMaxima = bottomRelativo;
+        }
+    });
+    
+    // Ordenar por posição vertical
+    elementosPorAltura.sort((a, b) => a.top - b.top);
+    
+    return {
+        alturaTotal: alturaMaxima,
+        elementosPorAltura: elementosPorAltura
+    };
+}
+
+// 🔥 MÉTODO INTELIGENTE: Inserir quebras de página
+inserirQuebrasPaginaDinamicas(alturaPagina, totalPaginas, elementosPorAltura) {
+    console.log(`📑 Inserindo ${totalPaginas - 1} quebras de página dinâmicas...`);
+    
+    for (let pagina = 1; pagina < totalPaginas; pagina++) {
+        const alturaQuebra = pagina * alturaPagina;
+        
+        // Encontrar o melhor local para a quebra (entre elementos)
+        const posicaoQuebra = this.encontrarMelhorQuebra(alturaQuebra, elementosPorAltura);
+        
+        if (posicaoQuebra !== null) {
+            this.criarQuebraPagina(posicaoQuebra, pagina);
+        }
     }
 }
 
-// 🔥 NOVO MÉTODO: Restaurar layout após impressão
+// 🔥 MÉTODO: Encontrar melhor posição para quebra
+encontrarMelhorQuebra(alturaDesejada, elementosPorAltura) {
+    const MARGEM_SEGURANCA = 50; // pixels de margem
+    
+    // Procurar espaço entre elementos para colocar a quebra
+    for (let i = 0; i < elementosPorAltura.length - 1; i++) {
+        const elementoAtual = elementosPorAltura[i];
+        const elementoSeguinte = elementosPorAltura[i + 1];
+        
+        const espacoEntreElementos = elementoSeguinte.top - elementoAtual.bottom;
+        
+        // Se há espaço suficiente entre elementos e está perto da altura desejada
+        if (espacoEntreElementos > MARGEM_SEGURANCA && 
+            Math.abs(elementoAtual.bottom - alturaDesejada) < alturaDesejada * 0.3) {
+            return elementoAtual.bottom + 10;
+        }
+    }
+    
+    // Se não encontrou espaço ideal, usar altura desejada
+    return alturaDesejada;
+}
+
+// 🔥 MÉTODO: Criar quebra de página
+criarQuebraPagina(posicao, numeroPagina) {
+    const quebra = document.createElement('div');
+    quebra.className = 'quebra-pagina-automatica';
+    quebra.setAttribute('data-pagina', numeroPagina);
+    
+    quebra.style.cssText = `
+        position: absolute;
+        top: ${posicao}px;
+        left: 0;
+        width: 100%;
+        height: 0;
+        page-break-before: always;
+        break-before: page;
+        pointer-events: none;
+        z-index: -1;
+    `;
+    
+    this.drawingArea.appendChild(quebra);
+    console.log(`✅ Quebra de página ${numeroPagina} em ${posicao}px`);
+}
+
+// 🔥 MÉTODO: Remover quebras de página
+removerQuebrasPagina() {
+    const quebras = this.drawingArea.querySelectorAll('.quebra-pagina-automatica');
+    quebras.forEach(quebra => {
+        quebra.remove();
+    });
+    console.log('🗑️ Quebras de página anteriores removidas');
+}
+
+// 🔥 MÉTODO: Restaurar após impressão
 restaurarAposImpressao() {
     console.log('🔄 Restaurando layout após impressão...');
     
-    // Remover quebras de página
-    const quebras = this.drawingArea.querySelectorAll('.pagina-separadora');
-    quebras.forEach(quebra => queebra.remove());
-    
-    // Restaurar altura original
+    this.removerQuebrasPagina();
     this.drawingArea.style.height = '';
     
-    console.log('✅ Layout restaurado após impressão');
+    console.log('✅ Layout restaurado');
 }
 
         configurarEventos() {
