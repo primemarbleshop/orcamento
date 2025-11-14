@@ -2655,35 +2655,15 @@ refazer() {
         }
 
         imprimirDesenho() {
-    console.log('🖨️ IMPRESSÃO: Forçando atualização completa do layout...');
-    
-    this.salvarEstadoHistorico('Antes da Impressão');
-    this.desselecionarElemento();
-    
-    // 🔥 ESTRATÉGIA: Salvar e restaurar estado para forçar recálculo
-    const estadoAtual = this.obterEstadoAtual();
-    
-    setTimeout(() => {
-        // 1. Limpar completamente
-        this.drawingArea.innerHTML = '';
-        
-        // 2. Pequeno delay para garantir limpeza
-        setTimeout(() => {
-            // 3. Restaurar o estado atual (isso força recálculo do layout)
-            this.restaurarEstadoHistorico({ data: estadoAtual });
+            console.log('🖨️ Preparando impressão do estado atual...');
             
-            // 4. Pequeno delay para renderização
+            this.salvarEstadoHistorico('Antes da Impressão');
+            this.desselecionarElemento();
+            
             setTimeout(() => {
-                // 5. Agora sim imprimir com layout atualizado
-                this.atualizarLayoutParaImpressao();
-                
-                setTimeout(() => {
-                    window.print();
-                }, 100);
-            }, 100);
-        }, 100);
-    }, 300);
-}
+                window.print();
+            }, 500);
+        }
 
         configurarEventos() {
     console.log('🔧 Configurando eventos...');
