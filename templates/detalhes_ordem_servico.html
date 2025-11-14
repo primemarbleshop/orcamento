@@ -2696,6 +2696,25 @@ refazer() {
     }, 500);
 }
 
+// 🔥 MÉTODO DE DETECÇÃO PRECISA
+calcularPaginasNecessarias() {
+    const drawingRect = this.drawingArea.getBoundingClientRect();
+    const elementos = this.drawingArea.querySelectorAll('*');
+    
+    let bottomMaisAlto = 0;
+    elementos.forEach(elemento => {
+        const rect = elemento.getBoundingClientRect();
+        const bottomRelativo = rect.bottom - drawingRect.top;
+        if (bottomRelativo > bottomMaisAlto) {
+            bottomMaisAlto = bottomRelativo;
+        }
+    });
+    
+    // Altura A4 em pixels (297mm ≈ 1123px em 96 DPI)
+    const alturaA4 = 1123;
+    return Math.ceil(bottomMaisAlto / alturaA4);
+}
+
 // 🔥 NOVO MÉTODO: Preparar layout para impressão
 prepararParaImpressao() {
     console.log('📐 Preparando layout para impressão...');
