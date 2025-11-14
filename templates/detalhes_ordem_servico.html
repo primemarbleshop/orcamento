@@ -943,108 +943,99 @@
 
     /* ======================== IMPRESSION ======================== */
     @media print {
-    @page {
-        size: A4 portrait;
-        margin: 10mm;
-    }
+        @page {
+            size: A4 portrait;
+            margin: 10mm;
+        }
+        
+        body {
+            background: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            font-size: 15px !important;
+            line-height: 1.2 !important;
+        }
+        
+        body * {
+            visibility: hidden;
+        }
+        
+        .main-container, .main-container * {
+            visibility: visible;
+        }
+        
+        .main-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 10px !important;
+            font-size: 18px !important;
+            background: white !important;
+            box-shadow: none !important;
+        }
+
+        .peca, .cuba, .texto-legenda, .legenda-simplificada, 
+        .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+        }
+        
+        .top-buttons-container,
+        .action-buttons-container,
+        .mobile-buttons-container,
+        .zoom-controls,
+        .handles-container,
+        .handle,
+        .handle-rotacao,
+        .elemento-selecionado,
+        .modal-controles,
+        .modal-backdrop { 
+            display: none !important; 
+        }
+
+        .drawing-area {
+            width: 1000px !important;
+            height: auto !important;
+            min-height: auto !important;
+            max-height: none !important;
+            border: 1px solid #ccc !important;
+            background: white !important;
+            margin: 0 auto !important;
+            padding: 0px !important;
+            overflow: visible !important;
+            box-shadow: none !important;
+            position: relative !important;
+            page-break-inside: avoid;
+        }
+        
+        .dimensoes-right {
+            right: -35px !important;
+        }
+
+        .peca, .cuba, .texto-legenda, .legenda-simplificada, 
+        .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
+            position: absolute !important;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+
+        .logo-empresa {
+            position: absolute !important;
+            right: 10px !important;
+            top: 10px !important;
+            max-width: 200px !important;
+            height: auto !important;
+        }
+
+        .texto-legenda, .legenda-simplificada {
+            background: transparent !important;
+        }
+        
     
-    body {
-        background: white !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        font-size: 15px !important;
-        line-height: 1.2 !important;
-        width: 100% !important;
-        height: auto !important;
-        overflow: visible !important;
-        -webkit-print-color-adjust: exact !important;
-        print-color-adjust: exact !important;
     }
-    
-    body * {
-        visibility: hidden;
-    }
-    
-    .main-container, .main-container * {
-        visibility: visible;
-    }
-    
-    .main-container {
-        position: relative !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        margin: 0 auto !important;
-        padding: 10mm !important;
-        background: white !important;
-        box-shadow: none !important;
-        page-break-after: auto;
-        break-after: auto;
-    }
-
-    /* 🔥 ÁREA DE DESENHO DINÂMICA */
-    .drawing-area {
-        width: 100% !important;
-        height: auto !important;
-        min-height: auto !important;
-        max-height: none !important;
-        border: 1px solid #ccc !important;
-        background: white !important;
-        margin: 0 auto !important;
-        padding: 0 !important;
-        overflow: visible !important;
-        box-shadow: none !important;
-        position: relative !important;
-        page-break-inside: avoid;
-        break-inside: avoid;
-    }
-
-    /* 🔥 QUEBRAS DE PÁGINA DINÂMICAS */
-    .quebra-pagina-automatica {
-        page-break-before: always;
-        break-before: page;
-        display: block;
-        height: 0;
-        width: 100%;
-        position: relative;
-    }
-
-    /* Elementos que devem evitar quebras */
-    .peca, .cuba, .texto-legenda, .legenda-simplificada, 
-    .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca,
-    .area-pecas {
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-    }
-
-    /* Grupos completos - permitir quebra entre eles */
-    .grupo-material {
-        page-break-inside: auto;
-        break-inside: auto;
-    }
-
-    .top-buttons-container,
-    .action-buttons-container,
-    .mobile-buttons-container,
-    .zoom-controls,
-    .handles-container,
-    .handle,
-    .handle-rotacao,
-    .elemento-selecionado,
-    .modal-controles,
-    .modal-backdrop,
-    .cursor-borracha,
-    .pintura-borracha { 
-        display: none !important; 
-    }
-
-    .logo-empresa {
-        position: absolute !important;
-        right: 10px !important;
-        top: 10px !important;
-        max-width: 200px !important;
-        height: auto !important;
-    }
-}
 
   .cuba.linha-reta {
     height: 0px !important;
@@ -1494,8 +1485,6 @@ this.touchStartTime = 0;
     this.touchedOutside = false;
  this.modalEstilosAberto = false;
     this.elementoSelecionadoAntesDoModal = null;
- this.layoutAtualizado = false;
-    this.observadorMudancas = null;
 
 
             
@@ -1541,11 +1530,6 @@ this.borrachaAtiva = false;
             this.adicionarEstilosMobile();
 
             this.inicializar();
-
-setTimeout(() => {
-        this.configurarObservadorDeMudancas();
-    }, 1000);
-
         }
 
 adicionarEstilosMobile() {
@@ -2670,190 +2654,89 @@ refazer() {
             });
         }
 
-        configurarObservadorDeMudancas() {
-    // Observar mudanças na área de desenho
-    this.observadorMudancas = new MutationObserver((mutations) => {
-        mutations.forEach((mutation) => {
-            // Se elementos foram adicionados, removidos ou movidos
-            if (mutation.type === 'childList' || mutation.type === 'attributes') {
-                this.layoutAtualizado = true;
-                console.log('🔄 Layout modificado - recálculo necessário');
+        imprimirDesenho() {
+    console.log('🖨️ IMPRESSÃO ROBUSTA - Iniciando...');
+    
+    // 🔥 CAPTURAR estado COMPLETO antes de qualquer alteração
+    const estadoPreImpressao = this.capturarEstadoCompleto();
+    
+    // Fazer backup do HTML atual
+    const backupHTML = this.drawingArea.innerHTML;
+    const backupScroll = {
+        left: this.drawingArea.scrollLeft,
+        top: this.drawingArea.scrollTop
+    };
+    
+    console.log('💾 Backup completo do estado realizado');
+    
+    // Preparar para impressão (isso pode alterar o scroll)
+    this.prepararParaImpressaoComBackup(backupScroll);
+    
+    // Configurar evento para restaurar após impressão
+    const restaurarAposImpressao = () => {
+        console.log('🔄 Restaurando estado após impressão...');
+        
+        // Restaurar HTML original
+        this.drawingArea.innerHTML = backupHTML;
+        
+        // Restaurar scroll
+        this.drawingArea.scrollLeft = backupScroll.left;
+        this.drawingArea.scrollTop = backupScroll.top;
+        
+        // Restaurar interatividade
+        this.reconfigurarElementosAposHistorico();
+        
+        // Restaurar seleção se existia
+        if (estadoPreImpressao.elementoSelecionadoId) {
+            const elemento = this.drawingArea.querySelector(estadoPreImpressao.elementoSelecionadoId);
+            if (elemento) {
+                setTimeout(() => this.selecionarElemento(elemento, null), 50);
             }
-        });
-    });
-
-    // Configurar o observador
-    this.observadorMudancas.observe(this.drawingArea, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['style', 'class']
-    });
-
-    console.log('👀 Observador de mudanças configurado');
-}
-
-// 🔥 MÉTODO PRINCIPAL ATUALIZADO
-imprimirDesenho() {
-    console.log('🖨️ Iniciando impressão com detecção dinâmica...');
-    
-    this.salvarEstadoHistorico('Antes da Impressão');
-    this.desselecionarElemento();
-    
-    // Forçar recálculo do layout
-    this.calcularEPrepararImpressao();
-    
-    // Pequeno delay para garantir processamento
-    setTimeout(() => {
-        window.print();
-        
-        // Restaurar após impressão
-        setTimeout(() => {
-            this.restaurarAposImpressao();
-        }, 500);
-    }, 300);
-}
-
-// 🔥 MÉTODO MELHORADO: Calcular e preparar impressão
-calcularEPrepararImpressao() {
-    console.log('📐 Calculando layout para impressão...');
-    
-    // Remover quebras anteriores
-    this.removerQuebrasPagina();
-    
-    // Calcular dimensões atuais
-    const { alturaTotal, elementosPorAltura } = this.calcularDimensoesConteudo();
-    
-    // Altura máxima por página A4 (em pixels)
-    const ALTURA_PAGINA_A4 = 1050; // 297mm ≈ 1050px (considerando margens)
-    const numeroPaginas = Math.ceil(alturaTotal / ALTURA_PAGINA_A4);
-    
-    console.log(`📊 Detecção: ${alturaTotal}px total → ${numeroPaginas} página(s)`);
-    
-    if (numeroPaginas > 1) {
-        this.inserirQuebrasPaginaDinamicas(ALTURA_PAGINA_A4, numeroPaginas, elementosPorAltura);
-    }
-    
-    // Ajustar altura da área de desenho
-    this.drawingArea.style.height = `${alturaTotal + 100}px`;
-}
-
-// 🔥 MÉTODO PRECISO: Calcular dimensões do conteúdo
-calcularDimensoesConteudo() {
-    const elementos = this.drawingArea.querySelectorAll(
-        '.peca, .cuba, .texto-legenda, .legenda-simplificada, .titulo-grupo, .area-pecas'
-    );
-    
-    let alturaMaxima = 0;
-    let elementosPorAltura = [];
-    
-    elementos.forEach(elemento => {
-        const retangulo = elemento.getBoundingClientRect();
-        const drawingRect = this.drawingArea.getBoundingClientRect();
-        
-        // Posição relativa dentro da drawingArea
-        const topRelativo = retangulo.top - drawingRect.top + this.drawingArea.scrollTop;
-        const bottomRelativo = topRelativo + retangulo.height;
-        
-        elementosPorAltura.push({
-            elemento: elemento,
-            top: topRelativo,
-            bottom: bottomRelativo,
-            height: retangulo.height
-        });
-        
-        // Atualizar altura máxima
-        if (bottomRelativo > alturaMaxima) {
-            alturaMaxima = bottomRelativo;
         }
-    });
+        
+        console.log('✅ Estado completamente restaurado');
+        
+        // Remover este event listener
+        window.removeEventListener('afterprint', restaurarAposImpressao);
+    };
     
-    // Ordenar por posição vertical
-    elementosPorAltura.sort((a, b) => a.top - b.top);
+    // Adicionar listener para restaurar após impressão
+    window.addEventListener('afterprint', restaurarAposImpressao);
+    
+    // Pequeno delay e imprimir
+    setTimeout(() => {
+        console.log('🚀 Acionando impressão...');
+        window.print();
+    }, 500);
+}
+
+// 🔥 MÉTODO: Capturar estado completo
+capturarEstadoCompleto() {
+    const elementoSelecionado = this.elementoSelecionado;
     
     return {
-        alturaTotal: alturaMaxima,
-        elementosPorAltura: elementosPorAltura
+        scrollLeft: this.drawingArea.scrollLeft,
+        scrollTop: this.drawingArea.scrollTop,
+        elementoSelecionadoId: elementoSelecionado ? `#${elementoSelecionado.id}` : null,
+        elementoSelecionado: elementoSelecionado,
+        ultimoElementoClicado: this.ultimoElementoClicado,
+        modoSelecaoAtivo: this.modoSelecaoAtivo,
+        modoBorrachaAtivo: this.modoBorrachaAtivo
     };
 }
 
-// 🔥 MÉTODO INTELIGENTE: Inserir quebras de página
-inserirQuebrasPaginaDinamicas(alturaPagina, totalPaginas, elementosPorAltura) {
-    console.log(`📑 Inserindo ${totalPaginas - 1} quebras de página dinâmicas...`);
+// 🔥 MÉTODO: Preparar impressão com backup
+prepararParaImpressaoComBackup(backupScroll) {
+    console.log('📐 Preparando versão para impressão...');
     
-    for (let pagina = 1; pagina < totalPaginas; pagina++) {
-        const alturaQuebra = pagina * alturaPagina;
-        
-        // Encontrar o melhor local para a quebra (entre elementos)
-        const posicaoQuebra = this.encontrarMelhorQuebra(alturaQuebra, elementosPorAltura);
-        
-        if (posicaoQuebra !== null) {
-            this.criarQuebraPagina(posicaoQuebra, pagina);
-        }
-    }
-}
-
-// 🔥 MÉTODO: Encontrar melhor posição para quebra
-encontrarMelhorQuebra(alturaDesejada, elementosPorAltura) {
-    const MARGEM_SEGURANCA = 50; // pixels de margem
+    this.desselecionarElemento();
     
-    // Procurar espaço entre elementos para colocar a quebra
-    for (let i = 0; i < elementosPorAltura.length - 1; i++) {
-        const elementoAtual = elementosPorAltura[i];
-        const elementoSeguinte = elementosPorAltura[i + 1];
-        
-        const espacoEntreElementos = elementoSeguinte.top - elementoAtual.bottom;
-        
-        // Se há espaço suficiente entre elementos e está perto da altura desejada
-        if (espacoEntreElementos > MARGEM_SEGURANCA && 
-            Math.abs(elementoAtual.bottom - alturaDesejada) < alturaDesejada * 0.3) {
-            return elementoAtual.bottom + 10;
-        }
-    }
+    // Calcular e preparar impressão normalmente
+    this.calcularEPrepararImpressao();
     
-    // Se não encontrou espaço ideal, usar altura desejada
-    return alturaDesejada;
-}
-
-// 🔥 MÉTODO: Criar quebra de página
-criarQuebraPagina(posicao, numeroPagina) {
-    const quebra = document.createElement('div');
-    quebra.className = 'quebra-pagina-automatica';
-    quebra.setAttribute('data-pagina', numeroPagina);
-    
-    quebra.style.cssText = `
-        position: absolute;
-        top: ${posicao}px;
-        left: 0;
-        width: 100%;
-        height: 0;
-        page-break-before: always;
-        break-before: page;
-        pointer-events: none;
-        z-index: -1;
-    `;
-    
-    this.drawingArea.appendChild(quebra);
-    console.log(`✅ Quebra de página ${numeroPagina} em ${posicao}px`);
-}
-
-// 🔥 MÉTODO: Remover quebras de página
-removerQuebrasPagina() {
-    const quebras = this.drawingArea.querySelectorAll('.quebra-pagina-automatica');
-    quebras.forEach(quebra => {
-        quebra.remove();
-    });
-    console.log('🗑️ Quebras de página anteriores removidas');
-}
-
-// 🔥 MÉTODO: Restaurar após impressão
-restaurarAposImpressao() {
-    console.log('🔄 Restaurando layout após impressão...');
-    
-    this.removerQuebrasPagina();
-    this.drawingArea.style.height = '';
-    
-    console.log('✅ Layout restaurado');
+    // Voltar para posição original do scroll
+    this.drawingArea.scrollLeft = backupScroll.left;
+    this.drawingArea.scrollTop = backupScroll.top;
 }
 
         configurarEventos() {
