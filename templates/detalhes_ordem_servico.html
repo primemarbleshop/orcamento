@@ -2930,22 +2930,20 @@ refazer() {
     
     this.lacoPontos = [];
     
-    if (this.svgOverlay && this.svgOverlay.parentNode) {
-    this.svgOverlay.parentNode.removeChild(this.svgOverlay);
+    if (!this.svgOverlay) {
+    const svgns = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(svgns, 'svg');
+    svg.setAttribute('class', 'laco-overlay');
+    svg.style.position = 'absolute';
+    svg.style.left = '0';
+    svg.style.top = '0';
+    svg.style.width = '100%';
+    svg.style.height = '100%';
+    svg.style.pointerEvents = 'none';
+    svg.style.zIndex = '999';
+    this.drawingArea.appendChild(svg);
+    this.svgOverlay = svg;
 }
-
-const svgns = "http://www.w3.org/2000/svg";
-const svg = document.createElementNS(svgns, 'svg');
-svg.setAttribute('class', 'laco-overlay');
-svg.style.position = 'fixed'; // 🔥 MUDADO para fixed
-svg.style.left = '0';
-svg.style.top = '0';
-svg.style.width = '100%';
-svg.style.height = '100%';
-svg.style.pointerEvents = 'none';
-svg.style.zIndex = '9999'; // 🔥 Z-INDEX MAIOR
-this.drawingArea.appendChild(svg);
-this.svgOverlay = svg;
     
     // 🔥 NOVO: Variáveis para controle do delay no modo laço
     this.lacoTouchStartTimeout = null;
