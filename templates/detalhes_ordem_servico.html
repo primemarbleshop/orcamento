@@ -941,101 +941,124 @@
         touch-action: none !important;
     }
 
-    /* ======================== IMPRESSION ======================== */
-    @media print {
-        @page {
-            size: A4 portrait;
-            margin: 10mm;
-        }
-        
-        body {
-            background: white !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            font-size: 15px !important;
-            line-height: 1.2 !important;
-        }
-        
-        body * {
-            visibility: hidden;
-        }
-        
-        .main-container, .main-container * {
-            visibility: visible;
-        }
-        
-        .main-container {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100% !important;
-            max-width: 100% !important;
-            margin: 0 !important;
-            padding: 10px !important;
-            font-size: 18px !important;
-            background: white !important;
-            box-shadow: none !important;
-        }
-
-        .peca, .cuba, .texto-legenda, .legenda-simplificada, 
-        .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
-            page-break-inside: avoid !important;
-            break-inside: avoid !important;
-        }
-        
-        .top-buttons-container,
-        .action-buttons-container,
-        .mobile-buttons-container,
-        .zoom-controls,
-        .handles-container,
-        .handle,
-        .handle-rotacao,
-        .elemento-selecionado,
-        .modal-controles,
-        .modal-backdrop { 
-            display: none !important; 
-        }
-
-        .drawing-area {
-            width: 1000px !important;
-            height: auto !important;
-            min-height: auto !important;
-            max-height: none !important;
-            border: 1px solid #ccc !important;
-            background: white !important;
-            margin: 0 auto !important;
-            padding: 0px !important;
-            overflow: visible !important;
-            box-shadow: none !important;
-            position: relative !important;
-            page-break-inside: avoid;
-        }
-        
-        .dimensoes-right {
-            right: -35px !important;
-        }
-
-        .peca, .cuba, .texto-legenda, .legenda-simplificada, 
-        .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
-            position: absolute !important;
-            page-break-inside: avoid;
-            break-inside: avoid;
-        }
-
-        .logo-empresa {
-            position: absolute !important;
-            right: 10px !important;
-            top: 10px !important;
-            max-width: 200px !important;
-            height: auto !important;
-        }
-
-        .texto-legenda, .legenda-simplificada {
-            background: transparent !important;
-        }
-        
-    
+   /* ======================== IMPRESSÃO DINÂMICA ======================== */
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: 10mm;
     }
+    
+    body {
+        background: white !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        font-size: 15px !important;
+        line-height: 1.2 !important;
+        width: 100% !important;
+        height: auto !important;
+        overflow: visible !important;
+    }
+    
+    body * {
+        visibility: hidden;
+    }
+    
+    .main-container, .main-container * {
+        visibility: visible;
+    }
+    
+    .main-container {
+        position: relative !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+        background: white !important;
+        box-shadow: none !important;
+        page-break-after: auto;
+        page-break-inside: avoid;
+    }
+
+    /* 🔥 NOVO: Controle de quebra de página dinâmico */
+    .drawing-area {
+        width: 100% !important;
+        height: auto !important;
+        min-height: auto !important;
+        max-height: none !important;
+        border: 1px solid #ccc !important;
+        background: white !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        box-shadow: none !important;
+        position: relative !important;
+        page-break-inside: avoid;
+        page-break-after: auto;
+        
+        /* 🔥 DETECÇÃO AUTOMÁTICA DE TAMANHO */
+        display: block;
+    }
+
+    /* 🔥 NOVO: Forçar quebra de página quando necessário */
+    .pagina-separadora {
+        page-break-before: always;
+        display: block;
+        height: 0;
+        width: 100%;
+    }
+
+    /* Elementos que devem evitar quebras */
+    .peca, .cuba, .texto-legenda, .legenda-simplificada, 
+    .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    /* Grupos de material - permitir quebra entre grupos */
+    .area-pecas {
+        page-break-inside: auto;
+        break-inside: auto;
+    }
+
+    .titulo-grupo {
+        page-break-after: avoid;
+        break-after: avoid;
+    }
+    
+    .top-buttons-container,
+    .action-buttons-container,
+    .mobile-buttons-container,
+    .zoom-controls,
+    .handles-container,
+    .handle,
+    .handle-rotacao,
+    .elemento-selecionado,
+    .modal-controles,
+    .modal-backdrop { 
+        display: none !important; 
+    }
+
+    .dimensoes-right {
+        right: -35px !important;
+    }
+
+    .peca, .cuba, .texto-legenda, .legenda-simplificada, 
+    .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
+        position: absolute !important;
+    }
+
+    .logo-empresa {
+        position: absolute !important;
+        right: 10px !important;
+        top: 10px !important;
+        max-width: 200px !important;
+        height: auto !important;
+    }
+
+    .texto-legenda, .legenda-simplificada {
+        background: transparent !important;
+    }
+}
 
   .cuba.linha-reta {
     height: 0px !important;
@@ -2655,15 +2678,99 @@ refazer() {
         }
 
         imprimirDesenho() {
-            console.log('🖨️ Preparando impressão do estado atual...');
-            
-            this.salvarEstadoHistorico('Antes da Impressão');
-            this.desselecionarElemento();
-            
-            setTimeout(() => {
-                window.print();
-            }, 500);
+    console.log('🖨️ Preparando impressão com detecção automática de páginas...');
+    
+    this.salvarEstadoHistorico('Antes da Impressão');
+    this.desselecionarElemento();
+    
+    // 🔥 NOVO: Preparar layout para impressão
+    this.prepararParaImpressao();
+    
+    setTimeout(() => {
+        window.print();
+        
+        // 🔥 NOVO: Restaurar layout após impressão
+        setTimeout(() => {
+            this.restaurarAposImpressao();
+        }, 1000);
+    }, 500);
+}
+
+// 🔥 NOVO MÉTODO: Preparar layout para impressão
+prepararParaImpressao() {
+    console.log('📐 Preparando layout para impressão...');
+    
+    const drawingArea = this.drawingArea;
+    const elementos = drawingArea.querySelectorAll('.peca, .cuba, .texto-legenda, .legenda-simplificada, .titulo-grupo');
+    
+    // Calcular altura total do conteúdo
+    let alturaTotal = 0;
+    let maiorY = 0;
+    
+    elementos.forEach(elemento => {
+        const rect = elemento.getBoundingClientRect();
+        const elementoBottom = rect.bottom + parseFloat(elemento.style.top || 0);
+        if (elementoBottom > maiorY) {
+            maiorY = elementoBottom;
         }
+    });
+    
+    // Altura máxima por página A4 (aproximadamente 1123px considerando margens)
+    const alturaMaximaPorPagina = 1123;
+    const numeroDePaginas = Math.ceil(maiorY / alturaMaximaPorPagina);
+    
+    console.log(`📄 Detecção: ${numeroDePaginas} página(s) necessária(s)`);
+    
+    // Ajustar altura da área de desenho
+    drawingArea.style.height = `${maiorY + 100}px`;
+    
+    // Adicionar marcadores de quebra de página se necessário
+    if (numeroDePaginas > 1) {
+        this.adicionarQuebrasDePagina(alturaMaximaPorPagina, numeroDePaginas);
+    }
+}
+
+// 🔥 NOVO MÉTODO: Adicionar quebras de página
+adicionarQuebrasDePagina(alturaPorPagina, totalPaginas) {
+    console.log(`📑 Adicionando ${totalPaginas - 1} quebras de página...`);
+    
+    // Remover quebras anteriores
+    const quebrasExistentes = this.drawingArea.querySelectorAll('.pagina-separadora');
+    quebrasExistentes.forEach(quebra => queebra.remove());
+    
+    // Adicionar novas quebras
+    for (let i = 1; i < totalPaginas; i++) {
+        const quebra = document.createElement('div');
+        quebra.className = 'pagina-separadora';
+        quebra.style.height = '0';
+        quebra.style.pageBreakBefore = 'always';
+        quebra.style.breakBefore = 'page';
+        
+        // Posicionar a quebra no início de cada nova página
+        const posicaoY = i * alturaPorPagina;
+        quebra.style.position = 'absolute';
+        quebra.style.top = `${posicaoY}px`;
+        quebra.style.left = '0';
+        quebra.style.width = '100%';
+        quebra.style.zIndex = '-1';
+        
+        this.drawingArea.appendChild(quebra);
+    }
+}
+
+// 🔥 NOVO MÉTODO: Restaurar layout após impressão
+restaurarAposImpressao() {
+    console.log('🔄 Restaurando layout após impressão...');
+    
+    // Remover quebras de página
+    const quebras = this.drawingArea.querySelectorAll('.pagina-separadora');
+    quebras.forEach(quebra => queebra.remove());
+    
+    // Restaurar altura original
+    this.drawingArea.style.height = '';
+    
+    console.log('✅ Layout restaurado após impressão');
+}
 
         configurarEventos() {
     console.log('🔧 Configurando eventos...');
