@@ -941,108 +941,101 @@
         touch-action: none !important;
     }
 
-   @media print {
-    @page {
-        size: A4 portrait;
-        margin: 10mm;
-    }
+    /* ======================== IMPRESSION ======================== */
+    @media print {
+        @page {
+            size: A4 portrait;
+            margin: 10mm;
+        }
+        
+        body {
+            background: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            font-size: 15px !important;
+            line-height: 1.2 !important;
+        }
+        
+        body * {
+            visibility: hidden;
+        }
+        
+        .main-container, .main-container * {
+            visibility: visible;
+        }
+        
+        .main-container {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100% !important;
+            max-width: 100% !important;
+            margin: 0 !important;
+            padding: 10px !important;
+            font-size: 18px !important;
+            background: white !important;
+            box-shadow: none !important;
+        }
+
+        .peca, .cuba, .texto-legenda, .legenda-simplificada, 
+        .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+        }
+        
+        .top-buttons-container,
+        .action-buttons-container,
+        .mobile-buttons-container,
+        .zoom-controls,
+        .handles-container,
+        .handle,
+        .handle-rotacao,
+        .elemento-selecionado,
+        .modal-controles,
+        .modal-backdrop { 
+            display: none !important; 
+        }
+
+        .drawing-area {
+            width: 1000px !important;
+            height: auto !important;
+            min-height: auto !important;
+            max-height: none !important;
+            border: 1px solid #ccc !important;
+            background: white !important;
+            margin: 0 auto !important;
+            padding: 0px !important;
+            overflow: visible !important;
+            box-shadow: none !important;
+            position: relative !important;
+            page-break-inside: avoid;
+        }
+        
+        .dimensoes-right {
+            right: -35px !important;
+        }
+
+        .peca, .cuba, .texto-legenda, .legenda-simplificada, 
+        .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
+            position: absolute !important;
+            page-break-inside: avoid;
+            break-inside: avoid;
+        }
+
+        .logo-empresa {
+            position: absolute !important;
+            right: 10px !important;
+            top: 10px !important;
+            max-width: 200px !important;
+            height: auto !important;
+        }
+
+        .texto-legenda, .legenda-simplificada {
+            background: transparent !important;
+        }
+        
     
-    body {
-        background: white !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        font-size: 12px !important;
-        line-height: 1.2 !important;
-        width: 100% !important;
-        height: auto !important;
-        overflow: visible !important;
     }
-    
-    body * {
-        visibility: hidden;
-    }
-    
-    .main-container, .main-container * {
-        visibility: visible;
-    }
-    
-    .main-container {
-        position: relative !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        margin: 0 auto !important;
-        padding: 0 !important;
-        background: white !important;
-        box-shadow: none !important;
-        page-break-after: always;
-    }
-
-    /* 🔥 NOVO: Controle de quebra de página automática */
-    .drawing-area {
-        width: 100% !important;
-        height: auto !important;
-        min-height: auto !important;
-        max-height: none !important;
-        border: 1px solid #ccc !important;
-        background: white !important;
-        margin: 0 auto !important;
-        padding: 0 !important;
-        overflow: visible !important;
-        box-shadow: none !important;
-        position: relative !important;
-        page-break-inside: avoid;
-        break-inside: avoid;
-    }
-
-    /* 🔥 DETECÇÃO AUTOMÁTICA DE PÁGINAS */
-    .pagina-impressao {
-        page-break-after: always;
-        break-after: page;
-        height: 1122px; /* Altura A4 - 297mm em pixels a 96dpi */
-        width: 794px;   /* Largura A4 - 210mm em pixels a 96dpi */
-        position: relative;
-        margin: 0 auto;
-        padding: 0;
-        box-sizing: border-box;
-    }
-
-    .pagina-impressao:last-child {
-        page-break-after: auto;
-    }
-
-    .peca, .cuba, .texto-legenda, .legenda-simplificada, 
-    .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca {
-        page-break-inside: avoid !important;
-        break-inside: avoid !important;
-    }
-    
-    .top-buttons-container,
-    .action-buttons-container,
-    .mobile-buttons-container,
-    .zoom-controls,
-    .handles-container,
-    .handle,
-    .handle-rotacao,
-    .elemento-selecionado,
-    .modal-controles,
-    .modal-backdrop,
-    .grupo-temporario { 
-        display: none !important; 
-    }
-
-    .logo-empresa {
-        position: absolute !important;
-        right: 10px !important;
-        top: 10px !important;
-        max-width: 200px !important;
-        height: auto !important;
-    }
-
-    .texto-legenda, .legenda-simplificada {
-        background: transparent !important;
-        color: black !important;
-    }
-}
 
   .cuba.linha-reta {
     height: 0px !important;
@@ -1839,12 +1832,11 @@ adicionarEstilosMobile() {
         }
 
         inicializar() {
-    console.log('🚀 Inicializando Gerenciador de Desenho...');
-    
-    this.configurarEventos();
-    this.configurarEventosTouchInsercao();
-    this.configurarEventosBorracha();
-    this.configurarMonitoramentoImpressao(); // 🔥 NOVO
+            console.log('🚀 Inicializando Gerenciador de Desenho...');
+            
+            this.configurarEventos();
+            this.configurarEventosTouchInsercao();
+            this.configurarEventosBorracha();
             
             this.modoLacoAtivo = false;
             this.lacoPontos = [];
@@ -2662,228 +2654,16 @@ refazer() {
             });
         }
 
-       imprimirDesenho() {
-    console.log('🖨️ Preparando impressão com detecção dinâmica de páginas...');
-    
-    // Desselecionar elementos primeiro
-    this.desselecionarElemento();
-    
-    // Salvar estado atual antes da impressão
-    const estadoAtual = this.obterEstadoAtual();
-    
-    // Criar overlay de carregamento
-    Swal.fire({
-        title: 'Preparando impressão...',
-        text: 'Calculando layout das páginas...',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
-    
-    // Usar setTimeout para garantir que o SweetAlert seja mostrado
-    setTimeout(() => {
-        try {
-            // Preparar conteúdo para impressão
-            this.prepararConteudoImpressao();
+        imprimirDesenho() {
+            console.log('🖨️ Preparando impressão do estado atual...');
             
-            // Fechar loading
-            Swal.close();
+            this.salvarEstadoHistorico('Antes da Impressão');
+            this.desselecionarElemento();
             
-            // Disparar impressão
-            window.print();
-            
-            // Restaurar estado após impressão (com delay)
             setTimeout(() => {
-                this.restaurarEstadoAposImpressao(estadoAtual);
-            }, 1000);
-            
-        } catch (error) {
-            console.error('❌ Erro na impressão:', error);
-            Swal.fire({
-                title: 'Erro na impressão',
-                text: 'Ocorreu um erro ao preparar a impressão.',
-                icon: 'error',
-                confirmButtonText: 'OK'
-            });
+                window.print();
+            }, 500);
         }
-    }, 500);
-}
-
-prepararConteudoImpressao() {
-    console.log('📐 Calculando layout de impressão...');
-    
-    // Obter o container principal
-    const mainContainer = document.querySelector('.main-container');
-    const drawingArea = document.getElementById('drawingArea');
-    
-    if (!mainContainer || !drawingArea) {
-        console.error('❌ Elementos não encontrados para impressão');
-        return;
-    }
-    
-    // Salvar HTML original
-    const htmlOriginal = mainContainer.innerHTML;
-    
-    // Calcular dimensões da página A4
-    const larguraPagina = 794; // px para A4
-    const alturaPagina = 1122; // px para A4 
-    const margem = 20;
-    
-    // Obter bounding box de todo o conteúdo
-    const bbox = this.calcularBoundingBoxTotal();
-    console.log('📦 Bounding box total:', bbox);
-    
-    // Calcular número de páginas necessárias
-    const paginasHorizontais = Math.ceil(bbox.width / larguraPagina);
-    const paginasVerticais = Math.ceil(bbox.height / alturaPagina);
-    const totalPaginas = paginasHorizontais * paginasVerticais;
-    
-    console.log(`📄 Paginas necessárias: ${totalPaginas} (${paginasHorizontais}×${paginasVerticais})`);
-    
-    // Criar estrutura de impressão
-    let htmlImpressao = '';
-    
-    // Manter cabeçalho apenas na primeira página
-    const headerHTML = `
-        <div class="header-container">
-            <img src="{{ logo_url }}" alt="Logo da Empresa" class="logo-empresa">
-        </div>
-        <div class="cliente-header">
-            <h1>Prime Marble Shop</h1>
-            <p><strong>Endereço:</strong> Estrada do Engenho, 1800 - Bangu</p>
-            <p><strong>CNPJ:</strong> 39.903.780/0001-15</p>
-        </div>
-        <div class="cliente-header">
-            <h2><strong>Cliente:</strong><span class="wrap-text">{{ cliente_nome }}</span></h2>
-            <p><strong>Endereço:</strong><span class="wrap-text info-normal">{{ orcamentos[0].cliente.endereco }}</span></p>
-            <p><strong>Telefone:</strong><span class="info-normal">{{ orcamentos[0].cliente.telefone }}</span></p>
-        </div>
-        <h2>Ordem de Serviço - {{ codigo_orcamento }}</h2>
-        <p class="orcamento-info"><strong>Data:</strong> {{ data_salvo.strftime('%d/%m/%Y') }}</p>
-    `;
-    
-    // Gerar páginas
-    for (let paginaY = 0; paginaY < paginasVerticais; paginaY++) {
-        for (let paginaX = 0; paginaX < paginasHorizontais; paginaX++) {
-            const offsetX = paginaX * larguraPagina;
-            const offsetY = paginaY * alturaPagina;
-            
-            htmlImpressao += `
-                <div class="pagina-impressao" data-pagina="${paginaY * paginasHorizontais + paginaX + 1}">
-                    ${paginaX === 0 && paginaY === 0 ? headerHTML : ''}
-                    <div class="drawing-area pagina-${paginaY * paginasHorizontais + paginaX + 1}" 
-                         style="width: ${larguraPagina - margem * 2}px; 
-                                height: ${alturaPagina - margem * 2}px;
-                                transform: translate(${-offsetX + margem}px, ${-offsetY + margem}px);">
-                        ${drawingArea.innerHTML}
-                    </div>
-                    <div class="rodape-pagina" style="position: absolute; bottom: 10px; right: 10px; font-size: 10px;">
-                        Página ${paginaY * paginasHorizontais + paginaX + 1} de ${totalPaginas}
-                    </div>
-                </div>
-            `;
-        }
-    }
-    
-    // Aplicar HTML de impressão
-    mainContainer.innerHTML = htmlImpressao;
-    
-    // Configurar para restaurar após impressão
-    this.htmlOriginal = htmlOriginal;
-    this.emModoImpressao = true;
-}
-
-calcularBoundingBoxTotal() {
-    const drawingArea = document.getElementById('drawingArea');
-    const elementos = drawingArea.querySelectorAll('.peca, .cuba, .texto-legenda, .legenda-simplificada, .titulo-grupo, .grupo-temporario');
-    
-    if (elementos.length === 0) {
-        return { left: 0, top: 0, right: 800, bottom: 600, width: 800, height: 600 };
-    }
-    
-    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-    
-    elementos.forEach(elemento => {
-        const rect = elemento.getBoundingClientRect();
-        const drawingRect = drawingArea.getBoundingClientRect();
-        
-        const left = rect.left - drawingRect.left + drawingArea.scrollLeft;
-        const top = rect.top - drawingRect.top + drawingArea.scrollTop;
-        const right = left + rect.width;
-        const bottom = top + rect.height;
-        
-        minX = Math.min(minX, left);
-        minY = Math.min(minY, top);
-        maxX = Math.max(maxX, right);
-        maxY = Math.max(maxY, bottom);
-    });
-    
-    // Adicionar margens
-    const margem = 50;
-    const bbox = {
-        left: Math.max(0, minX - margem),
-        top: Math.max(0, minY - margem),
-        right: maxX + margem,
-        bottom: maxY + margem,
-        width: (maxX + margem) - Math.max(0, minX - margem),
-        height: (maxY + margem) - Math.max(0, minY - margem)
-    };
-    
-    console.log('📐 Bounding Box calculado:', bbox);
-    return bbox;
-}
-
-restaurarEstadoAposImpressao(estado) {
-    console.log('🔄 Restaurando estado após impressão...');
-    
-    if (this.htmlOriginal) {
-        const mainContainer = document.querySelector('.main-container');
-        if (mainContainer) {
-            mainContainer.innerHTML = this.htmlOriginal;
-        }
-    }
-    
-    // Restaurar o estado do gerenciador
-    this.restaurarEstadoHistorico(estado);
-    this.emModoImpressao = false;
-    
-    console.log('✅ Estado restaurado após impressão');
-}
-
-// 🔥 NOVO: Monitorar mudanças no layout para impressão
-configurarMonitoramentoImpressao() {
-    // Observar mudanças na área de desenho
-    const observer = new MutationObserver((mutations) => {
-        if (this.emModoImpressao) return;
-        
-        let layoutMudou = false;
-        
-        mutations.forEach((mutation) => {
-            if (mutation.type === 'attributes' || 
-                mutation.type === 'childList' ||
-                mutation.type === 'characterData') {
-                layoutMudou = true;
-            }
-        });
-        
-        if (layoutMudou) {
-            console.log('📐 Layout modificado - atualizando cache de impressão');
-            // Aqui você pode pré-calcular o layout se necessário
-        }
-    });
-    
-    // Observar a área de desenho
-    const drawingArea = document.getElementById('drawingArea');
-    if (drawingArea) {
-        observer.observe(drawingArea, {
-            attributes: true,
-            childList: true,
-            subtree: true,
-            characterData: true
-        });
-    }
-}
 
         configurarEventos() {
     console.log('🔧 Configurando eventos...');
