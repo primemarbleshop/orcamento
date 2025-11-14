@@ -2655,88 +2655,15 @@ refazer() {
         }
 
         imprimirDesenho() {
-    console.log('🖨️ IMPRESSÃO ROBUSTA - Iniciando...');
+    console.log('🖨️ MÉTODO ULTRA-SIMPLES');
     
-    // 🔥 CAPTURAR estado COMPLETO antes de qualquer alteração
-    const estadoPreImpressao = this.capturarEstadoCompleto();
-    
-    // Fazer backup do HTML atual
-    const backupHTML = this.drawingArea.innerHTML;
-    const backupScroll = {
-        left: this.drawingArea.scrollLeft,
-        top: this.drawingArea.scrollTop
-    };
-    
-    console.log('💾 Backup completo do estado realizado');
-    
-    // Preparar para impressão (isso pode alterar o scroll)
-    this.prepararParaImpressaoComBackup(backupScroll);
-    
-    // Configurar evento para restaurar após impressão
-    const restaurarAposImpressao = () => {
-        console.log('🔄 Restaurando estado após impressão...');
-        
-        // Restaurar HTML original
-        this.drawingArea.innerHTML = backupHTML;
-        
-        // Restaurar scroll
-        this.drawingArea.scrollLeft = backupScroll.left;
-        this.drawingArea.scrollTop = backupScroll.top;
-        
-        // Restaurar interatividade
-        this.reconfigurarElementosAposHistorico();
-        
-        // Restaurar seleção se existia
-        if (estadoPreImpressao.elementoSelecionadoId) {
-            const elemento = this.drawingArea.querySelector(estadoPreImpressao.elementoSelecionadoId);
-            if (elemento) {
-                setTimeout(() => this.selecionarElemento(elemento, null), 50);
-            }
-        }
-        
-        console.log('✅ Estado completamente restaurado');
-        
-        // Remover este event listener
-        window.removeEventListener('afterprint', restaurarAposImpressao);
-    };
-    
-    // Adicionar listener para restaurar após impressão
-    window.addEventListener('afterprint', restaurarAposImpressao);
-    
-    // Pequeno delay e imprimir
-    setTimeout(() => {
-        console.log('🚀 Acionando impressão...');
-        window.print();
-    }, 500);
-}
-
-// 🔥 MÉTODO: Capturar estado completo
-capturarEstadoCompleto() {
-    const elementoSelecionado = this.elementoSelecionado;
-    
-    return {
-        scrollLeft: this.drawingArea.scrollLeft,
-        scrollTop: this.drawingArea.scrollTop,
-        elementoSelecionadoId: elementoSelecionado ? `#${elementoSelecionado.id}` : null,
-        elementoSelecionado: elementoSelecionado,
-        ultimoElementoClicado: this.ultimoElementoClicado,
-        modoSelecaoAtivo: this.modoSelecaoAtivo,
-        modoBorrachaAtivo: this.modoBorrachaAtivo
-    };
-}
-
-// 🔥 MÉTODO: Preparar impressão com backup
-prepararParaImpressaoComBackup(backupScroll) {
-    console.log('📐 Preparando versão para impressão...');
-    
+    // Apenas desselecionar e imprimir - sem alterar layout
     this.desselecionarElemento();
     
-    // Calcular e preparar impressão normalmente
-    this.calcularEPrepararImpressao();
+    // Imprimir IMEDIATAMENTE sem preparação
+    window.print();
     
-    // Voltar para posição original do scroll
-    this.drawingArea.scrollLeft = backupScroll.left;
-    this.drawingArea.scrollTop = backupScroll.top;
+    console.log('✅ Impressão acionada sem alterar scroll');
 }
 
         configurarEventos() {
