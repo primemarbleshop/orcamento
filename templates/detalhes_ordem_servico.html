@@ -734,6 +734,16 @@
         box-shadow: none !important;
     }
 
+.laco-overlay {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    pointer-events: none !important;
+    z-index: 9999 !important;
+}
+
     /* ======================== MOBILE ======================== */
     @media (max-width: 768px) {
         .modo-laco .drawing-area {
@@ -2920,20 +2930,22 @@ refazer() {
     
     this.lacoPontos = [];
     
-    if (!this.svgOverlay) {
-        const svgns = "http://www.w3.org/2000/svg";
-        const svg = document.createElementNS(svgns, 'svg');
-        svg.setAttribute('class', 'laco-overlay');
-        svg.style.position = 'absolute';
-        svg.style.left = '0';
-        svg.style.top = '0';
-        svg.style.width = '100%';
-        svg.style.height = '100%';
-        svg.style.pointerEvents = 'none';
-        svg.style.zIndex = '999';
-        this.drawingArea.appendChild(svg);
-        this.svgOverlay = svg;
-    }
+    if (this.svgOverlay && this.svgOverlay.parentNode) {
+    this.svgOverlay.parentNode.removeChild(this.svgOverlay);
+}
+
+const svgns = "http://www.w3.org/2000/svg";
+const svg = document.createElementNS(svgns, 'svg');
+svg.setAttribute('class', 'laco-overlay');
+svg.style.position = 'fixed'; // 🔥 MUDADO para fixed
+svg.style.left = '0';
+svg.style.top = '0';
+svg.style.width = '100%';
+svg.style.height = '100%';
+svg.style.pointerEvents = 'none';
+svg.style.zIndex = '9999'; // 🔥 Z-INDEX MAIOR
+this.drawingArea.appendChild(svg);
+this.svgOverlay = svg;
     
     // 🔥 NOVO: Variáveis para controle do delay no modo laço
     this.lacoTouchStartTimeout = null;
@@ -3179,22 +3191,23 @@ refazer() {
         }
 
         _obterCoordenadasLaco(e) {
-            const rect = this.drawingArea.getBoundingClientRect();
-            let clientX, clientY;
-            
-            if (e.touches && e.touches[0]) {
-                clientX = e.touches[0].clientX;
-                clientY = e.touches[0].clientY;
-            } else {
-                clientX = e.clientX;
-                clientY = e.clientY;
-            }
-            
-            return {
-                x: clientX - rect.left + this.drawingArea.scrollLeft,
-                y: clientY - rect.top + this.drawingArea.scrollTop
-            };
-        }
+    const drawingRect = this.drawingArea.getBoundingClientRect();
+    let clientX, clientY;
+    
+    if (e.touches && e.touches[0]) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+    } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+    }
+    
+    // 🔥 CORREÇÃO: Coordenadas relativas à área de desenho considerando scroll
+    return {
+        x: clientX - drawingRect.left + this.drawingArea.scrollLeft,
+        y: clientY - drawingRect.top + this.drawingArea.scrollTop
+    };
+}
 
         _removerOverlayLaco() {
             if (this.svgOverlay) {
