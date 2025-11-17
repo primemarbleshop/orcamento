@@ -44,11 +44,7 @@
         z-index: 1 !important;
     }
 
-    .peca, .cuba, .texto-legenda, .legenda-simplificada,
-    .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca,
-    .linha-peca, .grupo-temporario {
-        z-index: 2 !important;
-    }
+ 
 
     /* 🔥 CORREÇÃO: Elementos selecionados devem ficar acima */
     .elemento-selecionado {
@@ -62,10 +58,7 @@
         z-index: 14 !important;
     }
 
-    /* 🔥 CORREÇÃO: Cursor da borracha */
-    .cursor-borracha {
-        z-index: 14 !important;
-    }
+    
 
     /* 🔥 CORREÇÃO: Modais devem ficar acima de tudo mas NÃO BLOQUEAR BACKGROUND */
     .modal-controles,
@@ -751,33 +744,7 @@
     overflow: auto; /* 🔥 Mantém o scroll, mas o overlay fica fixo dentro */
 }
 
-/* 🔥 CORREÇÃO: Texto deve ficar acima da borracha */
-.texto-legenda, 
-.legenda-simplificada, 
-.titulo-grupo, 
-.simbolo-linha,
-.dimensoes, 
-.quantidade-peca {
-    z-index: 20 !important; /* 🔥 MAIOR que a borracha */
-}
 
-/* 🔥 CORREÇÃO: Borracha deve ficar ABAIXO do texto */
-.pintura-borracha {
-    z-index: 9 !important; /* 🔥 MENOR que o texto */
-}
-
-.cursor-borracha {
-    z-index: 14 !important; /* 🔥 Pode manter alto, mas texto acima */
-}
-
-/* 🔥 CORREÇÃO: Garantir que elementos de UI fiquem acima */
-.peca, .cuba {
-    z-index: 2 !important;
-}
-
-.elemento-selecionado {
-    z-index: 1000 !important; /* 🔥 Selecionados acima de tudo */
-}
 
     /* ======================== MOBILE ======================== */
     @media (max-width: 768px) {
@@ -2056,7 +2023,7 @@ salvarEstadoHistoricoForcado(descricao) {
     pintura.style.top = `${coords.y - this.tamanhoBorracha/2}px`;
     pintura.style.width = `${this.tamanhoBorracha}px`;
     pintura.style.height = `${this.tamanhoBorracha}px`;
-    pintura.style.zIndex = '9'; // 🔥 GARANTIR z-index baixo
+    pintura.style.zIndex = '8'; // 🔥 GARANTIR z-index baixo
     
     this.drawingArea.appendChild(pintura);
     
@@ -3467,7 +3434,7 @@ refazer() {
                             event.stopPropagation();
                         }
 
-                        grupo.style.zIndex = '1001';
+                        grupo.style.zIndex = '0';
                         
                         grupo.setAttribute('data-x-inicial', grupo.getAttribute('data-x') || 0);
                         grupo.setAttribute('data-y-inicial', grupo.getAttribute('data-y') || 0);
@@ -3511,7 +3478,7 @@ refazer() {
                             event.stopPropagation();
                         }
                         
-                        grupo.style.zIndex = '1000';
+                        grupo.style.zIndex = '0';
                         
                         const xInicial = parseFloat(grupo.getAttribute('data-x-inicial')) || 0;
                         const yInicial = parseFloat(grupo.getAttribute('data-y-inicial')) || 0;
@@ -3736,18 +3703,55 @@ _isTouchGesture(e) {
     };
 }
 
-        atualizarOrdemEmpilhamento() {
-            const todasPecas = this.drawingArea.querySelectorAll('.peca');
-            const todosGrupos = this.drawingArea.querySelectorAll('.area-pecas');
-            
-            todosGrupos.forEach((grupo, index) => {
-                grupo.style.zIndex = 1;
-            });
-            
-            todasPecas.forEach((peca, index) => {
-                peca.style.zIndex = 2;
-            });
+        atualizarOrdemEmpilhamentoCompleta() {
+    console.log('🔄 Atualizando ordem de empilhamento...');
+    
+    // 1. Grupos de materiais (mais ao fundo)
+    const todosGrupos = this.drawingArea.querySelectorAll('.area-pecas');
+    todosGrupos.forEach((grupo, index) => {
+        grupo.style.zIndex = (index + 1).toString();
+    });
+    
+    // 2. Títulos dos grupos
+    const titulosGrupos = this.drawingArea.querySelectorAll('.titulo-grupo');
+    titulosGrupos.forEach((titulo, index) => {
+        titulo.style.zIndex = (todosGrupos.length + index + 1).toString();
+    });
+    
+    // 3. Peças dentro dos grupos
+    const todasPecas = this.drawingArea.querySelectorAll('.peca');
+    todasPecas.forEach((peca, index) => {
+        if (!peca.classList.contains('elemento-selecionado')) {
+            peca.style.zIndex = (todosGrupos.length + titulosGrupos.length + index + 1).toString();
         }
+    });
+    
+    // 4. Cubas e outros elementos
+    const cubas = this.drawingArea.querySelectorAll('.cuba');
+    cubas.forEach((cuba, index) => {
+        if (!cuba.classList.contains('elemento-selecionado')) {
+            cuba.style.zIndex = (todosGrupos.length + titulosGrupos.length + todasPecas.length + index + 1).toString();
+        }
+    });
+    
+    // 5. Elementos de texto
+    const textos = this.drawingArea.querySelectorAll('.texto-legenda, .legenda-simplificada');
+    textos.forEach((texto, index) => {
+        if (!texto.classList.contains('elemento-selecionado')) {
+            texto.style.zIndex = (todosGrupos.length + titulosGrupos.length + todasPecas.length + cubas.length + index + 1).toString();
+        }
+    });
+    
+    // 6. Símbolos e dimensões (sempre no topo, exceto quando selecionados)
+    const simbolos = this.drawingArea.querySelectorAll('.simbolo-linha, .dimensoes, .quantidade-peca');
+    simbolos.forEach((simbolo, index) => {
+        if (!simbolo.classList.contains('elemento-selecionado')) {
+            simbolo.style.zIndex = (todosGrupos.length + titulosGrupos.length + todasPecas.length + cubas.length + textos.length + index + 100).toString();
+        }
+    });
+    
+    console.log('✅ Ordem de empilhamento atualizada');
+}
 
         selecionarElemento(elemento, event) {
             this.desselecionarElemento();
