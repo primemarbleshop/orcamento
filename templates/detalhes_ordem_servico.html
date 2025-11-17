@@ -44,9 +44,16 @@
         z-index: 1 !important;
     }
 
-  
+    .peca, .cuba, .texto-legenda, .legenda-simplificada,
+    .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca,
+    .linha-peca, .grupo-temporario {
+        z-index: 2 !important;
+    }
 
- 
+    /* 🔥 CORREÇÃO: Elementos selecionados devem ficar acima */
+    .elemento-selecionado {
+        z-index: 3 !important;
+    }
 
     /* 🔥 CORREÇÃO: Handles devem ficar acima */
     .handles-container,
@@ -55,7 +62,10 @@
         z-index: 14 !important;
     }
 
-  
+    /* 🔥 CORREÇÃO: Cursor da borracha */
+    .cursor-borracha {
+        z-index: 14 !important;
+    }
 
     /* 🔥 CORREÇÃO: Modais devem ficar acima de tudo mas NÃO BLOQUEAR BACKGROUND */
     .modal-controles,
@@ -171,12 +181,12 @@
         user-select: none; 
         touch-action: none; 
         pointer-events: auto;
-        z-index: 5;
+        z-index: 2;
     }
     
     .peca.selecionavel {
         cursor: pointer;
-        z-index: 5;
+        z-index: 3;
     }
     
     .dimensoes { 
@@ -310,7 +320,7 @@
         background-color: white;
         border: none;
         pointer-events: none;
-        z-index: 8;
+        z-index: 9;
     }
 
     /* 🔥 CORREÇÃO: Bloquear interações no modo borracha */
@@ -387,11 +397,6 @@
         flex-wrap: wrap; 
     }
     
-  /* 🔥 CORREÇÃO: Cursor da borracha */
-    .cursor-borracha {
-        z-index: 14 !important;
-    }
-
     .titulo-grupo {
         font-size: 18px;
         font-weight: bold;
@@ -537,7 +542,6 @@
         min-width: 20px; 
         min-height: 20px; 
         touch-action: none; 
-        padding: 0px; 
         overflow: hidden;
         -ms-overflow-style: none;
         scrollbar-width: none;
@@ -553,7 +557,6 @@
         border: 0px solid #ccc; 
         border-radius: 4px; 
         box-shadow: none; 
-        padding: 0px; 
         overflow: hidden;
         -ms-overflow-style: none;
         scrollbar-width: none;
@@ -573,7 +576,7 @@
         background: transparent; 
         border: none; 
         padding: 2px; 
-        z-index: 10;
+        z-index: 10; 
         cursor: default; 
         min-width: 120px; 
         font-size: 14px; 
@@ -601,7 +604,7 @@
     .elemento-selecionado { 
         outline: 0px solid #4e73df !important; 
         outline-offset: 0px; 
-        z-index: 5 !important; 
+        z-index: 3 !important; 
         pointer-events: auto !important;
     }
     
@@ -746,6 +749,34 @@
 .drawing-area {
     position: relative;
     overflow: auto; /* 🔥 Mantém o scroll, mas o overlay fica fixo dentro */
+}
+
+/* 🔥 CORREÇÃO: Texto deve ficar acima da borracha */
+.texto-legenda, 
+.legenda-simplificada, 
+.titulo-grupo, 
+.simbolo-linha,
+.dimensoes, 
+.quantidade-peca {
+    z-index: 20 !important; /* 🔥 MAIOR que a borracha */
+}
+
+/* 🔥 CORREÇÃO: Borracha deve ficar ABAIXO do texto */
+.pintura-borracha {
+    z-index: 9 !important; /* 🔥 MENOR que o texto */
+}
+
+.cursor-borracha {
+    z-index: 14 !important; /* 🔥 Pode manter alto, mas texto acima */
+}
+
+/* 🔥 CORREÇÃO: Garantir que elementos de UI fiquem acima */
+.peca, .cuba {
+    z-index: 2 !important;
+}
+
+.elemento-selecionado {
+    z-index: 1000 !important; /* 🔥 Selecionados acima de tudo */
 }
 
     /* ======================== MOBILE ======================== */
@@ -923,7 +954,7 @@
         .modal-controles input, 
         .modal-controles textarea {
             font-size: 14px !important;
-            padding: 8px 10px !important;
+            
         }
     }
 
@@ -1797,7 +1828,7 @@ adicionarEstilosMobile() {
                         }
                     },
                     end: () => {
-                        dimensaoElement.style.zIndex = '10';
+                        dimensaoElement.style.zIndex = '';
                         this.salvarEstadoHistorico('Mover Dimensão');
                         console.log('✅ Movimento da dimensão concluído');
                     }
@@ -2063,7 +2094,7 @@ salvarEstadoHistoricoForcado(descricao) {
     }; 
 }
 
-      pintarComBorracha(e) {
+     pintarComBorracha(e) {
     if (!this.borrachaPressionada) return;
     
     const coords = this.obterCoordenadasBorracha(e);
@@ -2074,7 +2105,7 @@ salvarEstadoHistoricoForcado(descricao) {
     pintura.style.top = `${coords.y - this.tamanhoBorracha/2}px`;
     pintura.style.width = `${this.tamanhoBorracha}px`;
     pintura.style.height = `${this.tamanhoBorracha}px`;
-pintura.style.zIndex = '9'; // 🔥 GARANTIR z-index baixo
+    pintura.style.zIndex = '9'; // 🔥 GARANTIR z-index baixo
     
     this.drawingArea.appendChild(pintura);
     
@@ -3485,7 +3516,7 @@ refazer() {
                             event.stopPropagation();
                         }
 
-                        grupo.style.zIndex = '1';
+                        grupo.style.zIndex = '1001';
                         
                         grupo.setAttribute('data-x-inicial', grupo.getAttribute('data-x') || 0);
                         grupo.setAttribute('data-y-inicial', grupo.getAttribute('data-y') || 0);
@@ -3529,7 +3560,7 @@ refazer() {
                             event.stopPropagation();
                         }
                         
-                        grupo.style.zIndex = '1';
+                        grupo.style.zIndex = '1000';
                         
                         const xInicial = parseFloat(grupo.getAttribute('data-x-inicial')) || 0;
                         const yInicial = parseFloat(grupo.getAttribute('data-y-inicial')) || 0;
@@ -3763,7 +3794,7 @@ _isTouchGesture(e) {
             });
             
             todasPecas.forEach((peca, index) => {
-                peca.style.zIndex = 3;
+                peca.style.zIndex = 2;
             });
         }
 
@@ -4720,7 +4751,6 @@ _isTouchGesture(e) {
     textoElement.style.transform = 'none';
     textoElement.setAttribute('data-x', '0');
     textoElement.setAttribute('data-y', '0');
-    textoElement.style.zIndex = '10'; // 🔥 GARANTIR z-index baixo
     
     textoElement.value = textoInicial;
     textoElement.setAttribute('data-valor', textoInicial);
@@ -4821,7 +4851,7 @@ _isTouchGesture(e) {
                     elemento.setAttribute('data-y', y);
                 },
                 end: () => {
-                    elemento.style.zIndex = '100';
+                    elemento.style.zIndex = '';
                     elemento.style.backgroundColor = originalBackground;
                     this.salvarEstadoHistorico('Mover Texto');
                 }
