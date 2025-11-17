@@ -4655,10 +4655,20 @@ _isTouchGesture(e) {
     return cubaElement;
 }
 
-        configurarInteratividadeCuba(elemento, tipo) {
+        // SUBSTITUIR o método move do draggable
+configurarInteratividade(elemento) {
+    this.removerInteratividade(elemento);
+    
+    if (elemento.classList.contains('elemento-selecionado') && !elemento.classList.contains('grupo-temporario')) {
+        
+        if (elemento.classList.contains('simbolo-linha')) {
+            this.configurarInteratividadeSimbolo(elemento);
+        } else {
             interact(elemento).draggable({
                 listeners: {
                     start: () => {
+                        // 🔥 CORREÇÃO: Trazer para frente ao começar a mover
+                        this.trazerElementoParaFrente(elemento);
                         elemento.style.zIndex = '1000';
                     },
                     move: (event) => {
@@ -4669,39 +4679,25 @@ _isTouchGesture(e) {
                         elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
                         elemento.setAttribute('data-x', x);
                         elemento.setAttribute('data-y', y);
+
+                        // 🔥 CORREÇÃO: Verificar e atualizar grupo durante o movimento
+                        this.verificarMudancaDeGrupo(elemento, x, y);
+                        
+                        if (!elemento.classList.contains('simbolo-linha')) {
+                            this.atualizarHandles();
+                        }
                     },
                     end: () => {
                         elemento.style.zIndex = '';
-                        this.salvarEstadoHistorico('Mover Cuba');
+                        // 🔥 CORREÇÃO: Atualizar ordem de empilhamento após mover
+                        this.atualizarOrdemEmpilhamentoCompleta();
+                        this.salvarEstadoHistorico('Mover Elemento');
                     }
                 }
             });
-
-            if (tipo === 'linha-reta') {
-                this.configurarHandlesLinhaReta(elemento);
-            } else {
-                interact(elemento).resizable({
-                    edges: { left: true, right: true, bottom: true, top: true },
-                    listeners: {
-                        move: function (event) {
-                            let { x, y } = event.deltaRect;
-
-                            Object.assign(event.target.style, {
-                                width: `${event.rect.width}px`,
-                                height: `${event.rect.height}px`
-                            });
-
-                            Object.assign(event.target.style, {
-                                transform: `translate(${(parseFloat(event.target.getAttribute('data-x')) || 0) + x}px, ${(parseFloat(event.target.getAttribute('data-y')) || 0) + y}px)`
-                            });
-
-                            event.target.setAttribute('data-x', (parseFloat(event.target.getAttribute('data-x')) || 0) + x);
-                            event.target.setAttribute('data-y', (parseFloat(event.target.getAttribute('data-y')) || 0) + y);
-                        }
-                    }
-                });
-            }
         }
+    }
+}
 
      manipularCliqueInsercao(e) {
     if (!this.modoInsercaoAtivo) return;
