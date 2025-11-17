@@ -3934,7 +3934,7 @@ _isTouchGesture(e) {
             // Para linha reta, não usar o resizable do interact
         }
 
-        criarHandles(elemento) {
+       criarHandles(elemento) {
     console.log('🔧 Criando handles para:', elemento.className);
     
     const pos = this.obterPosicaoComScroll(elemento);
@@ -3955,7 +3955,7 @@ _isTouchGesture(e) {
     let relativeHandles = [];
     
     if (elemento.classList.contains('linha-reta')) {
-        // 🔥 PARA LINHA RETA: Apenas handles laterais (leste e oeste)
+        // 🔥 PARA LINHA RETA: Apenas handles laterais (leste e oeste) + rotação
         relativeHandles = [
             { class: 'handle-e', relX: width / 2, relY: 0 },
             { class: 'handle-w', relX: -width / 2, relY: 0 }
@@ -4003,26 +4003,24 @@ _isTouchGesture(e) {
         this.configurarHandle(handleElement, elemento, handle.class);
     });
 
-    // 🔥 CORREÇÃO: Apenas adicionar handle de rotação se NÃO for linha reta
-    if (!elemento.classList.contains('linha-reta')) {
-        const handleRotacaoRelY = -height / 2 - 40;
-        const handleRotacaoX = 0 * Math.cos(rad) - handleRotacaoRelY * Math.sin(rad);
-        const handleRotacaoY = 0 * Math.sin(rad) + handleRotacaoRelY * Math.cos(rad);
+    // 🔥 CORREÇÃO: Adicionar handle de rotação para TODOS os elementos (incluindo linha reta)
+    const handleRotacaoRelY = elemento.classList.contains('linha-reta') ? -60 : -height / 2 - 40;
+    const handleRotacaoX = 0 * Math.cos(rad) - handleRotacaoRelY * Math.sin(rad);
+    const handleRotacaoY = 0 * Math.sin(rad) + handleRotacaoRelY * Math.cos(rad);
 
-        const handleRotacao = document.createElement('div');
-        handleRotacao.className = 'handle handle-rotacao';
-        handleRotacao.style.left = `${centerX + handleRotacaoX}px`;
-        handleRotacao.style.top = `${centerY + handleRotacaoY}px`;
-        handleRotacao.style.zIndex = '1002';
-        handleRotacao.style.position = 'absolute';
-        
-        console.log(`🔧 Criando handle de rotação em x=${centerX + handleRotacaoX}, y=${centerY + handleRotacaoY}`);
-        
-        this.drawingArea.appendChild(handleRotacao);
-        this.handles.push(handleRotacao);
-        
-        this.configurarHandleRotacao(handleRotacao, elemento);
-    }
+    const handleRotacao = document.createElement('div');
+    handleRotacao.className = 'handle handle-rotacao';
+    handleRotacao.style.left = `${centerX + handleRotacaoX}px`;
+    handleRotacao.style.top = `${centerY + handleRotacaoY}px`;
+    handleRotacao.style.zIndex = '1002';
+    handleRotacao.style.position = 'absolute';
+    
+    console.log(`🔧 Criando handle de rotação em x=${centerX + handleRotacaoX}, y=${centerY + handleRotacaoY}`);
+    
+    this.drawingArea.appendChild(handleRotacao);
+    this.handles.push(handleRotacao);
+    
+    this.configurarHandleRotacao(handleRotacao, elemento);
     
     console.log(`✅ ${this.handles.length} handles criados com sucesso`);
 }
