@@ -2451,31 +2451,26 @@ limparPinturasBorracha() {
         }
 
         desselecionarElemento() {
-            this.removerTodosOsHandles();
-            
-            if (this.elementoSelecionado) {
-                this.removerInteratividade(this.elementoSelecionado);
-                
-                if (this.elementoSelecionado.classList.contains('peca')) {
-                    this.elementoSelecionado.style.zIndex = '2';
-                } else if (this.elementoSelecionado.classList.contains('titulo-grupo')) {
-                    this.elementoSelecionado.style.zIndex = '1';
-                } else {
-                    this.elementoSelecionado.style.zIndex = '';
-                }
-                
-                this.elementoSelecionado.classList.remove('elemento-selecionado');
-                
-                if (!this.modoSelecaoAtivo) {
-                    this.reabilitarLinhasPecas();
-                }
-                
-                this.elementoSelecionado = null;
-            }
-            
-            this.atualizarEstadoBotoes();
-            this.ultimoElementoClicado = null;
+    this.removerTodosOsHandles();
+    
+    if (this.elementoSelecionado) {
+        this.removerInteratividade(this.elementoSelecionado);
+        
+        // 🔥 CORREÇÃO: Restaurar ordem de empilhamento normal
+        this.atualizarOrdemEmpilhamentoCompleta();
+        
+        this.elementoSelecionado.classList.remove('elemento-selecionado');
+        
+        if (!this.modoSelecaoAtivo) {
+            this.reabilitarLinhasPecas();
         }
+        
+        this.elementoSelecionado = null;
+    }
+    
+    this.atualizarEstadoBotoes();
+    this.ultimoElementoClicado = null;
+}
 
       desfazer() {
     if (this.indiceHistorico > 0) {
@@ -3754,7 +3749,7 @@ _isTouchGesture(e) {
     };
 }
 
-        atualizarOrdemEmpilhamentoCompleta() {
+       atualizarOrdemEmpilhamentoCompleta() {
     console.log('🔄 Atualizando ordem de empilhamento...');
     
     // 1. Grupos de materiais (mais ao fundo)
@@ -3804,7 +3799,7 @@ _isTouchGesture(e) {
     console.log('✅ Ordem de empilhamento atualizada');
 }
 
-        selecionarElemento(elemento, event) {
+       selecionarElemento(elemento, event) {
     this.desselecionarElemento();
     
     this.elementoSelecionado = elemento;
@@ -4655,8 +4650,7 @@ _isTouchGesture(e) {
     return cubaElement;
 }
 
-        // SUBSTITUIR o método move do draggable
-configurarInteratividade(elemento) {
+    configurarInteratividade(elemento) {
     this.removerInteratividade(elemento);
     
     if (elemento.classList.contains('elemento-selecionado') && !elemento.classList.contains('grupo-temporario')) {
