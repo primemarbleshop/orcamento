@@ -3743,19 +3743,18 @@ _isTouchGesture(e) {
     return false;
 }
         
-       obterPosicaoComScroll(elemento) {
+        obterPosicaoComScroll(elemento) {
     const rect = elemento.getBoundingClientRect();
     const drawingAreaRect = this.drawingArea.getBoundingClientRect();
     const scrollLeft = this.drawingArea.scrollLeft || 0;
     const scrollTop = this.drawingArea.scrollTop || 0;
     
-    // ✅ CORREÇÃO: Usar APENAS as dimensões do bounding box
-    // getBoundingClientRect() já retorna as dimensões CORRETAS pós-rotação
+    // 🔥 CORREÇÃO: Considerar scroll na posição
     return {
         left: rect.left - drawingAreaRect.left + scrollLeft,
         top: rect.top - drawingAreaRect.top + scrollTop,
-        width: rect.width,    // ✅ Dimensão REAL após rotação
-        height: rect.height   // ✅ Dimensão REAL após rotação
+        width: rect.width,
+        height: rect.height
     };
 }
 
@@ -3938,12 +3937,11 @@ _isTouchGesture(e) {
        criarHandles(elemento) {
     console.log('🔧 Criando handles para:', elemento.className);
     
-    // ✅ CORREÇÃO: Usar APENAS obterPosicaoComScroll (que já usa bounding box correto)
     const pos = this.obterPosicaoComScroll(elemento);
     const left = pos.left;
     const top = pos.top;
-    const width = pos.width;   // ✅ Já são as dimensões REAIS
-    const height = pos.height; // ✅ Já são as dimensões REAIS
+    const width = pos.width;
+    const height = pos.height;
 
     const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
     const rad = rotation * Math.PI / 180;
@@ -3951,17 +3949,19 @@ _isTouchGesture(e) {
     const centerX = left + width / 2;
     const centerY = top + height / 2;
 
-    console.log(`🔧 Bounding Box REAL: ${Math.round(width)}x${Math.round(height)}px, Rotação: ${rotation}°`);
+    console.log(`🔧 Posição: left=${left}, top=${top}, width=${width}, height=${height}, rotation=${rotation}`);
 
-    // Resto do código permanece igual...
+    // 🔥 CORREÇÃO: Definir handles baseado no tipo de elemento
     let relativeHandles = [];
     
     if (elemento.classList.contains('linha-reta')) {
+        // 🔥 PARA LINHA RETA: Apenas handles laterais (leste e oeste) + rotação
         relativeHandles = [
-            { class: 'handle-se', relX: width / 2, relY: height / 2 },
-            { class: 'handle-sw', relX: -width / 2, relY: height / 2 },
+            { class: 'handle-e', relX: width / 2, relY: 0 },
+            { class: 'handle-w', relX: -width / 2, relY: 0 }
         ];
     } else {
+        // 🔥 PARA OUTROS ELEMENTOS: Todos os handles
         relativeHandles = [
             { class: 'handle-e', relX: width / 2, relY: 0 },
             { class: 'handle-w', relX: -width / 2, relY: 0 },
@@ -3974,7 +3974,6 @@ _isTouchGesture(e) {
         ];
     }
 
-    // Resto do método permanece igual...
     const handles = relativeHandles.map(handle => {
         const rotatedX = handle.relX * Math.cos(rad) - handle.relY * Math.sin(rad);
         const rotatedY = handle.relX * Math.sin(rad) + handle.relY * Math.cos(rad);
@@ -3996,16 +3995,16 @@ _isTouchGesture(e) {
         handleElement.style.zIndex = '1002';
         handleElement.style.position = 'absolute';
         
+        console.log(`🔧 Criando handle ${handle.class} em x=${handle.x}, y=${handle.y}`);
+        
         this.drawingArea.appendChild(handleElement);
         this.handles.push(handleElement);
         
         this.configurarHandle(handleElement, elemento, handle.class);
     });
 
-    // Handle de rotação também usa as dimensões REAIS
-    const handleRotacaoRelY = elemento.classList.contains('linha-reta') ? 
-        -60 : -height / 2 - 40;
-    
+    // 🔥 CORREÇÃO: Adicionar handle de rotação para TODOS os elementos (incluindo linha reta)
+    const handleRotacaoRelY = elemento.classList.contains('linha-reta') ? -60 : -height / 2 - 40;
     const handleRotacaoX = 0 * Math.cos(rad) - handleRotacaoRelY * Math.sin(rad);
     const handleRotacaoY = 0 * Math.sin(rad) + handleRotacaoRelY * Math.cos(rad);
 
@@ -4016,201 +4015,251 @@ _isTouchGesture(e) {
     handleRotacao.style.zIndex = '1002';
     handleRotacao.style.position = 'absolute';
     
+    console.log(`🔧 Criando handle de rotação em x=${centerX + handleRotacaoX}, y=${centerY + handleRotacaoY}`);
+    
     this.drawingArea.appendChild(handleRotacao);
     this.handles.push(handleRotacao);
     
     this.configurarHandleRotacao(handleRotacao, elemento);
     
-    console.log(`✅ ${this.handles.length} handles criados com bounding box real`);
+    console.log(`✅ ${this.handles.length} handles criados com sucesso`);
 }
 
-// 🔥 NOVO MÉTODO: Calcular dimensões REAIS considerando rotação
-calcularDimensoesReaisComRotacao(elemento) {
-    const widthCSS = parseFloat(elemento.style.width) || 0;
-    const heightCSS = parseFloat(elemento.style.height) || 0;
-    const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
-    
-    // Se não há rotação, retorna as dimensões CSS normais
-    if (rotation === 0 || rotation === 180) {
-        return { widthReal: widthCSS, heightReal: heightCSS };
-    }
-    
-    // Se rotação é 90° ou 270°, inverte as dimensões
-    if (rotation === 90 || rotation === 270) {
-        return { widthReal: heightCSS, heightReal: widthCSS };
-    }
-    
-    // Para rotações diferentes de 0°, 90°, 180°, 270°
-    // Calcula as dimensões do bounding box rotacionado
-    const rad = rotation * Math.PI / 180;
-    const widthReal = Math.abs(widthCSS * Math.cos(rad)) + Math.abs(heightCSS * Math.sin(rad));
-    const heightReal = Math.abs(widthCSS * Math.sin(rad)) + Math.abs(heightCSS * Math.cos(rad));
-    
-    return { widthReal, heightReal };
-}
-
-       configurarHandle(handle, elemento, handleClass) {
+        configurarHandle(handle, elemento, handleClass) {
     let initialX, initialY;
     let initialWidth, initialHeight;
-    let initialRatio;
+    let initialLeft, initialTop;
+    let initialRatio; // 🔥 NOVO: Guardar a proporção inicial
 
-    handle.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); }, { passive: false });
-    handle.addEventListener('touchmove', (e) => { e.preventDefault(); e.stopPropagation(); }, { passive: false });
+    handle.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+    }, { passive: false });
+
+    handle.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+    }, { passive: false });
 
     interact(handle).draggable({
         preventDefault: 'always',
-
+        
         listeners: {
             start: (event) => {
-                const style = window.getComputedStyle(elemento);
+                if (event.type.includes('touch')) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
                 
+                const style = window.getComputedStyle(elemento);
                 initialWidth = parseFloat(style.width);
                 initialHeight = parseFloat(style.height);
-                initialRatio = initialWidth / initialHeight;
+                initialLeft = parseFloat(style.left);
+                initialTop = parseFloat(style.top);
+                
+                initialRatio = initialWidth / initialHeight; // 🔥 CALCULAR PROPORÇÃO
+                
+                initialX = event.clientX || (event.touches && event.touches[0].clientX);
+                initialY = event.clientY || (event.touches && event.touches[0].clientY);
 
-                initialX = event.clientX || event.touches?.[0]?.clientX;
-                initialY = event.clientY || event.touches?.[0]?.clientY;
-
-                handle.style.cursor = "grabbing";
+                handle.style.cursor = 'grabbing';
+                console.log('🔧 Iniciando redimensionamento proporcional');
             },
-
-            // ***********************************************************
-            // 🔥🔥🔥 BLOCO MOVE TOTALMENTE REESCRITO — CORRIGIDO 🔥🔥🔥
-            // ***********************************************************
             move: (event) => {
-                const currentX = event.clientX || event.touches?.[0]?.clientX;
-                const currentY = event.clientY || event.touches?.[0]?.clientY;
+                if (event.type.includes('touch')) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
 
-                // bounding box REAL após rotação
-                const rect = elemento.getBoundingClientRect();
-                const centerX = rect.left + rect.width / 2;
-                const centerY = rect.top + rect.height / 2;
+                const currentX = event.clientX || (event.touches && event.touches[0].clientX);
+                const currentY = event.clientY || (event.touches && event.touches[0].clientY);
+                
+                const deltaX = currentX - initialX;
+                const deltaY = currentY - initialY;
 
-                // movimento relativo ao centro do elemento
-                const dxGlobal = currentX - centerX;
-                const dyGlobal = currentY - centerY;
+                const handleClasses = handle.classList;
+                let isEast = handleClasses.contains('handle-e');
+                let isWest = handleClasses.contains('handle-w');
+                let isNorth = handleClasses.contains('handle-n');
+                let isSouth = handleClasses.contains('handle-s');
+                let isNorthEast = handleClasses.contains('handle-ne');
+                let isNorthWest = handleClasses.contains('handle-nw');
+                let isSouthEast = handleClasses.contains('handle-se');
+                let isSouthWest = handleClasses.contains('handle-sw');
 
-                const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+                let newWidth = initialWidth;
+                let newHeight = initialHeight;
+                let newLeft = initialLeft;
+                let newTop = initialTop;
 
-                // converte movimento do mouse → sistema local do elemento
-                const local = this.transformarCoordenadasParaLocal(dxGlobal, dyGlobal, rotation);
-                const lx = local.dx;
-                const ly = local.dy;
-
-                const halfW = rect.width / 2;
-                const halfH = rect.height / 2;
-
-                let newHalfW = halfW;
-                let newHalfH = halfH;
-
-                const cls = handle.classList;
-
-                if (cls.contains("handle-e") || cls.contains("handle-w"))
-                    newHalfW = Math.max(Math.abs(lx), 5);
-
-                if (cls.contains("handle-n") || cls.contains("handle-s"))
-                    newHalfH = Math.max(Math.abs(ly), 5);
-
-                if (cls.contains("handle-ne") || cls.contains("handle-nw") ||
-                    cls.contains("handle-se") || cls.contains("handle-sw")) {
-
-                    newHalfW = Math.max(Math.abs(lx), 5);
-                    newHalfH = Math.max(Math.abs(ly), 5);
-
-                    if (initialRatio) {
-                        const newW = newHalfW * 2;
-                        const newH = newW / initialRatio;
-                        newHalfW = newW / 2;
-                        newHalfH = newH / 2;
+                if (elemento.classList.contains('linha-reta')) {
+                    // 🔥 MANTÉM LÓGICA EXISTENTE PARA LINHA RETA
+                    const minSize = 1;
+                    
+                    if (isEast) {
+                        newWidth = Math.max(initialWidth + deltaX, minSize);
+                        newHeight = 2;
+                    }
+                    else if (isWest) {
+                        newWidth = Math.max(initialWidth - deltaX, minSize);
+                        newHeight = 2;
+                        newLeft = initialLeft + deltaX;
+                    }
+                    else if (isNorth) {
+                        newHeight = 2;
+                        newTop = initialTop + deltaY;
+                    }
+                    else if (isSouth) {
+                        newHeight = 2;
+                    }
+                    else if (isNorthEast) {
+                        newWidth = Math.max(initialWidth + deltaX, minSize);
+                        newHeight = 2;
+                        newTop = initialTop + deltaY;
+                    }
+                    else if (isNorthWest) {
+                        newWidth = Math.max(initialWidth - deltaX, minSize);
+                        newHeight = 2;
+                        newLeft = initialLeft + deltaX;
+                        newTop = initialTop + deltaY;
+                    }
+                    else if (isSouthEast) {
+                        newWidth = Math.max(initialWidth + deltaX, minSize);
+                        newHeight = 2;
+                    }
+                    else if (isSouthWest) {
+                        newWidth = Math.max(initialWidth - deltaX, minSize);
+                        newHeight = 2;
+                        newLeft = initialLeft + deltaX;
+                    }
+                } else {
+                    // 🔥 LÓGICA PARA CUBAS NÃO-LINHA (COM PROPORÇÃO)
+                    if (isEast) {
+                        // Handle leste - ajusta apenas largura
+                        newWidth = Math.max(initialWidth + deltaX, 10);
+                    }
+                    else if (isWest) {
+                        // Handle oeste - ajusta largura e posição
+                        newWidth = Math.max(initialWidth - deltaX, 10);
+                        newLeft = initialLeft + deltaX;
+                    }
+                    else if (isNorth) {
+                        // Handle norte - ajusta altura e posição
+                        newHeight = Math.max(initialHeight - deltaY, 10);
+                        newTop = initialTop + deltaY;
+                    }
+                    else if (isSouth) {
+                        // Handle sul - ajusta apenas altura
+                        newHeight = Math.max(initialHeight + deltaY, 10);
+                    }
+                    // 🔥 HANDLES DE QUINA - MANTÊM PROPORÇÃO
+                    else if (isNorthEast) {
+                        // Nordeste - usa deltaX como referência e mantém proporção
+                        newWidth = Math.max(initialWidth + deltaX, 10);
+                        newHeight = newWidth / initialRatio;
+                        newTop = initialTop + (initialHeight - newHeight);
+                    }
+                    else if (isNorthWest) {
+                        // Noroeste - usa deltaX como referência e mantém proporção
+                        newWidth = Math.max(initialWidth - deltaX, 10);
+                        newHeight = newWidth / initialRatio;
+                        newLeft = initialLeft + deltaX;
+                        newTop = initialTop + (initialHeight - newHeight);
+                    }
+                    else if (isSouthEast) {
+                        // Sudeste - usa deltaX como referência e mantém proporção
+                        newWidth = Math.max(initialWidth + deltaX, 10);
+                        newHeight = newWidth / initialRatio;
+                    }
+                    else if (isSouthWest) {
+                        // Sudoeste - usa deltaX como referência e mantém proporção
+                        newWidth = Math.max(initialWidth - deltaX, 10);
+                        newHeight = newWidth / initialRatio;
+                        newLeft = initialLeft + deltaX;
                     }
                 }
 
-                const newWidth = newHalfW * 2;
-                const newHeight = newHalfH * 2;
-
-                // novo top-left considerando rotação
-                const topLeftLocalX = -newHalfW;
-                const topLeftLocalY = -newHalfH;
-
-                const rad = rotation * Math.PI / 180;
-
-                const rotatedTLX =
-                    topLeftLocalX * Math.cos(rad) - topLeftLocalY * Math.sin(rad);
-
-                const rotatedTLY =
-                    topLeftLocalX * Math.sin(rad) + topLeftLocalY * Math.cos(rad);
-
-                const newLeft = centerX + rotatedTLX;
-                const newTop = centerY + rotatedTLY;
-
-                elemento.style.width = `${newWidth}px`;
-                elemento.style.height = `${newHeight}px`;
-                elemento.style.left = `${newLeft}px`;
-                elemento.style.top = `${newTop}px`;
+                elemento.style.width = newWidth + 'px';
+                elemento.style.height = newHeight + 'px';
+                
+                if (isWest || isNorthWest || isSouthWest) {
+                    elemento.style.left = newLeft + 'px';
+                }
+                
+                if (isNorth || isNorthEast || isNorthWest) {
+                    elemento.style.top = newTop + 'px';
+                }
 
                 this.atualizarLinhasESimbolos(elemento);
                 this.atualizarHandles();
             },
-
             end: () => {
-                handle.style.cursor = "grab";
-                this.salvarEstadoHistorico("Redimensionar Elemento");
+                handle.style.cursor = 'grab';
+                this.salvarEstadoHistorico('Redimensionar Elemento');
+                console.log('🔧 Redimensionamento proporcional concluído');
             }
         }
     });
 }
 
+        configurarHandleRotacao(handle, elemento) {
+            let initialAngle = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+            let initialX, initialY;
+            
+            const angulosFixos = [0, 90, 180, 270];
+            const SNAP_THRESHOLD = 15;
 
-
-// **************************************************************
-// 🔧 Rotação (sem mudanças estruturais — apenas limpeza)
-// **************************************************************
-configurarHandleRotacao(handle, elemento) {
-    let initialAngle = parseFloat(elemento.getAttribute('data-rotate')) || 0;
-
-    const angulosFixos = [0, 90, 180, 270];
-    const SNAP_THRESHOLD = 15;
-
-    interact(handle).draggable({
-        listeners: {
-            start: (event) => {
-                const transform = elemento.style.transform || '';
-                elemento.setAttribute('data-initial-transform', transform);
-            },
-
-            move: (event) => {
-                const rect = elemento.getBoundingClientRect();
-                const cx = rect.left + rect.width / 2;
-                const cy = rect.top + rect.height / 2;
-
-                const dx = event.clientX - cx;
-                const dy = event.clientY - cy;
-
-                let angle = Math.atan2(dy, dx) * 180 / Math.PI + 90;
-                if (angle < 0) angle += 360;
-
-                let snapped = angle;
-                for (const fixed of angulosFixos)
-                    if (Math.abs(angle - fixed) < SNAP_THRESHOLD) snapped = fixed;
-
-                const initialTransform = elemento.getAttribute('data-initial-transform') || '';
-                const translateMatch = initialTransform.match(/translate\(([^)]+)\)/);
-                const translatePart = translateMatch ? `translate(${translateMatch[1]})` : '';
-
-                elemento.style.transform = `${translatePart} rotate(${snapped}deg)`;
-                elemento.setAttribute('data-rotate', snapped);
-
-                this.atualizarLinhasESimbolos(elemento);
-                this.atualizarHandles();
-            },
-
-            end: () => {
-                elemento.removeAttribute('data-initial-transform');
-                this.salvarEstadoHistorico("Rotacionar Elemento");
-            }
+            interact(handle).draggable({
+                listeners: {
+                    start: (event) => {
+                        const transform = elemento.style.transform || '';
+                        elemento.setAttribute('data-initial-transform', transform);
+                        
+                        const rect = elemento.getBoundingClientRect();
+                        const centerX = rect.left + rect.width / 2;
+                        const centerY = rect.top + rect.height / 2;
+                        initialX = event.clientX;
+                        initialY = event.clientY;
+                        handle.style.cursor = 'grabbing';
+                    },
+                    move: (event) => {
+                        const rect = elemento.getBoundingClientRect();
+                        const centerX = rect.left + rect.width / 2;
+                        const centerY = rect.top + rect.height / 2;
+                        
+                        const deltaX = event.clientX - centerX;
+                        const deltaY = event.clientY - centerY;
+                        let angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI) + 90;
+                        
+                        if (angle < 0) angle += 360;
+                        if (angle >= 360) angle -= 360;
+                        
+                        let snappedAngle = angle;
+                        for (const fixedAngle of angulosFixos) {
+                            if (Math.abs(angle - fixedAngle) < SNAP_THRESHOLD) {
+                                snappedAngle = fixedAngle;
+                                break;
+                            }
+                        }
+                        
+                        const initialTransform = elemento.getAttribute('data-initial-transform') || '';
+                        const translateMatch = initialTransform.match(/translate\(([^)]+)\)/);
+                        const translatePart = translateMatch ? `translate(${translateMatch[1]})` : '';
+                        
+                        elemento.style.transform = `${translatePart} rotate(${snappedAngle}deg)`;
+                        elemento.setAttribute('data-rotate', snappedAngle);
+                        
+                        this.atualizarLinhasESimbolos(elemento);
+                        this.atualizarHandles();
+                    },
+                    end: () => {
+                        elemento.removeAttribute('data-initial-transform');
+                        handle.style.cursor = 'grab';
+                        this.salvarEstadoHistorico('Rotacionar Elemento');
+                    }
+                }
+            });
         }
-    });
-}
 
         removerHandles() {
             console.log(`🔧 Removendo ${this.handles.length} handles...`);
