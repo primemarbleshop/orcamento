@@ -3935,83 +3935,97 @@ _isTouchGesture(e) {
         }
 
         criarHandles(elemento) {
-            console.log('🔧 Criando handles para:', elemento.className);
-            
-            const pos = this.obterPosicaoComScroll(elemento);
-            const left = pos.left;
-            const top = pos.top;
-            const width = pos.width;
-            const height = pos.height;
+    console.log('🔧 Criando handles para:', elemento.className);
+    
+    const pos = this.obterPosicaoComScroll(elemento);
+    const left = pos.left;
+    const top = pos.top;
+    const width = pos.width;
+    const height = pos.height;
 
-            const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
-            const rad = rotation * Math.PI / 180;
-            
-            const centerX = left + width / 2;
-            const centerY = top + height / 2;
+    const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+    const rad = rotation * Math.PI / 180;
+    
+    const centerX = left + width / 2;
+    const centerY = top + height / 2;
 
-            console.log(`🔧 Posição: left=${left}, top=${top}, width=${width}, height=${height}, rotation=${rotation}`);
+    console.log(`🔧 Posição: left=${left}, top=${top}, width=${width}, height=${height}, rotation=${rotation}`);
 
-            const relativeHandles = [
-               
-                { class: 'handle-e', relX: width / 2, relY: 0 },
-                { class: 'handle-w', relX: -width / 2, relY: 0 },
-                { class: 'handle-ne', relX: width / 2, relY: -height / 2 },
-                { class: 'handle-nw', relX: -width / 2, relY: -height / 2 },
-                { class: 'handle-se', relX: width / 2, relY: height / 2 },
-                { class: 'handle-sw', relX: -width / 2, relY: height / 2 }
-{ class: 'handle-n', relX: 0, relY: -height / 2 },
-                { class: 'handle-s', relX: 0, relY: height / 2 },
-            ];
+    // 🔥 CORREÇÃO: Definir handles baseado no tipo de elemento
+    let relativeHandles = [];
+    
+    if (elemento.classList.contains('linha-reta')) {
+        // 🔥 PARA LINHA RETA: Apenas handles laterais (leste e oeste)
+        relativeHandles = [
+            { class: 'handle-e', relX: width / 2, relY: 0 },
+            { class: 'handle-w', relX: -width / 2, relY: 0 }
+        ];
+    } else {
+        // 🔥 PARA OUTROS ELEMENTOS: Todos os handles
+        relativeHandles = [
+            { class: 'handle-e', relX: width / 2, relY: 0 },
+            { class: 'handle-w', relX: -width / 2, relY: 0 },
+            { class: 'handle-ne', relX: width / 2, relY: -height / 2 },
+            { class: 'handle-nw', relX: -width / 2, relY: -height / 2 },
+            { class: 'handle-se', relX: width / 2, relY: height / 2 },
+            { class: 'handle-sw', relX: -width / 2, relY: height / 2 },
+            { class: 'handle-n', relX: 0, relY: -height / 2 },
+            { class: 'handle-s', relX: 0, relY: height / 2 }
+        ];
+    }
 
-            const handles = relativeHandles.map(handle => {
-                const rotatedX = handle.relX * Math.cos(rad) - handle.relY * Math.sin(rad);
-                const rotatedY = handle.relX * Math.sin(rad) + handle.relY * Math.cos(rad);
-                
-                return {
-                    class: handle.class,
-                    x: centerX + rotatedX,
-                    y: centerY + rotatedY
-                };
-            });
+    const handles = relativeHandles.map(handle => {
+        const rotatedX = handle.relX * Math.cos(rad) - handle.relY * Math.sin(rad);
+        const rotatedY = handle.relX * Math.sin(rad) + handle.relY * Math.cos(rad);
+        
+        return {
+            class: handle.class,
+            x: centerX + rotatedX,
+            y: centerY + rotatedY
+        };
+    });
 
-            this.removerHandles();
+    this.removerHandles();
 
-            handles.forEach(handle => {
-                const handleElement = document.createElement('div');
-                handleElement.className = `handle ${handle.class}`;
-                handleElement.style.left = `${handle.x}px`;
-                handleElement.style.top = `${handle.y}px`;
-                handleElement.style.zIndex = '1002';
-                handleElement.style.position = 'absolute';
-                
-                console.log(`🔧 Criando handle ${handle.class} em x=${handle.x}, y=${handle.y}`);
-                
-                this.drawingArea.appendChild(handleElement);
-                this.handles.push(handleElement);
-                
-                this.configurarHandle(handleElement, elemento, handle.class);
-            });
+    handles.forEach(handle => {
+        const handleElement = document.createElement('div');
+        handleElement.className = `handle ${handle.class}`;
+        handleElement.style.left = `${handle.x}px`;
+        handleElement.style.top = `${handle.y}px`;
+        handleElement.style.zIndex = '1002';
+        handleElement.style.position = 'absolute';
+        
+        console.log(`🔧 Criando handle ${handle.class} em x=${handle.x}, y=${handle.y}`);
+        
+        this.drawingArea.appendChild(handleElement);
+        this.handles.push(handleElement);
+        
+        this.configurarHandle(handleElement, elemento, handle.class);
+    });
 
-            const handleRotacaoRelY = -height / 2 - 40;
-            const handleRotacaoX = 0 * Math.cos(rad) - handleRotacaoRelY * Math.sin(rad);
-            const handleRotacaoY = 0 * Math.sin(rad) + handleRotacaoRelY * Math.cos(rad);
+    // 🔥 CORREÇÃO: Apenas adicionar handle de rotação se NÃO for linha reta
+    if (!elemento.classList.contains('linha-reta')) {
+        const handleRotacaoRelY = -height / 2 - 40;
+        const handleRotacaoX = 0 * Math.cos(rad) - handleRotacaoRelY * Math.sin(rad);
+        const handleRotacaoY = 0 * Math.sin(rad) + handleRotacaoRelY * Math.cos(rad);
 
-            const handleRotacao = document.createElement('div');
-            handleRotacao.className = 'handle handle-rotacao';
-            handleRotacao.style.left = `${centerX + handleRotacaoX}px`;
-            handleRotacao.style.top = `${centerY + handleRotacaoY}px`;
-            handleRotacao.style.zIndex = '1002';
-            handleRotacao.style.position = 'absolute';
-            
-            console.log(`🔧 Criando handle de rotação em x=${centerX + handleRotacaoX}, y=${centerY + handleRotacaoY}`);
-            
-            this.drawingArea.appendChild(handleRotacao);
-            this.handles.push(handleRotacao);
-            
-            this.configurarHandleRotacao(handleRotacao, elemento);
-            
-            console.log(`✅ ${this.handles.length} handles criados com sucesso`);
-        }
+        const handleRotacao = document.createElement('div');
+        handleRotacao.className = 'handle handle-rotacao';
+        handleRotacao.style.left = `${centerX + handleRotacaoX}px`;
+        handleRotacao.style.top = `${centerY + handleRotacaoY}px`;
+        handleRotacao.style.zIndex = '1002';
+        handleRotacao.style.position = 'absolute';
+        
+        console.log(`🔧 Criando handle de rotação em x=${centerX + handleRotacaoX}, y=${centerY + handleRotacaoY}`);
+        
+        this.drawingArea.appendChild(handleRotacao);
+        this.handles.push(handleRotacao);
+        
+        this.configurarHandleRotacao(handleRotacao, elemento);
+    }
+    
+    console.log(`✅ ${this.handles.length} handles criados com sucesso`);
+}
 
         configurarHandle(handle, elemento, handleClass) {
     let initialX, initialY;
