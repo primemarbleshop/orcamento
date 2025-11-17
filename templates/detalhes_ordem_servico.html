@@ -3749,14 +3749,13 @@ _isTouchGesture(e) {
     const scrollLeft = this.drawingArea.scrollLeft || 0;
     const scrollTop = this.drawingArea.scrollTop || 0;
     
-    // 🔥 CORREÇÃO: Usar bounding box REAL considerando rotação
-    const { widthReal, heightReal } = this.calcularDimensoesReaisComRotacao(elemento);
-    
+    // ✅ CORREÇÃO: Usar APENAS as dimensões do bounding box
+    // getBoundingClientRect() já retorna as dimensões CORRETAS pós-rotação
     return {
         left: rect.left - drawingAreaRect.left + scrollLeft,
         top: rect.top - drawingAreaRect.top + scrollTop,
-        width: widthReal,    // 🔥 Dimensão REAL
-        height: heightReal   // 🔥 Dimensão REAL
+        width: rect.width,    // ✅ Dimensão REAL após rotação
+        height: rect.height   // ✅ Dimensão REAL após rotação
     };
 }
 
@@ -3939,42 +3938,43 @@ _isTouchGesture(e) {
        criarHandles(elemento) {
     console.log('🔧 Criando handles para:', elemento.className);
     
+    // ✅ CORREÇÃO: Usar APENAS obterPosicaoComScroll (que já usa bounding box correto)
     const pos = this.obterPosicaoComScroll(elemento);
     const left = pos.left;
     const top = pos.top;
-    
-    // 🔥 CORREÇÃO CRÍTICA: Obter dimensões REAIS considerando rotação
-    const { widthReal, heightReal } = this.calcularDimensoesReaisComRotacao(elemento);
-    
+    const width = pos.width;   // ✅ Já são as dimensões REAIS
+    const height = pos.height; // ✅ Já são as dimensões REAIS
+
     const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
     const rad = rotation * Math.PI / 180;
     
-    const centerX = left + widthReal / 2;
-    const centerY = top + heightReal / 2;
+    const centerX = left + width / 2;
+    const centerY = top + height / 2;
 
-    console.log(`🔧 Dimensões REAIS: ${widthReal}x${heightReal}px, Rotação: ${rotation}°`);
+    console.log(`🔧 Bounding Box REAL: ${Math.round(width)}x${Math.round(height)}px, Rotação: ${rotation}°`);
 
-    // 🔥 CORREÇÃO: Usar dimensões REAIS para posicionar handles
+    // Resto do código permanece igual...
     let relativeHandles = [];
     
     if (elemento.classList.contains('linha-reta')) {
         relativeHandles = [
-            { class: 'handle-e', relX: widthReal / 2, relY: 0 },
-            { class: 'handle-w', relX: -widthReal / 2, relY: 0 }
+            { class: 'handle-e', relX: width / 2, relY: 0 },
+            { class: 'handle-w', relX: -width / 2, relY: 0 }
         ];
     } else {
         relativeHandles = [
-            { class: 'handle-e', relX: widthReal / 2, relY: 0 },
-            { class: 'handle-w', relX: -widthReal / 2, relY: 0 },
-            { class: 'handle-ne', relX: widthReal / 2, relY: -heightReal / 2 },
-            { class: 'handle-nw', relX: -widthReal / 2, relY: -heightReal / 2 },
-            { class: 'handle-se', relX: widthReal / 2, relY: heightReal / 2 },
-            { class: 'handle-sw', relX: -widthReal / 2, relY: heightReal / 2 },
-            { class: 'handle-n', relX: 0, relY: -heightReal / 2 },
-            { class: 'handle-s', relX: 0, relY: heightReal / 2 }
+            { class: 'handle-e', relX: width / 2, relY: 0 },
+            { class: 'handle-w', relX: -width / 2, relY: 0 },
+            { class: 'handle-ne', relX: width / 2, relY: -height / 2 },
+            { class: 'handle-nw', relX: -width / 2, relY: -height / 2 },
+            { class: 'handle-se', relX: width / 2, relY: height / 2 },
+            { class: 'handle-sw', relX: -width / 2, relY: height / 2 },
+            { class: 'handle-n', relX: 0, relY: -height / 2 },
+            { class: 'handle-s', relX: 0, relY: height / 2 }
         ];
     }
 
+    // Resto do método permanece igual...
     const handles = relativeHandles.map(handle => {
         const rotatedX = handle.relX * Math.cos(rad) - handle.relY * Math.sin(rad);
         const rotatedY = handle.relX * Math.sin(rad) + handle.relY * Math.cos(rad);
@@ -4002,9 +4002,9 @@ _isTouchGesture(e) {
         this.configurarHandle(handleElement, elemento, handle.class);
     });
 
-    // 🔥 CORREÇÃO: Handle de rotação usando dimensões REAIS
+    // Handle de rotação também usa as dimensões REAIS
     const handleRotacaoRelY = elemento.classList.contains('linha-reta') ? 
-        -60 : -heightReal / 2 - 40;
+        -60 : -height / 2 - 40;
     
     const handleRotacaoX = 0 * Math.cos(rad) - handleRotacaoRelY * Math.sin(rad);
     const handleRotacaoY = 0 * Math.sin(rad) + handleRotacaoRelY * Math.cos(rad);
@@ -4021,7 +4021,7 @@ _isTouchGesture(e) {
     
     this.configurarHandleRotacao(handleRotacao, elemento);
     
-    console.log(`✅ ${this.handles.length} handles criados com dimensões reais`);
+    console.log(`✅ ${this.handles.length} handles criados com bounding box real`);
 }
 
 // 🔥 NOVO MÉTODO: Calcular dimensões REAIS considerando rotação
