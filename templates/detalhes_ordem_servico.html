@@ -171,12 +171,12 @@
         user-select: none; 
         touch-action: none; 
         pointer-events: auto;
-        z-index: 2;
+        z-index: 5;
     }
     
     .peca.selecionavel {
         cursor: pointer;
-        z-index: 3;
+        z-index: 5;
     }
     
     .dimensoes { 
@@ -387,6 +387,11 @@
         flex-wrap: wrap; 
     }
     
+  /* 🔥 CORREÇÃO: Cursor da borracha */
+    .cursor-borracha {
+        z-index: 14 !important;
+    }
+
     .titulo-grupo {
         font-size: 18px;
         font-weight: bold;
@@ -596,7 +601,7 @@
     .elemento-selecionado { 
         outline: 0px solid #4e73df !important; 
         outline-offset: 0px; 
-        z-index: 3 !important; 
+        z-index: 5 !important; 
         pointer-events: auto !important;
     }
     
@@ -2069,6 +2074,7 @@ salvarEstadoHistoricoForcado(descricao) {
     pintura.style.top = `${coords.y - this.tamanhoBorracha/2}px`;
     pintura.style.width = `${this.tamanhoBorracha}px`;
     pintura.style.height = `${this.tamanhoBorracha}px`;
+pintura.style.zIndex = '9'; // 🔥 GARANTIR z-index baixo
     
     this.drawingArea.appendChild(pintura);
     
@@ -3479,7 +3485,7 @@ refazer() {
                             event.stopPropagation();
                         }
 
-                        grupo.style.zIndex = '1001';
+                        grupo.style.zIndex = '1';
                         
                         grupo.setAttribute('data-x-inicial', grupo.getAttribute('data-x') || 0);
                         grupo.setAttribute('data-y-inicial', grupo.getAttribute('data-y') || 0);
@@ -3523,7 +3529,7 @@ refazer() {
                             event.stopPropagation();
                         }
                         
-                        grupo.style.zIndex = '1000';
+                        grupo.style.zIndex = '1';
                         
                         const xInicial = parseFloat(grupo.getAttribute('data-x-inicial')) || 0;
                         const yInicial = parseFloat(grupo.getAttribute('data-y-inicial')) || 0;
@@ -3757,7 +3763,7 @@ _isTouchGesture(e) {
             });
             
             todasPecas.forEach((peca, index) => {
-                peca.style.zIndex = 2;
+                peca.style.zIndex = 3;
             });
         }
 
@@ -4814,7 +4820,7 @@ _isTouchGesture(e) {
                     elemento.setAttribute('data-y', y);
                 },
                 end: () => {
-                    elemento.style.zIndex = '';
+                    elemento.style.zIndex = '10';
                     elemento.style.backgroundColor = originalBackground;
                     this.salvarEstadoHistorico('Mover Texto');
                 }
