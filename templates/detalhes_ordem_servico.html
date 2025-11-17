@@ -2451,26 +2451,31 @@ limparPinturasBorracha() {
         }
 
         desselecionarElemento() {
-    this.removerTodosOsHandles();
-    
-    if (this.elementoSelecionado) {
-        this.removerInteratividade(this.elementoSelecionado);
-        
-        // 🔥 CORREÇÃO: Restaurar ordem de empilhamento normal
-        this.atualizarOrdemEmpilhamentoCompleta();
-        
-        this.elementoSelecionado.classList.remove('elemento-selecionado');
-        
-        if (!this.modoSelecaoAtivo) {
-            this.reabilitarLinhasPecas();
+            this.removerTodosOsHandles();
+            
+            if (this.elementoSelecionado) {
+                this.removerInteratividade(this.elementoSelecionado);
+                
+                if (this.elementoSelecionado.classList.contains('peca')) {
+                    this.elementoSelecionado.style.zIndex = '2';
+                } else if (this.elementoSelecionado.classList.contains('titulo-grupo')) {
+                    this.elementoSelecionado.style.zIndex = '1';
+                } else {
+                    this.elementoSelecionado.style.zIndex = '';
+                }
+                
+                this.elementoSelecionado.classList.remove('elemento-selecionado');
+                
+                if (!this.modoSelecaoAtivo) {
+                    this.reabilitarLinhasPecas();
+                }
+                
+                this.elementoSelecionado = null;
+            }
+            
+            this.atualizarEstadoBotoes();
+            this.ultimoElementoClicado = null;
         }
-        
-        this.elementoSelecionado = null;
-    }
-    
-    this.atualizarEstadoBotoes();
-    this.ultimoElementoClicado = null;
-}
 
       desfazer() {
     if (this.indiceHistorico > 0) {
@@ -3763,25 +3768,24 @@ _isTouchGesture(e) {
         }
 
         selecionarElemento(elemento, event) {
-    this.desselecionarElemento();
-    
-    this.elementoSelecionado = elemento;
-    elemento.classList.add('elemento-selecionado');
-    
-    // 🔥 CORREÇÃO: Trazer para frente ao selecionar
-    this.trazerElementoParaFrente(elemento);
-    
-    console.log('🔧 Selecionando elemento:', elemento.className, elemento.classList.contains('simbolo-linha'));
-    
-    this.desabilitarLinhasPecas();
-    
-    if (!elemento.classList.contains('simbolo-linha') && !elemento.classList.contains('grupo-temporario')) {
-        this.criarHandles(elemento);
-    }
-    
-    this.configurarInteratividade(elemento);
-    this.atualizarEstadoBotoes();
-}
+            this.desselecionarElemento();
+            
+            this.elementoSelecionado = elemento;
+            elemento.classList.add('elemento-selecionado');
+            
+            elemento.style.zIndex = '1000';
+            
+            console.log('🔧 Selecionando elemento:', elemento.className, elemento.classList.contains('simbolo-linha'));
+            
+            this.desabilitarLinhasPecas();
+            
+            if (!elemento.classList.contains('simbolo-linha') && !elemento.classList.contains('grupo-temporario')) {
+                this.criarHandles(elemento);
+            }
+            
+            this.configurarInteratividade(elemento);
+            this.atualizarEstadoBotoes();
+        }
 
         configurarHandlesLinhaReta(elemento) {
             this.criarHandlesLinhaReta(elemento);
@@ -5199,7 +5203,7 @@ _isTouchGesture(e) {
             }
         }
 
-       configurarInteratividade(elemento) {
+        configurarInteratividade(elemento) {
     this.removerInteratividade(elemento);
     
     if (elemento.classList.contains('elemento-selecionado') && !elemento.classList.contains('grupo-temporario')) {
@@ -5240,145 +5244,6 @@ _isTouchGesture(e) {
             });
         }
     }
-}
-
-verificarMudancaDeGrupo(elemento, x, y) {
-    const posicaoAtual = this.obterPosicaoAbsoluta(elemento);
-    const novoGrupo = this.encontrarGrupoNaPosicao(posicaoAtual.left, posicaoAtual.top);
-    const grupoAtual = elemento.parentElement;
-    
-    // Verificar se é um grupo válido
-    const ehAreaPecas = grupoAtual && grupoAtual.classList.contains('area-pecas');
-    const ehNovoGrupoValido = novoGrupo && novoGrupo.classList.contains('area-pecas');
-    
-    if (ehAreaPecas && ehNovoGrupoValido && grupoAtual !== novoGrupo) {
-        console.log('🔄 Movendo elemento para novo grupo');
-        
-        // Salvar transformação atual
-        const transform = elemento.style.transform;
-        const dataX = elemento.getAttribute('data-x');
-        const dataY = elemento.getAttribute('data-y');
-        
-        // Calcular posição relativa no novo grupo
-        const grupoRect = novoGrupo.getBoundingClientRect();
-        const drawingRect = this.drawingArea.getBoundingClientRect();
-        const grupoLeft = grupoRect.left - drawingRect.left;
-        const grupoTop = grupoRect.top - drawingRect.top;
-        
-        const xRelativo = posicaoAtual.left - grupoLeft;
-        const yRelativo = posicaoAtual.top - grupoTop;
-        
-        // Mover para o novo grupo
-        elemento.style.left = `${xRelativo}px`;
-        elemento.style.top = `${yRelativo}px`;
-        elemento.style.transform = 'none'; // Resetar transform
-        elemento.setAttribute('data-x', '0');
-        elemento.setAttribute('data-y', '0');
-        
-        // Remover do grupo atual e adicionar ao novo
-        grupoAtual.removeChild(elemento);
-        novoGrupo.appendChild(elemento);
-        
-        console.log('✅ Elemento movido para novo grupo');
-    }
-}
-
-// 🔥 NOVO MÉTODO: Obter posição absoluta considerando transform
-obterPosicaoAbsoluta(elemento) {
-    const rect = elemento.getBoundingClientRect();
-    const drawingRect = this.drawingArea.getBoundingClientRect();
-    const scrollLeft = this.drawingArea.scrollLeft || 0;
-    const scrollTop = this.drawingArea.scrollTop || 0;
-    
-    // Considerar transform translate
-    const transform = elemento.style.transform;
-    let translateX = 0, translateY = 0;
-    
-    if (transform && transform !== 'none') {
-        const match = transform.match(/translate\(([^)]+)\)/);
-        if (match) {
-            const values = match[1].split(',').map(v => parseFloat(v.trim().replace('px', '')));
-            if (values.length >= 2) {
-                translateX = values[0] || 0;
-                translateY = values[1] || 0;
-            }
-        }
-    }
-    
-    return {
-        left: rect.left - drawingRect.left + scrollLeft + translateX,
-        top: rect.top - drawingRect.top + scrollTop + translateY,
-        width: rect.width,
-        height: rect.height
-    };
-}
-
-trazerElementoParaFrente(elemento) {
-    // Encontrar o z-index máximo atual
-    const todosElementos = this.drawingArea.querySelectorAll('*');
-    let maxZIndex = 1000;
-    
-    todosElementos.forEach(el => {
-        const zIndex = parseInt(window.getComputedStyle(el).zIndex);
-        if (zIndex > maxZIndex && !isNaN(zIndex)) {
-            maxZIndex = zIndex;
-        }
-    });
-    
-    // Definir z-index mais alto
-    elemento.style.zIndex = (maxZIndex + 1).toString();
-    
-    console.log(`🎯 Elemento trazido para frente com z-index: ${elemento.style.zIndex}`);
-}
-
-atualizarOrdemEmpilhamentoCompleta() {
-    console.log('🔄 Atualizando ordem de empilhamento...');
-    
-    // 1. Grupos de materiais (mais ao fundo)
-    const todosGrupos = this.drawingArea.querySelectorAll('.area-pecas');
-    todosGrupos.forEach((grupo, index) => {
-        grupo.style.zIndex = (index + 1).toString();
-    });
-    
-    // 2. Títulos dos grupos
-    const titulosGrupos = this.drawingArea.querySelectorAll('.titulo-grupo');
-    titulosGrupos.forEach((titulo, index) => {
-        titulo.style.zIndex = (todosGrupos.length + index + 1).toString();
-    });
-    
-    // 3. Peças dentro dos grupos
-    const todasPecas = this.drawingArea.querySelectorAll('.peca');
-    todasPecas.forEach((peca, index) => {
-        if (!peca.classList.contains('elemento-selecionado')) {
-            peca.style.zIndex = (todosGrupos.length + titulosGrupos.length + index + 1).toString();
-        }
-    });
-    
-    // 4. Cubas e outros elementos
-    const cubas = this.drawingArea.querySelectorAll('.cuba');
-    cubas.forEach((cuba, index) => {
-        if (!cuba.classList.contains('elemento-selecionado')) {
-            cuba.style.zIndex = (todosGrupos.length + titulosGrupos.length + todasPecas.length + index + 1).toString();
-        }
-    });
-    
-    // 5. Elementos de texto
-    const textos = this.drawingArea.querySelectorAll('.texto-legenda, .legenda-simplificada');
-    textos.forEach((texto, index) => {
-        if (!texto.classList.contains('elemento-selecionado')) {
-            texto.style.zIndex = (todosGrupos.length + titulosGrupos.length + todasPecas.length + cubas.length + index + 1).toString();
-        }
-    });
-    
-    // 6. Símbolos e dimensões (sempre no topo, exceto quando selecionados)
-    const simbolos = this.drawingArea.querySelectorAll('.simbolo-linha, .dimensoes, .quantidade-peca');
-    simbolos.forEach((simbolo, index) => {
-        if (!simbolo.classList.contains('elemento-selecionado')) {
-            simbolo.style.zIndex = (todosGrupos.length + titulosGrupos.length + todasPecas.length + cubas.length + textos.length + index + 100).toString();
-        }
-    });
-    
-    console.log('✅ Ordem de empilhamento atualizada');
 }
 
         configurarInteratividadeSimbolo(elemento) {
