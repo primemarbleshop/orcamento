@@ -779,6 +779,33 @@
     z-index: 1000 !important; /* 🔥 Selecionados acima de tudo */
 }
 
+.area-pecas {
+    pointer-events: none !important;
+}
+
+/* 🔥 CORREÇÃO: Todos os elementos dentro de grupos DEVEM ser interativos */
+.area-pecas .peca,
+.area-pecas .cuba,
+.area-pecas .texto-legenda,
+.area-pecas .legenda-simplificada,
+.area-pecas .simbolo-linha,
+.area-pecas .dimensoes,
+.area-pecas .quantidade-peca {
+    pointer-events: auto !important;
+}
+
+/* 🔥 CORREÇÃO: Elementos fora de grupos também */
+.peca,
+.cuba,
+.texto-legenda,
+.legenda-simplificada,
+.simbolo-linha,
+.titulo-grupo,
+.dimensoes,
+.quantidade-peca {
+    pointer-events: auto !important;
+}
+
     /* ======================== MOBILE ======================== */
     @media (max-width: 768px) {
         .modo-laco .drawing-area {
@@ -3673,15 +3700,36 @@ refazer() {
     });
 }
 
-// 🔥 NOVO MÉTODO: Forçar atualização de interatividade para todos os elementos
 forcarAtualizacaoInteratividade() {
-    const elementosTexto = this.drawingArea.querySelectorAll('.texto-legenda');
-    elementosTexto.forEach(texto => {
-        if (this.modoSelecaoAtivo) {
-            texto.classList.add('selecionavel');
+    const todosElementos = this.drawingArea.querySelectorAll(
+        '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca'
+    );
+    
+    todosElementos.forEach(elemento => {
+        elemento.style.pointerEvents = 'auto';
+        
+        // Se o modo seleção estiver ativo, tornar selecionável
+        if (this.modoSelecaoAtivo && !elemento.classList.contains('selecionavel')) {
+            elemento.classList.add('selecionavel');
         }
-        this.configurarInteratividadeTexto(texto);
+        
+        // Reconfigurar interatividade específica para cada tipo
+        if (elemento.classList.contains('texto-legenda')) {
+            this.configurarInteratividadeTexto(elemento);
+        } else if (elemento.classList.contains('simbolo-linha')) {
+            this.configurarInteratividadeSimbolo(elemento);
+        } else if (elemento.classList.contains('legenda-simplificada')) {
+            this.configurarInteratividadeLegenda(elemento);
+        }
     });
+    
+    // Garantir que grupos não bloqueiem eventos
+    const grupos = this.drawingArea.querySelectorAll('.area-pecas');
+    grupos.forEach(grupo => {
+        grupo.style.pointerEvents = 'none';
+    });
+    
+    console.log('✅ Interatividade garantida para todos os elementos');
 }
 
      manipularCliqueSelecao(e) {
@@ -4464,108 +4512,116 @@ _isTouchGesture(e) {
         }
 
         criarPecasBase() {
-            if (this.pecasCriadas) return;
+    if (this.pecasCriadas) return;
 
-            const escala = this.calcularEscalaAutomatica();
-            let posY = 100;
+    const escala = this.calcularEscalaAutomatica();
+    let posY = 100;
 
-            const inicioPosX = 50;
-            const gapHorizontal = 100;
-            const gapVertical = 120;
-            const espacamentoEntreAgrupamentos = 30;
-            const maxLineWidth = this.drawingArea.offsetWidth - 100;
+    const inicioPosX = 50;
+    const gapHorizontal = 100;
+    const gapVertical = 120;
+    const espacamentoEntreAgrupamentos = 30;
+    const maxLineWidth = this.drawingArea.offsetWidth - 100;
 
-            Object.keys(this.gruposPecas).forEach((materialNome, grupoIndex) => {
-                const pecasGrupo = this.gruposPecas[materialNome];
+    Object.keys(this.gruposPecas).forEach((materialNome, grupoIndex) => {
+        const pecasGrupo = this.gruposPecas[materialNome];
 
-                const grupoInfo = this.criarGrupoMaterial(materialNome, grupoIndex, posY);
+        const grupoInfo = this.criarGrupoMaterial(materialNome, grupoIndex, posY);
 
-                const lines = [[]];
-                let currentLineWidth = 0;
+        const lines = [[]];
+        let currentLineWidth = 0;
 
-                pecasGrupo.forEach((peca) => {
-                    const { width, height } = this.calcularDimensoesPeca(peca, escala);
+        pecasGrupo.forEach((peca) => {
+            const { width, height } = this.calcularDimensoesPeca(peca, escala);
 
-                    if (width > maxLineWidth) {
-                        if (lines[lines.length - 1].length > 0) {
-                            lines.push([]);
-                        }
-                        lines[lines.length - 1].push({
-                            pecaData: peca,
-                            width: Math.round(width),
-                            height: Math.round(height)
-                        });
-                        lines.push([]);
-                        currentLineWidth = 0;
-                    } else if (currentLineWidth > 0 && (currentLineWidth + width + gapHorizontal) > maxLineWidth) {
-                        lines.push([]);
-                        currentLineWidth = 0;
-                    }
-
-                    lines[lines.length - 1].push({
-                        pecaData: peca,
-                        width: Math.round(width),
-                        height: Math.round(height)
-                    });
-
-                    currentLineWidth += width + gapHorizontal;
-                });
-
-                if (lines[lines.length - 1].length === 0) {
-                    lines.pop();
+            if (width > maxLineWidth) {
+                if (lines[lines.length - 1].length > 0) {
+                    lines.push([]);
                 }
-
-                let cumulativeY = 0;
-                lines.forEach((line) => {
-                    if (line.length === 0) return;
-
-                    const lineMaxHeight = Math.max(...line.map(p => p.height));
-
-                    let posX = inicioPosX;
-                    line.forEach((pObj) => {
-                        const peca = pObj.pecaData;
-                        const w = pObj.width;
-                        const h = pObj.height;
-
-                        if (posX + w > maxLineWidth) {
-                            cumulativeY += lineMaxHeight + gapVertical;
-                            posX = inicioPosX;
-                        }
-
-                        const pecaElement = document.createElement('div');
-                        pecaElement.className = 'peca';
-                        pecaElement.id = `peca-${peca.id}`;
-                        pecaElement.style.width = `${w}px`;
-                        pecaElement.style.height = `${h}px`;
-                        pecaElement.style.left = `${posX}px`;
-                        pecaElement.style.top = `${cumulativeY}px`;
-                        pecaElement.setAttribute('data-peca-id', peca.id);
-                        pecaElement.setAttribute('data-tipo', peca.tipo);
-                        pecaElement.setAttribute('data-rotate', '0');
-
-                        this.criarDimensoes(pecaElement, peca, w, h);
-
-                        if (peca.quantidade > 1) {
-                            this.criarQuantidade(pecaElement, peca.quantidade);
-                        }
-
-                        this.criarLinhasPeca(pecaElement, peca.id, w, h);
-
-                        grupoInfo.areaPecas.appendChild(pecaElement);
-
-                        posX += w + gapHorizontal;
-                    });
-
-                    cumulativeY += lineMaxHeight + gapVertical;
+                lines[lines.length - 1].push({
+                    pecaData: peca,
+                    width: Math.round(width),
+                    height: Math.round(height)
                 });
+                lines.push([]);
+                currentLineWidth = 0;
+            } else if (currentLineWidth > 0 && (currentLineWidth + width + gapHorizontal) > maxLineWidth) {
+                lines.push([]);
+                currentLineWidth = 0;
+            }
 
-                const alturaUtilizada = cumulativeY > 0 ? cumulativeY : 200;
-                posY += alturaUtilizada + espacamentoEntreAgrupamentos;
+            lines[lines.length - 1].push({
+                pecaData: peca,
+                width: Math.round(width),
+                height: Math.round(height)
             });
 
-            this.pecasCriadas = true;
-            console.log('✅ Peças base criadas com sucesso!');
+            currentLineWidth += width + gapHorizontal;
+        });
+
+        if (lines[lines.length - 1].length === 0) {
+            lines.pop();
         }
+
+        let cumulativeY = 0;
+        lines.forEach((line) => {
+            if (line.length === 0) return;
+
+            const lineMaxHeight = Math.max(...line.map(p => p.height));
+
+            let posX = inicioPosX;
+            line.forEach((pObj) => {
+                const peca = pObj.pecaData;
+                const w = pObj.width;
+                const h = pObj.height;
+
+                if (posX + w > maxLineWidth) {
+                    cumulativeY += lineMaxHeight + gapVertical;
+                    posX = inicioPosX;
+                }
+
+                const pecaElement = document.createElement('div');
+                pecaElement.className = 'peca';
+                pecaElement.id = `peca-${peca.id}`;
+                pecaElement.style.width = `${w}px`;
+                pecaElement.style.height = `${h}px`;
+                pecaElement.style.left = `${posX}px`;
+                pecaElement.style.top = `${cumulativeY}px`;
+                pecaElement.setAttribute('data-peca-id', peca.id);
+                pecaElement.setAttribute('data-tipo', peca.tipo);
+                pecaElement.setAttribute('data-rotate', '0');
+
+                // 🔥 CORREÇÃO: Garantir que peças sejam interativas mesmo dentro de grupos
+                pecaElement.style.pointerEvents = 'auto';
+
+                this.criarDimensoes(pecaElement, peca, w, h);
+
+                if (peca.quantidade > 1) {
+                    this.criarQuantidade(pecaElement, peca.quantidade);
+                }
+
+                this.criarLinhasPeca(pecaElement, peca.id, w, h);
+
+                // 🔥 CORREÇÃO: Adicionar diretamente no grupo (apenas organização visual)
+                grupoInfo.areaPecas.appendChild(pecaElement);
+
+                posX += w + gapHorizontal;
+            });
+
+            cumulativeY += lineMaxHeight + gapVertical;
+        });
+
+        const alturaUtilizada = cumulativeY > 0 ? cumulativeY : 200;
+        posY += alturaUtilizada + espacamentoEntreAgrupamentos;
+    });
+
+    this.pecasCriadas = true;
+    
+    // 🔥 CORREÇÃO ADICIONAL: Garantir que todos os elementos sejam interativos
+    this.forcarAtualizacaoInteratividade();
+    
+    console.log('✅ Peças base criadas com sucesso!');
+}
 
         criarGrupoMaterial(materialNome, grupoIndex, posY) {
             const tituloGrupo = document.createElement('div');
@@ -4636,12 +4692,7 @@ _isTouchGesture(e) {
 
     if (this.modoSelecaoAtivo) cubaElement.classList.add('selecionavel');
 
-    const grupo = this.encontrarGrupoNaPosicao(x, y);
-    if (grupo) {
-        grupo.appendChild(cubaElement);
-    } else {
-        this.drawingArea.appendChild(cubaElement);
-    }
+    this.drawingArea.appendChild(cubaElement);
 
     this.configurarInteratividadeCuba(cubaElement, tipo);
     this.salvarEstadoHistorico('Adicionar Cuba');
@@ -4696,7 +4747,7 @@ _isTouchGesture(e) {
             }
         }
 
-     manipularCliqueInsercao(e) {
+    manipularCliqueInsercao(e) {
     if (!this.modoInsercaoAtivo) return;
     
     // Prevenir comportamento padrão
@@ -4722,7 +4773,7 @@ _isTouchGesture(e) {
     const x = clientX - rect.left + scrollLeft;
     const y = clientY - rect.top + scrollTop;
     
-    console.log(`🎯 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y} (scroll: ${scrollLeft}, ${scrollTop})`);
+    console.log(`🎯 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y}`);
 
     switch(this.modoInsercaoAtivo) {
         case 'texto':
@@ -4741,11 +4792,11 @@ _isTouchGesture(e) {
     this.desativarTodosOsModos();
 }
 
-     criarTexto(x, y, textoInicial = "") {
+    criarTexto(x, y, textoInicial = "") {
     const textoElement = document.createElement('textarea');
     textoElement.className = 'texto-legenda';
 
-    // Posicionamento ABSOLUTO dentro do container pai
+    // 🔥 CORREÇÃO: SEMPRE adicionar na área principal, NUNCA no grupo
     textoElement.style.left = `${x}px`;
     textoElement.style.top = `${y}px`;
     textoElement.style.transform = 'none';
@@ -4762,28 +4813,8 @@ _isTouchGesture(e) {
         textoElement.classList.add('selecionavel');
     }
 
-    // 🔥 CORREÇÃO: Encontrar o grupo correto
-    const grupo = this.encontrarGrupoNaPosicao(x, y);
-    if (grupo) {
-        console.log('📝 Adicionando texto DENTRO do grupo encontrado');
-        
-        // Calcular posição RELATIVA dentro do grupo
-        const grupoRect = grupo.getBoundingClientRect();
-        const drawingRect = this.drawingArea.getBoundingClientRect();
-        const grupoLeft = grupoRect.left - drawingRect.left;
-        const grupoTop = grupoRect.top - drawingRect.top;
-        
-        const xRelativo = x - grupoLeft;
-        const yRelativo = y - grupoTop;
-        
-        textoElement.style.left = `${xRelativo}px`;
-        textoElement.style.top = `${yRelativo}px`;
-        
-        grupo.appendChild(textoElement);
-    } else {
-        console.log('📝 Adicionando texto na área PRINCIPAL');
-        this.drawingArea.appendChild(textoElement);
-    }
+    // 🔥 CORREÇÃO: SEMPRE adicionar na área principal
+    this.drawingArea.appendChild(textoElement);
     
     // Resto do código permanece igual...
     this.salvarEstadoImediato('Adicionar Caixa de Texto');
@@ -5037,35 +5068,7 @@ _isTouchGesture(e) {
             }, { passive: false });
         }
 
-       encontrarGrupoNaPosicao(x, y) {
-    const grupos = this.drawingArea.querySelectorAll('.area-pecas');
-    
-    console.log(`🔍 Buscando grupo para posição x:${x}, y:${y}`);
-    
-    for (const grupo of grupos) {
-        // Obter posição ABSOLUTA do grupo dentro da drawingArea
-        const grupoRect = grupo.getBoundingClientRect();
-        const drawingRect = this.drawingArea.getBoundingClientRect();
-        
-        // Calcular posição relativa considerando scroll
-        const grupoRelLeft = grupoRect.left - drawingRect.left;
-        const grupoRelTop = grupoRect.top - drawingRect.top;
-        const grupoRelRight = grupoRelLeft + grupoRect.width;
-        const grupoRelBottom = grupoRelTop + grupoRect.height;
-        
-        console.log(`🔍 Grupo encontrado: ${grupoRelLeft},${grupoRelTop} -> ${grupoRelRight},${grupoRelBottom}`);
-        
-        // Verificar se o clique está dentro do grupo
-        if (x >= grupoRelLeft && x <= grupoRelRight && 
-            y >= grupoRelTop && y <= grupoRelBottom) {
-            console.log('✅ Elemento será adicionado DENTRO deste grupo');
-            return grupo;
-        }
-    }
-    
-    console.log('❌ Nenhum grupo encontrado na posição, adicionando na área principal');
-    return null;
-}
+       
 
         criarDimensoes(pecaElement, peca, width, height) {
             const pecaId = pecaElement.getAttribute('data-peca-id');
