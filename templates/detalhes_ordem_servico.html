@@ -424,8 +424,8 @@
     }
 
     .titulo-grupo:focus {
-        background: transparent;
-        border: 0px solid #4e73df;
+        background: white;
+        border: 2px solid #4e73df;
         outline: none;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
@@ -542,6 +542,7 @@
         min-width: 20px; 
         min-height: 20px; 
         touch-action: none; 
+        padding: 0px; 
         overflow: hidden;
         -ms-overflow-style: none;
         scrollbar-width: none;
@@ -557,6 +558,7 @@
         border: 0px solid #ccc; 
         border-radius: 4px; 
         box-shadow: none; 
+        padding: 0px; 
         overflow: hidden;
         -ms-overflow-style: none;
         scrollbar-width: none;
@@ -602,8 +604,8 @@
     }
 
     .elemento-selecionado { 
-        outline: 0px solid #4e73df !important; 
-        outline-offset: 0px; 
+        outline: 3px solid #4e73df !important; 
+        outline-offset: 2px; 
         z-index: 3 !important; 
         pointer-events: auto !important;
     }
@@ -612,16 +614,14 @@
         position: absolute;
         pointer-events: none;
         z-index: 9999;
-        
-
     }
     
     .handle {
         position: absolute;
-        width: 8px;
-        height: 8px;
+        width: 12px;
+        height: 12px;
         background-color: #4e73df;
-        border: 0px solid Blue;
+        border: 1px solid white;
         border-radius: 50%;
         pointer-events: all;
         box-shadow: 0 2px 4px rgba(0,0,0,0.3);
@@ -652,10 +652,10 @@
     
     .handle-rotacao {
         position: absolute;
-        width: 8px;
-        height: 8px;
-        background-color: yellow;
-        border: 0px solid yellow;
+        width: 14px;
+        height: 14px;
+        background-color: #f6c23e;
+        border: 2px solid white;
         border-radius: 50%;
         pointer-events: all;
         box-shadow: 0 2px 4px rgba(0,0,0,0.3);
@@ -749,34 +749,6 @@
 .drawing-area {
     position: relative;
     overflow: auto; /* 🔥 Mantém o scroll, mas o overlay fica fixo dentro */
-}
-
-/* 🔥 CORREÇÃO: Texto deve ficar acima da borracha */
-.texto-legenda, 
-.legenda-simplificada, 
-.titulo-grupo, 
-.simbolo-linha,
-.dimensoes, 
-.quantidade-peca {
-    z-index: 20 !important; /* 🔥 MAIOR que a borracha */
-}
-
-/* 🔥 CORREÇÃO: Borracha deve ficar ABAIXO do texto */
-.pintura-borracha {
-    z-index: 9 !important; /* 🔥 MENOR que o texto */
-}
-
-.cursor-borracha {
-    z-index: 14 !important; /* 🔥 Pode manter alto, mas texto acima */
-}
-
-/* 🔥 CORREÇÃO: Garantir que elementos de UI fiquem acima */
-.peca, .cuba {
-    z-index: 2 !important;
-}
-
-.elemento-selecionado {
-    z-index: 1000 !important; /* 🔥 Selecionados acima de tudo */
 }
 
     /* ======================== MOBILE ======================== */
@@ -954,7 +926,7 @@
         .modal-controles input, 
         .modal-controles textarea {
             font-size: 14px !important;
-            
+            padding: 8px 10px !important;
         }
     }
 
@@ -1329,8 +1301,8 @@ height: 0px !important;
     
     /* 🔥 CORREÇÃO: Feedback visual para elementos selecionados no mobile */
     .elemento-selecionado {
-        outline: 0px solid #4e73df !important;
-        outline-offset: 0px;
+        outline: 3px solid #4e73df !important;
+        outline-offset: 2px;
     }
     
     /* 🔥 CORREÇÃO: Zoom mais suave no mobile */
@@ -1575,8 +1547,8 @@ adicionarEstilosMobile() {
             
             /* 🔥 MELHORIA: Feedback visual para elementos selecionados no mobile */
             .elemento-selecionado {
-                outline: 0px solid #4e73df !important;
-                outline-offset: 0px;
+                outline: 3px solid #4e73df !important;
+                outline-offset: 2px;
             }
             
             /* 🔥 MELHORIA: Zoom mais suave no mobile */
@@ -2094,7 +2066,7 @@ salvarEstadoHistoricoForcado(descricao) {
     }; 
 }
 
-     pintarComBorracha(e) {
+      pintarComBorracha(e) {
     if (!this.borrachaPressionada) return;
     
     const coords = this.obterCoordenadasBorracha(e);
@@ -2105,7 +2077,6 @@ salvarEstadoHistoricoForcado(descricao) {
     pintura.style.top = `${coords.y - this.tamanhoBorracha/2}px`;
     pintura.style.width = `${this.tamanhoBorracha}px`;
     pintura.style.height = `${this.tamanhoBorracha}px`;
-    pintura.style.zIndex = '9'; // 🔥 GARANTIR z-index baixo
     
     this.drawingArea.appendChild(pintura);
     
@@ -3961,96 +3932,83 @@ _isTouchGesture(e) {
             // Para linha reta, não usar o resizable do interact
         }
 
-       criarHandles(elemento) {
-    console.log('🔧 Criando handles para:', elemento.className);
-    
-    const pos = this.obterPosicaoComScroll(elemento);
-    const left = pos.left;
-    const top = pos.top;
-    const width = pos.width;
-    const height = pos.height;
+        criarHandles(elemento) {
+            console.log('🔧 Criando handles para:', elemento.className);
+            
+            const pos = this.obterPosicaoComScroll(elemento);
+            const left = pos.left;
+            const top = pos.top;
+            const width = pos.width;
+            const height = pos.height;
 
-    const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
-    const rad = rotation * Math.PI / 180;
-    
-    const centerX = left + width / 2;
-    const centerY = top + height / 2;
+            const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+            const rad = rotation * Math.PI / 180;
+            
+            const centerX = left + width / 2;
+            const centerY = top + height / 2;
 
-    console.log(`🔧 Posição: left=${left}, top=${top}, width=${width}, height=${height}, rotation=${rotation}`);
+            console.log(`🔧 Posição: left=${left}, top=${top}, width=${width}, height=${height}, rotation=${rotation}`);
 
-    // 🔥 CORREÇÃO: Definir handles baseado no tipo de elemento
-    let relativeHandles = [];
-    
-    if (elemento.classList.contains('linha-reta')) {
-        // 🔥 PARA LINHA RETA: Apenas handles laterais (leste e oeste) + rotação
-        relativeHandles = [
-           { class: 'handle-se', relX: width / 2, relY: height / 2 },
-            { class: 'handle-sw', relX: -width / 2, relY: height / 2 },
-        ];
-    } else {
-        // 🔥 PARA OUTROS ELEMENTOS: Todos os handles
-        relativeHandles = [
-            { class: 'handle-e', relX: width / 2, relY: 0 },
-            { class: 'handle-w', relX: -width / 2, relY: 0 },
-            { class: 'handle-ne', relX: width / 2, relY: -height / 2 },
-            { class: 'handle-nw', relX: -width / 2, relY: -height / 2 },
-            { class: 'handle-se', relX: width / 2, relY: height / 2 },
-            { class: 'handle-sw', relX: -width / 2, relY: height / 2 },
-            { class: 'handle-n', relX: 0, relY: -height / 2 },
-            { class: 'handle-s', relX: 0, relY: height / 2 }
-        ];
-    }
+            const relativeHandles = [
+                { class: 'handle-n', relX: 0, relY: -height / 2 },
+                { class: 'handle-s', relX: 0, relY: height / 2 },
+                { class: 'handle-e', relX: width / 2, relY: 0 },
+                { class: 'handle-w', relX: -width / 2, relY: 0 },
+                { class: 'handle-ne', relX: width / 2, relY: -height / 2 },
+                { class: 'handle-nw', relX: -width / 2, relY: -height / 2 },
+                { class: 'handle-se', relX: width / 2, relY: height / 2 },
+                { class: 'handle-sw', relX: -width / 2, relY: height / 2 }
+            ];
 
-    const handles = relativeHandles.map(handle => {
-        const rotatedX = handle.relX * Math.cos(rad) - handle.relY * Math.sin(rad);
-        const rotatedY = handle.relX * Math.sin(rad) + handle.relY * Math.cos(rad);
-        
-        return {
-            class: handle.class,
-            x: centerX + rotatedX,
-            y: centerY + rotatedY
-        };
-    });
+            const handles = relativeHandles.map(handle => {
+                const rotatedX = handle.relX * Math.cos(rad) - handle.relY * Math.sin(rad);
+                const rotatedY = handle.relX * Math.sin(rad) + handle.relY * Math.cos(rad);
+                
+                return {
+                    class: handle.class,
+                    x: centerX + rotatedX,
+                    y: centerY + rotatedY
+                };
+            });
 
-    this.removerHandles();
+            this.removerHandles();
 
-    handles.forEach(handle => {
-        const handleElement = document.createElement('div');
-        handleElement.className = `handle ${handle.class}`;
-        handleElement.style.left = `${handle.x}px`;
-        handleElement.style.top = `${handle.y}px`;
-        handleElement.style.zIndex = '1002';
-        handleElement.style.position = 'absolute';
-        
-        console.log(`🔧 Criando handle ${handle.class} em x=${handle.x}, y=${handle.y}`);
-        
-        this.drawingArea.appendChild(handleElement);
-        this.handles.push(handleElement);
-        
-        this.configurarHandle(handleElement, elemento, handle.class);
-    });
+            handles.forEach(handle => {
+                const handleElement = document.createElement('div');
+                handleElement.className = `handle ${handle.class}`;
+                handleElement.style.left = `${handle.x}px`;
+                handleElement.style.top = `${handle.y}px`;
+                handleElement.style.zIndex = '1002';
+                handleElement.style.position = 'absolute';
+                
+                console.log(`🔧 Criando handle ${handle.class} em x=${handle.x}, y=${handle.y}`);
+                
+                this.drawingArea.appendChild(handleElement);
+                this.handles.push(handleElement);
+                
+                this.configurarHandle(handleElement, elemento, handle.class);
+            });
 
-    // 🔥 CORREÇÃO: Adicionar handle de rotação para TODOS os elementos (incluindo linha reta)
-    const handleRotacaoRelY = elemento.classList.contains('linha-reta') ? -60 : -height / 2 - 40;
-    const handleRotacaoX = 0 * Math.cos(rad) - handleRotacaoRelY * Math.sin(rad);
-    const handleRotacaoY = 0 * Math.sin(rad) + handleRotacaoRelY * Math.cos(rad);
+            const handleRotacaoRelY = -height / 2 - 40;
+            const handleRotacaoX = 0 * Math.cos(rad) - handleRotacaoRelY * Math.sin(rad);
+            const handleRotacaoY = 0 * Math.sin(rad) + handleRotacaoRelY * Math.cos(rad);
 
-    const handleRotacao = document.createElement('div');
-    handleRotacao.className = 'handle handle-rotacao';
-    handleRotacao.style.left = `${centerX + handleRotacaoX}px`;
-    handleRotacao.style.top = `${centerY + handleRotacaoY}px`;
-    handleRotacao.style.zIndex = '1002';
-    handleRotacao.style.position = 'absolute';
-    
-    console.log(`🔧 Criando handle de rotação em x=${centerX + handleRotacaoX}, y=${centerY + handleRotacaoY}`);
-    
-    this.drawingArea.appendChild(handleRotacao);
-    this.handles.push(handleRotacao);
-    
-    this.configurarHandleRotacao(handleRotacao, elemento);
-    
-    console.log(`✅ ${this.handles.length} handles criados com sucesso`);
-}
+            const handleRotacao = document.createElement('div');
+            handleRotacao.className = 'handle handle-rotacao';
+            handleRotacao.style.left = `${centerX + handleRotacaoX}px`;
+            handleRotacao.style.top = `${centerY + handleRotacaoY}px`;
+            handleRotacao.style.zIndex = '1002';
+            handleRotacao.style.position = 'absolute';
+            
+            console.log(`🔧 Criando handle de rotação em x=${centerX + handleRotacaoX}, y=${centerY + handleRotacaoY}`);
+            
+            this.drawingArea.appendChild(handleRotacao);
+            this.handles.push(handleRotacao);
+            
+            this.configurarHandleRotacao(handleRotacao, elemento);
+            
+            console.log(`✅ ${this.handles.length} handles criados com sucesso`);
+        }
 
         configurarHandle(handle, elemento, handleClass) {
     let initialX, initialY;
