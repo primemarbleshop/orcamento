@@ -5301,6 +5301,47 @@ trazerElementoParaFrente(elemento) {
     console.log(`🎯 Elemento trazido para frente com z-index: ${elemento.style.zIndex}`);
 }
 
+verificarMudancaDeGrupo(elemento, x, y) {
+    const posicaoAtual = this.obterPosicaoAbsoluta(elemento);
+    const novoGrupo = this.encontrarGrupoNaPosicao(posicaoAtual.left, posicaoAtual.top);
+    const grupoAtual = elemento.parentElement;
+    
+    // Verificar se é um grupo válido
+    const ehAreaPecas = grupoAtual && grupoAtual.classList.contains('area-pecas');
+    const ehNovoGrupoValido = novoGrupo && novoGrupo.classList.contains('area-pecas');
+    
+    if (ehAreaPecas && ehNovoGrupoValido && grupoAtual !== novoGrupo) {
+        console.log('🔄 Movendo elemento para novo grupo');
+        
+        // Salvar transformação atual
+        const transform = elemento.style.transform;
+        const dataX = elemento.getAttribute('data-x');
+        const dataY = elemento.getAttribute('data-y');
+        
+        // Calcular posição relativa no novo grupo
+        const grupoRect = novoGrupo.getBoundingClientRect();
+        const drawingRect = this.drawingArea.getBoundingClientRect();
+        const grupoLeft = grupoRect.left - drawingRect.left;
+        const grupoTop = grupoRect.top - drawingRect.top;
+        
+        const xRelativo = posicaoAtual.left - grupoLeft;
+        const yRelativo = posicaoAtual.top - grupoTop;
+        
+        // Mover para o novo grupo
+        elemento.style.left = `${xRelativo}px`;
+        elemento.style.top = `${yRelativo}px`;
+        elemento.style.transform = 'none'; // Resetar transform
+        elemento.setAttribute('data-x', '0');
+        elemento.setAttribute('data-y', '0');
+        
+        // Remover do grupo atual e adicionar ao novo
+        grupoAtual.removeChild(elemento);
+        novoGrupo.appendChild(elemento);
+        
+        console.log('✅ Elemento movido para novo grupo');
+    }
+}
+
         configurarInteratividadeSimbolo(elemento) {
             console.log('🔧 Configurando interatividade para símbolo:', elemento);
             
