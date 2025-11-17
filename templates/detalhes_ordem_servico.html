@@ -4699,6 +4699,35 @@ configurarInteratividade(elemento) {
     }
 }
 
+obterPosicaoAbsoluta(elemento) {
+    const rect = elemento.getBoundingClientRect();
+    const drawingRect = this.drawingArea.getBoundingClientRect();
+    const scrollLeft = this.drawingArea.scrollLeft || 0;
+    const scrollTop = this.drawingArea.scrollTop || 0;
+    
+    // Considerar transform translate
+    const transform = elemento.style.transform;
+    let translateX = 0, translateY = 0;
+    
+    if (transform && transform !== 'none') {
+        const match = transform.match(/translate\(([^)]+)\)/);
+        if (match) {
+            const values = match[1].split(',').map(v => parseFloat(v.trim().replace('px', '')));
+            if (values.length >= 2) {
+                translateX = values[0] || 0;
+                translateY = values[1] || 0;
+            }
+        }
+    }
+    
+    return {
+        left: rect.left - drawingRect.left + scrollLeft + translateX,
+        top: rect.top - drawingRect.top + scrollTop + translateY,
+        width: rect.width,
+        height: rect.height
+    };
+}
+
      manipularCliqueInsercao(e) {
     if (!this.modoInsercaoAtivo) return;
     
