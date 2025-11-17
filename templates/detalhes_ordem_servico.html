@@ -3805,24 +3805,25 @@ _isTouchGesture(e) {
 }
 
         selecionarElemento(elemento, event) {
-            this.desselecionarElemento();
-            
-            this.elementoSelecionado = elemento;
-            elemento.classList.add('elemento-selecionado');
-            
-            elemento.style.zIndex = '1000';
-            
-            console.log('🔧 Selecionando elemento:', elemento.className, elemento.classList.contains('simbolo-linha'));
-            
-            this.desabilitarLinhasPecas();
-            
-            if (!elemento.classList.contains('simbolo-linha') && !elemento.classList.contains('grupo-temporario')) {
-                this.criarHandles(elemento);
-            }
-            
-            this.configurarInteratividade(elemento);
-            this.atualizarEstadoBotoes();
-        }
+    this.desselecionarElemento();
+    
+    this.elementoSelecionado = elemento;
+    elemento.classList.add('elemento-selecionado');
+    
+    // 🔥 CORREÇÃO: Trazer para frente ao selecionar
+    this.trazerElementoParaFrente(elemento);
+    
+    console.log('🔧 Selecionando elemento:', elemento.className, elemento.classList.contains('simbolo-linha'));
+    
+    this.desabilitarLinhasPecas();
+    
+    if (!elemento.classList.contains('simbolo-linha') && !elemento.classList.contains('grupo-temporario')) {
+        this.criarHandles(elemento);
+    }
+    
+    this.configurarInteratividade(elemento);
+    this.atualizarEstadoBotoes();
+}
 
         configurarHandlesLinhaReta(elemento) {
             this.criarHandlesLinhaReta(elemento);
