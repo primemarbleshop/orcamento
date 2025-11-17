@@ -44,12 +44,9 @@
         z-index: 1 !important;
     }
 
- 
+  
 
-    /* 🔥 CORREÇÃO: Elementos selecionados devem ficar acima */
-    .elemento-selecionado {
-        z-index: 3 !important;
-    }
+ 
 
     /* 🔥 CORREÇÃO: Handles devem ficar acima */
     .handles-container,
@@ -58,7 +55,7 @@
         z-index: 14 !important;
     }
 
-    
+  
 
     /* 🔥 CORREÇÃO: Modais devem ficar acima de tudo mas NÃO BLOQUEAR BACKGROUND */
     .modal-controles,
@@ -535,6 +532,7 @@
         min-width: 20px; 
         min-height: 20px; 
         touch-action: none; 
+        padding: 0px; 
         overflow: hidden;
         -ms-overflow-style: none;
         scrollbar-width: none;
@@ -550,6 +548,7 @@
         border: 0px solid #ccc; 
         border-radius: 4px; 
         box-shadow: none; 
+        padding: 0px; 
         overflow: hidden;
         -ms-overflow-style: none;
         scrollbar-width: none;
@@ -744,8 +743,6 @@
     overflow: auto; /* 🔥 Mantém o scroll, mas o overlay fica fixo dentro */
 }
 
-
-
     /* ======================== MOBILE ======================== */
     @media (max-width: 768px) {
         .modo-laco .drawing-area {
@@ -921,7 +918,7 @@
         .modal-controles input, 
         .modal-controles textarea {
             font-size: 14px !important;
-            
+            padding: 8px 10px !important;
         }
     }
 
@@ -1606,6 +1603,55 @@ adicionarEstilosMobile() {
     }
 }
 
+ adicionarEstilosMobile() {
+        if (!document.getElementById('estilos-borracha-mobile')) {
+            const estiloMobile = `
+                /* 🔥 CORREÇÃO: Permitir zoom com pinça no modo borracha para mobile */
+                @media (max-width: 768px) {
+                    .modo-borracha .drawing-area {
+                        touch-action: pan-x pan-y pinch-zoom !important;
+                        cursor: default !important;
+                    }
+                    
+                    .modo-borracha .cursor-borracha {
+                        display: none !important;
+                    }
+                    
+                    /* Manter o bloqueio de interação com elementos, mas permitir zoom */
+                    .modo-borracha .peca,
+                    .modo-borracha .cuba,
+                    .modo-borracha .texto-legenda,
+                    .modo-borracha .legenda-simplificada,
+                    .modo-borracha .simbolo-linha,
+                    .modo-borracha .titulo-grupo,
+                    .modo-borracha .dimensoes,
+                    .modo-borracha .quantidade-peca,
+                    .modo-borracha .linha-peca,
+                    .modo-borracha .grupo-temporario {
+                        pointer-events: none !important;
+                        touch-action: none !important;
+                    }
+                }
+
+               
+
+                @media (max-width: 768px) {
+                    .cursor-borracha {
+                        width: 25px;
+                        height: 25px;
+                        border-width: 3px;
+                    }
+                }
+            `;
+
+            const styleElement = document.createElement('style');
+            styleElement.id = 'estilos-borracha-mobile';
+            styleElement.textContent = estiloMobile;
+            document.head.appendChild(styleElement);
+            
+            console.log('✅ Estilos mobile para borracha adicionados');
+        }
+    }
 
         // 🔥 NOVO MÉTODO: Desativar todos os modos
         desativarTodosOsModos() {
@@ -2012,7 +2058,7 @@ salvarEstadoHistoricoForcado(descricao) {
     }; 
 }
 
-     pintarComBorracha(e) {
+      pintarComBorracha(e) {
     if (!this.borrachaPressionada) return;
     
     const coords = this.obterCoordenadasBorracha(e);
@@ -2023,7 +2069,6 @@ salvarEstadoHistoricoForcado(descricao) {
     pintura.style.top = `${coords.y - this.tamanhoBorracha/2}px`;
     pintura.style.width = `${this.tamanhoBorracha}px`;
     pintura.style.height = `${this.tamanhoBorracha}px`;
-    pintura.style.zIndex = '8'; // 🔥 GARANTIR z-index baixo
     
     this.drawingArea.appendChild(pintura);
     
@@ -3434,7 +3479,7 @@ refazer() {
                             event.stopPropagation();
                         }
 
-                        grupo.style.zIndex = '0';
+                        grupo.style.zIndex = '1001';
                         
                         grupo.setAttribute('data-x-inicial', grupo.getAttribute('data-x') || 0);
                         grupo.setAttribute('data-y-inicial', grupo.getAttribute('data-y') || 0);
@@ -3478,7 +3523,7 @@ refazer() {
                             event.stopPropagation();
                         }
                         
-                        grupo.style.zIndex = '0';
+                        grupo.style.zIndex = '1000';
                         
                         const xInicial = parseFloat(grupo.getAttribute('data-x-inicial')) || 0;
                         const yInicial = parseFloat(grupo.getAttribute('data-y-inicial')) || 0;
@@ -3703,55 +3748,18 @@ _isTouchGesture(e) {
     };
 }
 
-        atualizarOrdemEmpilhamentoCompleta() {
-    console.log('🔄 Atualizando ordem de empilhamento...');
-    
-    // 1. Grupos de materiais (mais ao fundo)
-    const todosGrupos = this.drawingArea.querySelectorAll('.area-pecas');
-    todosGrupos.forEach((grupo, index) => {
-        grupo.style.zIndex = (index + 1).toString();
-    });
-    
-    // 2. Títulos dos grupos
-    const titulosGrupos = this.drawingArea.querySelectorAll('.titulo-grupo');
-    titulosGrupos.forEach((titulo, index) => {
-        titulo.style.zIndex = (todosGrupos.length + index + 1).toString();
-    });
-    
-    // 3. Peças dentro dos grupos
-    const todasPecas = this.drawingArea.querySelectorAll('.peca');
-    todasPecas.forEach((peca, index) => {
-        if (!peca.classList.contains('elemento-selecionado')) {
-            peca.style.zIndex = (todosGrupos.length + titulosGrupos.length + index + 1).toString();
+        atualizarOrdemEmpilhamento() {
+            const todasPecas = this.drawingArea.querySelectorAll('.peca');
+            const todosGrupos = this.drawingArea.querySelectorAll('.area-pecas');
+            
+            todosGrupos.forEach((grupo, index) => {
+                grupo.style.zIndex = 1;
+            });
+            
+            todasPecas.forEach((peca, index) => {
+                peca.style.zIndex = 2;
+            });
         }
-    });
-    
-    // 4. Cubas e outros elementos
-    const cubas = this.drawingArea.querySelectorAll('.cuba');
-    cubas.forEach((cuba, index) => {
-        if (!cuba.classList.contains('elemento-selecionado')) {
-            cuba.style.zIndex = (todosGrupos.length + titulosGrupos.length + todasPecas.length + index + 1).toString();
-        }
-    });
-    
-    // 5. Elementos de texto
-    const textos = this.drawingArea.querySelectorAll('.texto-legenda, .legenda-simplificada');
-    textos.forEach((texto, index) => {
-        if (!texto.classList.contains('elemento-selecionado')) {
-            texto.style.zIndex = (todosGrupos.length + titulosGrupos.length + todasPecas.length + cubas.length + index + 1).toString();
-        }
-    });
-    
-    // 6. Símbolos e dimensões (sempre no topo, exceto quando selecionados)
-    const simbolos = this.drawingArea.querySelectorAll('.simbolo-linha, .dimensoes, .quantidade-peca');
-    simbolos.forEach((simbolo, index) => {
-        if (!simbolo.classList.contains('elemento-selecionado')) {
-            simbolo.style.zIndex = (todosGrupos.length + titulosGrupos.length + todasPecas.length + cubas.length + textos.length + index + 100).toString();
-        }
-    });
-    
-    console.log('✅ Ordem de empilhamento atualizada');
-}
 
         selecionarElemento(elemento, event) {
             this.desselecionarElemento();
