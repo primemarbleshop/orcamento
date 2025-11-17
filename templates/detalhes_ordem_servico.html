@@ -542,7 +542,6 @@
         min-width: 20px; 
         min-height: 20px; 
         touch-action: none; 
-        padding: 0px; 
         overflow: hidden;
         -ms-overflow-style: none;
         scrollbar-width: none;
@@ -558,7 +557,6 @@
         border: 0px solid #ccc; 
         border-radius: 4px; 
         box-shadow: none; 
-        padding: 0px; 
         overflow: hidden;
         -ms-overflow-style: none;
         scrollbar-width: none;
@@ -753,6 +751,34 @@
     overflow: auto; /* 🔥 Mantém o scroll, mas o overlay fica fixo dentro */
 }
 
+/* 🔥 CORREÇÃO: Texto deve ficar acima da borracha */
+.texto-legenda, 
+.legenda-simplificada, 
+.titulo-grupo, 
+.simbolo-linha,
+.dimensoes, 
+.quantidade-peca {
+    z-index: 20 !important; /* 🔥 MAIOR que a borracha */
+}
+
+/* 🔥 CORREÇÃO: Borracha deve ficar ABAIXO do texto */
+.pintura-borracha {
+    z-index: 9 !important; /* 🔥 MENOR que o texto */
+}
+
+.cursor-borracha {
+    z-index: 14 !important; /* 🔥 Pode manter alto, mas texto acima */
+}
+
+/* 🔥 CORREÇÃO: Garantir que elementos de UI fiquem acima */
+.peca, .cuba {
+    z-index: 2 !important;
+}
+
+.elemento-selecionado {
+    z-index: 1000 !important; /* 🔥 Selecionados acima de tudo */
+}
+
     /* ======================== MOBILE ======================== */
     @media (max-width: 768px) {
         .modo-laco .drawing-area {
@@ -928,7 +954,7 @@
         .modal-controles input, 
         .modal-controles textarea {
             font-size: 14px !important;
-            padding: 8px 10px !important;
+            
         }
     }
 
@@ -1613,55 +1639,6 @@ adicionarEstilosMobile() {
     }
 }
 
- adicionarEstilosMobile() {
-        if (!document.getElementById('estilos-borracha-mobile')) {
-            const estiloMobile = `
-                /* 🔥 CORREÇÃO: Permitir zoom com pinça no modo borracha para mobile */
-                @media (max-width: 768px) {
-                    .modo-borracha .drawing-area {
-                        touch-action: pan-x pan-y pinch-zoom !important;
-                        cursor: default !important;
-                    }
-                    
-                    .modo-borracha .cursor-borracha {
-                        display: none !important;
-                    }
-                    
-                    /* Manter o bloqueio de interação com elementos, mas permitir zoom */
-                    .modo-borracha .peca,
-                    .modo-borracha .cuba,
-                    .modo-borracha .texto-legenda,
-                    .modo-borracha .legenda-simplificada,
-                    .modo-borracha .simbolo-linha,
-                    .modo-borracha .titulo-grupo,
-                    .modo-borracha .dimensoes,
-                    .modo-borracha .quantidade-peca,
-                    .modo-borracha .linha-peca,
-                    .modo-borracha .grupo-temporario {
-                        pointer-events: none !important;
-                        touch-action: none !important;
-                    }
-                }
-
-               
-
-                @media (max-width: 768px) {
-                    .cursor-borracha {
-                        width: 25px;
-                        height: 25px;
-                        border-width: 3px;
-                    }
-                }
-            `;
-
-            const styleElement = document.createElement('style');
-            styleElement.id = 'estilos-borracha-mobile';
-            styleElement.textContent = estiloMobile;
-            document.head.appendChild(styleElement);
-            
-            console.log('✅ Estilos mobile para borracha adicionados');
-        }
-    }
 
         // 🔥 NOVO MÉTODO: Desativar todos os modos
         desativarTodosOsModos() {
@@ -2068,7 +2045,7 @@ salvarEstadoHistoricoForcado(descricao) {
     }; 
 }
 
-      pintarComBorracha(e) {
+     pintarComBorracha(e) {
     if (!this.borrachaPressionada) return;
     
     const coords = this.obterCoordenadasBorracha(e);
@@ -2079,6 +2056,7 @@ salvarEstadoHistoricoForcado(descricao) {
     pintura.style.top = `${coords.y - this.tamanhoBorracha/2}px`;
     pintura.style.width = `${this.tamanhoBorracha}px`;
     pintura.style.height = `${this.tamanhoBorracha}px`;
+    pintura.style.zIndex = '9'; // 🔥 GARANTIR z-index baixo
     
     this.drawingArea.appendChild(pintura);
     
