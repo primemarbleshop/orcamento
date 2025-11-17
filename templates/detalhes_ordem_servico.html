@@ -3743,18 +3743,20 @@ _isTouchGesture(e) {
     return false;
 }
         
-        obterPosicaoComScroll(elemento) {
+       obterPosicaoComScroll(elemento) {
     const rect = elemento.getBoundingClientRect();
     const drawingAreaRect = this.drawingArea.getBoundingClientRect();
     const scrollLeft = this.drawingArea.scrollLeft || 0;
     const scrollTop = this.drawingArea.scrollTop || 0;
     
-    // 🔥 CORREÇÃO: Considerar scroll na posição
+    // 🔥 CORREÇÃO: Usar bounding box REAL considerando rotação
+    const { widthReal, heightReal } = this.calcularDimensoesReaisComRotacao(elemento);
+    
     return {
         left: rect.left - drawingAreaRect.left + scrollLeft,
         top: rect.top - drawingAreaRect.top + scrollTop,
-        width: rect.width,
-        height: rect.height
+        width: widthReal,    // 🔥 Dimensão REAL
+        height: heightReal   // 🔥 Dimensão REAL
     };
 }
 
@@ -3940,37 +3942,36 @@ _isTouchGesture(e) {
     const pos = this.obterPosicaoComScroll(elemento);
     const left = pos.left;
     const top = pos.top;
-    const width = pos.width;
-    const height = pos.height;
-
+    
+    // 🔥 CORREÇÃO CRÍTICA: Obter dimensões REAIS considerando rotação
+    const { widthReal, heightReal } = this.calcularDimensoesReaisComRotacao(elemento);
+    
     const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
     const rad = rotation * Math.PI / 180;
     
-    const centerX = left + width / 2;
-    const centerY = top + height / 2;
+    const centerX = left + widthReal / 2;
+    const centerY = top + heightReal / 2;
 
-    console.log(`🔧 Posição: left=${left}, top=${top}, width=${width}, height=${height}, rotation=${rotation}`);
+    console.log(`🔧 Dimensões REAIS: ${widthReal}x${heightReal}px, Rotação: ${rotation}°`);
 
-    // 🔥 CORREÇÃO: Definir handles baseado no tipo de elemento
+    // 🔥 CORREÇÃO: Usar dimensões REAIS para posicionar handles
     let relativeHandles = [];
     
     if (elemento.classList.contains('linha-reta')) {
-        // 🔥 PARA LINHA RETA: Apenas handles laterais (leste e oeste) + rotação
         relativeHandles = [
-            { class: 'handle-se', relX: width / 2, relY: height / 2 },
-            { class: 'handle-sw', relX: -width / 2, relY: height / 2 },
+            { class: 'handle-e', relX: widthReal / 2, relY: 0 },
+            { class: 'handle-w', relX: -widthReal / 2, relY: 0 }
         ];
     } else {
-        // 🔥 PARA OUTROS ELEMENTOS: Todos os handles
         relativeHandles = [
-            { class: 'handle-e', relX: width / 2, relY: 0 },
-            { class: 'handle-w', relX: -width / 2, relY: 0 },
-            { class: 'handle-ne', relX: width / 2, relY: -height / 2 },
-            { class: 'handle-nw', relX: -width / 2, relY: -height / 2 },
-            { class: 'handle-se', relX: width / 2, relY: height / 2 },
-            { class: 'handle-sw', relX: -width / 2, relY: height / 2 },
-            { class: 'handle-n', relX: 0, relY: -height / 2 },
-            { class: 'handle-s', relX: 0, relY: height / 2 }
+            { class: 'handle-e', relX: widthReal / 2, relY: 0 },
+            { class: 'handle-w', relX: -widthReal / 2, relY: 0 },
+            { class: 'handle-ne', relX: widthReal / 2, relY: -heightReal / 2 },
+            { class: 'handle-nw', relX: -widthReal / 2, relY: -heightReal / 2 },
+            { class: 'handle-se', relX: widthReal / 2, relY: heightReal / 2 },
+            { class: 'handle-sw', relX: -widthReal / 2, relY: heightReal / 2 },
+            { class: 'handle-n', relX: 0, relY: -heightReal / 2 },
+            { class: 'handle-s', relX: 0, relY: heightReal / 2 }
         ];
     }
 
@@ -3995,16 +3996,16 @@ _isTouchGesture(e) {
         handleElement.style.zIndex = '1002';
         handleElement.style.position = 'absolute';
         
-        console.log(`🔧 Criando handle ${handle.class} em x=${handle.x}, y=${handle.y}`);
-        
         this.drawingArea.appendChild(handleElement);
         this.handles.push(handleElement);
         
         this.configurarHandle(handleElement, elemento, handle.class);
     });
 
-    // 🔥 CORREÇÃO: Adicionar handle de rotação para TODOS os elementos (incluindo linha reta)
-    const handleRotacaoRelY = elemento.classList.contains('linha-reta') ? -60 : -height / 2 - 40;
+    // 🔥 CORREÇÃO: Handle de rotação usando dimensões REAIS
+    const handleRotacaoRelY = elemento.classList.contains('linha-reta') ? 
+        -60 : -heightReal / 2 - 40;
+    
     const handleRotacaoX = 0 * Math.cos(rad) - handleRotacaoRelY * Math.sin(rad);
     const handleRotacaoY = 0 * Math.sin(rad) + handleRotacaoRelY * Math.cos(rad);
 
@@ -4015,14 +4016,37 @@ _isTouchGesture(e) {
     handleRotacao.style.zIndex = '1002';
     handleRotacao.style.position = 'absolute';
     
-    console.log(`🔧 Criando handle de rotação em x=${centerX + handleRotacaoX}, y=${centerY + handleRotacaoY}`);
-    
     this.drawingArea.appendChild(handleRotacao);
     this.handles.push(handleRotacao);
     
     this.configurarHandleRotacao(handleRotacao, elemento);
     
-    console.log(`✅ ${this.handles.length} handles criados com sucesso`);
+    console.log(`✅ ${this.handles.length} handles criados com dimensões reais`);
+}
+
+// 🔥 NOVO MÉTODO: Calcular dimensões REAIS considerando rotação
+calcularDimensoesReaisComRotacao(elemento) {
+    const widthCSS = parseFloat(elemento.style.width) || 0;
+    const heightCSS = parseFloat(elemento.style.height) || 0;
+    const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+    
+    // Se não há rotação, retorna as dimensões CSS normais
+    if (rotation === 0 || rotation === 180) {
+        return { widthReal: widthCSS, heightReal: heightCSS };
+    }
+    
+    // Se rotação é 90° ou 270°, inverte as dimensões
+    if (rotation === 90 || rotation === 270) {
+        return { widthReal: heightCSS, heightReal: widthCSS };
+    }
+    
+    // Para rotações diferentes de 0°, 90°, 180°, 270°
+    // Calcula as dimensões do bounding box rotacionado
+    const rad = rotation * Math.PI / 180;
+    const widthReal = Math.abs(widthCSS * Math.cos(rad)) + Math.abs(heightCSS * Math.sin(rad));
+    const heightReal = Math.abs(widthCSS * Math.sin(rad)) + Math.abs(heightCSS * Math.cos(rad));
+    
+    return { widthReal, heightReal };
 }
 
         configurarHandle(handle, elemento, handleClass) {
