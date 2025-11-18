@@ -1437,6 +1437,45 @@ height: 0px !important;
         }
     }
 
+const handleStyles = `
+/* 🔥 CORREÇÃO: Handles como filhos do elemento */
+.peca .handle,
+.cuba .handle,
+.texto-legenda .handle,
+.legenda-simplificada .handle,
+.titulo-grupo .handle {
+    position: absolute !important;
+    transform: translate(-50%, -50%) !important;
+    z-index: 10002 !important;
+}
+
+/* Garantir que os handles fiquem acima do conteúdo */
+.peca, .cuba, .texto-legenda, .legenda-simplificada, .titulo-grupo {
+    position: relative;
+    overflow: visible;
+}
+
+/* Handles de rotação específicos */
+.handle-rotation {
+    background-color: #4e73df !important;
+    border: 1px solid white !important;
+}
+
+/* Estados de hover dos handles */
+.handle:hover {
+    transform: translate(-50%, -50%) scale(1.3) !important;
+    background-color: #2e59d9 !important;
+}
+`;
+
+// Adicionar o CSS ao documento
+if (!document.getElementById('handle-styles-filhos')) {
+    const styleElement = document.createElement('style');
+    styleElement.id = 'handle-styles-filhos';
+    styleElement.textContent = handleStyles;
+    document.head.appendChild(styleElement);
+}
+
 	
 </style>
 
@@ -1570,6 +1609,10 @@ height: 0px !important;
 // SISTEMA DE HANDLES - EXCALIDRAW IMPLEMENTATION (CORRIGIDO)
 // =============================================
 
+// =============================================
+// SISTEMA DE HANDLES - COMO FILHOS DO ELEMENTO (CORRIGIDO)
+// =============================================
+
 class HandleSystem {
     constructor(gerenciador) {
         this.gerenciador = gerenciador;
@@ -1581,7 +1624,7 @@ class HandleSystem {
     }
 
     criarHandles(elemento) {
-        console.log('🎯 Criando handles no estilo Excalidraw para:', elemento.className);
+        console.log('🎯 Criando handles como filhos do elemento:', elemento.className);
         
         this.removerHandles();
         
@@ -1590,120 +1633,82 @@ class HandleSystem {
             return;
         }
 
-        const bbox = this.calcularBoundingBoxComRotacao(elemento);
-        const transformHandles = this.calcularPosicoesHandles(bbox);
-        
+        // 🔥 CORREÇÃO: Criar handles como filhos do elemento
+        const transformHandles = this.calcularPosicoesHandles(elemento);
         this.renderizarHandles(transformHandles, elemento);
-        console.log('✅ Handles do Excalidraw criados com sucesso');
+        console.log('✅ Handles criados como filhos do elemento');
     }
 
-    // 🔥 CORREÇÃO CRÍTICA: Calcular posições dos handles considerando a rotação REAL
-    calcularPosicoesHandles(bbox) {
-        const { x, y, width, height, rotation } = bbox;
-        const size = this.calcularTamanhoHandle();
+    // 🔥 CORREÇÃO: Calcular posições relativas ao elemento pai
+    calcularPosicoesHandles(elemento) {
+        const width = parseFloat(elemento.style.width);
+        const height = parseFloat(elemento.style.height);
+        const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
 
-        // Centro do elemento
-        const centerX = x + width / 2;
-        const centerY = y + height / 2;
-
-        // 🔥 CORREÇÃO: Usar coordenadas locais do elemento (não do bounding box)
-        const pontosLocais = {
-            nw: { x: -width/2, y: -height/2 },
-            ne: { x: width/2, y: -height/2 },
-            sw: { x: -width/2, y: height/2 },
-            se: { x: width/2, y: height/2 },
-            n:  { x: 0, y: -height/2 },
-            s:  { x: 0, y: height/2 },
-            w:  { x: -width/2, y: 0 },
-            e:  { x: width/2, y: 0 }
+        // Posições relativas ao elemento (sistema de coordenadas local)
+        const posicoesRelativas = {
+            // Cantos
+            nw: { x: 0, y: 0 },
+            ne: { x: width, y: 0 },
+            sw: { x: 0, y: height },
+            se: { x: width, y: height },
+            // Meio das bordas
+            n:  { x: width / 2, y: 0 },
+            s:  { x: width / 2, y: height },
+            w:  { x: 0, y: height / 2 },
+            e:  { x: width, y: height / 2 },
+            // Handle de rotação (acima do elemento)
+            rotation: { x: width / 2, y: -this.rotationHandleOffset }
         };
 
-        // Aplicar rotação aos pontos locais
-        const transformHandles = {};
-        Object.keys(pontosLocais).forEach(key => {
-            const ponto = pontosLocais[key];
-            const [xRot, yRot] = this.rotacionarPonto(
-                centerX + ponto.x, 
-                centerY + ponto.y, 
-                centerX, 
-                centerY, 
-                rotation
-            );
-            transformHandles[key] = [xRot, yRot];
+        return posicoesRelativas;
+    }
+
+    renderizarHandles(posicoesRelativas, elemento) {
+        const handleTypes = [
+            'n', 's', 'w', 'e', 'nw', 'ne', 'sw', 'se', 'rotation'
+        ];
+
+        handleTypes.forEach(handleType => {
+            if (!posicoesRelativas[handleType]) return;
+
+            const handle = this.criarHandleElement(handleType, posicoesRelativas[handleType]);
+            this.configurarHandle(handle, handleType, elemento);
+            
+            // 🔥 CORREÇÃO: Adicionar como filho do elemento
+            elemento.appendChild(handle);
+            this.handles.push(handle);
         });
-
-        // Handle de rotação (acima do elemento, considerando rotação)
-        const rotationHandleY = y - this.rotationHandleOffset;
-        transformHandles.rotation = this.rotacionarPonto(
-            centerX, rotationHandleY, centerX, centerY, rotation
-        );
-
-        return transformHandles;
     }
 
-    rotacionarPonto(x, y, centerX, centerY, rotation) {
-        const rad = rotation * Math.PI / 180;
-        const cos = Math.cos(rad);
-        const sin = Math.sin(rad);
+    criarHandleElement(handleType, posicao) {
+        const handle = document.createElement('div');
+        handle.className = `handle handle-${handleType}`;
         
-        const translatedX = x - centerX;
-        const translatedY = y - centerY;
-        
-        const rotatedX = translatedX * cos - translatedY * sin;
-        const rotatedY = translatedX * sin + translatedY * cos;
-        
-        return [rotatedX + centerX, rotatedY + centerY];
+        // 🔥 CORREÇÃO: Posicionamento relativo ao elemento pai
+        handle.style.cssText = `
+            position: absolute;
+            left: ${posicao.x}px;
+            top: ${posicao.y}px;
+            width: 8px;
+            height: 8px;
+            background-color: ${handleType === 'rotation' ? '#4e73df' : '#4e73df'};
+            border: 1px solid white;
+            border-radius: 50%;
+            pointer-events: all;
+            cursor: ${this.obterCursorHandle(handleType)};
+            z-index: 10002;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            transform: translate(-50%, -50%);
+        `;
+
+        return handle;
     }
 
-    // 🔥 CORREÇÃO: Calcular bounding box considerando transformação CSS real
-    calcularBoundingBoxComRotacao(elemento) {
-        // Obter a matriz de transformação real do elemento
-        const estilo = window.getComputedStyle(elemento);
-        const transform = estilo.transform;
-        
-        let rotation = 0;
-        
-        if (transform && transform !== 'none') {
-            // Extrair rotação da matriz de transformação
-            const valores = transform.match(/matrix\(([^)]+)\)/);
-            if (valores) {
-                const matrix = valores[1].split(',').map(parseFloat);
-                if (matrix.length === 6) {
-                    // Calcular ângulo a partir da matriz 2D
-                    rotation = Math.atan2(matrix[1], matrix[0]) * (180 / Math.PI);
-                }
-            }
-        } else {
-            // Fallback para o atributo data-rotate
-            rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
-        }
-
-        // Obter posição e dimensões reais (já considerando transformações)
-        const rect = elemento.getBoundingClientRect();
-        const drawingRect = this.gerenciador.drawingArea.getBoundingClientRect();
-        
-        const scrollLeft = this.gerenciador.drawingArea.scrollLeft || 0;
-        const scrollTop = this.gerenciador.drawingArea.scrollTop || 0;
-        
-        const left = rect.left - drawingRect.left + scrollLeft;
-        const top = rect.top - drawingRect.top + scrollTop;
-        const width = rect.width;
-        const height = rect.height;
-
-        return { 
-            x: left, 
-            y: top, 
-            width, 
-            height, 
-            rotation 
-        };
-    }
-
-    // 🔥 CORREÇÃO: Sistema de redimensionamento corrigido
+    // 🔥 CORREÇÃO: Sistema de redimensionamento simplificado
     configurarHandleRedimensionamento(handle, handleType, elemento) {
         let initialWidth, initialHeight, initialLeft, initialTop;
         let initialMouseX, initialMouseY;
-        let aspectRatio;
 
         const startResize = (e) => {
             e.preventDefault();
@@ -1717,8 +1722,6 @@ class HandleSystem {
             initialHeight = parseFloat(estilo.height);
             initialLeft = parseFloat(estilo.left);
             initialTop = parseFloat(estilo.top);
-            
-            aspectRatio = initialWidth / initialHeight;
             
             initialMouseX = e.clientX || (e.touches && e.touches[0].clientX);
             initialMouseY = e.clientY || (e.touches && e.touches[0].clientY);
@@ -1741,12 +1744,9 @@ class HandleSystem {
             const deltaX = mouseX - initialMouseX;
             const deltaY = mouseY - initialMouseY;
             
-            // 🔥 CORREÇÃO: Usar sistema de coordenadas local do elemento
-            const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
-            const transformedDelta = this.transformarDeltaParaSistemaLocal(deltaX, deltaY, rotation);
-            
+            // 🔥 CORREÇÃO: Sistema de coordenadas global (já que o elemento gira como um todo)
             const { newWidth, newHeight, newLeft, newTop } = this.calcularNovoSize(
-                handleType, transformedDelta, initialWidth, initialHeight, initialLeft, initialTop
+                handleType, deltaX, deltaY, initialWidth, initialHeight, initialLeft, initialTop
             );
 
             // Aplicar novas dimensões
@@ -1758,8 +1758,8 @@ class HandleSystem {
             // Atualizar elementos dependentes
             this.gerenciador.atualizarLinhasESimbolos(elemento);
             
-            // Atualizar handles em tempo real
-            this.criarHandles(elemento);
+            // 🔥 CORREÇÃO: Atualizar handles (eles se reposicionam automaticamente por serem filhos)
+            this.atualizarPosicoesHandles(elemento);
         };
 
         const stopResize = (e) => {
@@ -1779,67 +1779,21 @@ class HandleSystem {
         handle.addEventListener('touchstart', startResize, { passive: false });
     }
 
-    // 🔥 CORREÇÃO: Transformação correta para sistema local
-    transformarDeltaParaSistemaLocal(dx, dy, rotation) {
-        const rad = -rotation * Math.PI / 180;
-        const cos = Math.cos(rad);
-        const sin = Math.sin(rad);
+    // 🔥 CORREÇÃO: Atualizar posições dos handles quando o elemento muda de tamanho
+    atualizarPosicoesHandles(elemento) {
+        const posicoesRelativas = this.calcularPosicoesHandles(elemento);
         
-        return {
-            dx: dx * cos - dy * sin,
-            dy: dx * sin + dy * cos
-        };
+        this.handles.forEach(handle => {
+            const handleType = this.obterTipoHandle(handle);
+            if (posicoesRelativas[handleType]) {
+                const posicao = posicoesRelativas[handleType];
+                handle.style.left = `${posicao.x}px`;
+                handle.style.top = `${posicao.y}px`;
+            }
+        });
     }
 
-    calcularNovoSize(handleType, delta, initialWidth, initialHeight, initialLeft, initialTop) {
-        const { dx, dy } = delta;
-        let newWidth = initialWidth;
-        let newHeight = initialHeight;
-        let newLeft = initialLeft;
-        let newTop = initialTop;
-
-        // 🔥 CORREÇÃO: Lógica de redimensionamento baseada no sistema local
-        switch (handleType) {
-            case 'e':
-                newWidth = initialWidth + dx;
-                break;
-            case 'w':
-                newWidth = initialWidth - dx;
-                newLeft = initialLeft + dx;
-                break;
-            case 's':
-                newHeight = initialHeight + dy;
-                break;
-            case 'n':
-                newHeight = initialHeight - dy;
-                newTop = initialTop + dy;
-                break;
-            case 'se':
-                newWidth = initialWidth + dx;
-                newHeight = initialHeight + dy;
-                break;
-            case 'sw':
-                newWidth = initialWidth - dx;
-                newHeight = initialHeight + dy;
-                newLeft = initialLeft + dx;
-                break;
-            case 'ne':
-                newWidth = initialWidth + dx;
-                newHeight = initialHeight - dy;
-                newTop = initialTop + dy;
-                break;
-            case 'nw':
-                newWidth = initialWidth - dx;
-                newHeight = initialHeight - dy;
-                newLeft = initialLeft + dx;
-                newTop = initialTop + dy;
-                break;
-        }
-
-        return { newWidth, newHeight, newLeft, newTop };
-    }
-
-    // 🔥 CORREÇÃO: Sistema de rotação melhorado
+    // 🔥 CORREÇÃO: Sistema de rotação simplificado
     configurarHandleRotacao(handle, elemento) {
         let initialAngle, initialMouseAngle;
         let centerX, centerY;
@@ -1850,20 +1804,16 @@ class HandleSystem {
             
             this.isRotating = true;
             
-            const bbox = this.calcularBoundingBoxComRotacao(elemento);
-            centerX = bbox.x + bbox.width / 2;
-            centerY = bbox.y + bbox.height / 2;
+            const rect = elemento.getBoundingClientRect();
+            centerX = rect.left + rect.width / 2;
+            centerY = rect.top + rect.height / 2;
             
-            initialAngle = bbox.rotation;
+            initialAngle = parseFloat(elemento.getAttribute('data-rotate')) || 0;
             
             const mouseX = e.clientX || (e.touches && e.touches[0].clientX);
             const mouseY = e.clientY || (e.touches && e.touches[0].clientY);
             
-            const rect = this.gerenciador.drawingArea.getBoundingClientRect();
-            const adjustedX = mouseX - rect.left + this.gerenciador.drawingArea.scrollLeft;
-            const adjustedY = mouseY - rect.top + this.gerenciador.drawingArea.scrollTop;
-            
-            initialMouseAngle = Math.atan2(adjustedY - centerY, adjustedX - centerX);
+            initialMouseAngle = Math.atan2(mouseY - centerY, mouseX - centerX);
             
             handle.style.cursor = 'grabbing';
             document.addEventListener('mousemove', rotate);
@@ -1879,11 +1829,7 @@ class HandleSystem {
             const mouseX = e.clientX || (e.touches && e.touches[0].clientX);
             const mouseY = e.clientY || (e.touches && e.touches[0].clientY);
             
-            const rect = this.gerenciador.drawingArea.getBoundingClientRect();
-            const adjustedX = mouseX - rect.left + this.gerenciador.drawingArea.scrollLeft;
-            const adjustedY = mouseY - rect.top + this.gerenciador.drawingArea.scrollTop;
-            
-            const currentMouseAngle = Math.atan2(adjustedY - centerY, adjustedX - centerX);
+            const currentMouseAngle = Math.atan2(mouseY - centerY, mouseX - centerX);
             let angleDelta = currentMouseAngle - initialMouseAngle;
             
             // Converter para graus
@@ -1895,8 +1841,7 @@ class HandleSystem {
             // Aplicar rotação
             this.aplicarRotacaoElemento(elemento, newAngle);
             
-            // 🔥 CORREÇÃO: Atualizar handles em tempo real durante rotação
-            this.atualizarHandlesDuranteRotacao(elemento, newAngle);
+            // 🔥 CORREÇÃO: Handles giram automaticamente por serem filhos do elemento!
         };
 
         const stopRotation = (e) => {
@@ -1908,45 +1853,11 @@ class HandleSystem {
             document.removeEventListener('mouseup', stopRotation);
             document.removeEventListener('touchend', stopRotation);
             
-            // Forçar atualização final dos handles
-            setTimeout(() => {
-                this.criarHandles(elemento);
-            }, 50);
-            
             this.gerenciador.salvarEstadoHistorico('Rotacionar Elemento');
         };
 
         handle.addEventListener('mousedown', startRotation);
         handle.addEventListener('touchstart', startRotation, { passive: false });
-    }
-
-    // 🔥 NOVO: Atualizar handles durante rotação em tempo real
-    atualizarHandlesDuranteRotacao(elemento, novoAngulo) {
-        if (!this.isRotating) return;
-        
-        const bbox = this.calcularBoundingBoxComRotacao(elemento);
-        bbox.rotation = novoAngulo;
-        const transformHandles = this.calcularPosicoesHandles(bbox);
-        
-        // Atualizar posições dos handles existentes
-        this.handles.forEach(handle => {
-            const handleType = this.obterTipoHandle(handle);
-            if (transformHandles[handleType]) {
-                const [x, y] = transformHandles[handleType];
-                handle.style.left = `${x}px`;
-                handle.style.top = `${y}px`;
-            }
-        });
-    }
-
-    obterTipoHandle(handleElement) {
-        const classes = handleElement.className.split(' ');
-        for (const cls of classes) {
-            if (cls.startsWith('handle-') && cls !== 'handle-rotation') {
-                return cls.replace('handle-', '');
-            }
-        }
-        return 'rotation';
     }
 
     aplicarRotacaoElemento(elemento, angle) {
@@ -1960,45 +1871,51 @@ class HandleSystem {
         this.gerenciador.atualizarLinhasESimbolos(elemento);
     }
 
-    calcularTamanhoHandle() {
-        return 8;
-    }
+    calcularNovoSize(handleType, deltaX, deltaY, initialWidth, initialHeight, initialLeft, initialTop) {
+        let newWidth = initialWidth;
+        let newHeight = initialHeight;
+        let newLeft = initialLeft;
+        let newTop = initialTop;
 
-    renderizarHandles(transformHandles, elemento) {
-        const handleTypes = [
-            'n', 's', 'w', 'e', 'nw', 'ne', 'sw', 'se', 'rotation'
-        ];
+        // 🔥 CORREÇÃO: Lógica de redimensionamento no sistema global
+        switch (handleType) {
+            case 'e':
+                newWidth = initialWidth + deltaX;
+                break;
+            case 'w':
+                newWidth = initialWidth - deltaX;
+                newLeft = initialLeft + deltaX;
+                break;
+            case 's':
+                newHeight = initialHeight + deltaY;
+                break;
+            case 'n':
+                newHeight = initialHeight - deltaY;
+                newTop = initialTop + deltaY;
+                break;
+            case 'se':
+                newWidth = initialWidth + deltaX;
+                newHeight = initialHeight + deltaY;
+                break;
+            case 'sw':
+                newWidth = initialWidth - deltaX;
+                newHeight = initialHeight + deltaY;
+                newLeft = initialLeft + deltaX;
+                break;
+            case 'ne':
+                newWidth = initialWidth + deltaX;
+                newHeight = initialHeight - deltaY;
+                newTop = initialTop + deltaY;
+                break;
+            case 'nw':
+                newWidth = initialWidth - deltaX;
+                newHeight = initialHeight - deltaY;
+                newLeft = initialLeft + deltaX;
+                newTop = initialTop + deltaY;
+                break;
+        }
 
-        handleTypes.forEach(handleType => {
-            if (!transformHandles[handleType]) return;
-
-            const handle = this.criarHandleElement(handleType, transformHandles[handleType]);
-            this.configurarHandle(handle, handleType, elemento);
-            this.handles.push(handle);
-        });
-    }
-
-    criarHandleElement(handleType, [x, y]) {
-        const handle = document.createElement('div');
-        handle.className = `handle handle-${handleType}`;
-        handle.style.cssText = `
-            position: absolute;
-            left: ${x}px;
-            top: ${y}px;
-            width: 8px;
-            height: 8px;
-            background-color: ${handleType === 'rotation' ? '#4e73df' : '#4e73df'};
-            border: 1px solid white;
-            border-radius: 50%;
-            pointer-events: all;
-            cursor: ${this.obterCursorHandle(handleType)};
-            z-index: 10002;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.3);
-            transform: translate(-50%, -50%);
-        `;
-
-        this.gerenciador.drawingArea.appendChild(handle);
-        return handle;
+        return { newWidth, newHeight, newLeft, newTop };
     }
 
     obterCursorHandle(handleType) {
@@ -2024,6 +1941,16 @@ class HandleSystem {
         }
     }
 
+    obterTipoHandle(handleElement) {
+        const classes = handleElement.className.split(' ');
+        for (const cls of classes) {
+            if (cls.startsWith('handle-') && cls !== 'handle-rotation') {
+                return cls.replace('handle-', '');
+            }
+        }
+        return 'rotation';
+    }
+
     deveOcultarHandles(elemento) {
         return elemento.classList.contains('simbolo-linha') || 
                elemento.classList.contains('grupo-temporario') ||
@@ -2038,14 +1965,6 @@ class HandleSystem {
             }
         });
         this.handles = [];
-        
-        // Remover quaisquer handles órfãos
-        const handlesOrfaos = this.gerenciador.drawingArea.querySelectorAll('.handle');
-        handlesOrfaos.forEach(handle => {
-            if (handle.parentNode) {
-                handle.parentNode.removeChild(handle);
-            }
-        });
     }
 
     atualizarHandles() {
@@ -2054,6 +1973,7 @@ class HandleSystem {
         }
     }
 }
+
 
     // =============================================
     // CLASSE PRINCIPAL - GERENCIADOR DE DESENHO
