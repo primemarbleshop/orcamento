@@ -82,23 +82,26 @@
 
     /* 🔥 CORREÇÃO: Container de botões de ação - SEMPRE CENTRALIZADO */
     .action-buttons-container { 
-        position: sticky;
-        top: 0;
-        background: linear-gradient(to bottom, #f8f9fa 95%, transparent);
-        backdrop-filter: blur(10px);
-        border-bottom: 2px solid #dee2e6;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        padding: 15px;
-        border-radius: 0 0 8px 8px;
-        margin: 25px 0;
-        display: flex;
-        gap: 12px;
-        justify-content: center; /* 🔥 SEMPRE CENTRALIZADO */
-        flex-wrap: wrap;
-        z-index: 1000;
-        width: 100%;
-        box-sizing: border-box;
-    }
+    position: sticky;
+    top: 0;
+    background: linear-gradient(to bottom, #f8f9fa 95%, transparent);
+    backdrop-filter: blur(10px);
+    border-bottom: 2px solid #dee2e6;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    padding: 15px;
+    margin: 25px 0;
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    flex-wrap: wrap;
+    z-index: 10000; /* 🔥 Z-INDEX MUITO ALTO */
+    width: 100%;
+    box-sizing: border-box;
+    
+    /* 🔥 GARANTIR que fique sempre visível */
+    will-change: transform;
+    -webkit-overflow-scrolling: touch;
+}
 
     /* 🔥 CORREÇÃO: Botões no PC - centralizados mas mantendo tamanho original */
     @media (min-width: 1401px) {
@@ -158,42 +161,46 @@
     }
 
     /* 🔥 CORREÇÃO CRÍTICA: Prevenir que botões sejam afetados pelo zoom no mobile */
-    @media (max-width: 768px) {
-        .action-buttons-container {
-            position: fixed; /* 🔥 FIXO no mobile para sempre aparecer */
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
-            padding: 8px;
-            gap: 6px;
-            justify-content: center; /* 🔥 CENTRALIZADO */
-            transform: none !important;
-            transform-origin: top center !important;
-        }
+   /* 🔥 CORREÇÃO: Para mobile - GARANTIR visibilidade total mesmo com zoom */
+@media (max-width: 768px) {
+    .action-buttons-container {
+        position: -webkit-sticky; /* Safari */
+        position: sticky;
+        top: 0;
+        left: 0;
+        right: 0;
+        padding: 10px;
+        gap: 6px;
+        margin: 20px 0;
         
-        /* 🔥 MANTÉM tamanhos originais dos botões no mobile */
-        .action-buttons-container .btn {
-            /* Tamanhos originais - não alterar */
-            width: 50px !important;
-            height: 50px !important;
-            transform: none !important;
-            flex-shrink: 0;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .action-buttons-container .btn i {
-            transform: none !important;
-            margin: 0 !important;
-        }
-        
-        /* 🔥 GARANTIR que os botões fiquem acima de tudo no mobile */
-        .action-buttons-container {
-            z-index: 10000 !important;
-        }
+        /* 🔥 FORÇAR visibilidade no mobile com zoom */
+        min-height: 60px; /* Altura mínima garantida */
+        overflow: visible !important;
     }
+    
+    .action-buttons-container .btn {
+        width: 50px !important;
+        height: 50px !important;
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        
+        /* 🔥 GARANTIR que botões não desapareçam */
+        position: relative;
+        z-index: 10001;
+    }
+    
+    /* 🔥 CORREÇÃO EXTRA: Garantir que o container principal não corte os botões */
+    .main-container {
+        overflow: visible !important;
+    }
+    
+    body {
+        overflow-x: auto;
+        min-height: 100vh;
+    }
+}
 
     /* 🔥 CORREÇÃO: Container principal para compensar a barra fixa no mobile */
     @media (max-width: 768px) {
@@ -1467,6 +1474,86 @@ height: 0px !important;
         }
     }
 </style>
+
+<style>
+    // Forçar redimensionamento para manter botões visíveis
+    function manterBotoesVisiveis() {
+        const actionButtons = document.querySelector('.action-buttons-container');
+        if (actionButtons) {
+            // Garantir que esteja sempre visível
+            actionButtons.style.visibility = 'visible';
+            actionButtons.style.opacity = '1';
+            actionButtons.style.display = 'flex';
+            
+            // Forçar repaint
+            actionButtons.style.transform = 'translateZ(0)';
+        }
+    }
+    
+    // Executar quando a página carregar e em eventos de redimensionamento/zoom
+    document.addEventListener('DOMContentLoaded', manterBotoesVisiveis);
+    window.addEventListener('resize', manterBotoesVisiveis);
+    window.addEventListener('orientationchange', manterBotoesVisiveis);
+    
+    // Monitorar mudanças no viewport (para detectar zoom)
+    let visualViewport = window.visualViewport;
+    if (visualViewport) {
+        visualViewport.addEventListener('resize', manterBotoesVisiveis);
+        visualViewport.addEventListener('scroll', manterBotoesVisiveis);
+    }
+</style>
+
+<script>
+// 🔥 CORREÇÃO CRÍTICA: Garantir que botões SEMPRE fiquem visíveis
+document.addEventListener('DOMContentLoaded', function() {
+    function garantirVisibilidadeBotoes() {
+        const actionButtons = document.querySelector('.action-buttons-container');
+        if (!actionButtons) return;
+        
+        // 🔥 FORÇAR visibilidade
+        actionButtons.style.visibility = 'visible';
+        actionButtons.style.opacity = '1';
+        actionButtons.style.display = 'flex';
+        actionButtons.style.zIndex = '10000';
+        
+        // 🔥 Garantir posição correta
+        actionButtons.style.position = 'sticky';
+        actionButtons.style.top = '0';
+        actionButtons.style.left = '0';
+        actionButtons.style.right = '0';
+        
+        console.log('✅ Botões garantidos como visíveis');
+    }
+    
+    // Executar imediatamente
+    garantirVisibilidadeBotoes();
+    
+    // Executar em vários eventos
+    window.addEventListener('resize', garantirVisibilidadeBotoes);
+    window.addEventListener('scroll', garantirVisibilidadeBotoes);
+    window.addEventListener('orientationchange', garantirVisibilidadeBotoes);
+    
+    // Para dispositivos com visualViewport (mobile)
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', garantirVisibilidadeBotoes);
+        window.visualViewport.addEventListener('scroll', garantirVisibilidadeBotoes);
+    }
+    
+    // Monitorar continuamente (fallback)
+    setInterval(garantirVisibilidadeBotoes, 1000);
+});
+
+// 🔥 CORREÇÃO: Prevenir comportamento padrão de zoom que pode esconder elementos
+document.addEventListener('touchstart', function(e) {
+    if (e.touches.length > 1) {
+        e.preventDefault();
+    }
+}, { passive: false });
+
+document.addEventListener('gesturestart', function(e) {
+    e.preventDefault();
+});
+</script>
 
 </head>
 <body>
