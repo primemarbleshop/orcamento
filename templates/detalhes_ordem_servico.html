@@ -4795,49 +4795,6 @@ _isTouchGesture(e) {
         configurarInteratividadeCuba(elemento, tipo) {
     // 🔥 CORREÇÃO: Configurar interatividade SEMPRE, não apenas quando selecionável
     interact(elemento).draggable({
-        modifiers: [
-            interact.modifiers.restrict({
-                restriction: (x, y, element) => {
-                    // 🔥 CORREÇÃO: Usar nosso sistema personalizado de limites
-                    const limites = this.obterLimitesAreaDesenho();
-                    const elementRect = element.getBoundingClientRect();
-                    const drawingRect = this.drawingArea.getBoundingClientRect();
-                    
-                    // Calcular posições relativas
-                    const relativeX = x - drawingRect.left;
-                    const relativeY = y - drawingRect.top;
-                    
-                    // 🔥 RESTRIÇÕES: Bloquear laterais e topo, permitir fundo
-                    let restrictedX = relativeX;
-                    let restrictedY = relativeY;
-                    
-                    // Bloquear movimento além da borda esquerda
-                    if (relativeX < limites.left) {
-                        restrictedX = limites.left;
-                    }
-                    
-                    // Bloquear movimento além da borda direita
-                    if (relativeX + elementRect.width > limites.right) {
-                        restrictedX = limites.right - elementRect.width;
-                    }
-                    
-                    // 🔥 BLOQUEAR movimento além do topo
-                    if (relativeY < limites.top) {
-                        restrictedY = limites.top;
-                    }
-                    
-                    // 🔥 PERMITIR movimento livre para baixo (sem restrição no fundo)
-                    
-                    return {
-                        x: restrictedX + drawingRect.left,
-                        y: restrictedY + drawingRect.top,
-                        width: 0,
-                        height: 0
-                    };
-                },
-                endOnly: false
-            })
-        ],
         listeners: {
             start: () => {
                 elemento.style.zIndex = '1000';
@@ -4864,34 +4821,6 @@ _isTouchGesture(e) {
     } else {
         interact(elemento).resizable({
             edges: { left: true, right: true, bottom: true, top: true },
-            modifiers: [
-                interact.modifiers.restrict({
-                    restriction: (x, y, element) => {
-                        // 🔥 CORREÇÃO: Aplicar mesma restrição para redimensionamento
-                        const limites = this.obterLimitesAreaDesenho();
-                        const elementRect = element.getBoundingClientRect();
-                        const drawingRect = this.drawingArea.getBoundingClientRect();
-                        
-                        const relativeX = x - drawingRect.left;
-                        const relativeY = y - drawingRect.top;
-                        
-                        let restrictedX = relativeX;
-                        let restrictedY = relativeY;
-                        
-                        if (relativeX < limites.left) restrictedX = limites.left;
-                        if (relativeX + elementRect.width > limites.right) restrictedX = limites.right - elementRect.width;
-                        if (relativeY < limites.top) restrictedY = limites.top;
-                        
-                        return {
-                            x: restrictedX + drawingRect.left,
-                            y: restrictedY + drawingRect.top,
-                            width: 0,
-                            height: 0
-                        };
-                    },
-                    endOnly: false
-                })
-            ],
             listeners: {
                 move: function (event) {
                     let { x, y } = event.deltaRect;
@@ -5041,31 +4970,9 @@ _isTouchGesture(e) {
             allowFrom: '.texto-legenda',
             ignoreFrom: 'input, textarea, button, select',
             modifiers: [
-                interact.modifiers.restrict({
-                    restriction: (x, y, element) => {
-                        // 🔥 CORREÇÃO: Aplicar restrições também para texto
-                        const limites = this.obterLimitesAreaDesenho();
-                        const elementRect = element.getBoundingClientRect();
-                        const drawingRect = this.drawingArea.getBoundingClientRect();
-                        
-                        const relativeX = x - drawingRect.left;
-                        const relativeY = y - drawingRect.top;
-                        
-                        let restrictedX = relativeX;
-                        let restrictedY = relativeY;
-                        
-                        if (relativeX < limites.left) restrictedX = limites.left;
-                        if (relativeX + elementRect.width > limites.right) restrictedX = limites.right - elementRect.width;
-                        if (relativeY < limites.top) restrictedY = limites.top;
-                        
-                        return {
-                            x: restrictedX + drawingRect.left,
-                            y: restrictedY + drawingRect.top,
-                            width: 0,
-                            height: 0
-                        };
-                    },
-                    endOnly: false
+                interact.modifiers.restrictRect({
+                    restriction: 'parent',
+                    endOnly: true
                 })
             ],
             preventDefault: 'always',
@@ -5118,34 +5025,6 @@ _isTouchGesture(e) {
         // Redimensionamento do texto
         interact(elemento).resizable({
             edges: { left: false, right: true, bottom: true, top: false },
-            modifiers: [
-                interact.modifiers.restrict({
-                    restriction: (x, y, element) => {
-                        // 🔥 CORREÇÃO: Aplicar restrições também para redimensionamento de texto
-                        const limites = this.obterLimitesAreaDesenho();
-                        const elementRect = element.getBoundingClientRect();
-                        const drawingRect = this.drawingArea.getBoundingClientRect();
-                        
-                        const relativeX = x - drawingRect.left;
-                        const relativeY = y - drawingRect.top;
-                        
-                        let restrictedX = relativeX;
-                        let restrictedY = relativeY;
-                        
-                        if (relativeX < limites.left) restrictedX = limites.left;
-                        if (relativeX + elementRect.width > limites.right) restrictedX = limites.right - elementRect.width;
-                        if (relativeY < limites.top) restrictedY = limites.top;
-                        
-                        return {
-                            x: restrictedX + drawingRect.left,
-                            y: restrictedY + drawingRect.top,
-                            width: 0,
-                            height: 0
-                        };
-                    },
-                    endOnly: false
-                })
-            ],
             listeners: {
                 move: function (event) {
                     Object.assign(event.target.style, {
@@ -5494,181 +5373,99 @@ simboloElement.style.zIndex = '10';
             }
         }
 
-obterLimitesAreaDesenho() {
-    const drawingRect = this.drawingArea.getBoundingClientRect();
-    const scrollLeft = this.drawingArea.scrollLeft || 0;
-    const scrollTop = this.drawingArea.scrollTop || 0;
-    
-    return {
-        left: 0,
-        top: 0,
-        right: drawingRect.width - scrollLeft,
-        bottom: drawingRect.height + 1000, // 🔥 PERMITIR movimento livre para baixo
-        width: drawingRect.width,
-        height: drawingRect.height
-    };
-}
+        configurarInteratividade(elemento) {
+            this.removerInteratividade(elemento);
+            
+            if (elemento.classList.contains('elemento-selecionado') && !elemento.classList.contains('grupo-temporario')) {
+                
+                if (elemento.classList.contains('simbolo-linha')) {
+                    this.configurarInteratividadeSimbolo(elemento);
+                } else {
+                    interact(elemento).draggable({
+                        listeners: {
+                            start: () => {
+                                elemento.style.zIndex = '1000';
+                            },
+                            move: (event) => {
+                                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                                const rotate = elemento.getAttribute('data-rotate') || 0;
 
-       configurarInteratividade(elemento) {
-    this.removerInteratividade(elemento);
-    
-    if (elemento.classList.contains('elemento-selecionado') && !elemento.classList.contains('grupo-temporario')) {
-        
-        if (elemento.classList.contains('simbolo-linha')) {
-            this.configurarInteratividadeSimbolo(elemento);
-        } else {
+                                elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
+                                elemento.setAttribute('data-x', x);
+                                elemento.setAttribute('data-y', y);
+
+                                if (elemento.classList.contains('peca')) {
+                                   
+                                }
+                                
+                                if (!elemento.classList.contains('simbolo-linha')) {
+                                    this.atualizarHandles();
+                                }
+                            },
+                            end: () => {
+                                elemento.style.zIndex = '';
+                                this.salvarEstadoHistorico('Mover Elemento');
+                            }
+                        }
+                    });
+                }
+            }
+        }
+
+        configurarInteratividadeSimbolo(elemento) {
+            console.log('🔧 Configurando interatividade para símbolo:', elemento);
+            
+            const pecaId = elemento.getAttribute('data-peca-id');
+            const pecaElement = this.drawingArea.querySelector(`#peca-${pecaId}`);
+            
+            if (!pecaElement) {
+                console.error('❌ Peça pai não encontrada para o símbolo');
+                return;
+            }
+
             interact(elemento).draggable({
-                modifiers: [
-                    interact.modifiers.restrict({
-                        restriction: (x, y, element) => {
-                            // 🔥 CORREÇÃO: Usar nosso sistema personalizado de limites
-                            const limites = this.obterLimitesAreaDesenho();
-                            const elementRect = element.getBoundingClientRect();
-                            const drawingRect = this.drawingArea.getBoundingClientRect();
-                            
-                            // Calcular posições relativas
-                            const relativeX = x - drawingRect.left;
-                            const relativeY = y - drawingRect.top;
-                            
-                            // 🔥 RESTRIÇÕES: Bloquear laterais e topo, permitir fundo
-                            let restrictedX = relativeX;
-                            let restrictedY = relativeY;
-                            
-                            // Bloquear movimento além da borda esquerda
-                            if (relativeX < limites.left) {
-                                restrictedX = limites.left;
-                            }
-                            
-                            // Bloquear movimento além da borda direita
-                            if (relativeX + elementRect.width > limites.right) {
-                                restrictedX = limites.right - elementRect.width;
-                            }
-                            
-                            // 🔥 BLOQUEAR movimento além do topo
-                            if (relativeY < limites.top) {
-                                restrictedY = limites.top;
-                            }
-                            
-                            // 🔥 PERMITIR movimento livre para baixo (sem restrição no fundo)
-                            
-                            return {
-                                x: restrictedX + drawingRect.left,
-                                y: restrictedY + drawingRect.top,
-                                width: 0,
-                                height: 0
-                            };
-                        },
-                        endOnly: false
-                    })
-                ],
+                allowFrom: '.simbolo-linha',
+                ignoreFrom: 'input, textarea, button, select',
+                
                 listeners: {
-                    start: () => {
+                    start: (event) => {
                         elemento.style.zIndex = '1000';
+                        console.log('🔧 Iniciando movimento do símbolo');
                     },
                     move: (event) => {
                         let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
                         let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-                        const rotate = elemento.getAttribute('data-rotate') || 0;
-
-                        elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
+                        const rotate = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+                        
+                        elemento.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px) rotate(${rotate}deg)`;
                         elemento.setAttribute('data-x', x);
                         elemento.setAttribute('data-y', y);
-
-                        if (elemento.classList.contains('peca')) {
-                            // Atualizar elementos dependentes se necessário
-                        }
                         
-                        if (!elemento.classList.contains('simbolo-linha')) {
-                            this.atualizarHandles();
-                        }
+                        console.log(`🔧 Movendo símbolo - dx=${event.dx}, dy=${event.dy} | Pos: x=${x}, y=${y}`);
                     },
                     end: () => {
-                        elemento.style.zIndex = '';
-                        this.salvarEstadoHistorico('Mover Elemento');
+                        elemento.style.zIndex = '10';
+                        this.salvarEstadoHistorico('Mover Símbolo');
+                        console.log('🔧 Movimento do símbolo concluído');
                     }
                 }
             });
-        }
-    }
-}
 
-       configurarInteratividadeSimbolo(elemento) {
-    console.log('🔧 Configurando interatividade para símbolo:', elemento);
-    
-    const pecaId = elemento.getAttribute('data-peca-id');
-    const pecaElement = this.drawingArea.querySelector(`#peca-${pecaId}`);
-    
-    if (!pecaElement) {
-        console.error('❌ Peça pai não encontrada para o símbolo');
-        return;
-    }
-
-    interact(elemento).draggable({
-        allowFrom: '.simbolo-linha',
-        ignoreFrom: 'input, textarea, button, select',
-        modifiers: [
-            interact.modifiers.restrict({
-                restriction: (x, y, element) => {
-                    // 🔥 CORREÇÃO: Aplicar restrições também para símbolos
-                    const limites = this.obterLimitesAreaDesenho();
-                    const elementRect = element.getBoundingClientRect();
-                    const drawingRect = this.drawingArea.getBoundingClientRect();
-                    
-                    const relativeX = x - drawingRect.left;
-                    const relativeY = y - drawingRect.top;
-                    
-                    let restrictedX = relativeX;
-                    let restrictedY = relativeY;
-                    
-                    if (relativeX < limites.left) restrictedX = limites.left;
-                    if (relativeX + elementRect.width > limites.right) restrictedX = limites.right - elementRect.width;
-                    if (relativeY < limites.top) restrictedY = limites.top;
-                    
-                    return {
-                        x: restrictedX + drawingRect.left,
-                        y: restrictedY + drawingRect.top,
-                        width: 0,
-                        height: 0
-                    };
-                },
-                endOnly: false
-            })
-        ],
-        
-        listeners: {
-            start: (event) => {
-                elemento.style.zIndex = '1000';
-                console.log('🔧 Iniciando movimento do símbolo');
-            },
-            move: (event) => {
-                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+            elemento.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                elemento.setAttribute('data-x', 0);
+                elemento.setAttribute('data-y', 0);
                 const rotate = parseFloat(elemento.getAttribute('data-rotate')) || 0;
-                
-                elemento.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px) rotate(${rotate}deg)`;
-                elemento.setAttribute('data-x', x);
-                elemento.setAttribute('data-y', y);
-                
-                console.log(`🔧 Movendo símbolo - dx=${event.dx}, dy=${event.dy} | Pos: x=${x}, y=${y}`);
-            },
-            end: () => {
-                elemento.style.zIndex = '10';
-                this.salvarEstadoHistorico('Mover Símbolo');
-                console.log('🔧 Movimento do símbolo concluído');
-            }
+                elemento.style.transform = `translate(-50%, -50%) rotate(${rotate}deg)`;
+                this.salvarEstadoHistorico('Resetar Posição do Símbolo');
+                console.log('🔄 Posição do símbolo resetada');
+            });
         }
-    });
 
-    elemento.addEventListener('dblclick', (e) => {
-        e.stopPropagation();
-        elemento.setAttribute('data-x', 0);
-        elemento.setAttribute('data-y', 0);
-        const rotate = parseFloat(elemento.getAttribute('data-rotate')) || 0;
-        elemento.style.transform = `translate(-50%, -50%) rotate(${rotate}deg)`;
-        this.salvarEstadoHistorico('Resetar Posição do Símbolo');
-        console.log('🔄 Posição do símbolo resetada');
-    });
-}
+        removerInteratividade(elemento) {
+            interact(elemento).unset();
+        }
 
         calcularDimensoesPeca(peca, escala) {
             const larguraArea = this.drawingArea.offsetWidth;
