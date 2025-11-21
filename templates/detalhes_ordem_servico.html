@@ -44,11 +44,7 @@
         z-index: 1 !important;
     }
 
-    .peca, .cuba, .texto-legenda, .legenda-simplificada,
-    .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca,
-    .linha-peca, .grupo-temporario {
-        z-index: 2 !important;
-    }
+    
 
     /* 🔥 CORREÇÃO: Elementos selecionados devem ficar acima */
     .elemento-selecionado {
@@ -196,7 +192,7 @@
         padding: 2px 4px; 
         border: none;
         border-radius: 3px; 
-        z-index: 5 !important;
+        z-index: 10 !important;
         cursor: default; 
         touch-action: none; 
         user-select: none; 
@@ -424,8 +420,8 @@
     }
 
     .titulo-grupo:focus {
-        background: white;
-        border: 2px solid #4e73df;
+        background: transparent;
+        border: 0px solid #4e73df;
         outline: none;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
@@ -489,7 +485,7 @@
         color: #000; 
         background-color: transparent !important; 
         cursor: default; 
-        z-index: 10; 
+        z-index: 10 !important; 
         user-select: none; 
         text-align: center; 
     }
@@ -542,7 +538,6 @@
         min-width: 20px; 
         min-height: 20px; 
         touch-action: none; 
-        padding: 0px; 
         overflow: hidden;
         -ms-overflow-style: none;
         scrollbar-width: none;
@@ -558,7 +553,6 @@
         border: 0px solid #ccc; 
         border-radius: 4px; 
         box-shadow: none; 
-        padding: 0px; 
         overflow: hidden;
         -ms-overflow-style: none;
         scrollbar-width: none;
@@ -604,8 +598,8 @@
     }
 
     .elemento-selecionado { 
-        outline: 3px solid #4e73df !important; 
-        outline-offset: 2px; 
+        outline: 0px solid #4e73df !important; 
+        outline-offset: 0px; 
         z-index: 3 !important; 
         pointer-events: auto !important;
     }
@@ -614,14 +608,16 @@
         position: absolute;
         pointer-events: none;
         z-index: 9999;
+        
+
     }
     
     .handle {
         position: absolute;
-        width: 12px;
-        height: 12px;
+        width: 8px;
+        height: 8px;
         background-color: #4e73df;
-        border: 1px solid white;
+        border: 0px solid Blue;
         border-radius: 50%;
         pointer-events: all;
         box-shadow: 0 2px 4px rgba(0,0,0,0.3);
@@ -652,10 +648,10 @@
     
     .handle-rotacao {
         position: absolute;
-        width: 14px;
-        height: 14px;
-        background-color: #f6c23e;
-        border: 2px solid white;
+        width: 8px;
+        height: 8px;
+        background-color: yellow;
+        border: 0px solid yellow;
         border-radius: 50%;
         pointer-events: all;
         box-shadow: 0 2px 4px rgba(0,0,0,0.3);
@@ -749,6 +745,61 @@
 .drawing-area {
     position: relative;
     overflow: auto; /* 🔥 Mantém o scroll, mas o overlay fica fixo dentro */
+}
+
+/* 🔥 CORREÇÃO: Texto deve ficar acima da borracha */
+.texto-legenda, 
+.legenda-simplificada, 
+.titulo-grupo, 
+.simbolo-linha,
+.dimensoes, 
+.quantidade-peca {
+    z-index: 20 !important; /* 🔥 MAIOR que a borracha */
+}
+
+/* 🔥 CORREÇÃO: Borracha deve ficar ABAIXO do texto */
+.pintura-borracha {
+    z-index: 9 !important; /* 🔥 MENOR que o texto */
+}
+
+.cursor-borracha {
+    z-index: 14 !important; /* 🔥 Pode manter alto, mas texto acima */
+}
+
+/* 🔥 CORREÇÃO: Garantir que elementos de UI fiquem acima */
+.peca, .cuba {
+    z-index: 2 !important;
+}
+
+.elemento-selecionado {
+    z-index: 1000 !important; /* 🔥 Selecionados acima de tudo */
+}
+
+.area-pecas {
+    pointer-events: none !important;
+}
+
+/* 🔥 CORREÇÃO: Todos os elementos dentro de grupos DEVEM ser interativos */
+.area-pecas .peca,
+.area-pecas .cuba,
+.area-pecas .texto-legenda,
+.area-pecas .legenda-simplificada,
+.area-pecas .simbolo-linha,
+.area-pecas .dimensoes,
+.area-pecas .quantidade-peca {
+    pointer-events: auto !important;
+}
+
+/* 🔥 CORREÇÃO: Elementos fora de grupos também */
+.peca,
+.cuba,
+.texto-legenda,
+.legenda-simplificada,
+.simbolo-linha,
+.titulo-grupo,
+.dimensoes,
+.quantidade-peca {
+    pointer-events: auto !important;
 }
 
     /* ======================== MOBILE ======================== */
@@ -926,7 +977,7 @@
         .modal-controles input, 
         .modal-controles textarea {
             font-size: 14px !important;
-            padding: 8px 10px !important;
+            
         }
     }
 
@@ -1301,8 +1352,8 @@ height: 0px !important;
     
     /* 🔥 CORREÇÃO: Feedback visual para elementos selecionados no mobile */
     .elemento-selecionado {
-        outline: 3px solid #4e73df !important;
-        outline-offset: 2px;
+        outline: 0px solid #4e73df !important;
+        outline-offset: 0px;
     }
     
     /* 🔥 CORREÇÃO: Zoom mais suave no mobile */
@@ -1547,8 +1598,8 @@ adicionarEstilosMobile() {
             
             /* 🔥 MELHORIA: Feedback visual para elementos selecionados no mobile */
             .elemento-selecionado {
-                outline: 3px solid #4e73df !important;
-                outline-offset: 2px;
+                outline: 0px solid #4e73df !important;
+                outline-offset: 0px;
             }
             
             /* 🔥 MELHORIA: Zoom mais suave no mobile */
@@ -2066,7 +2117,7 @@ salvarEstadoHistoricoForcado(descricao) {
     }; 
 }
 
-      pintarComBorracha(e) {
+     pintarComBorracha(e) {
     if (!this.borrachaPressionada) return;
     
     const coords = this.obterCoordenadasBorracha(e);
@@ -2077,6 +2128,7 @@ salvarEstadoHistoricoForcado(descricao) {
     pintura.style.top = `${coords.y - this.tamanhoBorracha/2}px`;
     pintura.style.width = `${this.tamanhoBorracha}px`;
     pintura.style.height = `${this.tamanhoBorracha}px`;
+    pintura.style.zIndex = '9'; // 🔥 GARANTIR z-index baixo
     
     this.drawingArea.appendChild(pintura);
     
@@ -2228,23 +2280,61 @@ atualizarCursorBorracha(e) {
             }
         }
 
-        restaurarElementosTexto() {
-            const elementosTexto = this.drawingArea.querySelectorAll('.texto-legenda');
-            
-            elementosTexto.forEach(texto => {
-                const valorSalvo = texto.getAttribute('data-valor');
-                if (valorSalvo !== null) {
-                    texto.value = valorSalvo;
-                }
-                
-                if (texto.value === '' && texto.textContent !== '') {
-                    texto.value = texto.textContent;
-                }
-                
-                texto.style.height = 'auto';
-                texto.style.height = (texto.scrollHeight) + 'px';
-            });
+       restaurarElementosTexto() {
+    const elementosTexto = this.drawingArea.querySelectorAll('.texto-legenda');
+    const drawingRect = this.drawingArea.getBoundingClientRect();
+    
+    elementosTexto.forEach(texto => {
+        const valorSalvo = texto.getAttribute('data-valor');
+        if (valorSalvo !== null) {
+            texto.value = valorSalvo;
         }
+        
+        // 🔥 CORREÇÃO: Restaurar posição usando coordenadas relativas
+        const xRel = texto.getAttribute('data-x-rel');
+        const yRel = texto.getAttribute('data-y-rel');
+        
+        if (xRel && yRel) {
+            // Priorizar coordenadas relativas (cross-device)
+            texto.style.left = `${xRel}%`;
+            texto.style.top = `${yRel}%`;
+        } else {
+            // Fallback para coordenadas absolutas (backward compatibility)
+            const xAbs = texto.getAttribute('data-x-abs');
+            const yAbs = texto.getAttribute('data-y-abs');
+            if (xAbs && yAbs) {
+                const xPercent = (parseFloat(xAbs) / drawingRect.width) * 100;
+                const yPercent = (parseFloat(yAbs) / drawingRect.height) * 100;
+                texto.style.left = `${xPercent}%`;
+                texto.style.top = `${yPercent}%`;
+            }
+        }
+        
+        // 🔥 CORREÇÃO: Ajuste responsivo do tamanho da fonte
+        const baseFontSize = 14;
+        const responsiveFontSize = Math.max(baseFontSize, baseFontSize * (drawingRect.width / 1400));
+        texto.style.fontSize = `${responsiveFontSize}px`;
+        
+        texto.style.height = 'auto';
+        texto.style.height = (texto.scrollHeight) + 'px';
+        
+        // 🔥 CORREÇÃO: Ajuste responsivo da largura
+        setTimeout(() => {
+            const tempSpan = document.createElement('span');
+            tempSpan.style.fontSize = texto.style.fontSize;
+            tempSpan.style.fontFamily = 'Arial, sans-serif';
+            tempSpan.style.visibility = 'hidden';
+            tempSpan.style.whiteSpace = 'pre';
+            tempSpan.textContent = texto.value || 'Texto';
+            document.body.appendChild(tempSpan);
+            
+            const textWidth = tempSpan.offsetWidth + 20;
+            texto.style.width = `${Math.min(textWidth, drawingRect.width * 0.8)}px`;
+            
+            document.body.removeChild(tempSpan);
+        }, 50);
+    });
+}
 
       salvarEstadoHistorico(descricao, forcarSalvamento = false) {
     const agora = Date.now();
@@ -3644,15 +3734,36 @@ refazer() {
     });
 }
 
-// 🔥 NOVO MÉTODO: Forçar atualização de interatividade para todos os elementos
 forcarAtualizacaoInteratividade() {
-    const elementosTexto = this.drawingArea.querySelectorAll('.texto-legenda');
-    elementosTexto.forEach(texto => {
-        if (this.modoSelecaoAtivo) {
-            texto.classList.add('selecionavel');
+    const todosElementos = this.drawingArea.querySelectorAll(
+        '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca'
+    );
+    
+    todosElementos.forEach(elemento => {
+        elemento.style.pointerEvents = 'auto';
+        
+        // Se o modo seleção estiver ativo, tornar selecionável
+        if (this.modoSelecaoAtivo && !elemento.classList.contains('selecionavel')) {
+            elemento.classList.add('selecionavel');
         }
-        this.configurarInteratividadeTexto(texto);
+        
+        // Reconfigurar interatividade específica para cada tipo
+        if (elemento.classList.contains('texto-legenda')) {
+            this.configurarInteratividadeTexto(elemento);
+        } else if (elemento.classList.contains('simbolo-linha')) {
+            this.configurarInteratividadeSimbolo(elemento);
+        } else if (elemento.classList.contains('legenda-simplificada')) {
+            this.configurarInteratividadeLegenda(elemento);
+        }
     });
+    
+    // Garantir que grupos não bloqueiem eventos
+    const grupos = this.drawingArea.querySelectorAll('.area-pecas');
+    grupos.forEach(grupo => {
+        grupo.style.pointerEvents = 'none';
+    });
+    
+    console.log('✅ Interatividade garantida para todos os elementos');
 }
 
      manipularCliqueSelecao(e) {
@@ -3932,83 +4043,96 @@ _isTouchGesture(e) {
             // Para linha reta, não usar o resizable do interact
         }
 
-        criarHandles(elemento) {
-            console.log('🔧 Criando handles para:', elemento.className);
-            
-            const pos = this.obterPosicaoComScroll(elemento);
-            const left = pos.left;
-            const top = pos.top;
-            const width = pos.width;
-            const height = pos.height;
+       criarHandles(elemento) {
+    console.log('🔧 Criando handles para:', elemento.className);
+    
+    const pos = this.obterPosicaoComScroll(elemento);
+    const left = pos.left;
+    const top = pos.top;
+    const width = pos.width;
+    const height = pos.height;
 
-            const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
-            const rad = rotation * Math.PI / 180;
-            
-            const centerX = left + width / 2;
-            const centerY = top + height / 2;
+    const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+    const rad = rotation * Math.PI / 180;
+    
+    const centerX = left + width / 2;
+    const centerY = top + height / 2;
 
-            console.log(`🔧 Posição: left=${left}, top=${top}, width=${width}, height=${height}, rotation=${rotation}`);
+    console.log(`🔧 Posição: left=${left}, top=${top}, width=${width}, height=${height}, rotation=${rotation}`);
 
-            const relativeHandles = [
-                { class: 'handle-n', relX: 0, relY: -height / 2 },
-                { class: 'handle-s', relX: 0, relY: height / 2 },
-                { class: 'handle-e', relX: width / 2, relY: 0 },
-                { class: 'handle-w', relX: -width / 2, relY: 0 },
-                { class: 'handle-ne', relX: width / 2, relY: -height / 2 },
-                { class: 'handle-nw', relX: -width / 2, relY: -height / 2 },
-                { class: 'handle-se', relX: width / 2, relY: height / 2 },
-                { class: 'handle-sw', relX: -width / 2, relY: height / 2 }
-            ];
+    // 🔥 CORREÇÃO: Definir handles baseado no tipo de elemento
+    let relativeHandles = [];
+    
+    if (elemento.classList.contains('linha-reta')) {
+        // 🔥 PARA LINHA RETA: Apenas handles laterais (leste e oeste) + rotação
+        relativeHandles = [
+           { class: 'handle-se', relX: width / 2, relY: height / 2 },
+            { class: 'handle-nw', relX: -width / 2, relY: -height / 2 },
+        ];
+    } else {
+        // 🔥 PARA OUTROS ELEMENTOS: Todos os handles
+        relativeHandles = [
+            { class: 'handle-e', relX: width / 2, relY: 0 },
+            { class: 'handle-w', relX: -width / 2, relY: 0 },
+            { class: 'handle-ne', relX: width / 2, relY: -height / 2 },
+            { class: 'handle-nw', relX: -width / 2, relY: -height / 2 },
+            { class: 'handle-se', relX: width / 2, relY: height / 2 },
+            { class: 'handle-sw', relX: -width / 2, relY: height / 2 },
+            { class: 'handle-n', relX: 0, relY: -height / 2 },
+            { class: 'handle-s', relX: 0, relY: height / 2 }
+        ];
+    }
 
-            const handles = relativeHandles.map(handle => {
-                const rotatedX = handle.relX * Math.cos(rad) - handle.relY * Math.sin(rad);
-                const rotatedY = handle.relX * Math.sin(rad) + handle.relY * Math.cos(rad);
-                
-                return {
-                    class: handle.class,
-                    x: centerX + rotatedX,
-                    y: centerY + rotatedY
-                };
-            });
+    const handles = relativeHandles.map(handle => {
+        const rotatedX = handle.relX * Math.cos(rad) - handle.relY * Math.sin(rad);
+        const rotatedY = handle.relX * Math.sin(rad) + handle.relY * Math.cos(rad);
+        
+        return {
+            class: handle.class,
+            x: centerX + rotatedX,
+            y: centerY + rotatedY
+        };
+    });
 
-            this.removerHandles();
+    this.removerHandles();
 
-            handles.forEach(handle => {
-                const handleElement = document.createElement('div');
-                handleElement.className = `handle ${handle.class}`;
-                handleElement.style.left = `${handle.x}px`;
-                handleElement.style.top = `${handle.y}px`;
-                handleElement.style.zIndex = '1002';
-                handleElement.style.position = 'absolute';
-                
-                console.log(`🔧 Criando handle ${handle.class} em x=${handle.x}, y=${handle.y}`);
-                
-                this.drawingArea.appendChild(handleElement);
-                this.handles.push(handleElement);
-                
-                this.configurarHandle(handleElement, elemento, handle.class);
-            });
+    handles.forEach(handle => {
+        const handleElement = document.createElement('div');
+        handleElement.className = `handle ${handle.class}`;
+        handleElement.style.left = `${handle.x}px`;
+        handleElement.style.top = `${handle.y}px`;
+        handleElement.style.zIndex = '1002';
+        handleElement.style.position = 'absolute';
+        
+        console.log(`🔧 Criando handle ${handle.class} em x=${handle.x}, y=${handle.y}`);
+        
+        this.drawingArea.appendChild(handleElement);
+        this.handles.push(handleElement);
+        
+        this.configurarHandle(handleElement, elemento, handle.class);
+    });
 
-            const handleRotacaoRelY = -height / 2 - 40;
-            const handleRotacaoX = 0 * Math.cos(rad) - handleRotacaoRelY * Math.sin(rad);
-            const handleRotacaoY = 0 * Math.sin(rad) + handleRotacaoRelY * Math.cos(rad);
+    // 🔥 CORREÇÃO: Adicionar handle de rotação para TODOS os elementos (incluindo linha reta)
+    const handleRotacaoRelY = elemento.classList.contains('linha-reta') ? -60 : -height / 2 - 40;
+    const handleRotacaoX = 0 * Math.cos(rad) - handleRotacaoRelY * Math.sin(rad);
+    const handleRotacaoY = 0 * Math.sin(rad) + handleRotacaoRelY * Math.cos(rad);
 
-            const handleRotacao = document.createElement('div');
-            handleRotacao.className = 'handle handle-rotacao';
-            handleRotacao.style.left = `${centerX + handleRotacaoX}px`;
-            handleRotacao.style.top = `${centerY + handleRotacaoY}px`;
-            handleRotacao.style.zIndex = '1002';
-            handleRotacao.style.position = 'absolute';
-            
-            console.log(`🔧 Criando handle de rotação em x=${centerX + handleRotacaoX}, y=${centerY + handleRotacaoY}`);
-            
-            this.drawingArea.appendChild(handleRotacao);
-            this.handles.push(handleRotacao);
-            
-            this.configurarHandleRotacao(handleRotacao, elemento);
-            
-            console.log(`✅ ${this.handles.length} handles criados com sucesso`);
-        }
+    const handleRotacao = document.createElement('div');
+    handleRotacao.className = 'handle handle-rotacao';
+    handleRotacao.style.left = `${centerX + handleRotacaoX}px`;
+    handleRotacao.style.top = `${centerY + handleRotacaoY}px`;
+    handleRotacao.style.zIndex = '1002';
+    handleRotacao.style.position = 'absolute';
+    
+    console.log(`🔧 Criando handle de rotação em x=${centerX + handleRotacaoX}, y=${centerY + handleRotacaoY}`);
+    
+    this.drawingArea.appendChild(handleRotacao);
+    this.handles.push(handleRotacao);
+    
+    this.configurarHandleRotacao(handleRotacao, elemento);
+    
+    console.log(`✅ ${this.handles.length} handles criados com sucesso`);
+}
 
         configurarHandle(handle, elemento, handleClass) {
     let initialX, initialY;
@@ -4422,108 +4546,116 @@ _isTouchGesture(e) {
         }
 
         criarPecasBase() {
-            if (this.pecasCriadas) return;
+    if (this.pecasCriadas) return;
 
-            const escala = this.calcularEscalaAutomatica();
-            let posY = 100;
+    const escala = this.calcularEscalaAutomatica();
+    let posY = 100;
 
-            const inicioPosX = 50;
-            const gapHorizontal = 100;
-            const gapVertical = 120;
-            const espacamentoEntreAgrupamentos = 30;
-            const maxLineWidth = this.drawingArea.offsetWidth - 100;
+    const inicioPosX = 50;
+    const gapHorizontal = 100;
+    const gapVertical = 120;
+    const espacamentoEntreAgrupamentos = 30;
+    const maxLineWidth = this.drawingArea.offsetWidth - 100;
 
-            Object.keys(this.gruposPecas).forEach((materialNome, grupoIndex) => {
-                const pecasGrupo = this.gruposPecas[materialNome];
+    Object.keys(this.gruposPecas).forEach((materialNome, grupoIndex) => {
+        const pecasGrupo = this.gruposPecas[materialNome];
 
-                const grupoInfo = this.criarGrupoMaterial(materialNome, grupoIndex, posY);
+        const grupoInfo = this.criarGrupoMaterial(materialNome, grupoIndex, posY);
 
-                const lines = [[]];
-                let currentLineWidth = 0;
+        const lines = [[]];
+        let currentLineWidth = 0;
 
-                pecasGrupo.forEach((peca) => {
-                    const { width, height } = this.calcularDimensoesPeca(peca, escala);
+        pecasGrupo.forEach((peca) => {
+            const { width, height } = this.calcularDimensoesPeca(peca, escala);
 
-                    if (width > maxLineWidth) {
-                        if (lines[lines.length - 1].length > 0) {
-                            lines.push([]);
-                        }
-                        lines[lines.length - 1].push({
-                            pecaData: peca,
-                            width: Math.round(width),
-                            height: Math.round(height)
-                        });
-                        lines.push([]);
-                        currentLineWidth = 0;
-                    } else if (currentLineWidth > 0 && (currentLineWidth + width + gapHorizontal) > maxLineWidth) {
-                        lines.push([]);
-                        currentLineWidth = 0;
-                    }
-
-                    lines[lines.length - 1].push({
-                        pecaData: peca,
-                        width: Math.round(width),
-                        height: Math.round(height)
-                    });
-
-                    currentLineWidth += width + gapHorizontal;
-                });
-
-                if (lines[lines.length - 1].length === 0) {
-                    lines.pop();
+            if (width > maxLineWidth) {
+                if (lines[lines.length - 1].length > 0) {
+                    lines.push([]);
                 }
-
-                let cumulativeY = 0;
-                lines.forEach((line) => {
-                    if (line.length === 0) return;
-
-                    const lineMaxHeight = Math.max(...line.map(p => p.height));
-
-                    let posX = inicioPosX;
-                    line.forEach((pObj) => {
-                        const peca = pObj.pecaData;
-                        const w = pObj.width;
-                        const h = pObj.height;
-
-                        if (posX + w > maxLineWidth) {
-                            cumulativeY += lineMaxHeight + gapVertical;
-                            posX = inicioPosX;
-                        }
-
-                        const pecaElement = document.createElement('div');
-                        pecaElement.className = 'peca';
-                        pecaElement.id = `peca-${peca.id}`;
-                        pecaElement.style.width = `${w}px`;
-                        pecaElement.style.height = `${h}px`;
-                        pecaElement.style.left = `${posX}px`;
-                        pecaElement.style.top = `${cumulativeY}px`;
-                        pecaElement.setAttribute('data-peca-id', peca.id);
-                        pecaElement.setAttribute('data-tipo', peca.tipo);
-                        pecaElement.setAttribute('data-rotate', '0');
-
-                        this.criarDimensoes(pecaElement, peca, w, h);
-
-                        if (peca.quantidade > 1) {
-                            this.criarQuantidade(pecaElement, peca.quantidade);
-                        }
-
-                        this.criarLinhasPeca(pecaElement, peca.id, w, h);
-
-                        grupoInfo.areaPecas.appendChild(pecaElement);
-
-                        posX += w + gapHorizontal;
-                    });
-
-                    cumulativeY += lineMaxHeight + gapVertical;
+                lines[lines.length - 1].push({
+                    pecaData: peca,
+                    width: Math.round(width),
+                    height: Math.round(height)
                 });
+                lines.push([]);
+                currentLineWidth = 0;
+            } else if (currentLineWidth > 0 && (currentLineWidth + width + gapHorizontal) > maxLineWidth) {
+                lines.push([]);
+                currentLineWidth = 0;
+            }
 
-                const alturaUtilizada = cumulativeY > 0 ? cumulativeY : 200;
-                posY += alturaUtilizada + espacamentoEntreAgrupamentos;
+            lines[lines.length - 1].push({
+                pecaData: peca,
+                width: Math.round(width),
+                height: Math.round(height)
             });
 
-            this.pecasCriadas = true;
-            console.log('✅ Peças base criadas com sucesso!');
+            currentLineWidth += width + gapHorizontal;
+        });
+
+        if (lines[lines.length - 1].length === 0) {
+            lines.pop();
         }
+
+        let cumulativeY = 0;
+        lines.forEach((line) => {
+            if (line.length === 0) return;
+
+            const lineMaxHeight = Math.max(...line.map(p => p.height));
+
+            let posX = inicioPosX;
+            line.forEach((pObj) => {
+                const peca = pObj.pecaData;
+                const w = pObj.width;
+                const h = pObj.height;
+
+                if (posX + w > maxLineWidth) {
+                    cumulativeY += lineMaxHeight + gapVertical;
+                    posX = inicioPosX;
+                }
+
+                const pecaElement = document.createElement('div');
+                pecaElement.className = 'peca';
+                pecaElement.id = `peca-${peca.id}`;
+                pecaElement.style.width = `${w}px`;
+                pecaElement.style.height = `${h}px`;
+                pecaElement.style.left = `${posX}px`;
+                pecaElement.style.top = `${cumulativeY}px`;
+                pecaElement.setAttribute('data-peca-id', peca.id);
+                pecaElement.setAttribute('data-tipo', peca.tipo);
+                pecaElement.setAttribute('data-rotate', '0');
+
+                // 🔥 CORREÇÃO: Garantir que peças sejam interativas mesmo dentro de grupos
+                pecaElement.style.pointerEvents = 'auto';
+
+                this.criarDimensoes(pecaElement, peca, w, h);
+
+                if (peca.quantidade > 1) {
+                    this.criarQuantidade(pecaElement, peca.quantidade);
+                }
+
+                this.criarLinhasPeca(pecaElement, peca.id, w, h);
+
+                // 🔥 CORREÇÃO: Adicionar diretamente no grupo (apenas organização visual)
+                grupoInfo.areaPecas.appendChild(pecaElement);
+
+                posX += w + gapHorizontal;
+            });
+
+            cumulativeY += lineMaxHeight + gapVertical;
+        });
+
+        const alturaUtilizada = cumulativeY > 0 ? cumulativeY : 200;
+        posY += alturaUtilizada + espacamentoEntreAgrupamentos;
+    });
+
+    this.pecasCriadas = true;
+    
+    // 🔥 CORREÇÃO ADICIONAL: Garantir que todos os elementos sejam interativos
+    this.forcarAtualizacaoInteratividade();
+    
+    console.log('✅ Peças base criadas com sucesso!');
+}
 
         criarGrupoMaterial(materialNome, grupoIndex, posY) {
             const tituloGrupo = document.createElement('div');
@@ -4567,17 +4699,21 @@ _isTouchGesture(e) {
     cubaElement.className = `cuba ${tipo}`;
     cubaElement.style.position = 'absolute';
     
+    // 🔥 CORREÇÃO: Posição absoluta inicial
     cubaElement.style.left = `${x}px`;
     cubaElement.style.top = `${y}px`;
-    cubaElement.style.transform = 'none';
+    
+    // 🔥 CORREÇÃO: Inicializar sistema de transformação
     cubaElement.setAttribute('data-x', '0');
     cubaElement.setAttribute('data-y', '0');
-    
-    // 🔥 AGORA LINHA RETA USA BORDA COMO OS OUTROS
+    cubaElement.setAttribute('data-rotate', '0');
+    cubaElement.style.transform = 'translate(0px, 0px) rotate(0deg)';
+
+    // Resto do código permanece igual...
     if (tipo === 'linha-reta') {
         cubaElement.style.width = `${Math.max(largura, 100)}px`;
-        cubaElement.style.height = '0px'; // Altura zero
-        cubaElement.style.borderTop = '2px solid #333'; // 🔥 BORDA EM VEZ DE BACKGROUND
+        cubaElement.style.height = '0px';
+        cubaElement.style.borderTop = '2px solid #333';
         cubaElement.style.backgroundColor = 'transparent';
     } else if (tipo === 'circulo') {
         const tamanho = Math.max(largura, altura);
@@ -4594,93 +4730,41 @@ _isTouchGesture(e) {
 
     if (this.modoSelecaoAtivo) cubaElement.classList.add('selecionavel');
 
-    const grupo = this.encontrarGrupoNaPosicao(x, y);
-    if (grupo) {
-        grupo.appendChild(cubaElement);
-    } else {
-        this.drawingArea.appendChild(cubaElement);
-    }
+    this.drawingArea.appendChild(cubaElement);
 
     this.configurarInteratividadeCuba(cubaElement, tipo);
     this.salvarEstadoHistorico('Adicionar Cuba');
     return cubaElement;
 }
 
-        configurarInteratividadeCuba(elemento, tipo) {
-            interact(elemento).draggable({
-                listeners: {
-                    start: () => {
-                        elemento.style.zIndex = '1000';
-                    },
-                    move: (event) => {
-                        let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                        let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-                        const rotate = elemento.getAttribute('data-rotate') || 0;
-
-                        elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
-                        elemento.setAttribute('data-x', x);
-                        elemento.setAttribute('data-y', y);
-                    },
-                    end: () => {
-                        elemento.style.zIndex = '';
-                        this.salvarEstadoHistorico('Mover Cuba');
-                    }
-                }
-            });
-
-            if (tipo === 'linha-reta') {
-                this.configurarHandlesLinhaReta(elemento);
-            } else {
-                interact(elemento).resizable({
-                    edges: { left: true, right: true, bottom: true, top: true },
-                    listeners: {
-                        move: function (event) {
-                            let { x, y } = event.deltaRect;
-
-                            Object.assign(event.target.style, {
-                                width: `${event.rect.width}px`,
-                                height: `${event.rect.height}px`
-                            });
-
-                            Object.assign(event.target.style, {
-                                transform: `translate(${(parseFloat(event.target.getAttribute('data-x')) || 0) + x}px, ${(parseFloat(event.target.getAttribute('data-y')) || 0) + y}px)`
-                            });
-
-                            event.target.setAttribute('data-x', (parseFloat(event.target.getAttribute('data-x')) || 0) + x);
-                            event.target.setAttribute('data-y', (parseFloat(event.target.getAttribute('data-y')) || 0) + y);
-                        }
-                    }
-                });
-            }
-        }
-
-     manipularCliqueInsercao(e) {
+    manipularCliqueInsercao(e) {
     if (!this.modoInsercaoAtivo) return;
     
     // Prevenir comportamento padrão
     e.preventDefault();
     e.stopPropagation();
     
-    // Obter coordenadas ABSOLUTAS dentro da drawingArea
+    // 🔥 CORREÇÃO: Obter coordenadas de forma consistente para todos os dispositivos
     const rect = this.drawingArea.getBoundingClientRect();
-    const scrollLeft = this.drawingArea.scrollLeft || 0;
-    const scrollTop = this.drawingArea.scrollTop || 0;
     
     let clientX, clientY;
     
     if (e.touches && e.touches[0]) {
+        // Touch device
         clientX = e.touches[0].clientX;
         clientY = e.touches[0].clientY;
     } else {
+        // Mouse
         clientX = e.clientX;
         clientY = e.clientY;
     }
     
-    // Coordenadas ABSOLUTAS dentro da drawingArea (incluindo scroll)
-    const x = clientX - rect.left + scrollLeft;
-    const y = clientY - rect.top + scrollTop;
+    // 🔥 CORREÇÃO CRÍTICA: Calcular coordenadas RELATIVAS à drawingArea
+    // Sem considerar scroll para manter consistência entre dispositivos
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
     
-    console.log(`🎯 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y} (scroll: ${scrollLeft}, ${scrollTop})`);
+    console.log(`🎯 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y} (relativo)`);
 
     switch(this.modoInsercaoAtivo) {
         case 'texto':
@@ -4699,50 +4783,70 @@ _isTouchGesture(e) {
     this.desativarTodosOsModos();
 }
 
-     criarTexto(x, y, textoInicial = "") {
+    criarTexto(x, y, textoInicial = "") {
     const textoElement = document.createElement('textarea');
     textoElement.className = 'texto-legenda';
 
-    // Posicionamento ABSOLUTO dentro do container pai
-    textoElement.style.left = `${x}px`;
-    textoElement.style.top = `${y}px`;
+    // 🔥 CORREÇÃO: Usar porcentagem para posicionamento responsivo
+    const drawingRect = this.drawingArea.getBoundingClientRect();
+    const xPercent = (x / drawingRect.width) * 100;
+    const yPercent = (y / drawingRect.height) * 100;
+    
+    textoElement.style.left = `${xPercent}%`;
+    textoElement.style.top = `${yPercent}%`;
     textoElement.style.transform = 'none';
+    
+    // 🔥 CORREÇÃO: Salvar coordenadas relativas para reconstituição cross-device
+    textoElement.setAttribute('data-x-rel', xPercent.toString());
+    textoElement.setAttribute('data-y-rel', yPercent.toString());
+    textoElement.setAttribute('data-x-abs', x.toString());
+    textoElement.setAttribute('data-y-abs', y.toString());
+    
     textoElement.setAttribute('data-x', '0');
     textoElement.setAttribute('data-y', '0');
-    
+    textoElement.style.zIndex = '10';
+
     textoElement.value = textoInicial;
     textoElement.setAttribute('data-valor', textoInicial);
     textoElement.rows = 1;
     textoElement.placeholder = "Digite seu texto";
 
+    // 🔥 CORREÇÃO: Tamanho responsivo baseado no viewport
+    const baseFontSize = 14; // Tamanho base
+    const responsiveFontSize = Math.max(baseFontSize, baseFontSize * (drawingRect.width / 1400));
+    textoElement.style.fontSize = `${responsiveFontSize}px`;
+    
+    // 🔥 CORREÇÃO: Largura responsiva baseada no conteúdo
+    textoElement.style.width = 'auto';
+    textoElement.style.minWidth = '100px';
+    textoElement.style.maxWidth = '80%'; // Não ultrapassar 80% da tela
+
     if (this.modoSelecaoAtivo) {
         textoElement.classList.add('selecionavel');
     }
 
-    // 🔥 CORREÇÃO: Encontrar o grupo correto
-    const grupo = this.encontrarGrupoNaPosicao(x, y);
-    if (grupo) {
-        console.log('📝 Adicionando texto DENTRO do grupo encontrado');
-        
-        // Calcular posição RELATIVA dentro do grupo
-        const grupoRect = grupo.getBoundingClientRect();
-        const drawingRect = this.drawingArea.getBoundingClientRect();
-        const grupoLeft = grupoRect.left - drawingRect.left;
-        const grupoTop = grupoRect.top - drawingRect.top;
-        
-        const xRelativo = x - grupoLeft;
-        const yRelativo = y - grupoTop;
-        
-        textoElement.style.left = `${xRelativo}px`;
-        textoElement.style.top = `${yRelativo}px`;
-        
-        grupo.appendChild(textoElement);
-    } else {
-        console.log('📝 Adicionando texto na área PRINCIPAL');
-        this.drawingArea.appendChild(textoElement);
-    }
+    this.drawingArea.appendChild(textoElement);
     
-    // Resto do código permanece igual...
+    // 🔥 CORREÇÃO: Ajuste automático de altura após inserção
+    setTimeout(() => {
+        textoElement.style.height = 'auto';
+        textoElement.style.height = (textoElement.scrollHeight) + 'px';
+        
+        // 🔥 CORREÇÃO: Ajuste de largura baseado no conteúdo
+        const tempSpan = document.createElement('span');
+        tempSpan.style.fontSize = textoElement.style.fontSize;
+        tempSpan.style.fontFamily = 'Arial, sans-serif';
+        tempSpan.style.visibility = 'hidden';
+        tempSpan.style.whiteSpace = 'pre';
+        tempSpan.textContent = textoElement.value || textoElement.placeholder;
+        document.body.appendChild(tempSpan);
+        
+        const textWidth = tempSpan.offsetWidth + 20; // +20px de padding
+        textoElement.style.width = `${Math.min(textWidth, drawingRect.width * 0.8)}px`;
+        
+        document.body.removeChild(tempSpan);
+    }, 100);
+
     this.salvarEstadoImediato('Adicionar Caixa de Texto');
     textoElement.focus();
 
@@ -4768,10 +4872,9 @@ _isTouchGesture(e) {
 }
 
 
-        configurarInteratividadeTexto(elemento) {
+       configurarInteratividadeTexto(elemento) {
     this.removerInteratividade(elemento);
     
-    // 🔥 CORREÇÃO: Configurar interatividade apenas se for selecionável
     if (elemento.classList.contains('selecionavel') || this.modoSelecaoAtivo) {
         let originalBackground = elemento.style.backgroundColor;
         
@@ -4807,6 +4910,15 @@ _isTouchGesture(e) {
                     elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotacao}deg)`;
                     elemento.setAttribute('data-x', x);
                     elemento.setAttribute('data-y', y);
+                    
+                    // 🔥 CORREÇÃO: Atualizar também as coordenadas relativas
+                    const drawingRect = this.drawingArea.getBoundingClientRect();
+                    const rect = elemento.getBoundingClientRect();
+                    const xPercent = ((rect.left - drawingRect.left) / drawingRect.width) * 100;
+                    const yPercent = ((rect.top - drawingRect.top) / drawingRect.height) * 100;
+                    
+                    elemento.setAttribute('data-x-rel', xPercent.toString());
+                    elemento.setAttribute('data-y-rel', yPercent.toString());
                 },
                 end: () => {
                     elemento.style.zIndex = '';
@@ -4816,7 +4928,7 @@ _isTouchGesture(e) {
             }
         });
 
-        // 🔥 CORREÇÃO: Permitir redimensionamento do texto
+        // 🔥 CORREÇÃO: Redimensionamento responsivo
         interact(elemento).resizable({
             edges: { left: false, right: true, bottom: true, top: false },
             listeners: {
@@ -4994,35 +5106,7 @@ _isTouchGesture(e) {
             }, { passive: false });
         }
 
-       encontrarGrupoNaPosicao(x, y) {
-    const grupos = this.drawingArea.querySelectorAll('.area-pecas');
-    
-    console.log(`🔍 Buscando grupo para posição x:${x}, y:${y}`);
-    
-    for (const grupo of grupos) {
-        // Obter posição ABSOLUTA do grupo dentro da drawingArea
-        const grupoRect = grupo.getBoundingClientRect();
-        const drawingRect = this.drawingArea.getBoundingClientRect();
-        
-        // Calcular posição relativa considerando scroll
-        const grupoRelLeft = grupoRect.left - drawingRect.left;
-        const grupoRelTop = grupoRect.top - drawingRect.top;
-        const grupoRelRight = grupoRelLeft + grupoRect.width;
-        const grupoRelBottom = grupoRelTop + grupoRect.height;
-        
-        console.log(`🔍 Grupo encontrado: ${grupoRelLeft},${grupoRelTop} -> ${grupoRelRight},${grupoRelBottom}`);
-        
-        // Verificar se o clique está dentro do grupo
-        if (x >= grupoRelLeft && x <= grupoRelRight && 
-            y >= grupoRelTop && y <= grupoRelBottom) {
-            console.log('✅ Elemento será adicionado DENTRO deste grupo');
-            return grupo;
-        }
-    }
-    
-    console.log('❌ Nenhum grupo encontrado na posição, adicionando na área principal');
-    return null;
-}
+       
 
         criarDimensoes(pecaElement, peca, width, height) {
             const pecaId = pecaElement.getAttribute('data-peca-id');
@@ -5032,6 +5116,7 @@ _isTouchGesture(e) {
             dimensoesTop.textContent = `${peca.comprimento}`;
             dimensoesTop.style.top = `${-35}px`;
             dimensoesTop.style.left = `${width / 2}px`;
+            dimensoesTop.style.zIndex = '10';
 
             
             dimensoesTop.setAttribute('data-peca-id', pecaId);
@@ -5046,7 +5131,8 @@ _isTouchGesture(e) {
             dimensoesRight.textContent = `${peca.largura}`;
             dimensoesRight.style.right = `${-35}px`;
             dimensoesRight.style.top = `${height / 2}px`;
-            
+	    dimensoesRight.style.zIndex = '10';            
+
             dimensoesRight.setAttribute('data-peca-id', pecaId);
             dimensoesRight.setAttribute('data-tipo', 'dimensao-right');
             dimensoesRight.setAttribute('data-x', '0');
@@ -5122,6 +5208,8 @@ _isTouchGesture(e) {
             const simboloElement = document.createElement('div');
             simboloElement.className = 'simbolo-linha';
             simboloElement.textContent = simboloData.texto;
+simboloElement.style.zIndex = '10';
+		
 
             const angulo = Number(simboloData.rotacao) || 0;
             simboloElement.setAttribute('data-rotacao', angulo);
