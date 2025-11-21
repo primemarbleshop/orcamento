@@ -44,8 +44,6 @@
         z-index: 1 !important;
     }
 
-    
-
     /* 🔥 CORREÇÃO: Elementos selecionados devem ficar acima */
     .elemento-selecionado {
         z-index: 3 !important;
@@ -82,21 +80,190 @@
         margin-bottom: 20px;
     }
 
-    .action-buttons-container {
-        background: linear-gradient(to bottom, #f8f9fa 90%, transparent);
+    /* 🔥 CORREÇÃO: Container de botões de ação - SEMPRE CENTRALIZADO */
+    .action-buttons-container { 
+        position: sticky;
+        top: 0;
+        background: linear-gradient(to bottom, #f8f9fa 95%, transparent);
         backdrop-filter: blur(10px);
         border-bottom: 2px solid #dee2e6;
         box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         padding: 15px;
-        border-radius: 8px;
-        margin: 25px 0;
+        border-radius: 0 0 8px 8px;
+        margin: 0;
+        display: flex;
+        gap: 12px;
+        justify-content: center; /* 🔥 SEMPRE CENTRALIZADO */
+        flex-wrap: wrap;
+        z-index: 1000;
+        width: 100%;
+        box-sizing: border-box;
     }
 
-    /* 🔥 CORREÇÃO: Garantir que a área de desenho não suba sobre os botões */
-    .drawing-area {
-        margin-top: 20px;
+    /* 🔥 CORREÇÃO: Botões no PC - centralizados */
+    @media (min-width: 1401px) {
+        .action-buttons-container {
+            justify-content: center; /* 🔥 CENTRALIZADO NO PC */
+            padding: 15px;
+        }
+        
+        .action-buttons-container .btn {
+            min-width: 120px;
+            height: auto;
+            border-radius: 6px;
+            padding: 8px 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center; /* 🔥 CENTRALIZADO */
+        }
+        
+        .action-buttons-container .btn i {
+            margin-right: 8px !important;
+            font-size: 1rem;
+        }
+        
+        .action-buttons-container .btn-text {
+            display: inline !important;
+            font-size: 0.9rem;
+        }
+    }
+
+    /* 🔥 CORREÇÃO: Botões no mobile - centralizados e tamanho fixo */
+    @media (max-width: 1400px) {
+        .action-buttons-container {
+            justify-content: center; /* 🔥 CENTRALIZADO NO MOBILE */
+            gap: 8px;
+            padding: 10px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+        
+        .action-buttons-container .btn-text {
+            display: none;
+        }
+        
+        .action-buttons-container .btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center; /* 🔥 CENTRALIZADO */
+            padding: 0;
+            flex-shrink: 0;
+            transform: scale(1);
+            transform-origin: center;
+        }
+        
+        .action-buttons-container .btn i {
+            margin-right: 0 !important;
+            font-size: 1.2rem;
+        }
+    }
+
+    /* 🔥 CORREÇÃO CRÍTICA: Prevenir que botões sejam afetados pelo zoom no mobile */
+    @media (max-width: 768px) {
+        .action-buttons-container {
+            position: fixed; /* 🔥 FIXO no mobile para sempre aparecer */
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            padding: 8px;
+            gap: 6px;
+            justify-content: center; /* 🔥 CENTRALIZADO */
+            transform: none !important;
+            transform-origin: top center !important;
+        }
+        
+        .action-buttons-container .btn {
+            width: 44px !important;
+            height: 44px !important;
+            min-width: 44px !important;
+            min-height: 44px !important;
+            transform: none !important;
+            font-size: 1.1rem !important;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center; /* 🔥 CENTRALIZADO */
+        }
+        
+        .action-buttons-container .btn i {
+            font-size: 1.1rem !important;
+            transform: none !important;
+            margin: 0 !important; /* 🔥 REMOVER margens */
+        }
+        
+        /* 🔥 GARANTIR que os botões fiquem acima de tudo no mobile */
+        .action-buttons-container {
+            z-index: 10000 !important;
+        }
+    }
+
+    /* 🔥 CORREÇÃO: Container principal para compensar a barra fixa no mobile */
+    @media (max-width: 768px) {
+        body {
+            padding-top: 70px; /* 🔥 ESPAÇO para a barra fixa de botões */
+        }
+        
+        .main-container {
+            margin-top: 10px;
+        }
+    }
+
+    /* 🔥 CORREÇÃO: Ajustes para telas muito pequenas */
+    @media (max-width: 480px) {
+        .action-buttons-container {
+            gap: 4px;
+            padding: 6px;
+            justify-content: center; /* 🔥 CENTRALIZADO */
+        }
+        
+        .action-buttons-container .btn {
+            width: 40px !important;
+            height: 40px !important;
+            display: flex;
+            align-items: center;
+            justify-content: center; /* 🔥 CENTRALIZADO */
+        }
+        
+        .action-buttons-container .btn i {
+            font-size: 1rem !important;
+            margin: 0 !important;
+        }
+    }
+
+    /* 🔥 CORREÇÃO: Botões de topo (Voltar) - também centralizados */
+    .top-buttons-container {
+        margin-bottom: 20px;
+        display: flex;
+        gap: 10px;
+        justify-content: center; /* 🔥 CENTRALIZADO também */
+        flex-wrap: wrap;
         position: relative;
-        z-index: 1 !important;
+        z-index: 999;
+    }
+
+    /* 🔥 CORREÇÃO: Garantir que os botões não sejam selecionados durante zoom */
+    .action-buttons-container .btn,
+    .top-buttons-container .btn {
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+    }
+
+    /* 🔥 CORREÇÃO ADICIONAL: Garantir centralização perfeita */
+    .action-buttons-container {
+        text-align: center;
+    }
+
+    .action-buttons-container .btn {
+        margin: 0 2px;
     }
 
     /* Resto do CSS base */
@@ -374,25 +541,31 @@
         color: #000; 
     }
     
-    .action-buttons-container { 
-        margin: 25px 0; 
-        display: flex; 
-        gap: 12px; 
-        justify-content: flex-start; 
-        flex-wrap: wrap; 
-        padding: 15px;
-        background-color: #f8f9fa;
-        border-radius: 8px;
+    .btn-desabilitado-mobile {
+        pointer-events: none !important;
+        touch-action: none !important;
+        -webkit-user-select: none !important;
+        user-select: none !important;
+        opacity: 0.5 !important;
+        cursor: not-allowed !important;
     }
-    
-    .top-buttons-container { 
-        margin-bottom: 20px; 
-        display: flex; 
-        gap: 10px; 
-        justify-content: flex-start; 
-        flex-wrap: wrap; 
+
+    .action-buttons-container .btn:disabled,
+    .action-buttons-container .btn-desabilitado-mobile {
+        background-color: #FFFFFF !important;
+        border-color: #6c757d !important;
+        pointer-events: none !important;
+        touch-action: none !important;
     }
-    
+
+    .action-buttons-container .btn:disabled:active,
+    .action-buttons-container .btn-desabilitado-mobile:active,
+    .action-buttons-container .btn:disabled:focus,
+    .action-buttons-container .btn-desabilitado-mobile:focus {
+        transform: none !important;
+        box-shadow: none !important;
+    }
+
     .titulo-grupo {
         font-size: 18px;
         font-weight: bold;
@@ -608,8 +781,6 @@
         position: absolute;
         pointer-events: none;
         z-index: 9999;
-        
-
     }
     
     .handle {
@@ -691,44 +862,7 @@
     .handle-sw {
         cursor: sw-resize;
     }
-    
-    .action-buttons-container {
-        gap: 8px;
-    }
 
-    .action-buttons-container { 
-        position: sticky;
-        top: 0;
-        background: linear-gradient(to bottom, #f8f9fa 90%, transparent);
-        backdrop-filter: blur(10px);
-        border-bottom: 2px solid #dee2e6;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-
-    .btn-desabilitado-mobile {
-        pointer-events: none !important;
-        touch-action: none !important;
-        -webkit-user-select: none !important;
-        user-select: none !important;
-        opacity: 0.5 !important;
-        cursor: not-allowed !important;
-    }
-
-    .action-buttons-container .btn:disabled,
-    .action-buttons-container .btn-desabilitado-mobile {
-        background-color: #FFFFFF !important;
-        border-color: #6c757d !important;
-        pointer-events: none !important;
-        touch-action: none !important;
-    }
-
-    .action-buttons-container .btn:disabled:active,
-    .action-buttons-container .btn-desabilitado-mobile:active,
-    .action-buttons-container .btn:disabled:focus,
-    .action-buttons-container .btn-desabilitado-mobile:focus {
-        transform: none !important;
-        box-shadow: none !important;
-    }
 .laco-overlay {
     position: absolute !important;
     left: 0 !important;
@@ -864,33 +998,6 @@
             border-width: 3px;
         }
     }
-    
-    @media (max-width: 1400px) {
-        .action-buttons-container .btn-text {
-            display: none;
-        }
-        
-        .action-buttons-container .btn {
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
-        }
-        
-        .action-buttons-container .btn i {
-            margin-right: 0 !important;
-            font-size: 1.2rem;
-        }
-        
-        .action-buttons-container {
-            justify-content: center;
-            gap: 8px;
-            padding: 10px;
-        }
-    }
 
     .drawing-container {
         width: 100%;
@@ -977,7 +1084,6 @@
         .modal-controles input, 
         .modal-controles textarea {
             font-size: 14px !important;
-            
         }
     }
 
@@ -1084,8 +1190,6 @@
         .texto-legenda, .legenda-simplificada {
             background: transparent !important;
         }
-        
-    
     }
 
   .cuba.linha-reta {
@@ -1110,7 +1214,6 @@ background-color: transparent !important;
     cursor: pointer;
     z-index: 1;
 }
-
 
     .cuba.linha-reta[style*="border-style: dashed"] {
         border-top-style: dashed !important;
@@ -1361,14 +1464,6 @@ height: 0px !important;
         .drawing-area {
             touch-action: pan-x pan-y pinch-zoom !important;
         }
-        
-        .action-buttons-container {
-            position: sticky;
-            top: 0;
-            z-index: 1000;
-            background: rgba(248, 249, 250, 0.95);
-            backdrop-filter: blur(10px);
-        }
 
         /* 🔥 CORREÇÃO: Garantir que modais não bloqueiem a área de desenho */
         .modal-controles,
@@ -1377,8 +1472,6 @@ height: 0px !important;
             pointer-events: auto !important;
         }
     }
-
-	
 </style>
 
 </head>
