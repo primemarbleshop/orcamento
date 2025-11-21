@@ -4656,55 +4656,37 @@ _isTouchGesture(e) {
             };
         }
 
-      criarCuba(x, y, tipo, largura = 80, altura = 50) {
+     criarCuba(x, y, tipo, largura = 80, altura = 50) {
     const cubaElement = document.createElement('div');
     cubaElement.className = `cuba ${tipo}`;
     cubaElement.style.position = 'absolute';
     
-    // 🔥 CORREÇÃO: Posição absoluta direta
+    // 🔥 CORREÇÃO: Usar posicionamento igual ao código antigo
     cubaElement.style.left = `${x}px`;
     cubaElement.style.top = `${y}px`;
-    
-    // 🔥 CORREÇÃO CRÍTICA: Inicializar sistema de transformação
-    cubaElement.style.transform = 'translate(0px, 0px) rotate(0deg)';
+    cubaElement.style.transform = 'none';
     cubaElement.setAttribute('data-x', '0');
     cubaElement.setAttribute('data-y', '0');
-    cubaElement.setAttribute('data-rotate', '0');
     
-    // Configurar dimensões baseadas no tipo
+    // 🔥 CORREÇÃO CRÍTICA: Estilo da linha reta igual ao código antigo
     if (tipo === 'linha-reta') {
         cubaElement.style.width = `${Math.max(largura, 100)}px`;
-        cubaElement.style.height = '0px';
-        cubaElement.style.borderTop = '2px solid #333';
+        cubaElement.style.height = '0px'; // Altura zero
+        cubaElement.style.borderTop = '2px solid #333'; // 🔥 BORDA EM VEZ DE BACKGROUND
         cubaElement.style.backgroundColor = 'transparent';
-        cubaElement.style.borderLeft = '1px solid transparent';
-        cubaElement.style.borderRight = '1px solid transparent';
-        cubaElement.style.borderBottom = 'none';
-        
-        // Área clicável aumentada para linha reta
-        cubaElement.style.position = 'relative';
-        cubaElement.style.cursor = 'pointer';
     } else if (tipo === 'circulo') {
         const tamanho = Math.max(largura, altura);
         cubaElement.style.width = `${tamanho}px`;
         cubaElement.style.height = `${tamanho}px`;
         cubaElement.style.borderRadius = '50%';
         cubaElement.style.border = '2px solid #333';
-    } else if (tipo === 'oval') {
+    } else {
         cubaElement.style.width = `${largura}px`;
         cubaElement.style.height = `${altura}px`;
-        cubaElement.style.borderRadius = '50%';
         cubaElement.style.border = '2px solid #333';
-    } else if (tipo === 'elipse') {
-        cubaElement.style.width = `${largura}px`;
-        cubaElement.style.height = `${altura}px`;
-        cubaElement.style.borderRadius = '40%';
-        cubaElement.style.border = '2px solid #333';
-    } else { // retangulo
-        cubaElement.style.width = `${largura}px`;
-        cubaElement.style.height = `${altura}px`;
-        cubaElement.style.borderRadius = '0';
-        cubaElement.style.border = '2px solid #333';
+        if (tipo === 'oval') cubaElement.style.borderRadius = '50%';
+        else if (tipo === 'elipse') cubaElement.style.borderRadius = '40%';
+        else cubaElement.style.borderRadius = '0';
     }
 
     cubaElement.style.backgroundColor = 'transparent';
@@ -4715,7 +4697,7 @@ _isTouchGesture(e) {
         cubaElement.classList.add('selecionavel');
     }
 
-    // 🔥 CORREÇÃO: Adicionar diretamente na área principal
+    // 🔥 CORREÇÃO: Adicionar diretamente na área principal (sem grupos)
     this.drawingArea.appendChild(cubaElement);
 
     this.configurarInteratividadeCuba(cubaElement, tipo);
@@ -4724,49 +4706,29 @@ _isTouchGesture(e) {
 }
 
         configurarInteratividadeCuba(elemento, tipo) {
-    // 🔥 CORREÇÃO: Garantir que atributos existam
-    if (!elemento.hasAttribute('data-x')) elemento.setAttribute('data-x', '0');
-    if (!elemento.hasAttribute('data-y')) elemento.setAttribute('data-y', '0');
-    if (!elemento.hasAttribute('data-rotate')) elemento.setAttribute('data-rotate', '0');
-
+    // 🔥 CORREÇÃO: Configurar interatividade SEMPRE, não apenas quando selecionável
     interact(elemento).draggable({
         listeners: {
-            start: (event) => {
+            start: () => {
                 elemento.style.zIndex = '1000';
-                
-                // 🔥 CORREÇÃO: Preservar posição atual como referência
-                const currentX = parseFloat(elemento.getAttribute('data-x')) || 0;
-                const currentY = parseFloat(elemento.getAttribute('data-y')) || 0;
-                elemento.setAttribute('data-initial-x', currentX.toString());
-                elemento.setAttribute('data-initial-y', currentY.toString());
             },
             move: (event) => {
-                // 🔥 CORREÇÃO CRÍTICA: Usar posição inicial como base
-                const initialX = parseFloat(elemento.getAttribute('data-initial-x')) || 0;
-                const initialY = parseFloat(elemento.getAttribute('data-initial-y')) || 0;
+                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
                 const rotate = elemento.getAttribute('data-rotate') || 0;
-
-                const x = initialX + event.dx;
-                const y = initialY + event.dy;
 
                 elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
                 elemento.setAttribute('data-x', x);
                 elemento.setAttribute('data-y', y);
             },
-            end: (event) => {
+            end: () => {
                 elemento.style.zIndex = '8';
-                
-                // 🔥 CORREÇÃO: Limpar atributos temporários
-                elemento.removeAttribute('data-initial-x');
-                elemento.removeAttribute('data-initial-y');
-                
                 this.salvarEstadoHistorico('Mover Cuba');
-                console.log('✅ Cuba movida - Posição:', elemento.getAttribute('data-x'), elemento.getAttribute('data-y'));
             }
         }
     });
 
-    // Configurar redimensionamento baseado no tipo
+    // 🔥 CORREÇÃO: Configurar redimensionamento baseado no tipo
     if (tipo === 'linha-reta') {
         this.configurarHandlesLinhaReta(elemento);
     } else {
@@ -4781,7 +4743,7 @@ _isTouchGesture(e) {
                         height: `${event.rect.height}px`
                     });
 
-                    // 🔥 CORREÇÃO: Manter transformação durante redimensionamento
+                    // Manter transformação durante redimensionamento
                     const currentX = parseFloat(event.target.getAttribute('data-x')) || 0;
                     const currentY = parseFloat(event.target.getAttribute('data-y')) || 0;
                     const currentRotate = event.target.getAttribute('data-rotate') || 0;
