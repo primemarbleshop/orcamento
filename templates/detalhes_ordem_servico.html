@@ -4795,15 +4795,17 @@ _isTouchGesture(e) {
     }
 }
 
-    manipularCliqueInsercao(e) {
+   manipularCliqueInsercao(e) {
     if (!this.modoInsercaoAtivo) return;
     
     // Prevenir comportamento padrão
     e.preventDefault();
     e.stopPropagation();
     
-    // 🔥 CORREÇÃO: Obter coordenadas relativas SEM scroll
+    // 🔥 CORREÇÃO: Usar cálculo de coordenadas do código antigo
     const rect = this.drawingArea.getBoundingClientRect();
+    const scrollLeft = this.drawingArea.scrollLeft || 0;
+    const scrollTop = this.drawingArea.scrollTop || 0;
     
     let clientX, clientY;
     
@@ -4815,11 +4817,11 @@ _isTouchGesture(e) {
         clientY = e.clientY;
     }
     
-    // 🔥 CORREÇÃO: Coordenadas relativas à drawingArea (sem scroll)
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
+    // ✅ CORREÇÃO: Coordenadas ABSOLUTAS incluindo scroll (como no código antigo)
+    const x = clientX - rect.left + scrollLeft;
+    const y = clientY - rect.top + scrollTop;
     
-    console.log(`🎯 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y}`);
+    console.log(`🎯 Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y} (scroll: ${scrollLeft}, ${scrollTop})`);
 
     switch(this.modoInsercaoAtivo) {
         case 'texto':
@@ -6561,4 +6563,3 @@ aplicarEstilosManterModal() {
 
 </body>
 </html>
-
