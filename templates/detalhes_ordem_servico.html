@@ -3804,30 +3804,32 @@ _isTouchGesture(e) {
 
         const onMove = (e) => {
             e.preventDefault();
+
             const dx = e.clientX - startX;
             const local = this.transformarCoordenadasParaLocal(dx, 0, rotate);
 
             let newWidth = width0;
-            let newDataX = dataX;
+            let newX = dataX;
+
             const isLeft = handleClass.includes('w');
 
             if (isLeft) {
                 newWidth = Math.max(width0 - local.dx, 1);
-                newDataX = dataX + local.dx;
+                newX = dataX + local.dx;
             } else {
                 newWidth = Math.max(width0 + local.dx, 1);
             }
 
             elemento.style.width = `${newWidth}px`;
-            elemento.setAttribute('data-x', newDataX);
-            elemento.style.transform = `translate(${newDataX}px, ${parseFloat(elemento.getAttribute('data-y')||0)}px) rotate(${rotate}deg)`;
+            elemento.setAttribute('data-x', newX);
+            elemento.style.transform = `translate(${newX}px, ${parseFloat(elemento.getAttribute('data-y'))}px) rotate(${rotate}deg)`;
 
-            this.atualizarLinhasESimbolos(elemento);
-            this.atualizarHandles();
+            if (this.atualizarLinhasESimbolos) this.atualizarLinhasESimbolos(elemento);
+            if (this.atualizarHandles) this.atualizarHandles();
         };
 
-        const onUp = (e) => {
-            try { handle.releasePointerCapture(ev.pointerId); } catch(_) {}
+        const onUp = () => {
+            handle.releasePointerCapture(ev.pointerId);
             document.removeEventListener('pointermove', onMove);
             document.removeEventListener('pointerup', onUp);
             this.salvarEstadoHistorico('Redimensionar Linha');
@@ -3839,16 +3841,13 @@ _isTouchGesture(e) {
 }
 
        criarHandles(elemento) {
-    // Normaliza data-attributes
     if (!elemento.getAttribute('data-x')) elemento.setAttribute('data-x', '0');
     if (!elemento.getAttribute('data-y')) elemento.setAttribute('data-y', '0');
     if (!elemento.getAttribute('data-rotate')) elemento.setAttribute('data-rotate', '0');
 
-    // Remove container anterior (se houver)
-    const existing = elemento.querySelector(':scope > .handles-container');
-    if (existing) existing.remove();
+    const old = elemento.querySelector(':scope > .handles-container');
+    if (old) old.remove();
 
-    // Cria container (relativo ao elemento)
     const container = document.createElement('div');
     container.className = 'handles-container';
     container.style.position = 'absolute';
@@ -3859,77 +3858,69 @@ _isTouchGesture(e) {
     container.style.pointerEvents = 'none';
     container.style.zIndex = '9999';
 
-    // Obtém tamanho atual do elemento (relativo — pois container está dentro)
     const w = elemento.offsetWidth;
     const h = elemento.offsetHeight;
 
-    // Define handles relativos (posição em px dentro do elemento)
-    const relativeHandles = elemento.classList.contains('linha-reta') 
+    const relativeHandles = elemento.classList.contains('linha-reta')
         ? [
-            { cls: 'handle-w', x: 0,     y: h/2, cursor: 'w-resize' },
-            { cls: 'handle-e', x: w,     y: h/2, cursor: 'e-resize' }
+            { cls: 'handle-w', x: 0, y: h / 2, cursor: 'w-resize' },
+            { cls: 'handle-e', x: w, y: h / 2, cursor: 'e-resize' }
           ]
         : [
-            { cls: 'handle-nw', x: 0,    y: 0,    cursor: 'nw-resize' },
-            { cls: 'handle-n',  x: w/2,  y: 0,    cursor: 'n-resize' },
-            { cls: 'handle-ne', x: w,    y: 0,    cursor: 'ne-resize' },
-            { cls: 'handle-e',  x: w,    y: h/2,  cursor: 'e-resize' },
-            { cls: 'handle-se', x: w,    y: h,    cursor: 'se-resize' },
-            { cls: 'handle-s',  x: w/2,  y: h,    cursor: 's-resize' },
-            { cls: 'handle-sw', x: 0,    y: h,    cursor: 'sw-resize' },
-            { cls: 'handle-w',  x: 0,    y: h/2,  cursor: 'w-resize' }
+            { cls: 'handle-nw', x: 0, y: 0, cursor: 'nw-resize' },
+            { cls: 'handle-n', x: w / 2, y: 0, cursor: 'n-resize' },
+            { cls: 'handle-ne', x: w, y: 0, cursor: 'ne-resize' },
+            { cls: 'handle-e', x: w, y: h / 2, cursor: 'e-resize' },
+            { cls: 'handle-se', x: w, y: h, cursor: 'se-resize' },
+            { cls: 'handle-s', x: w / 2, y: h, cursor: 's-resize' },
+            { cls: 'handle-sw', x: 0, y: h, cursor: 'sw-resize' },
+            { cls: 'handle-w', x: 0, y: h / 2, cursor: 'w-resize' }
           ];
 
-    // Cria cada handle e o adiciona ao container (handles filhos do elemento)
-    relativeHandles.forEach(cfg => {
+    relativeHandles.forEach(hpos => {
         const hEl = document.createElement('div');
-        hEl.className = `handle ${cfg.cls}`;
+        hEl.className = `handle ${hpos.cls}`;
         hEl.style.position = 'absolute';
-        hEl.style.left = `${cfg.x}px`;
-        hEl.style.top = `${cfg.y}px`;
+        hEl.style.left = `${hpos.x}px`;
+        hEl.style.top = `${hpos.y}px`;
         hEl.style.transform = 'translate(-50%, -50%)';
-        hEl.style.pointerEvents = 'auto'; // só os handles recebem eventos
+        hEl.style.pointerEvents = 'auto';
         hEl.style.width = '8px';
         hEl.style.height = '8px';
-        hEl.style.cursor = cfg.cursor;
-        container.appendChild(hEl);
+        hEl.style.cursor = hpos.cursor;
 
-        // configura interatividade (usa handles como filhos)
-        this.configurarHandle(hEl, elemento, cfg.cls);
+        container.appendChild(hEl);
+        this.configurarHandle(hEl, elemento, hpos.cls);
     });
 
-    // handle de rotação (posicionado fora da borda superior)
     const rot = document.createElement('div');
     rot.className = 'handle handle-rotacao';
     rot.style.position = 'absolute';
-    rot.style.left = `${w/2}px`;
-    rot.style.top = `${-28}px`; // fora da borda superior
+    rot.style.left = `${w / 2}px`;
+    rot.style.top = `-28px`;
     rot.style.transform = 'translate(-50%, -50%)';
     rot.style.pointerEvents = 'auto';
+
     container.appendChild(rot);
     this.configurarHandleRotacao(rot, elemento);
 
-    // Anexa container como filho do elemento (handles giram com o elemento)
-    // garante que elemento tem position que aceite filhos absolutos
     if (getComputedStyle(elemento).position === 'static') {
         elemento.style.position = 'relative';
     }
+
     elemento.appendChild(container);
 
-    // guarda referência para remoção futura
     this.handles.push(container);
-    console.log('Handles criados (filhos do elemento)');
 }
 
         configurarHandle(handle, elemento, handleName) {
     const minSize = 10;
     let initial = null;
 
-    // usamos pointer events nativos (compatível mobile/desktop) via interact.js listeners
     handle.addEventListener('pointerdown', (ev) => {
         ev.stopPropagation();
         ev.preventDefault();
-        // inicializa snapshot
+
         const rect = elemento.getBoundingClientRect();
         const dataX = parseFloat(elemento.getAttribute('data-x')) || 0;
         const dataY = parseFloat(elemento.getAttribute('data-y')) || 0;
@@ -3942,66 +3933,53 @@ _isTouchGesture(e) {
             height: elemento.offsetHeight,
             dataX,
             dataY,
-            rotate,
-            rectLeft: rect.left,
-            rectTop: rect.top
+            rotate
         };
 
         handle.setPointerCapture(ev.pointerId);
 
         const onMove = (e) => {
             e.preventDefault();
-            // delta global
+
             const dx = e.clientX - initial.mouseX;
             const dy = e.clientY - initial.mouseY;
-            // converte para coordenadas locais do elemento (leva rotacao em conta)
+
             const local = this.transformarCoordenadasParaLocal(dx, dy, initial.rotate);
 
             let newW = initial.width;
             let newH = initial.height;
-            let newDataX = initial.dataX;
-            let newDataY = initial.dataY;
+            let newX = initial.dataX;
+            let newY = initial.dataY;
 
             const isE = handleName.includes('e');
             const isW = handleName.includes('w');
             const isN = handleName.includes('n');
             const isS = handleName.includes('s');
 
-            // aplica mudanças no sistema local do elemento
-            if (isE && !isW) {
-                newW = Math.max(initial.width + local.dx, minSize);
-            }
+            if (isE && !isW) newW = Math.max(initial.width + local.dx, minSize);
             if (isW && !isE) {
                 newW = Math.max(initial.width - local.dx, minSize);
-                // quando ajustamos a borda esquerda, movemos dataX localmente
-                // local.dx positivo => mouse move right => width diminui
-                newDataX = initial.dataX + local.dx;
+                newX = initial.dataX + local.dx;
             }
-            if (isS && !isN) {
-                newH = Math.max(initial.height + local.dy, minSize);
-            }
+
+            if (isS && !isN) newH = Math.max(initial.height + local.dy, minSize);
             if (isN && !isS) {
                 newH = Math.max(initial.height - local.dy, minSize);
-                newDataY = initial.dataY + local.dy;
+                newY = initial.dataY + local.dy;
             }
 
-            // diagonais (manter proporção opcional) — aqui mantemos livre (você já tinha proporção em initialRatio se quiser)
-            // aplica resultados
             elemento.style.width = `${newW}px`;
             elemento.style.height = `${newH}px`;
-            elemento.setAttribute('data-x', newDataX);
-            elemento.setAttribute('data-y', newDataY);
-            // renderiza transform consistente: translate(dataX,dataY) rotate(data-rotate)
-            const curRotate = parseFloat(elemento.getAttribute('data-rotate')) || initial.rotate;
-            elemento.style.transform = `translate(${newDataX}px, ${newDataY}px) rotate(${curRotate}deg)`;
+            elemento.setAttribute('data-x', newX);
+            elemento.setAttribute('data-y', newY);
+            elemento.style.transform = `translate(${newX}px, ${newY}px) rotate(${initial.rotate}deg)`;
 
-            // refatorar: atualizar linhas/símbolos e handles
-            this.atualizarLinhasESimbolos(elemento);
-            this.atualizarHandles(); // reposiciona handles internos (usa offsetWidth/offsetHeight)
+            if (this.atualizarLinhasESimbolos) this.atualizarLinhasESimbolos(elemento);
+            if (this.atualizarHandles) this.atualizarHandles();
         };
 
-        const onUp = (e) => {
-            try { handle.releasePointerCapture(ev.pointerId); } catch(_) {}
+        const onUp = () => {
+            handle.releasePointerCapture(ev.pointerId);
             document.removeEventListener('pointermove', onMove);
             document.removeEventListener('pointerup', onUp);
             this.salvarEstadoHistorico('Redimensionar Elemento');
@@ -4013,46 +3991,47 @@ _isTouchGesture(e) {
 }
 
         configurarHandleRotacao(handle, elemento) {
-    const snapAngles = [0,90,180,270];
+    const snapAngles = [0, 90, 180, 270];
     const SNAP_THRESHOLD = 15;
     let pointerId = null;
 
     handle.addEventListener('pointerdown', (ev) => {
         ev.stopPropagation();
         ev.preventDefault();
+
         handle.setPointerCapture(ev.pointerId);
         pointerId = ev.pointerId;
-        // pega centro real na tela
+
         const rect = elemento.getBoundingClientRect();
-        const center = { x: rect.left + rect.width/2, y: rect.top + rect.height/2 };
+        const center = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
 
         const onMove = (e) => {
             e.preventDefault();
+
             const dx = e.clientX - center.x;
             const dy = e.clientY - center.y;
+
             let angle = Math.atan2(dy, dx) * 180 / Math.PI + 90;
             if (angle < 0) angle += 360;
-            if (angle >= 360) angle -= 360;
 
-            // snap
-            for (const s of snapAngles) {
-                if (Math.abs(((angle - s + 540) % 360) - 180) <= SNAP_THRESHOLD) {
-                    angle = s;
-                    break;
+            for (const snap of snapAngles) {
+                if (Math.abs(angle - snap) < SNAP_THRESHOLD) {
+                    angle = snap;
                 }
             }
 
             const curX = parseFloat(elemento.getAttribute('data-x')) || 0;
             const curY = parseFloat(elemento.getAttribute('data-y')) || 0;
+
             elemento.setAttribute('data-rotate', angle);
             elemento.style.transform = `translate(${curX}px, ${curY}px) rotate(${angle}deg)`;
 
-            this.atualizarLinhasESimbolos(elemento);
+            if (this.atualizarLinhasESimbolos) this.atualizarLinhasESimbolos(elemento);
             this.atualizarHandles();
         };
 
-        const onUp = (e) => {
-            try { handle.releasePointerCapture(pointerId); } catch(_) {}
+        const onUp = () => {
+            handle.releasePointerCapture(pointerId);
             document.removeEventListener('pointermove', onMove);
             document.removeEventListener('pointerup', onUp);
             this.salvarEstadoHistorico('Rotacionar Elemento');
@@ -4063,46 +4042,51 @@ _isTouchGesture(e) {
     });
 }
 
-       removerHandles() {
-    // remove containers armazenados em this.handles
+      removerHandles() {
     this.handles.forEach(h => {
-        try { if (h && h.parentNode) h.parentNode.removeChild(h); } catch(_) {}
+        if (h && h.parentNode) h.parentNode.removeChild(h);
     });
     this.handles = [];
-    // remove quaisquer handles órfãos fora (fallback)
-    const orfaos = this.drawingArea.querySelectorAll(':scope > .handle, :scope > .handle-rotacao, :scope > .handles-container');
-    orfaos.forEach(o => { if (o.parentNode) o.parentNode.removeChild(o); });
+
+    const orfaos = this.drawingArea.querySelectorAll('.handles-container, .handle');
+    orfaos.forEach(o => o.remove());
 }
 
        atualizarHandles() {
     if (!this.elementoSelecionado) return;
-    // tenta atualizar internamente se container existir
+
     const container = this.elementoSelecionado.querySelector(':scope > .handles-container');
     if (container) {
-        // recalcula posições dentro do container com base no novo tamanho
         const w = this.elementoSelecionado.offsetWidth;
         const h = this.elementoSelecionado.offsetHeight;
+
         const map = {
             'handle-nw': { x: 0, y: 0 },
-            'handle-n' : { x: w/2, y: 0 },
+            'handle-n': { x: w / 2, y: 0 },
             'handle-ne': { x: w, y: 0 },
-            'handle-e' : { x: w, y: h/2 },
+            'handle-e': { x: w, y: h / 2 },
             'handle-se': { x: w, y: h },
-            'handle-s' : { x: w/2, y: h },
+            'handle-s': { x: w / 2, y: h },
             'handle-sw': { x: 0, y: h },
-            'handle-w' : { x: 0, y: h/2 }
+            'handle-w': { x: 0, y: h / 2 }
         };
+
         Object.keys(map).forEach(cls => {
             const el = container.querySelector(`.${cls}`);
             if (!el) return;
             el.style.left = `${map[cls].x}px`;
-            el.style.top  = `${map[cls].y}px`;
+            el.style.top = `${map[cls].y}px`;
         });
+
         const rot = container.querySelector('.handle-rotacao');
-        if (rot) { rot.style.left = `${w/2}px`; rot.style.top = `-28px`; }
+        if (rot) {
+            rot.style.left = `${w / 2}px`;
+            rot.style.top = `-28px`;
+        }
+
         return;
     }
-    // fallback: remove e recria
+
     this.removerHandles();
     this.criarHandles(this.elementoSelecionado);
 }
