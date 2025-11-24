@@ -743,18 +743,18 @@
     pointer-events: none;
 }
 
+.handle, .handle-rotacao {
+    z-index: 10001 !important;
+    pointer-events: auto !important;
+    cursor: pointer;
+}
+
 .peca:not(.elemento-selecionado),
 .cuba:not(.elemento-selecionado),
 .texto-legenda:not(.elemento-selecionado),
 .legenda-simplificada:not(.elemento-selecionado),
 .titulo-grupo:not(.elemento-selecionado) {
     pointer-events: auto !important;
-}
-
-.handle, .handle-rotacao {
-    z-index: 10001 !important;
-    pointer-events: auto !important;
-    cursor: pointer;
 }
     
     .handle {
@@ -1561,7 +1561,6 @@ height: 0px !important;
             this._lacoMoveHandler = null;
             this._lacoUpHandler = null;
             this._lacoPolygonElement = null;
-this.handlesContainer = null;
 this.touchStartTime = 0;
     this.touchStartX = 0;
     this.touchStartY = 0;
@@ -1571,6 +1570,7 @@ this.touchStartTime = 0;
     this.touchedOutside = false;
  this.modalEstilosAberto = false;
     this.elementoSelecionadoAntesDoModal = null;
+this.handlesContainer = null;
 
 
             
@@ -2454,26 +2454,31 @@ limparPinturasBorracha() {
         }
 
         desselecionarElemento() {
-    this.removerHandles();
-    
-    if (this.elementoSelecionado) {
-        this.removerInteratividade(this.elementoSelecionado);
-        
-        // Restaurar z-index e pointer-events
-        this.elementoSelecionado.style.zIndex = '';
-        this.elementoSelecionado.style.pointerEvents = 'auto';
-        this.elementoSelecionado.classList.remove('elemento-selecionado');
-        
-        if (!this.modoSelecaoAtivo) {
-            this.reabilitarLinhasPecas();
+            this.removerTodosOsHandles();
+            
+            if (this.elementoSelecionado) {
+                this.removerInteratividade(this.elementoSelecionado);
+                
+                if (this.elementoSelecionado.classList.contains('peca')) {
+                    this.elementoSelecionado.style.zIndex = '2';
+                } else if (this.elementoSelecionado.classList.contains('titulo-grupo')) {
+                    this.elementoSelecionado.style.zIndex = '1';
+                } else {
+                    this.elementoSelecionado.style.zIndex = '';
+                }
+                
+                this.elementoSelecionado.classList.remove('elemento-selecionado');
+                
+                if (!this.modoSelecaoAtivo) {
+                    this.reabilitarLinhasPecas();
+                }
+                
+                this.elementoSelecionado = null;
+            }
+            
+            this.atualizarEstadoBotoes();
+            this.ultimoElementoClicado = null;
         }
-        
-        this.elementoSelecionado = null;
-    }
-    
-    this.atualizarEstadoBotoes();
-    this.ultimoElementoClicado = null;
-}
 
       desfazer() {
     if (this.indiceHistorico > 0) {
@@ -3614,7 +3619,7 @@ forcarAtualizacaoInteratividade() {
     console.log('Interatividade garantida para todos os elementos');
 }
 
-    manipularCliqueSelecao(e) {
+     manipularCliqueSelecao(e) {
     if (this.modalEstilosAberto) {
         console.log('Modal de estilos aberto - seleção completamente bloqueada');
         e.preventDefault();
@@ -3623,16 +3628,12 @@ forcarAtualizacaoInteratividade() {
         return;
     }
     
-    // Verificar se o clique foi em um handle
-    if (e.target.classList.contains('handle') || e.target.classList.contains('handle-rotacao')) {
-        console.log('Clique no handle - ignorando seleção de elemento');
-        return;
-    }
-    
     if (this._isTouchGesture(e)) {
         console.log('Gesto de touch detectado - ignorando seleção');
         return;
     }
+    
+    if (e.target.classList.contains('handle')) return;
     
     const elemento = e.target.closest('.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca, .grupo-temporario');
     
@@ -4221,37 +4222,24 @@ _isTouchGesture(e) {
         }
 
         removerHandles() {
-    console.log(`Removendo ${this.handles.length} handles...`);
-    
-    // Remover handles individuais
-    this.handles.forEach(handle => {
-        if (handle && handle.parentNode) {
-            handle.parentNode.removeChild(handle);
+            console.log(`Removendo ${this.handles.length} handles...`);
+            
+            this.handles.forEach(handle => {
+                if (handle && handle.parentNode) {
+                    handle.parentNode.removeChild(handle);
+                }
+            });
+            this.handles = [];
+            
+            const handlesOrfaos = this.drawingArea.querySelectorAll('.handle, .handle-rotacao');
+            handlesOrfaos.forEach(handle => {
+                if (handle.parentNode) {
+                    handle.parentNode.removeChild(handle);
+                }
+            });
+            
+            console.log('Handles removidos');
         }
-    });
-    this.handles = [];
-    
-    // Remover container de handles
-    if (this.handlesContainer && this.handlesContainer.parentNode) {
-        this.handlesContainer.parentNode.removeChild(this.handlesContainer);
-        this.handlesContainer = null;
-    }
-    
-    // Remover qualquer handle órfão
-    const handlesOrfaos = this.drawingArea.querySelectorAll('.handle, .handle-rotacao, .handles-container');
-    handlesOrfaos.forEach(handle => {
-        if (handle.parentNode) {
-            handle.parentNode.removeChild(handle);
-        }
-    });
-    
-    // Restaurar pointer-events do elemento selecionado
-    if (this.elementoSelecionado) {
-        this.elementoSelecionado.style.pointerEvents = 'auto';
-    }
-    
-    console.log('Handles removidos');
-}
 
         atualizarHandles() {
             if (!this.elementoSelecionado) {
@@ -6339,3 +6327,4 @@ aplicarEstilosManterModal() {
 
 </body>
 </html>
+
