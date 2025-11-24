@@ -3895,38 +3895,45 @@ _isTouchGesture(e) {
     // Remover handles existentes primeiro
     this.removerHandles();
     
-    const pos = this.obterPosicaoComScroll(elemento);
+    const elementoRect = elemento.getBoundingClientRect();
+    const drawingAreaRect = this.drawingArea.getBoundingClientRect();
+    
+    // Calcular posição absoluta dentro do drawingArea
+    const absoluteLeft = elementoRect.left - drawingAreaRect.left + this.drawingArea.scrollLeft;
+    const absoluteTop = elementoRect.top - drawingAreaRect.top + this.drawingArea.scrollTop;
     const width = parseFloat(elemento.style.width);
     const height = parseFloat(elemento.style.height);
     const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
 
-    console.log(`Dimensões: ${width}x${height}, Rotação: ${rotation}°`);
+    console.log(`Posição absoluta: left=${absoluteLeft}, top=${absoluteTop}, width=${width}, height=${height}, rotation=${rotation}°`);
 
-    // Criar container para handles com mesma posição e rotação do elemento
+    // Criar container para handles SOBREPOSTO ao elemento
     const handlesContainer = document.createElement('div');
     handlesContainer.className = 'handles-container';
     handlesContainer.style.position = 'absolute';
-    handlesContainer.style.left = elemento.style.left;
-    handlesContainer.style.top = elemento.style.top;
+    handlesContainer.style.left = `${absoluteLeft}px`;
+    handlesContainer.style.top = `${absoluteTop}px`;
     handlesContainer.style.width = `${width}px`;
     handlesContainer.style.height = `${height}px`;
     handlesContainer.style.transform = `rotate(${rotation}deg)`;
-    handlesContainer.style.pointerEvents = 'none';
+    handlesContainer.style.pointerEvents = 'none'; // Container não intercepta eventos
     handlesContainer.style.zIndex = '10000';
+    handlesContainer.style.border = '1px dashed rgba(78, 115, 223, 0.5)'; // Visualização para debug
+    handlesContainer.style.boxSizing = 'border-box';
     
     this.drawingArea.appendChild(handlesContainer);
     this.handlesContainer = handlesContainer;
 
-    // Posições relativas dos handles (em porcentagem do container)
+    // Posições dos handles (coordenadas relativas ao container)
     const handlePositions = [
-        { class: 'handle-n', x: 50, y: 0 },      // Top
-        { class: 'handle-s', x: 50, y: 100 },    // Bottom  
-        { class: 'handle-e', x: 100, y: 50 },    // Right
-        { class: 'handle-w', x: 0, y: 50 },      // Left
-        { class: 'handle-ne', x: 100, y: 0 },    // Top-Right
-        { class: 'handle-nw', x: 0, y: 0 },      // Top-Left
-        { class: 'handle-se', x: 100, y: 100 },  // Bottom-Right
-        { class: 'handle-sw', x: 0, y: 100 }     // Bottom-Left
+        { class: 'handle-n', x: 50, y: 0, cursor: 'n-resize' },      // Top
+        { class: 'handle-s', x: 50, y: 100, cursor: 's-resize' },    // Bottom  
+        { class: 'handle-e', x: 100, y: 50, cursor: 'e-resize' },    // Right
+        { class: 'handle-w', x: 0, y: 50, cursor: 'w-resize' },      // Left
+        { class: 'handle-ne', x: 100, y: 0, cursor: 'ne-resize' },   // Top-Right
+        { class: 'handle-nw', x: 0, y: 0, cursor: 'nw-resize' },     // Top-Left
+        { class: 'handle-se', x: 100, y: 100, cursor: 'se-resize' }, // Bottom-Right
+        { class: 'handle-sw', x: 0, y: 100, cursor: 'sw-resize' }    // Bottom-Left
     ];
 
     // Criar handles de redimensionamento
@@ -3937,14 +3944,17 @@ _isTouchGesture(e) {
         handleElement.style.left = `${pos.x}%`;
         handleElement.style.top = `${pos.y}%`;
         handleElement.style.transform = 'translate(-50%, -50%)';
-        handleElement.style.width = '8px';
-        handleElement.style.height = '8px';
+        handleElement.style.width = '12px'; // Ligeiramente maior para melhor usabilidade
+        handleElement.style.height = '12px';
         handleElement.style.backgroundColor = '#4e73df';
+        handleElement.style.border = '2px solid white';
         handleElement.style.borderRadius = '50%';
-        handleElement.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+        handleElement.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
         handleElement.style.zIndex = '10001';
         handleElement.style.pointerEvents = 'auto';
-        handleElement.style.cursor = this.obterCursorHandle(pos.class);
+        handleElement.style.cursor = pos.cursor;
+        
+        console.log(`Criando handle ${pos.class} em ${pos.x}%, ${pos.y}%`);
         
         handlesContainer.appendChild(handleElement);
         this.handles.push(handleElement);
@@ -3952,18 +3962,19 @@ _isTouchGesture(e) {
         this.configurarHandle(handleElement, elemento, pos.class);
     });
 
-    // Handle de rotação - posicionado acima do elemento
+    // Handle de rotação - posicionado acima do centro
     const handleRotacao = document.createElement('div');
     handleRotacao.className = 'handle handle-rotacao';
     handleRotacao.style.position = 'absolute';
     handleRotacao.style.left = '50%';
-    handleRotacao.style.top = '-30px'; // Acima do elemento
+    handleRotacao.style.top = '-40px'; // 40px acima do topo do elemento
     handleRotacao.style.transform = 'translate(-50%, -50%)';
-    handleRotacao.style.width = '8px';
-    handleRotacao.style.height = '8px';
-    handleRotacao.style.backgroundColor = 'yellow';
+    handleRotacao.style.width = '12px';
+    handleRotacao.style.height = '12px';
+    handleRotacao.style.backgroundColor = '#ffc107';
+    handleRotacao.style.border = '2px solid white';
     handleRotacao.style.borderRadius = '50%';
-    handleRotacao.style.boxShadow = '0 2px 4px rgba(0,0,0,0.3)';
+    handleRotacao.style.boxShadow = '0 2px 6px rgba(0,0,0,0.3)';
     handleRotacao.style.zIndex = '10001';
     handleRotacao.style.pointerEvents = 'auto';
     handleRotacao.style.cursor = 'grab';
@@ -3973,7 +3984,7 @@ _isTouchGesture(e) {
     
     this.configurarHandleRotacao(handleRotacao, elemento);
     
-    console.log(`${this.handles.length} handles criados com container rotacionado`);
+    console.log(`Handles criados: ${this.handles.length} handles sobrepostos ao elemento`);
 }
 
 // Método auxiliar para determinar cursor correto
@@ -4005,19 +4016,21 @@ obterCursorHandle(handleClass) {
                 event.preventDefault();
                 event.stopPropagation();
                 
-                // Capturar estado inicial
-                const style = window.getComputedStyle(elemento);
-                initialWidth = parseFloat(style.width);
-                initialHeight = parseFloat(style.height);
-                initialLeft = parseFloat(style.left);
-                initialTop = parseFloat(style.top);
+                // Capturar estado inicial do ELEMENTO
+                const elementoRect = elemento.getBoundingClientRect();
+                const drawingAreaRect = this.drawingArea.getBoundingClientRect();
+                
+                initialWidth = parseFloat(elemento.style.width);
+                initialHeight = parseFloat(elemento.style.height);
+                initialLeft = elementoRect.left - drawingAreaRect.left + this.drawingArea.scrollLeft;
+                initialTop = elementoRect.top - drawingAreaRect.top + this.drawingArea.scrollTop;
                 initialRotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
                 
                 initialMouseX = event.clientX;
                 initialMouseY = event.clientY;
 
                 handle.style.cursor = 'grabbing';
-                console.log(`Iniciando redimensionamento (${handleClass}) com rotação: ${initialRotation}°`);
+                console.log(`Redimensionamento iniciado: ${handleClass} em ${initialRotation}°`);
             },
             move: (event) => {
                 event.preventDefault();
@@ -4031,7 +4044,7 @@ obterCursorHandle(handleClass) {
                 const rawDeltaY = currentMouseY - initialMouseY;
                 
                 // Compensar pela rotação do elemento
-                const rad = -initialRotation * (Math.PI / 180); // Negativo porque a rotação CSS é no sentido anti-horário
+                const rad = -initialRotation * (Math.PI / 180);
                 const compensatedDeltaX = rawDeltaX * Math.cos(rad) - rawDeltaY * Math.sin(rad);
                 const compensatedDeltaY = rawDeltaX * Math.sin(rad) + rawDeltaY * Math.cos(rad);
 
@@ -4060,16 +4073,16 @@ obterCursorHandle(handleClass) {
                     newHeight = Math.max(initialHeight + compensatedDeltaY, 10);
                 }
 
-                // Aplicar mudanças
+                // ATUALIZAR ELEMENTO PRINCIPAL
                 elemento.style.width = `${newWidth}px`;
                 elemento.style.height = `${newHeight}px`;
                 elemento.style.left = `${newLeft}px`;
                 elemento.style.top = `${newTop}px`;
 
-                // Atualizar container de handles
+                // ATUALIZAR CONTAINER DE HANDLES PARA MANTER SOBREPOSIÇÃO
                 if (this.handlesContainer) {
-                    this.handlesContainer.style.left = elemento.style.left;
-                    this.handlesContainer.style.top = elemento.style.top;
+                    this.handlesContainer.style.left = `${newLeft}px`;
+                    this.handlesContainer.style.top = `${newTop}px`;
                     this.handlesContainer.style.width = `${newWidth}px`;
                     this.handlesContainer.style.height = `${newHeight}px`;
                 }
@@ -4105,7 +4118,7 @@ obterCursorHandle(handleClass) {
                 initialMouseY = event.clientY;
                 
                 handle.style.cursor = 'grabbing';
-                console.log('Iniciando rotação do elemento');
+                console.log('Rotação iniciada');
             },
             move: (event) => {
                 const currentMouseX = event.clientX;
@@ -4114,7 +4127,7 @@ obterCursorHandle(handleClass) {
                 // Calcular ângulo baseado na posição do mouse relativa ao centro
                 const deltaX = currentMouseX - elementCenterX;
                 const deltaY = currentMouseY - elementCenterY;
-                let angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI) + 90; // +90 para ajustar o ponto zero
+                let angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI) + 90;
                 
                 if (angle < 0) angle += 360;
                 
@@ -4127,16 +4140,25 @@ obterCursorHandle(handleClass) {
                     }
                 }
                 
-                // Aplicar rotação ao elemento
+                // Aplicar rotação ao ELEMENTO
                 const currentX = parseFloat(elemento.getAttribute('data-x')) || 0;
                 const currentY = parseFloat(elemento.getAttribute('data-y')) || 0;
                 
                 elemento.style.transform = `translate(${currentX}px, ${currentY}px) rotate(${snappedAngle}deg)`;
                 elemento.setAttribute('data-rotate', snappedAngle);
                 
-                // Atualizar rotação do container de handles
+                // SINCRONIZAR CONTAINER DE HANDLES
                 if (this.handlesContainer) {
                     this.handlesContainer.style.transform = `rotate(${snappedAngle}deg)`;
+                    
+                    // Manter sobreposição perfeita
+                    const elementoRect = elemento.getBoundingClientRect();
+                    const drawingAreaRect = this.drawingArea.getBoundingClientRect();
+                    const absoluteLeft = elementoRect.left - drawingAreaRect.left + this.drawingArea.scrollLeft;
+                    const absoluteTop = elementoRect.top - drawingAreaRect.top + this.drawingArea.scrollTop;
+                    
+                    this.handlesContainer.style.left = `${absoluteLeft}px`;
+                    this.handlesContainer.style.top = `${absoluteTop}px`;
                 }
                 
                 this.atualizarLinhasESimbolos(elemento);
@@ -4173,17 +4195,25 @@ obterCursorHandle(handleClass) {
         atualizarHandles() {
     if (!this.elementoSelecionado || !this.handlesContainer) return;
 
-    // Sincronizar container de handles com o elemento
+    // SINCRONIZAÇÃO PERFEITA entre elemento e container de handles
     const elemento = this.elementoSelecionado;
+    const elementoRect = elemento.getBoundingClientRect();
+    const drawingAreaRect = this.drawingArea.getBoundingClientRect();
+    
+    const absoluteLeft = elementoRect.left - drawingAreaRect.left + this.drawingArea.scrollLeft;
+    const absoluteTop = elementoRect.top - drawingAreaRect.top + this.drawingArea.scrollTop;
     const width = parseFloat(elemento.style.width);
     const height = parseFloat(elemento.style.height);
     const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
 
-    this.handlesContainer.style.left = elemento.style.left;
-    this.handlesContainer.style.top = elemento.style.top;
+    // Atualizar container para manter sobreposição exata
+    this.handlesContainer.style.left = `${absoluteLeft}px`;
+    this.handlesContainer.style.top = `${absoluteTop}px`;
     this.handlesContainer.style.width = `${width}px`;
     this.handlesContainer.style.height = `${height}px`;
     this.handlesContainer.style.transform = `rotate(${rotation}deg)`;
+    
+    console.log('Handles sincronizados com elemento');
 }
 
         desabilitarLinhasPecas() {
