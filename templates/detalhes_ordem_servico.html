@@ -1428,6 +1428,21 @@ height: 0px !important;
             pointer-events: auto !important;
         }
     }
+
+    /* NOVO: Estilos para canvas da borracha */
+    #canvasBorracha {
+        position: absolute;
+        left: 0;
+        top: 0;
+        z-index: 9;
+        pointer-events: none;
+        width: 100%;
+        height: 100%;
+    }
+
+    .modo-borracha #canvasBorracha {
+        pointer-events: auto;
+    }
 </style>
 
 </head>
@@ -1561,27 +1576,29 @@ height: 0px !important;
             this._lacoMoveHandler = null;
             this._lacoUpHandler = null;
             this._lacoPolygonElement = null;
-this.touchStartTime = 0;
-    this.touchStartX = 0;
-    this.touchStartY = 0;
-    this.touchMoveThreshold = 10;
-    this.isScrolling = false;
-    this.isZooming = false;
-    this.touchedOutside = false;
- this.modalEstilosAberto = false;
-    this.elementoSelecionadoAntesDoModal = null;
-this.handlesContainer = null;
+            this.touchStartTime = 0;
+            this.touchStartX = 0;
+            this.touchStartY = 0;
+            this.touchMoveThreshold = 10;
+            this.isScrolling = false;
+            this.isZooming = false;
+            this.touchedOutside = false;
+            this.modalEstilosAberto = false;
+            this.elementoSelecionadoAntesDoModal = null;
+            this.handlesContainer = null;
 
-
+            // NOVO: Sistema de canvas para borracha
+            this.canvasBorracha = null;
+            this.ctxBorracha = null;
+            this.ultimaPosicaoBorracha = null;
             
             this.borrachaCursor = null;
             this.borrachaPressionada = false;
-            this.ultimaPosicaoBorracha = null;
             this.tamanhoBorracha = 10;
-		this.ultimoSalvamentoBorracha = 0;
-this.borrachaEmAndamento = false;
-    this.estadoAntesDaBorracha = null;
-this.borrachaAtiva = false;
+            this.ultimoSalvamentoBorracha = 0;
+            this.borrachaEmAndamento = false;
+            this.estadoAntesDaBorracha = null;
+            this.borrachaAtiva = false;
             
             this.ultimoElementoClicado = null;
             
@@ -1612,82 +1629,112 @@ this.borrachaAtiva = false;
             this.estiloLinhaSelecionado = null;
 
             this.adicionarEstilosMobile();
-
             this.inicializar();
         }
 
-adicionarEstilosMobile() {
-    if (!document.getElementById('estilos-mobile-gestos')) {
-        const estiloMobile = `
-            .drawing-area {
-                -webkit-user-select: none;
-                -moz-user-select: none;
-                -ms-user-select: none;
-                user-select: none;
-                -webkit-tap-highlight-color: transparent;
+        adicionarEstilosMobile() {
+            if (!document.getElementById('estilos-mobile-gestos')) {
+                const estiloMobile = `
+                    .drawing-area {
+                        -webkit-user-select: none;
+                        -moz-user-select: none;
+                        -ms-user-select: none;
+                        user-select: none;
+                        -webkit-tap-highlight-color: transparent;
+                    }
+                    
+                    .elemento-selecionado {
+                        outline: 0px solid #4e73df !important;
+                        outline-offset: 0px;
+                    }
+                    
+                    @media (max-width: 768px) {
+                        .drawing-area {
+                            touch-action: pan-x pan-y pinch-zoom;
+                        }
+                        
+                        .action-buttons-container {
+                            position: sticky;
+                            top: 0;
+                            z-index: 1000;
+                            background: rgba(248, 249, 250, 0.95);
+                            backdrop-filter: blur(10px);
+                        }
+                    }
+
+                    @media (max-width: 768px) {
+                        .modo-borracha .drawing-area {
+                            touch-action: pan-x pan-y pinch-zoom !important;
+                            cursor: default !important;
+                        }
+                        
+                        .modo-borracha .cursor-borracha {
+                            display: none !important;
+                        }
+                        
+                        .modo-borracha .peca,
+                        .modo-borracha .cuba,
+                        .modo-borracha .texto-legenda,
+                        .modo-borracha .legenda-simplificada,
+                        .modo-borracha .simbolo-linha,
+                        .modo-borracha .titulo-grupo,
+                        .modo-borracha .dimensoes,
+                        .modo-borracha .quantidade-peca,
+                        .modo-borracha .linha-peca,
+                        .modo-borracha .grupo-temporario {
+                            pointer-events: none !important;
+                            touch-action: none !important;
+                        }
+                    }
+
+                    @media (max-width: 768px) {
+                        .cursor-borracha {
+                            width: 25px;
+                            height: 25px;
+                            border-width: 3px;
+                        }
+                    }
+                `;
+
+                const styleElement = document.createElement('style');
+                styleElement.id = 'estilos-mobile-gestos';
+                styleElement.textContent = estiloMobile;
+                document.head.appendChild(styleElement);
+                
+                console.log('Estilos mobile para gestos adicionados');
             }
+        }
+
+        // NOVO: Inicializar canvas para borracha
+        inicializarCanvasBorracha() {
+            this.canvasBorracha = document.createElement('canvas');
+            this.canvasBorracha.id = 'canvasBorracha';
+            Object.assign(this.canvasBorracha.style, {
+                position: 'absolute',
+                left: '0',
+                top: '0',
+                zIndex: '9',
+                pointerEvents: 'none',
+                width: '100%',
+                height: '100%'
+            });
+            this.drawingArea.appendChild(this.canvasBorracha);
+            this.ctxBorracha = this.canvasBorracha.getContext('2d');
             
-            .elemento-selecionado {
-                outline: 0px solid #4e73df !important;
-                outline-offset: 0px;
-            }
-            
-            @media (max-width: 768px) {
-                .drawing-area {
-                    touch-action: pan-x pan-y pinch-zoom;
-                }
-                
-                .action-buttons-container {
-                    position: sticky;
-                    top: 0;
-                    z-index: 1000;
-                    background: rgba(248, 249, 250, 0.95);
-                    backdrop-filter: blur(10px);
-                }
-            }
+            this.ajustarCanvasBorracha();
+        }
 
-            @media (max-width: 768px) {
-                .modo-borracha .drawing-area {
-                    touch-action: pan-x pan-y pinch-zoom !important;
-                    cursor: default !important;
-                }
-                
-                .modo-borracha .cursor-borracha {
-                    display: none !important;
-                }
-                
-                .modo-borracha .peca,
-                .modo-borracha .cuba,
-                .modo-borracha .texto-legenda,
-                .modo-borracha .legenda-simplificada,
-                .modo-borracha .simbolo-linha,
-                .modo-borracha .titulo-grupo,
-                .modo-borracha .dimensoes,
-                .modo-borracha .quantidade-peca,
-                .modo-borracha .linha-peca,
-                .modo-borracha .grupo-temporario {
-                    pointer-events: none !important;
-                    touch-action: none !important;
-                }
-            }
+        ajustarCanvasBorracha() {
+            const rect = this.drawingArea.getBoundingClientRect();
+            this.canvasBorracha.width = rect.width;
+            this.canvasBorracha.height = rect.height;
+        }
 
-            @media (max-width: 768px) {
-                .cursor-borracha {
-                    width: 25px;
-                    height: 25px;
-                    border-width: 3px;
-                }
+        limparCanvasBorracha() {
+            if (this.ctxBorracha) {
+                this.ctxBorracha.clearRect(0, 0, this.canvasBorracha.width, this.canvasBorracha.height);
             }
-        `;
-
-        const styleElement = document.createElement('style');
-        styleElement.id = 'estilos-mobile-gestos';
-        styleElement.textContent = estiloMobile;
-        document.head.appendChild(styleElement);
-        
-        console.log('Estilos mobile para gestos adicionados');
-    }
-}
+        }
 
         desativarTodosOsModos() {
             console.log('Desativando todos os modos...');
@@ -1863,6 +1910,9 @@ adicionarEstilosMobile() {
             this.configurarEventosTouchInsercao();
             this.configurarEventosBorracha();
             
+            // NOVO: Inicializar canvas da borracha
+            this.inicializarCanvasBorracha();
+            
             this.modoLacoAtivo = false;
             this.lacoPontos = [];
             
@@ -1880,246 +1930,232 @@ adicionarEstilosMobile() {
             console.log('Gerenciador de Desenho inicializado com sucesso!');
         }
 
-       configurarEventosBorracha() {
-    this.drawingArea.addEventListener('mousedown', (e) => {
-        if (this.modoBorrachaAtivo && e.button === 0) {
-            this.iniciarPinturaBorracha(e);
-        }
-    });
-    
-    this.drawingArea.addEventListener('mousemove', (e) => {
-        if (this.modoBorrachaAtivo) {
-            this.atualizarCursorBorracha(e);
-            if (this.borrachaPressionada) {
-                this.pintarComBorracha(e);
-            }
-        }
-    });
-    
-    this.drawingArea.addEventListener('mouseup', (e) => {
-        if (this.modoBorrachaAtivo && e.button === 0) {
-            this.pararPinturaBorracha();
-        }
-    });
-    
-    this.drawingArea.addEventListener('mouseleave', (e) => {
-        if (this.modoBorrachaAtivo) {
-            this.ocultarCursorBorracha();
-            if (this.borrachaPressionada) {
-                this.pararPinturaBorracha();
-            }
-        }
-    });
-    
-    this.drawingArea.addEventListener('mouseenter', (e) => {
-        if (this.modoBorrachaAtivo) {
-            this.atualizarCursorBorracha(e);
-        }
-    });
-    
-    let touchStartTimeout = null;
-    let currentTouches = 0;
-    
-    this.drawingArea.addEventListener('touchstart', (e) => {
-        if (this.modoBorrachaAtivo) {
-            currentTouches = e.touches.length;
+        configurarEventosBorracha() {
+            this.drawingArea.addEventListener('mousedown', (e) => {
+                if (this.modoBorrachaAtivo && e.button === 0) {
+                    this.iniciarPinturaBorracha(e);
+                }
+            });
             
-            if (currentTouches === 1) {
-                touchStartTimeout = setTimeout(() => {
-                    if (e.touches.length === 1) {
-                        e.preventDefault();
-                        this.iniciarPinturaBorracha(e);
+            this.drawingArea.addEventListener('mousemove', (e) => {
+                if (this.modoBorrachaAtivo) {
+                    this.atualizarCursorBorracha(e);
+                    if (this.borrachaPressionada) {
+                        this.pintarComBorracha(e);
                     }
-                }, 30);
+                }
+            });
+            
+            this.drawingArea.addEventListener('mouseup', (e) => {
+                if (this.modoBorrachaAtivo && e.button === 0) {
+                    this.pararPinturaBorracha();
+                }
+            });
+            
+            this.drawingArea.addEventListener('mouseleave', (e) => {
+                if (this.modoBorrachaAtivo) {
+                    this.ocultarCursorBorracha();
+                    if (this.borrachaPressionada) {
+                        this.pararPinturaBorracha();
+                    }
+                }
+            });
+            
+            this.drawingArea.addEventListener('mouseenter', (e) => {
+                if (this.modoBorrachaAtivo) {
+                    this.atualizarCursorBorracha(e);
+                }
+            });
+            
+            let touchStartTimeout = null;
+            let currentTouches = 0;
+            
+            this.drawingArea.addEventListener('touchstart', (e) => {
+                if (this.modoBorrachaAtivo) {
+                    currentTouches = e.touches.length;
+                    
+                    if (currentTouches === 1) {
+                        touchStartTimeout = setTimeout(() => {
+                            if (e.touches.length === 1) {
+                                e.preventDefault();
+                                this.iniciarPinturaBorracha(e);
+                            }
+                        }, 30);
+                    } else {
+                        clearTimeout(touchStartTimeout);
+                    }
+                }
+            }, { passive: false });
+            
+            this.drawingArea.addEventListener('touchmove', (e) => {
+                if (this.modoBorrachaAtivo) {
+                    currentTouches = e.touches.length;
+                    
+                    if (currentTouches >= 2) {
+                        clearTimeout(touchStartTimeout);
+                        return;
+                    }
+                    
+                    if (currentTouches === 1 && this.borrachaPressionada) {
+                        e.preventDefault();
+                        this.atualizarCursorBorracha(e);
+                        this.pintarComBorracha(e);
+                    }
+                }
+            }, { passive: false });
+            
+            this.drawingArea.addEventListener('touchend', (e) => {
+                if (this.modoBorrachaAtivo) {
+                    clearTimeout(touchStartTimeout);
+                    
+                    if (e.touches.length === 0) {
+                        this.pararPinturaBorracha();
+                        this.ocultarCursorBorracha();
+                    }
+                }
+            }, { passive: false });
+            
+            this.drawingArea.addEventListener('touchstart', (e) => {
+                if (this.modoBorrachaAtivo && e.touches.length >= 2) {
+                    clearTimeout(touchStartTimeout);
+                }
+            }, { passive: true });
+        }
+
+        // NOVO: Métodos atualizados para borracha com canvas
+        iniciarPinturaBorracha(e) {
+            if (!this.modoBorrachaAtivo) return;
+            
+            this.borrachaPressionada = true;
+            const coords = this.obterCoordenadasBorracha(e);
+            this.ultimaPosicaoBorracha = coords;
+            
+            this.salvarEstadoHistorico('Antes da Borracha');
+            
+            // Configurar contexto para pintura
+            this.ctxBorracha.save();
+            this.ctxBorracha.globalCompositeOperation = 'destination-out';
+            this.ctxBorracha.strokeStyle = 'rgba(255,255,255,1)';
+            this.ctxBorracha.lineWidth = this.tamanhoBorracha;
+            this.ctxBorracha.lineCap = 'round';
+            this.ctxBorracha.lineJoin = 'round';
+            
+            this.ctxBorracha.beginPath();
+            this.ctxBorracha.moveTo(coords.x, coords.y);
+            
+            console.log('Iniciando pintura com borracha (canvas)');
+        }
+
+        pintarComBorracha(e) {
+            if (!this.borrachaPressionada || !this.modoBorrachaAtivo) return;
+            
+            const coords = this.obterCoordenadasBorracha(e);
+            
+            if (this.ultimaPosicaoBorracha) {
+                this.ctxBorracha.lineTo(coords.x, coords.y);
+                this.ctxBorracha.stroke();
             } else {
-                clearTimeout(touchStartTimeout);
-            }
-        }
-    }, { passive: false });
-    
-    this.drawingArea.addEventListener('touchmove', (e) => {
-        if (this.modoBorrachaAtivo) {
-            currentTouches = e.touches.length;
-            
-            if (currentTouches >= 2) {
-                clearTimeout(touchStartTimeout);
-                return;
+                this.ctxBorracha.moveTo(coords.x, coords.y);
+                this.ctxBorracha.arc(coords.x, coords.y, this.tamanhoBorracha / 2, 0, Math.PI * 2);
+                this.ctxBorracha.fill();
             }
             
-            if (currentTouches === 1 && this.borrachaPressionada) {
-                e.preventDefault();
-                this.atualizarCursorBorracha(e);
-                this.pintarComBorracha(e);
-            }
+            this.ultimaPosicaoBorracha = coords;
         }
-    }, { passive: false });
-    
-    this.drawingArea.addEventListener('touchend', (e) => {
-        if (this.modoBorrachaAtivo) {
-            clearTimeout(touchStartTimeout);
+
+        pararPinturaBorracha() {
+            if (!this.borrachaPressionada) return;
             
-            if (e.touches.length === 0) {
-                this.pararPinturaBorracha();
-                this.ocultarCursorBorracha();
+            this.borrachaPressionada = false;
+            this.ultimaPosicaoBorracha = null;
+            
+            if (this.ctxBorracha) {
+                this.ctxBorracha.restore();
             }
+            
+            this.salvarEstadoHistorico('Pintar com Borracha');
+            console.log('Parando pintura com borracha');
         }
-    }, { passive: false });
-    
-    this.drawingArea.addEventListener('touchstart', (e) => {
-        if (this.modoBorrachaAtivo && e.touches.length >= 2) {
-            clearTimeout(touchStartTimeout);
+
+        salvarEstadoHistoricoForcado(descricao) {
+            if (this.indiceHistorico < this.historico.length - 1) {
+                this.historico = this.historico.slice(0, this.indiceHistorico + 1);
+            }
+            
+            let displayOriginal;
+            if (this.borrachaCursor) {
+                displayOriginal = this.borrachaCursor.style.display;
+                this.borrachaCursor.style.display = 'none';
+            }
+
+            const snapshot = { 
+                descricao: descricao, 
+                timestamp: new Date(), 
+                data: this.obterEstadoAtual() 
+            };
+            this.historico.push(snapshot);
+            this.indiceHistorico++;
+            
+            // CORREÇÃO DO TYPO: borrahaCursor → borrachaCursor
+            if (this.borrachaCursor) {
+                this.borrachaCursor.style.display = displayOriginal || 'block';
+            }
+
+            if (this.historico.length > this.maximoHistorico) {
+                this.historico.shift();
+                this.indiceHistorico--;
+            }
+            
+            this.ultimoSalvamentoHistorico = Date.now();
+            this.atualizarBotoesHistorico();
+            console.log(`Histórico salvo: ${descricao} (${this.historico.length} estados, índice: ${this.indiceHistorico})`);
         }
-    }, { passive: true });
-}
-
-
-      iniciarPinturaBorracha(e) {
-    if (!this.modoBorrachaAtivo) return;
-    
-    this.borrachaPressionada = true;
-    this.ultimaPosicaoBorracha = null;
-    
-    this.salvarEstadoHistorico('Antes da Borracha');
-    
-    console.log('Iniciando pintura com borracha');
-    this.pintarComBorracha(e);
-}
-
-pararPinturaBorracha() {
-    if (!this.borrachaPressionada) return;
-    
-    this.borrachaPressionada = false;
-    this.ultimaPosicaoBorracha = null;
-    
-    const elementosPintura = this.drawingArea.querySelectorAll('.pintura-borracha');
-    if (elementosPintura.length > 0) {
-        this.salvarEstadoHistorico('Pintar com Borracha');
-        console.log(`Borracha salva: ${elementosPintura.length} elementos pintados`);
-    }
-    
-    console.log('Parando pintura com borracha');
-}
-
-salvarEstadoHistoricoForcado(descricao) {
-    if (this.indiceHistorico < this.historico.length - 1) {
-        this.historico = this.historico.slice(0, this.indiceHistorico + 1);
-    }
-    
-    let displayOriginal;
-    if (this.borrachaCursor) {
-        displayOriginal = this.borrachaCursor.style.display;
-        this.borrachaCursor.style.display = 'none';
-    }
-
-    const snapshot = { 
-        descricao: descricao, 
-        timestamp: new Date(), 
-        data: this.obterEstadoAtual() 
-    };
-    this.historico.push(snapshot);
-    this.indiceHistorico++;
-    
-    if (this.borrachaCursor) {
-        this.borrahaCursor.style.display = displayOriginal || 'block';
-    }
-
-    if (this.historico.length > this.maximoHistorico) {
-        this.historico.shift();
-        this.indiceHistorico--;
-    }
-    
-    this.ultimoSalvamentoHistorico = Date.now();
-    this.atualizarBotoesHistorico();
-    console.log(`Histórico salvo: ${descricao} (${this.historico.length} estados, índice: ${this.indiceHistorico})`);
-}
 
         atualizarCursorBorracha(e) {
-    if (!this.borrachaCursor) {
-        this.borrachaCursor = document.createElement('div');
-        this.borrachaCursor.className = 'cursor-borracha';
-        this.drawingArea.appendChild(this.borrachaCursor);
-    }
-    
-    const coords = this.obterCoordenadasBorracha(e);
-    this.borrachaCursor.style.left = `${coords.x - this.tamanhoBorracha/2}px`;
-    this.borrachaCursor.style.top = `${coords.y - this.tamanhoBorracha/2}px`;
-    this.borrachaCursor.style.display = 'block';
-    
-    if (this.modoBorrachaAtivo) {
-        this.drawingArea.style.cursor = 'none';
-    }
-}
-      ocultarCursorBorracha() {
-    if (this.borrachaCursor) {
-        this.borrachaCursor.style.display = 'none';
-    }
-    if (this.modoBorrachaAtivo) {
-        this.drawingArea.style.cursor = 'default';
-    }
-}
-
-       obterCoordenadasBorracha(e) {
-    let clientX, clientY;
-    
-    if (e.touches && e.touches[0]) {
-        clientX = e.touches[0].clientX;
-        clientY = e.touches[0].clientY;
-    } else {
-        clientX = e.clientX;
-        clientY = e.clientY;
-    }
-    
-    const rect = this.drawingArea.getBoundingClientRect();
-    const scrollLeft = this.drawingArea.scrollLeft || 0;
-    const scrollTop = this.drawingArea.scrollTop || 0;
-    
-    return { 
-        x: clientX - rect.left + scrollLeft, 
-        y: clientY - rect.top + scrollTop
-    }; 
-}
-
-     pintarComBorracha(e) {
-    if (!this.borrachaPressionada) return;
-    
-    const coords = this.obterCoordenadasBorracha(e);
-    
-    const pintura = document.createElement('div');
-    pintura.className = 'pintura-borracha';
-    pintura.style.left = `${coords.x - this.tamanhoBorracha/2}px`;
-    pintura.style.top = `${coords.y - this.tamanhoBorracha/2}px`;
-    pintura.style.width = `${this.tamanhoBorracha}px`;
-    pintura.style.height = `${this.tamanhoBorracha}px`;
-    pintura.style.zIndex = '9';
-    
-    this.drawingArea.appendChild(pintura);
-    
-    if (this.ultimaPosicaoBorracha) {
-        this.preencherEspacoBorracha(this.ultimaPosicaoBorracha, coords);
-    }
-    
-    this.ultimaPosicaoBorracha = coords;
-}
-
-
-        preencherEspacoBorracha(inicio, fim) {
-            const distancia = Math.sqrt(Math.pow(fim.x - inicio.x, 2) + Math.pow(fim.y - inicio.y, 2));
-            const passos = Math.ceil(distancia / (this.tamanhoBorracha / 2));
-            
-            for (let i = 1; i < passos; i++) {
-                const t = i / passos;
-                const x = inicio.x + (fim.x - inicio.x) * t;
-                const y = inicio.y + (fim.y - inicio.y) * t;
-                
-                const pintura = document.createElement('div');
-                pintura.className = 'pintura-borracha';
-                pintura.style.left = `${x - this.tamanhoBorracha/2}px`;
-                pintura.style.top = `${y - this.tamanhoBorracha/2}px`;
-                pintura.style.width = `${this.tamanhoBorracha}px`;
-                pintura.style.height = `${this.tamanhoBorracha}px`;
-                
-                this.drawingArea.appendChild(pintura);
+            if (!this.borrachaCursor) {
+                this.borrachaCursor = document.createElement('div');
+                this.borrachaCursor.className = 'cursor-borracha';
+                this.drawingArea.appendChild(this.borrachaCursor);
             }
+            
+            const coords = this.obterCoordenadasBorracha(e);
+            this.borrachaCursor.style.left = `${coords.x - this.tamanhoBorracha/2}px`;
+            this.borrachaCursor.style.top = `${coords.y - this.tamanhoBorracha/2}px`;
+            this.borrachaCursor.style.display = 'block';
+            
+            if (this.modoBorrachaAtivo) {
+                this.drawingArea.style.cursor = 'none';
+            }
+        }
+
+        ocultarCursorBorracha() {
+            if (this.borrachaCursor) {
+                this.borrachaCursor.style.display = 'none';
+            }
+            if (this.modoBorrachaAtivo) {
+                this.drawingArea.style.cursor = 'default';
+            }
+        }
+
+        obterCoordenadasBorracha(e) {
+            let clientX, clientY;
+            
+            if (e.touches && e.touches[0]) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            
+            const rect = this.drawingArea.getBoundingClientRect();
+            const scrollLeft = this.drawingArea.scrollLeft || 0;
+            const scrollTop = this.drawingArea.scrollTop || 0;
+            
+            return { 
+                x: clientX - rect.left + scrollLeft, 
+                y: clientY - rect.top + scrollTop
+            }; 
         }
 
         toggleModoBorracha() {
@@ -2130,89 +2166,61 @@ salvarEstadoHistoricoForcado(descricao) {
             }
         }
 
-       ativarModoBorracha() {
-    this.desativarTodosOsModos();
-    console.log('Ativando modo borracha...');
-    
-    this.modoBorrachaAtivo = true;
-    this.desselecionarElemento();
-    
-    document.body.classList.add('modo-borracha');
-    
-    if (this.ehDispositivoMobile()) {
-        this.drawingArea.style.cursor = 'default';
-        console.log('Modo borracha ativado no mobile - zoom com pinça habilitado');
-    } else {
-        this.drawingArea.style.cursor = 'none';
-    }
-    
-    this.borrachaCursor = document.createElement('div');
-    this.borrachaCursor.className = 'cursor-borracha';
-    this.drawingArea.appendChild(this.borrachaCursor);
-    
-    const btnBorracha = document.getElementById('btnBorracha');
-    if (btnBorracha) {
-        btnBorracha.classList.add('btn-borracha-ativo');
-    }
-    
-    console.log('Modo borracha ativado');
-}
-
-ehDispositivoMobile() {
-    return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-           (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
-}
-
-      desativarModoBorracha() {
-    console.log('Desativando modo borracha...');
-    
-    this.modoBorrachaAtivo = false;
-    this.borrachaPressionada = false;
-    this.ultimaPosicaoBorracha = null;
-    
-    document.body.classList.remove('modo-borracha');
-    
-    this.drawingArea.style.cursor = 'default';
-    
-    this.ocultarCursorBorracha();
-    if (this.borrachaCursor && this.borrachaCursor.parentNode) {
-        this.borrachaCursor.parentNode.removeChild(this.borrachaCursor);
-        this.borrachaCursor = null;
-    }
-    
-    const btnBorracha = document.getElementById('btnBorracha');
-    if (btnBorracha) {
-        btnBorracha.classList.remove('btn-borracha-ativo');
-    }
-    
-    console.log('Modo borracha desativado');
-}
-
-atualizarCursorBorracha(e) {
-    if (this.ehDispositivoMobile() && e.touches && e.touches.length >= 2) {
-        if (this.borrachaCursor) {
-            this.borrachaCursor.style.display = 'none';
+        // NOVO: Modo borracha atualizado para usar canvas
+        ativarModoBorracha() {
+            this.desativarTodosOsModos();
+            console.log('Ativando modo borracha com canvas...');
+            
+            this.modoBorrachaAtivo = true;
+            this.desselecionarElemento();
+            
+            document.body.classList.add('modo-borracha');
+            
+            if (!this.canvasBorracha) {
+                this.inicializarCanvasBorracha();
+            }
+            
+            this.canvasBorracha.style.display = 'block';
+            this.drawingArea.style.cursor = 'none';
+            
+            const btnBorracha = document.getElementById('btnBorracha');
+            if (btnBorracha) {
+                btnBorracha.classList.add('btn-borracha-ativo');
+            }
+            
+            console.log('Modo borracha (canvas) ativado');
         }
-        return;
-    }
-    
-    if (!this.borrachaCursor) {
-        this.borrachaCursor = document.createElement('div');
-        this.borrachaCursor.className = 'cursor-borracha';
-        this.drawingArea.appendChild(this.borrachaCursor);
-    }
-    
-    const coords = this.obterCoordenadasBorracha(e);
-    this.borrachaCursor.style.left = `${coords.x - this.tamanhoBorracha/2}px`;
-    this.borrachaCursor.style.top = `${coords.y - this.tamanhoBorracha/2}px`;
-    
-    if (this.ehDispositivoMobile()) {
-        this.borrachaCursor.style.display = this.borrachaPressionada ? 'block' : 'none';
-    } else {
-        this.borrachaCursor.style.display = 'block';
-        this.drawingArea.style.cursor = 'none';
-    }
-}
+
+        ehDispositivoMobile() {
+            return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+                   (navigator.maxTouchPoints && navigator.maxTouchPoints > 2);
+        }
+
+        // NOVO: Desativar modo borracha atualizado
+        desativarModoBorracha() {
+            console.log('Desativando modo borracha...');
+            
+            this.modoBorrachaAtivo = false;
+            this.borrachaPressionada = false;
+            this.ultimaPosicaoBorracha = null;
+            
+            document.body.classList.remove('modo-borracha');
+            
+            if (this.canvasBorracha) {
+                this.canvasBorracha.style.display = 'none';
+                this.limparCanvasBorracha();
+            }
+            
+            this.drawingArea.style.cursor = 'default';
+            this.ocultarCursorBorracha();
+            
+            const btnBorracha = document.getElementById('btnBorracha');
+            if (btnBorracha) {
+                btnBorracha.classList.remove('btn-borracha-ativo');
+            }
+            
+            console.log('Modo borracha desativado');
+        }
 
         excluirElemento() {
             const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
@@ -2223,9 +2231,22 @@ atualizarCursorBorracha(e) {
             this.salvarEstadoHistorico('Excluir Elemento: ' + (elementoAlvo.className || 'Elemento'));
         }
 
+        // NOVO: Carregar desenho salvo com sanitização
         carregarDesenhoSalvo() {
             try {
-                this.drawingArea.innerHTML = this.desenhoSalvo;
+                // SANITIZAÇÃO BÁSICA - remover scripts e elementos perigosos
+                let desenhoSanitizado = this.desenhoSalvo;
+                
+                // Remover scripts e event handlers
+                desenhoSanitizado = desenhoSanitizado
+                    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+                    .replace(/ on\w+="[^"]*"/g, '')
+                    .replace(/ on\w+='[^']*'/g, '')
+                    .replace(/ javascript:/gi, ' ')
+                    .replace(/<\?php/gi, '')
+                    .replace(/\?>/gi, '');
+                
+                this.drawingArea.innerHTML = desenhoSanitizado;
                 this.restaurarElementosTexto();
                 this.reconfigurarElementosAposHistorico();
                 console.log('Desenho salvo carregado com sucesso!');
@@ -2253,103 +2274,104 @@ atualizarCursorBorracha(e) {
             });
         }
 
-      salvarEstadoHistorico(descricao, forcarSalvamento = false) {
-    const agora = Date.now();
-    const tempoDesdeUltimoSalvamento = agora - (this.ultimoSalvamentoHistorico || 0);
+        salvarEstadoHistorico(descricao, forcarSalvamento = false) {
+            const agora = Date.now();
+            const tempoDesdeUltimoSalvamento = agora - (this.ultimoSalvamentoHistorico || 0);
 
-    const ehBorracha = descricao.includes('Borracha');
-    
-    if (!ehBorracha && !forcarSalvamento && tempoDesdeUltimoSalvamento < 200) {
-        console.log(`Ação rápida ignorada temporariamente: ${descricao}`);
-        return;
-    }
+            const ehBorracha = descricao.includes('Borracha');
+            
+            if (!ehBorracha && !forcarSalvamento && tempoDesdeUltimoSalvamento < 200) {
+                console.log(`Ação rápida ignorada temporariamente: ${descricao}`);
+                return;
+            }
 
-    if (this.indiceHistorico < this.historico.length - 1) {
-        this.historico = this.historico.slice(0, this.indiceHistorico + 1);
-    }
-    
-    let displayOriginal;
-    if (this.borrachaCursor) {
-        displayOriginal = this.borrachaCursor.style.display;
-        this.borrachaCursor.style.display = 'none';
-    }
+            if (this.indiceHistorico < this.historico.length - 1) {
+                this.historico = this.historico.slice(0, this.indiceHistorico + 1);
+            }
+            
+            let displayOriginal;
+            if (this.borrachaCursor) {
+                displayOriginal = this.borrachaCursor.style.display;
+                this.borrachaCursor.style.display = 'none';
+            }
 
-    const snapshot = { 
-        descricao: descricao, 
-        timestamp: new Date(), 
-        data: this.obterEstadoAtual() 
-    };
-    this.historico.push(snapshot);
-    this.indiceHistorico++;
-    
-    if (this.borrachaCursor) {
-        this.borrachaCursor.style.display = displayOriginal || 'block';
-    }
+            const snapshot = { 
+                descricao: descricao, 
+                timestamp: new Date(), 
+                data: this.obterEstadoAtual() 
+            };
+            this.historico.push(snapshot);
+            this.indiceHistorico++;
+            
+            if (this.borrachaCursor) {
+                this.borrachaCursor.style.display = displayOriginal || 'block';
+            }
 
-    if (this.historico.length > this.maximoHistorico) {
-        this.historico.shift();
-        this.indiceHistorico--;
-    }
-    
-    this.ultimoSalvamentoHistorico = agora;
-    this.atualizarBotoesHistorico();
-    console.log(`Histórico salvo: ${descricao} (${this.historico.length} estados, índice: ${this.indiceHistorico})`);
-}
+            if (this.historico.length > this.maximoHistorico) {
+                this.historico.shift();
+                this.indiceHistorico--;
+            }
+            
+            this.ultimoSalvamentoHistorico = agora;
+            this.atualizarBotoesHistorico();
+            console.log(`Histórico salvo: ${descricao} (${this.historico.length} estados, índice: ${this.indiceHistorico})`);
+        }
 
-       obterEstadoAtual() {
-    const elementosTexto = this.drawingArea.querySelectorAll('.texto-legenda');
-    elementosTexto.forEach(texto => {
-        texto.setAttribute('data-valor', texto.value);
-    });
+        // NOVO: Obter estado atual atualizado para incluir canvas
+        obterEstadoAtual() {
+            const elementosTexto = this.drawingArea.querySelectorAll('.texto-legenda');
+            elementosTexto.forEach(texto => {
+                texto.setAttribute('data-valor', texto.value);
+            });
 
-    const clone = this.drawingArea.cloneNode(true);
+            const clone = this.drawingArea.cloneNode(true);
 
-    const temporarios = clone.querySelectorAll(
-        '#laco-selecao, .laco-temporario, .linha-temporaria, .preview-laco, .cursor-borracha'
-    );
-    temporarios.forEach(el => el.remove());
+            const temporarios = clone.querySelectorAll(
+                '#laco-selecao, .laco-temporario, .linha-temporaria, .preview-laco, .cursor-borracha, #canvasBorracha'
+            );
+            temporarios.forEach(el => el.remove());
 
-    const grupoTemp = clone.querySelector('.grupo-temporario');
-    if (grupoTemp) grupoTemp.remove();
+            const grupoTemp = clone.querySelector('.grupo-temporario');
+            if (grupoTemp) grupoTemp.remove();
 
-    const selecoes = clone.querySelectorAll('.selecionado, .laco-ativo, .modo-laco');
-    selecoes.forEach(s => s.classList.remove('selecionado', 'laco-ativo', 'modo-laco'));
+            const selecoes = clone.querySelectorAll('.selecionado, .laco-ativo, .modo-laco');
+            selecoes.forEach(s => s.classList.remove('selecionado', 'laco-ativo', 'modo-laco'));
 
-    return {
-        drawingAreaHTML: clone.innerHTML,
-        gruposPecas: JSON.parse(JSON.stringify(this.gruposPecas))
-    };
-}
+            return {
+                drawingAreaHTML: clone.innerHTML,
+                gruposPecas: JSON.parse(JSON.stringify(this.gruposPecas)),
+                canvasData: this.canvasBorracha ? this.canvasBorracha.toDataURL() : null
+            };
+        }
 
-limparPinturasBorracha() {
-    const pinturas = this.drawingArea.querySelectorAll('.pintura-borracha');
-    pinturas.forEach(pintura => pintura.remove());
-}
+        limparPinturasBorracha() {
+            const pinturas = this.drawingArea.querySelectorAll('.pintura-borracha');
+            pinturas.forEach(pintura => pintura.remove());
+        }
 
         salvarEstadoImediato(descricao) {
             this.salvarEstadoHistorico(descricao, true);
         }
 
         restaurarEstadoHistorico(estado) {
-    const borrachaAtiva = this.modoBorrachaAtivo;
-    const cursorAtual = this.borrachaCursor;
-    
-    this.removerTodosOsHandles();
-    this.limparModoLacoCompletamente();
-    this.limparGrupoTemporario();
-    
-    this.drawingArea.innerHTML = estado.drawingAreaHTML;
-    this.gruposPecas = JSON.parse(JSON.stringify(estado.gruposPecas));
-    
-    if (borrachaAtiva && cursorAtual) {
-        this.borrachaCursor = cursorAtual;
-        this.drawingArea.appendChild(this.borrachaCursor);
-    }
-    
-    this.restaurarElementosTexto();
-    this.reconfigurarElementosAposHistorico();
-}
-
+            const borrachaAtiva = this.modoBorrachaAtivo;
+            const cursorAtual = this.borrachaCursor;
+            
+            this.removerTodosOsHandles();
+            this.limparModoLacoCompletamente();
+            this.limparGrupoTemporario();
+            
+            this.drawingArea.innerHTML = estado.drawingAreaHTML;
+            this.gruposPecas = JSON.parse(JSON.stringify(estado.gruposPecas));
+            
+            if (borrachaAtiva && cursorAtual) {
+                this.borrachaCursor = cursorAtual;
+                this.drawingArea.appendChild(this.borrachaCursor);
+            }
+            
+            this.restaurarElementosTexto();
+            this.reconfigurarElementosAposHistorico();
+        }
 
         reconfigurarElementosAposHistorico() {
             this.removerTodosOsHandles();
@@ -2480,80 +2502,40 @@ limparPinturasBorracha() {
             this.ultimoElementoClicado = null;
         }
 
-      desfazer() {
-    if (this.indiceHistorico > 0) {
-        this.removerTodosOsHandles();
-        
-        this.indiceHistorico--;
-        const estadoAnterior = this.historico[this.indiceHistorico];
-        
-        const modoBorrachaAtivoAntes = this.modoBorrachaAtivo;
-        
-        this.restaurarEstadoHistorico(estadoAnterior.data);
-        console.log('Desfazer executado - Estado:', this.indiceHistorico);
+        desfazer() {
+            if (this.indiceHistorico > 0) {
+                this.removerTodosOsHandles();
+                
+                this.indiceHistorico--;
+                const estadoAnterior = this.historico[this.indiceHistorico];
+                
+                const modoBorrachaAtivoAntes = this.modoBorrachaAtivo;
+                
+                this.restaurarEstadoHistorico(estadoAnterior.data);
+                console.log('Desfazer executado - Estado:', this.indiceHistorico);
 
-        if (modoBorrachaAtivoAntes) {
-            this.modoBorrachaAtivo = true;
-            document.body.classList.add('modo-borracha');
-            this.drawingArea.style.cursor = 'none';
-            
-            const btnBorracha = document.getElementById('btnBorracha');
-            if (btnBorracha) {
-                btnBorracha.classList.add('btn-borracha-ativo');
-            }
-            
-            this.borrachaCursor = document.createElement('div');
-            this.borrachaCursor.className = 'cursor-borracha';
-            this.borrachaCursor.style.display = 'none';
-            this.drawingArea.appendChild(this.borrachaCursor);
-            
-            console.log('Modo borracha restaurado após desfazer - cursor será posicionado no movimento');
-        }
-    } else {
-        console.log('Não há ações para desfazer');
-    }
-    this.atualizarBotoesHistorico();
-}
-
-refazer() {
-    if (this.indiceHistorico < this.historico.length - 1) {
-        this.removerTodosOsHandles();
-        
-        this.indiceHistorico++;
-        const estadoFuturo = this.historico[this.indiceHistorico];
-        
-        const modoBorrachaAtivoAntes = this.modoBorrachaAtivo;
-        
-        this.restaurarEstadoHistorico(estadoFuturo.data);
-        console.log('Refazer executado - Estado:', this.indiceHistorico);
-
-        if (modoBorrachaAtivoAntes) {
-            this.modoBorrachaAtivo = true;
-            document.body.classList.add('modo-borracha');
-            this.drawingArea.style.cursor = 'none';
-            
-            const btnBorracha = document.getElementById('btnBorracha');
-            if (btnBorracha) {
-                btnBorracha.classList.add('btn-borracha-ativo');
-            }
-            
-            this.borrachaCursor = document.createElement('div');
-            this.borrachaCursor.className = 'cursor-borracha';
-            this.borrachaCursor.style.display = 'none';
-            this.drawingArea.appendChild(this.borrachaCursor);
-            
-            setTimeout(() => {
-                if (this.modoBorrachaAtivo && this.borrachaCursor) {
-                    this.borrachaCursor.style.display = 'block';
+                if (modoBorrachaAtivoAntes) {
+                    this.modoBorrachaAtivo = true;
+                    document.body.classList.add('modo-borracha');
+                    this.drawingArea.style.cursor = 'none';
+                    
+                    const btnBorracha = document.getElementById('btnBorracha');
+                    if (btnBorracha) {
+                        btnBorracha.classList.add('btn-borracha-ativo');
+                    }
+                    
+                    this.borrachaCursor = document.createElement('div');
+                    this.borrachaCursor.className = 'cursor-borracha';
+                    this.borrachaCursor.style.display = 'none';
+                    this.drawingArea.appendChild(this.borrachaCursor);
+                    
+                    console.log('Modo borracha restaurado após desfazer - cursor será posicionado no movimento');
                 }
-            }, 50);
+            } else {
+                console.log('Não há ações para desfazer');
+            }
+            this.atualizarBotoesHistorico();
         }
-    } else {
-        console.log('Não há ações para refazer');
-    }
-    this.atualizarBotoesHistorico();
-}
-
 
         refazer() {
             if (this.indiceHistorico < this.historico.length - 1) {
@@ -2561,8 +2543,33 @@ refazer() {
                 
                 this.indiceHistorico++;
                 const estadoFuturo = this.historico[this.indiceHistorico];
+                
+                const modoBorrachaAtivoAntes = this.modoBorrachaAtivo;
+                
                 this.restaurarEstadoHistorico(estadoFuturo.data);
                 console.log('Refazer executado - Estado:', this.indiceHistorico);
+
+                if (modoBorrachaAtivoAntes) {
+                    this.modoBorrachaAtivo = true;
+                    document.body.classList.add('modo-borracha');
+                    this.drawingArea.style.cursor = 'none';
+                    
+                    const btnBorracha = document.getElementById('btnBorracha');
+                    if (btnBorracha) {
+                        btnBorracha.classList.add('btn-borracha-ativo');
+                    }
+                    
+                    this.borrachaCursor = document.createElement('div');
+                    this.borrachaCursor.className = 'cursor-borracha';
+                    this.borrachaCursor.style.display = 'none';
+                    this.drawingArea.appendChild(this.borrachaCursor);
+                    
+                    setTimeout(() => {
+                        if (this.modoBorrachaAtivo && this.borrachaCursor) {
+                            this.borrachaCursor.style.display = 'block';
+                        }
+                    }, 50);
+                }
             } else {
                 console.log('Não há ações para refazer');
             }
@@ -2660,189 +2667,188 @@ refazer() {
         }
 
         configurarEventos() {
-    console.log('Configurando eventos...');
-    
-    const botoes = [
-        'btnSelecionar', 'btnBorracha', 'btnLaco', 'btnDesfazer', 'btnRefazer', 'btnAdicionarTexto',
-        'btnAdicionarCuba', 'btnLegendaSimplificada', 'btnEstilos', 'btnDuplicar',
-        'btnExcluir', 'btnSalvar', 'btnImprimir'
-    ];
+            console.log('Configurando eventos...');
+            
+            const botoes = [
+                'btnSelecionar', 'btnBorracha', 'btnLaco', 'btnDesfazer', 'btnRefazer', 'btnAdicionarTexto',
+                'btnAdicionarCuba', 'btnLegendaSimplificada', 'btnEstilos', 'btnDuplicar',
+                'btnExcluir', 'btnSalvar', 'btnImprimir'
+            ];
 
-    const prevenirZoomDuploToque = (e) => {
-        if (e.touches && e.touches.length > 1) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-    };
+            const prevenirZoomDuploToque = (e) => {
+                if (e.touches && e.touches.length > 1) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            };
 
-    botoes.forEach(botaoId => {
-        const botao = document.getElementById(botaoId);
-        if (botao) {
-            botao.addEventListener('click', (e) => {
-                console.log(`Botão ${botaoId} clicado`);
-                
-                switch(botaoId) {
-                    case 'btnSelecionar': this.toggleModoSelecao(); break;
-                    case 'btnBorracha': this.toggleModoBorracha(); break;
-                    case 'btnLaco': this.toggleModoLaco(); break;
-                    case 'btnAdicionarTexto': this.ativarModoTexto(); break;
-                    case 'btnAdicionarCuba': this.ativarModoDesenhos(); break;
-                    case 'btnLegendaSimplificada': this.ativarModoLegenda(); break;
-                    case 'btnEstilos': this.mostrarModalEstilos(); break;
-                    case 'btnDuplicar': this.duplicarElemento(); break;
-                    case 'btnExcluir': this.excluirElemento(); break;
-                    case 'btnSalvar': this.salvarDesenho(); break;
-                    case 'btnImprimir': this.imprimirDesenho(); break;
-                    case 'btnDesfazer': this.desfazer(); break;
-                    case 'btnRefazer': this.refazer(); break;
+            botoes.forEach(botaoId => {
+                const botao = document.getElementById(botaoId);
+                if (botao) {
+                    botao.addEventListener('click', (e) => {
+                        console.log(`Botão ${botaoId} clicado`);
+                        
+                        switch(botaoId) {
+                            case 'btnSelecionar': this.toggleModoSelecao(); break;
+                            case 'btnBorracha': this.toggleModoBorracha(); break;
+                            case 'btnLaco': this.toggleModoLaco(); break;
+                            case 'btnAdicionarTexto': this.ativarModoTexto(); break;
+                            case 'btnAdicionarCuba': this.ativarModoDesenhos(); break;
+                            case 'btnLegendaSimplificada': this.ativarModoLegenda(); break;
+                            case 'btnEstilos': this.mostrarModalEstilos(); break;
+                            case 'btnDuplicar': this.duplicarElemento(); break;
+                            case 'btnExcluir': this.excluirElemento(); break;
+                            case 'btnSalvar': this.salvarDesenho(); break;
+                            case 'btnImprimir': this.imprimirDesenho(); break;
+                            case 'btnDesfazer': this.desfazer(); break;
+                            case 'btnRefazer': this.refazer(); break;
+                        }
+                    });
+
+                    botao.addEventListener('touchstart', prevenirZoomDuploToque, { passive: false });
+                    botao.addEventListener('touchmove', prevenirZoomDuploToque, { passive: false });
                 }
             });
 
-            botao.addEventListener('touchstart', prevenirZoomDuploToque, { passive: false });
-            botao.addEventListener('touchmove', prevenirZoomDuploToque, { passive: false });
-        }
-    });
-
-    this.drawingArea.addEventListener('click', (e) => {
-        if (this.modoInsercaoAtivo) {
-            this.manipularCliqueInsercao(e);
-        } else if (this.modoSelecaoAtivo) {
-            this.manipularCliqueSelecao(e);
-        }
-    });
-    
-    document.addEventListener('click', (e) => {
-        if (this.modalEstilosAberto) {
-            console.log('Modal de estilos aberto - interação bloqueada');
-            e.preventDefault();
-            e.stopPropagation();
-            return;
-        }
-        
-        const isDrawingArea = e.target.closest('#drawingArea');
-        const isHandle = e.target.closest('.handle');
-        const isActionButton = e.target.closest('.action-buttons-container');
-        const isTopButton = e.target.closest('.top-buttons-container');
-        
-        if (this._isTouchGesture(e)) {
-            console.log('Gesto de touch no document - ignorando desseleção');
-            return;
-        }
-        
-        if (!isDrawingArea && !isHandle && !isActionButton && !isTopButton) {
-            if (gerenciadorDesenho.grupoTemporario) {
-                gerenciadorDesenho.limparGrupoTemporario();
-            }
-            gerenciadorDesenho.desselecionarElemento();
-        }
-    });
-
-    document.addEventListener('touchstart', (e) => {
-        const isDrawingArea = e.target.closest('#drawingArea');
-        const isHandle = e.target.closest('.handle');
-        const isActionButton = e.target.closest('.action-buttons-container');
-        const isTopButton = e.target.closest('.top-buttons-container');
-        
-        this._isTouchGesture(e);
-        
-        if (!isDrawingArea && !isHandle && !isActionButton && !isTopButton) {
-            this.touchedOutside = true;
-        } else {
-            this.touchedOutside = false;
-        }
-    }, { passive: true });
-
-    document.addEventListener('touchend', (e) => {
-        if (this.touchedOutside && !this._isTouchGesture(e)) {
-            if (gerenciadorDesenho.grupoTemporario) {
-                gerenciadorDesenho.limparGrupoTemporario();
-            }
-            gerenciadorDesenho.desselecionarElemento();
-        }
-        this.touchedOutside = false;
-    }, { passive: true });
-
-    document.addEventListener('keydown', (e) => {
-        if (e.ctrlKey || e.metaKey) {
-            if (e.key === 'z') {
-                e.preventDefault();
-                this.desfazer();
-            } else if (e.key === 'y') {
-                e.preventDefault();
-                this.refazer();
-            }
-        }
-        
-        if (e.key === 'Escape') {
-            this.desselecionarElemento();
-        }
-    });
-    
-    this.configurarEventosAreaDesenho();
-    
-    const prevenirCliqueBotaoDesabilitado = (e) => {
-        const botao = e.target.closest('.btn');
-        if (botao && (botao.disabled || botao.classList.contains('btn-desabilitado-mobile'))) {
-            e.preventDefault();
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-            console.log('Botão desabilitado - ação prevenida');
-            return false;
-        }
-    };
-
-    const botoesAcao = document.querySelectorAll('.action-buttons-container .btn');
-    botoesAcao.forEach(botao => {
-        botao.addEventListener('click', prevenirCliqueBotaoDesabilitado, true);
-        botao.addEventListener('touchstart', prevenirCliqueBotaoDesabilitado, true);
-        botao.addEventListener('touchend', prevenirCliqueBotaoDesabilitado, true);
-    });
-
-    console.log('Eventos configurados com sucesso!');
-}
-
-
-       configurarEventosAreaDesenho() {
-    this.drawingArea.addEventListener('click', (e) => {
-        if (e.target === this.drawingArea) {
-            if (this.modoLacoAtivo) {
-                console.log('Laço cancelado - clique na área vazia');
-                this.desativarModoLaco();
-            } else if (this.modoSelecaoAtivo) {
-                if (this.grupoTemporario) {
-                    console.log('Clicou na área vazia - removendo grupo temporário');
-                    this.limparGrupoTemporario();
+            this.drawingArea.addEventListener('click', (e) => {
+                if (this.modoInsercaoAtivo) {
+                    this.manipularCliqueInsercao(e);
+                } else if (this.modoSelecaoAtivo) {
+                    this.manipularCliqueSelecao(e);
                 }
-                this.desselecionarElemento();
-            }
-        }
-    });
-
-    this.drawingArea.addEventListener('touchstart', (e) => {
-        this._isTouchGesture(e);
-        
-        if (e.target === this.drawingArea && this.modoSelecaoAtivo) {
-        }
-    }, { passive: true });
-
-    this.drawingArea.addEventListener('touchmove', (e) => {
-        this._isTouchGesture(e);
-    }, { passive: true });
-
-    this.drawingArea.addEventListener('touchend', (e) => {
-        if (e.target === this.drawingArea && this.modoSelecaoAtivo) {
-            if (!this._isTouchGesture(e)) {
-                if (this.grupoTemporario) {
-                    console.log('Toque simples na área vazia - removendo grupo temporário');
-                    this.limparGrupoTemporario();
+            });
+            
+            document.addEventListener('click', (e) => {
+                if (this.modalEstilosAberto) {
+                    console.log('Modal de estilos aberto - interação bloqueada');
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
                 }
-                this.desselecionarElemento();
-            } else {
-                console.log('Gesto de touch detectado - mantendo seleção');
-            }
+                
+                const isDrawingArea = e.target.closest('#drawingArea');
+                const isHandle = e.target.closest('.handle');
+                const isActionButton = e.target.closest('.action-buttons-container');
+                const isTopButton = e.target.closest('.top-buttons-container');
+                
+                if (this._isTouchGesture(e)) {
+                    console.log('Gesto de touch no document - ignorando desseleção');
+                    return;
+                }
+                
+                if (!isDrawingArea && !isHandle && !isActionButton && !isTopButton) {
+                    if (gerenciadorDesenho.grupoTemporario) {
+                        gerenciadorDesenho.limparGrupoTemporario();
+                    }
+                    gerenciadorDesenho.desselecionarElemento();
+                }
+            });
+
+            document.addEventListener('touchstart', (e) => {
+                const isDrawingArea = e.target.closest('#drawingArea');
+                const isHandle = e.target.closest('.handle');
+                const isActionButton = e.target.closest('.action-buttons-container');
+                const isTopButton = e.target.closest('.top-buttons-container');
+                
+                this._isTouchGesture(e);
+                
+                if (!isDrawingArea && !isHandle && !isActionButton && !isTopButton) {
+                    this.touchedOutside = true;
+                } else {
+                    this.touchedOutside = false;
+                }
+            }, { passive: true });
+
+            document.addEventListener('touchend', (e) => {
+                if (this.touchedOutside && !this._isTouchGesture(e)) {
+                    if (gerenciadorDesenho.grupoTemporario) {
+                        gerenciadorDesenho.limparGrupoTemporario();
+                    }
+                    gerenciadorDesenho.desselecionarElemento();
+                }
+                this.touchedOutside = false;
+            }, { passive: true });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.ctrlKey || e.metaKey) {
+                    if (e.key === 'z') {
+                        e.preventDefault();
+                        this.desfazer();
+                    } else if (e.key === 'y') {
+                        e.preventDefault();
+                        this.refazer();
+                    }
+                }
+                
+                if (e.key === 'Escape') {
+                    this.desselecionarElemento();
+                }
+            });
+            
+            this.configurarEventosAreaDesenho();
+            
+            const prevenirCliqueBotaoDesabilitado = (e) => {
+                const botao = e.target.closest('.btn');
+                if (botao && (botao.disabled || botao.classList.contains('btn-desabilitado-mobile'))) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    console.log('Botão desabilitado - ação prevenida');
+                    return false;
+                }
+            };
+
+            const botoesAcao = document.querySelectorAll('.action-buttons-container .btn');
+            botoesAcao.forEach(botao => {
+                botao.addEventListener('click', prevenirCliqueBotaoDesabilitado, true);
+                botao.addEventListener('touchstart', prevenirCliqueBotaoDesabilitado, true);
+                botao.addEventListener('touchend', prevenirCliqueBotaoDesabilitado, true);
+            });
+
+            console.log('Eventos configurados com sucesso!');
         }
-    }, { passive: true });
-}
+
+        configurarEventosAreaDesenho() {
+            this.drawingArea.addEventListener('click', (e) => {
+                if (e.target === this.drawingArea) {
+                    if (this.modoLacoAtivo) {
+                        console.log('Laço cancelado - clique na área vazia');
+                        this.desativarModoLaco();
+                    } else if (this.modoSelecaoAtivo) {
+                        if (this.grupoTemporario) {
+                            console.log('Clicou na área vazia - removendo grupo temporário');
+                            this.limparGrupoTemporario();
+                        }
+                        this.desselecionarElemento();
+                    }
+                }
+            });
+
+            this.drawingArea.addEventListener('touchstart', (e) => {
+                this._isTouchGesture(e);
+                
+                if (e.target === this.drawingArea && this.modoSelecaoAtivo) {
+                }
+            }, { passive: true });
+
+            this.drawingArea.addEventListener('touchmove', (e) => {
+                this._isTouchGesture(e);
+            }, { passive: true });
+
+            this.drawingArea.addEventListener('touchend', (e) => {
+                if (e.target === this.drawingArea && this.modoSelecaoAtivo) {
+                    if (!this._isTouchGesture(e)) {
+                        if (this.grupoTemporario) {
+                            console.log('Toque simples na área vazia - removendo grupo temporário');
+                            this.limparGrupoTemporario();
+                        }
+                        this.desselecionarElemento();
+                    } else {
+                        console.log('Gesto de touch detectado - mantendo seleção');
+                    }
+                }
+            }, { passive: true });
+        }
 
         toggleModoSelecao() {
             if (this.modoSelecaoAtivo) {
@@ -2852,25 +2858,25 @@ refazer() {
             }
         }
 
-       ativarModoSelecao() {
-    this.desativarTodosOsModos();
-    console.log('Ativando modo seleção...');
-    
-    this.modoSelecaoAtivo = true;
-    this.desselecionarElemento();
-    this.drawingArea.style.cursor = 'pointer';
-    
-    const btnSelecionar = document.getElementById('btnSelecionar');
-    if (btnSelecionar) btnSelecionar.classList.add('btn-selecao-ativo');
-    
-    this.tornarElementosSelecionaveis(true);
-    this.desabilitarLinhasPecas();
-    this.atualizarInteratividadeTextos();
-    
-    this.forcarAtualizacaoInteratividade();
-    
-    console.log('Modo seleção ativado');
-}
+        ativarModoSelecao() {
+            this.desativarTodosOsModos();
+            console.log('Ativando modo seleção...');
+            
+            this.modoSelecaoAtivo = true;
+            this.desselecionarElemento();
+            this.drawingArea.style.cursor = 'pointer';
+            
+            const btnSelecionar = document.getElementById('btnSelecionar');
+            if (btnSelecionar) btnSelecionar.classList.add('btn-selecao-ativo');
+            
+            this.tornarElementosSelecionaveis(true);
+            this.desabilitarLinhasPecas();
+            this.atualizarInteratividadeTextos();
+            
+            this.forcarAtualizacaoInteratividade();
+            
+            console.log('Modo seleção ativado');
+        }
 
         desativarModoSelecao() {
             console.log('Desativando modo seleção...');
@@ -2896,135 +2902,133 @@ refazer() {
             }
         }
 
-       ativarModoLaco() {
-    this.desativarTodosOsModos();
-    console.log('Ativando modo laço...');
-    
-    this.modoLacoAtivo = true;
-    this.desselecionarElemento();
-    this.drawingArea.style.cursor = 'crosshair';
-    
-    const btnLaco = document.getElementById('btnLaco');
-    if (btnLaco) btnLaco.classList.add('btn-modo-ativo');
-    
-    this.lacoPontos = [];
-    
-    if (!this.svgOverlay) {
-    const svgns = "http://www.w3.org/2000/svg";
-    const svg = document.createElementNS(svgns, 'svg');
-    svg.setAttribute('class', 'laco-overlay');
-    svg.style.position = 'absolute';
-    svg.style.left = '0';
-    svg.style.top = '0';
-    svg.style.width = '100%';
-    svg.style.height = '100%';
-    svg.style.pointerEvents = 'none';
-    svg.style.zIndex = '999';
-    this.drawingArea.appendChild(svg);
-    this.svgOverlay = svg;
-}
-    
-    this.lacoTouchStartTimeout = null;
-    this.lacoCurrentTouches = 0;
-    this.lacoIniciado = false;
-    
-    this._lacoMouseDownHandler = (e) => this._iniciarLaco(e);
-    this._lacoMoveHandler = (e) => this._atualizarLaco(e);
-    this._lacoUpHandler = (e) => this._finalizarLaco(e);
+        ativarModoLaco() {
+            this.desativarTodosOsModos();
+            console.log('Ativando modo laço...');
+            
+            this.modoLacoAtivo = true;
+            this.desselecionarElemento();
+            this.drawingArea.style.cursor = 'crosshair';
+            
+            const btnLaco = document.getElementById('btnLaco');
+            if (btnLaco) btnLaco.classList.add('btn-modo-ativo');
+            
+            this.lacoPontos = [];
+            
+            if (!this.svgOverlay) {
+            const svgns = "http://www.w3.org/2000/svg";
+            const svg = document.createElementNS(svgns, 'svg');
+            svg.setAttribute('class', 'laco-overlay');
+            svg.style.position = 'absolute';
+            svg.style.left = '0';
+            svg.style.top = '0';
+            svg.style.width = '100%';
+            svg.style.height = '100%';
+            svg.style.pointerEvents = 'none';
+            svg.style.zIndex = '999';
+            this.drawingArea.appendChild(svg);
+            this.svgOverlay = svg;
+        }
+            
+            this.lacoTouchStartTimeout = null;
+            this.lacoCurrentTouches = 0;
+            this.lacoIniciado = false;
+            
+            this._lacoMouseDownHandler = (e) => this._iniciarLaco(e);
+            this._lacoMoveHandler = (e) => this._atualizarLaco(e);
+            this._lacoUpHandler = (e) => this._finalizarLaco(e);
 
-    this.drawingArea.addEventListener('mousedown', this._lacoMouseDownHandler);
-    this.drawingArea.addEventListener('mousemove', this._lacoMoveHandler);
-    this.drawingArea.addEventListener('mouseup', this._lacoUpHandler);
-    
-    this._lacoTouchStartHandler = (e) => {
-        if (!this.modoLacoAtivo) return;
-        
-        this.lacoCurrentTouches = e.touches.length;
-        
-        e.preventDefault();
-        e.stopPropagation();
-        
-        if (this.lacoCurrentTouches === 1) {
-            this.lacoTouchStartTimeout = setTimeout(() => {
-                if (e.touches.length === 1) {
-                    this.lacoIniciado = true;
-                    this._iniciarLaco(e);
+            this.drawingArea.addEventListener('mousedown', this._lacoMouseDownHandler);
+            this.drawingArea.addEventListener('mousemove', this._lacoMoveHandler);
+            this.drawingArea.addEventListener('mouseup', this._lacoUpHandler);
+            
+            this._lacoTouchStartHandler = (e) => {
+                if (!this.modoLacoAtivo) return;
+                
+                this.lacoCurrentTouches = e.touches.length;
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                if (this.lacoCurrentTouches === 1) {
+                    this.lacoTouchStartTimeout = setTimeout(() => {
+                        if (e.touches.length === 1) {
+                            this.lacoIniciado = true;
+                            this._iniciarLaco(e);
+                        }
+                    }, 150);
+                } else {
+                    clearTimeout(this.lacoTouchStartTimeout);
+                    this.lacoIniciado = false;
                 }
-            }, 150);
-        } else {
-            clearTimeout(this.lacoTouchStartTimeout);
-            this.lacoIniciado = false;
+            };
+            
+            this._lacoTouchMoveHandler = (e) => {
+                if (!this.modoLacoAtivo) return;
+                
+                this.lacoCurrentTouches = e.touches.length;
+                
+                if (this.lacoCurrentTouches >= 2) {
+                    clearTimeout(this.lacoTouchStartTimeout);
+                    this.lacoIniciado = false;
+                    return;
+                }
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                if (this.lacoCurrentTouches === 1 && this.lacoIniciado) {
+                    this._atualizarLaco(e);
+                }
+            };
+            
+            this._lacoTouchEndHandler = (e) => {
+                if (!this.modoLacoAtivo) return;
+                
+                e.preventDefault();
+                e.stopPropagation();
+                
+                clearTimeout(this.lacoTouchStartTimeout);
+                
+                if (this.lacoIniciado && e.touches.length === 0) {
+                    this._finalizarLaco(e);
+                    this.lacoIniciado = false;
+                } else if (e.touches.length >= 2) {
+                    this.lacoIniciado = false;
+                }
+            };
+            
+            this.drawingArea.addEventListener('touchstart', this._lacoTouchStartHandler, { passive: false });
+            this.drawingArea.addEventListener('touchmove', this._lacoTouchMoveHandler, { passive: false });
+            this.drawingArea.addEventListener('touchend', this._lacoTouchEndHandler, { passive: false });
+            this.drawingArea.addEventListener('touchcancel', this._lacoTouchEndHandler, { passive: false });
+            
+            this.drawingArea.addEventListener('touchstart', (e) => {
+                if (this.modoLacoAtivo && e.touches.length >= 2) {
+                    clearTimeout(this.lacoTouchStartTimeout);
+                    this.lacoIniciado = false;
+                    console.log('Zoom com pinça detectado no modo laço - cancelando laço');
+                }
+            }, { passive: true });
+            
+            console.log('Modo laço ativado');
         }
-    };
-    
-    this._lacoTouchMoveHandler = (e) => {
-        if (!this.modoLacoAtivo) return;
-        
-        this.lacoCurrentTouches = e.touches.length;
-        
-        if (this.lacoCurrentTouches >= 2) {
-            clearTimeout(this.lacoTouchStartTimeout);
-            this.lacoIniciado = false;
-            return;
-        }
-        
-        e.preventDefault();
-        e.stopPropagation();
-        
-        if (this.lacoCurrentTouches === 1 && this.lacoIniciado) {
-            this._atualizarLaco(e);
-        }
-    };
-    
-    this._lacoTouchEndHandler = (e) => {
-        if (!this.modoLacoAtivo) return;
-        
-        e.preventDefault();
-        e.stopPropagation();
-        
-        clearTimeout(this.lacoTouchStartTimeout);
-        
-        if (this.lacoIniciado && e.touches.length === 0) {
-            this._finalizarLaco(e);
-            this.lacoIniciado = false;
-        } else if (e.touches.length >= 2) {
-            this.lacoIniciado = false;
-        }
-    };
-    
-    this.drawingArea.addEventListener('touchstart', this._lacoTouchStartHandler, { passive: false });
-    this.drawingArea.addEventListener('touchmove', this._lacoTouchMoveHandler, { passive: false });
-    this.drawingArea.addEventListener('touchend', this._lacoTouchEndHandler, { passive: false });
-    this.drawingArea.addEventListener('touchcancel', this._lacoTouchEndHandler, { passive: false });
-    
-    this.drawingArea.addEventListener('touchstart', (e) => {
-        if (this.modoLacoAtivo && e.touches.length >= 2) {
-            clearTimeout(this.lacoTouchStartTimeout);
-            this.lacoIniciado = false;
-            console.log('Zoom com pinça detectado no modo laço - cancelando laço');
-        }
-    }, { passive: true });
-    
-    console.log('Modo laço ativado');
-}
-
-
 
         desativarModoLaco() {
-    console.log('Desativando modo laço...');
-    this.modoLacoAtivo = false;
-    this.drawingArea.style.cursor = 'default';
-    
-    const btnLaco = document.getElementById('btnLaco');
-    if (btnLaco) btnLaco.classList.remove('btn-modo-ativo');
-    
-    clearTimeout(this.lacoTouchStartTimeout);
-    this.lacoIniciado = false;
-    
-    this.limparModoLacoCompletamente();
-    
-    console.log('Modo laço desativado');
-}
+            console.log('Desativando modo laço...');
+            this.modoLacoAtivo = false;
+            this.drawingArea.style.cursor = 'default';
+            
+            const btnLaco = document.getElementById('btnLaco');
+            if (btnLaco) btnLaco.classList.remove('btn-modo-ativo');
+            
+            clearTimeout(this.lacoTouchStartTimeout);
+            this.lacoIniciado = false;
+            
+            this.limparModoLacoCompletamente();
+            
+            console.log('Modo laço desativado');
+        }
 
         ativarModoTexto() {
             this.desativarTodosOsModos();
@@ -3077,33 +3081,33 @@ refazer() {
             this.reconfigurarElementosAposHistorico();
         }
 
-       _iniciarLaco(e) {
-    if (!this.modoLacoAtivo) return;
-    
-    if (e.type.includes('touch')) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
-    
-    const coords = this._obterCoordenadasLaco(e);
-    this.lacoPontos = [coords];
-    
-    if (this.svgOverlay) {
-        this.svgOverlay.innerHTML = '';
-        const svgns = "http://www.w3.org/2000/svg";
-        const poly = document.createElementNS(svgns, 'polygon');
-        poly.setAttribute('class', 'laco-polygon');
-        poly.setAttribute('fill', 'rgba(46, 89, 217, 0.1)');
-        poly.setAttribute('stroke', '#2e59d9');
-        poly.setAttribute('stroke-width', '2');
-        poly.setAttribute('stroke-dasharray', '5,5');
-        poly.setAttribute('points', `${coords.x},${coords.y}`);
-        this.svgOverlay.appendChild(poly);
-        this._lacoPolygonElement = poly;
-    }
-    
-    console.log('Iniciando laço...');
-}
+        _iniciarLaco(e) {
+            if (!this.modoLacoAtivo) return;
+            
+            if (e.type.includes('touch')) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            
+            const coords = this._obterCoordenadasLaco(e);
+            this.lacoPontos = [coords];
+            
+            if (this.svgOverlay) {
+                this.svgOverlay.innerHTML = '';
+                const svgns = "http://www.w3.org/2000/svg";
+                const poly = document.createElementNS(svgns, 'polygon');
+                poly.setAttribute('class', 'laco-polygon');
+                poly.setAttribute('fill', 'rgba(46, 89, 217, 0.1)');
+                poly.setAttribute('stroke', '#2e59d9');
+                poly.setAttribute('stroke-width', '2');
+                poly.setAttribute('stroke-dasharray', '5,5');
+                poly.setAttribute('points', `${coords.x},${coords.y}`);
+                this.svgOverlay.appendChild(poly);
+                this._lacoPolygonElement = poly;
+            }
+            
+            console.log('Iniciando laço...');
+        }
 
         _atualizarLaco(e) {
             if (!this.modoLacoAtivo || !this._lacoPolygonElement) return;
@@ -3147,22 +3151,22 @@ refazer() {
         }
 
         _obterCoordenadasLaco(e) {
-    const rect = this.drawingArea.getBoundingClientRect();
-    let clientX, clientY;
-    
-    if (e.touches && e.touches[0]) {
-        clientX = e.touches[0].clientX;
-        clientY = e.touches[0].clientY;
-    } else {
-        clientX = e.clientX;
-        clientY = e.clientY;
-    }
-    
-    return {
-        x: clientX - rect.left + this.drawingArea.scrollLeft,
-        y: clientY - rect.top + this.drawingArea.scrollTop
-    };
-}
+            const rect = this.drawingArea.getBoundingClientRect();
+            let clientX, clientY;
+            
+            if (e.touches && e.touches[0]) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            
+            return {
+                x: clientX - rect.left + this.drawingArea.scrollLeft,
+                y: clientY - rect.top + this.drawingArea.scrollTop
+            };
+        }
 
         _removerOverlayLaco() {
             if (this.svgOverlay) {
@@ -3508,46 +3512,46 @@ refazer() {
         }
 
         limparModoLacoCompletamente() {
-    if (this.svgOverlay && this.svgOverlay.parentNode) {
-        this.svgOverlay.parentNode.removeChild(this.svgOverlay);
-        this.svgOverlay = null;
-    }
-    
-    this._lacoPolygonElement = null;
-    this.lacoPontos = [];
-    
-    if (this._lacoMouseDownHandler) {
-        this.drawingArea.removeEventListener('mousedown', this._lacoMouseDownHandler);
-    }
-    if (this._lacoMoveHandler) {
-        this.drawingArea.removeEventListener('mousemove', this._lacoMoveHandler);
-    }
-    if (this._lacoUpHandler) {
-        this.drawingArea.removeEventListener('mouseup', this._lacoUpHandler);
-    }
-    
-    if (this._lacoTouchStartHandler) {
-        this.drawingArea.removeEventListener('touchstart', this._lacoTouchStartHandler);
-    }
-    if (this._lacoTouchMoveHandler) {
-        this.drawingArea.removeEventListener('touchmove', this._lacoTouchMoveHandler);
-    }
-    if (this._lacoTouchEndHandler) {
-        this.drawingArea.removeEventListener('touchend', this._lacoTouchEndHandler);
-    }
-    
-    this._lacoMouseDownHandler = null;
-    this._lacoMoveHandler = null;
-    this._lacoUpHandler = null;
-    this._lacoTouchStartHandler = null;
-    this._lacoTouchMoveHandler = null;
-    this._lacoTouchEndHandler = null;
-    
-    clearTimeout(this.lacoTouchStartTimeout);
-    this.lacoTouchStartTimeout = null;
-    this.lacoCurrentTouches = 0;
-    this.lacoIniciado = false;
-}
+            if (this.svgOverlay && this.svgOverlay.parentNode) {
+                this.svgOverlay.parentNode.removeChild(this.svgOverlay);
+                this.svgOverlay = null;
+            }
+            
+            this._lacoPolygonElement = null;
+            this.lacoPontos = [];
+            
+            if (this._lacoMouseDownHandler) {
+                this.drawingArea.removeEventListener('mousedown', this._lacoMouseDownHandler);
+            }
+            if (this._lacoMoveHandler) {
+                this.drawingArea.removeEventListener('mousemove', this._lacoMoveHandler);
+            }
+            if (this._lacoUpHandler) {
+                this.drawingArea.removeEventListener('mouseup', this._lacoUpHandler);
+            }
+            
+            if (this._lacoTouchStartHandler) {
+                this.drawingArea.removeEventListener('touchstart', this._lacoTouchStartHandler);
+            }
+            if (this._lacoTouchMoveHandler) {
+                this.drawingArea.removeEventListener('touchmove', this._lacoTouchMoveHandler);
+            }
+            if (this._lacoTouchEndHandler) {
+                this.drawingArea.removeEventListener('touchend', this._lacoTouchEndHandler);
+            }
+            
+            this._lacoMouseDownHandler = null;
+            this._lacoMoveHandler = null;
+            this._lacoUpHandler = null;
+            this._lacoTouchStartHandler = null;
+            this._lacoTouchMoveHandler = null;
+            this._lacoTouchEndHandler = null;
+            
+            clearTimeout(this.lacoTouchStartTimeout);
+            this.lacoTouchStartTimeout = null;
+            this.lacoCurrentTouches = 0;
+            this.lacoIniciado = false;
+        }
 
         limparGrupoTemporario() {
             if (this.grupoTemporario && this.grupoTemporario.parentNode) {
@@ -3567,148 +3571,148 @@ refazer() {
         }
 
         tornarElementosSelecionaveis(selecionavel) {
-    const elementos = this.drawingArea.querySelectorAll(
-        '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca, .grupo-temporario'
-    );
-    
-    elementos.forEach(elemento => {
-        if (selecionavel) {
-            elemento.classList.add('selecionavel');
-            if (elemento.classList.contains('simbolo-linha')) {
-                this.configurarInteratividadeSimbolo(elemento);
-            } else if (elemento.classList.contains('legenda-simplificada')) {
-                this.configurarInteratividadeLegenda(elemento);
-            } else if (elemento.classList.contains('texto-legenda')) {
-                this.configurarInteratividadeTexto(elemento);
-            } else if (elemento.classList.contains('grupo-temporario')) {
-                this._configurarInteratividadeGrupo(elemento, []);
-            }
-        } else {
-            elemento.classList.remove('selecionavel');
-            this.removerInteratividade(elemento);
-        }
-    });
-}
-
-forcarAtualizacaoInteratividade() {
-    const todosElementos = this.drawingArea.querySelectorAll(
-        '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca'
-    );
-    
-    todosElementos.forEach(elemento => {
-        elemento.style.pointerEvents = 'auto';
-        
-        if (this.modoSelecaoAtivo && !elemento.classList.contains('selecionavel')) {
-            elemento.classList.add('selecionavel');
-        }
-        
-        if (elemento.classList.contains('texto-legenda')) {
-            this.configurarInteratividadeTexto(elemento);
-        } else if (elemento.classList.contains('simbolo-linha')) {
-            this.configurarInteratividadeSimbolo(elemento);
-        } else if (elemento.classList.contains('legenda-simplificada')) {
-            this.configurarInteratividadeLegenda(elemento);
-        }
-    });
-    
-    const grupos = this.drawingArea.querySelectorAll('.area-pecas');
-    grupos.forEach(grupo => {
-        grupo.style.pointerEvents = 'none';
-    });
-    
-    console.log('Interatividade garantida para todos os elementos');
-}
-
-     manipularCliqueSelecao(e) {
-    if (this.modalEstilosAberto) {
-        console.log('Modal de estilos aberto - seleção completamente bloqueada');
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation();
-        return;
-    }
-    
-    if (this._isTouchGesture(e)) {
-        console.log('Gesto de touch detectado - ignorando seleção');
-        return;
-    }
-    
-    if (e.target.classList.contains('handle')) return;
-    
-    const elemento = e.target.closest('.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca, .grupo-temporario');
-    
-    if (!elemento) {
-        if (this.grupoTemporario) {
-            console.log('Clicou fora - removendo grupo temporário');
-            this.limparGrupoTemporario();
-        }
-        this.desselecionarElemento();
-        return;
-    }
-    
-    if (elemento.classList.contains('selecionavel') || 
-        elemento.classList.contains('peca') || 
-        elemento.classList.contains('grupo-temporario')) {
-        this.selecionarElemento(elemento, e);
-    } else {
-        this.desselecionarElemento();
-    }
-}
-
-_isTouchGesture(e) {
-    if (!e.type.includes('touch')) return false;
-    
-    if (e.type === 'touchstart') {
-        this.touchStartTime = Date.now();
-        this.touchStartX = e.touches[0].clientX;
-        this.touchStartY = e.touches[0].clientY;
-        this.isScrolling = false;
-        this.isZooming = false;
-        return false;
-    }
-    
-    if (e.type === 'touchmove') {
-        if (e.touches.length >= 2) {
-            this.isZooming = true;
-            return true;
-        }
-        
-        if (e.touches.length === 1) {
-            const currentX = e.touches[0].clientX;
-            const currentY = e.touches[0].clientY;
-            const deltaX = Math.abs(currentX - this.touchStartX);
-            const deltaY = Math.abs(currentY - this.touchStartY);
+            const elementos = this.drawingArea.querySelectorAll(
+                '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca, .grupo-temporario'
+            );
             
-            if (deltaX > this.touchMoveThreshold || deltaY > this.touchMoveThreshold) {
-                this.isScrolling = true;
-                return true;
+            elementos.forEach(elemento => {
+                if (selecionavel) {
+                    elemento.classList.add('selecionavel');
+                    if (elemento.classList.contains('simbolo-linha')) {
+                        this.configurarInteratividadeSimbolo(elemento);
+                    } else if (elemento.classList.contains('legenda-simplificada')) {
+                        this.configurarInteratividadeLegenda(elemento);
+                    } else if (elemento.classList.contains('texto-legenda')) {
+                        this.configurarInteratividadeTexto(elemento);
+                    } else if (elemento.classList.contains('grupo-temporario')) {
+                        this._configurarInteratividadeGrupo(elemento, []);
+                    }
+                } else {
+                    elemento.classList.remove('selecionavel');
+                    this.removerInteratividade(elemento);
+                }
+            });
+        }
+
+        forcarAtualizacaoInteratividade() {
+            const todosElementos = this.drawingArea.querySelectorAll(
+                '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca'
+            );
+            
+            todosElementos.forEach(elemento => {
+                elemento.style.pointerEvents = 'auto';
+                
+                if (this.modoSelecaoAtivo && !elemento.classList.contains('selecionavel')) {
+                    elemento.classList.add('selecionavel');
+                }
+                
+                if (elemento.classList.contains('texto-legenda')) {
+                    this.configurarInteratividadeTexto(elemento);
+                } else if (elemento.classList.contains('simbolo-linha')) {
+                    this.configurarInteratividadeSimbolo(elemento);
+                } else if (elemento.classList.contains('legenda-simplificada')) {
+                    this.configurarInteratividadeLegenda(elemento);
+                }
+            });
+            
+            const grupos = this.drawingArea.querySelectorAll('.area-pecas');
+            grupos.forEach(grupo => {
+                grupo.style.pointerEvents = 'none';
+            });
+            
+            console.log('Interatividade garantida para todos os elementos');
+        }
+
+        manipularCliqueSelecao(e) {
+            if (this.modalEstilosAberto) {
+                console.log('Modal de estilos aberto - seleção completamente bloqueada');
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                return;
+            }
+            
+            if (this._isTouchGesture(e)) {
+                console.log('Gesto de touch detectado - ignorando seleção');
+                return;
+            }
+            
+            if (e.target.classList.contains('handle')) return;
+            
+            const elemento = e.target.closest('.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca, .grupo-temporario');
+            
+            if (!elemento) {
+                if (this.grupoTemporario) {
+                    console.log('Clicou fora - removendo grupo temporário');
+                    this.limparGrupoTemporario();
+                }
+                this.desselecionarElemento();
+                return;
+            }
+            
+            if (elemento.classList.contains('selecionavel') || 
+                elemento.classList.contains('peca') || 
+                elemento.classList.contains('grupo-temporario')) {
+                this.selecionarElemento(elemento, e);
+            } else {
+                this.desselecionarElemento();
             }
         }
-    }
-    
-    if (e.type === 'touchend') {
-        const wasGesture = this.isScrolling || this.isZooming;
-        this.isScrolling = false;
-        this.isZooming = false;
-        return wasGesture;
-    }
-    
-    return false;
-}
+
+        _isTouchGesture(e) {
+            if (!e.type.includes('touch')) return false;
+            
+            if (e.type === 'touchstart') {
+                this.touchStartTime = Date.now();
+                this.touchStartX = e.touches[0].clientX;
+                this.touchStartY = e.touches[0].clientY;
+                this.isScrolling = false;
+                this.isZooming = false;
+                return false;
+            }
+            
+            if (e.type === 'touchmove') {
+                if (e.touches.length >= 2) {
+                    this.isZooming = true;
+                    return true;
+                }
+                
+                if (e.touches.length === 1) {
+                    const currentX = e.touches[0].clientX;
+                    const currentY = e.touches[0].clientY;
+                    const deltaX = Math.abs(currentX - this.touchStartX);
+                    const deltaY = Math.abs(currentY - this.touchStartY);
+                    
+                    if (deltaX > this.touchMoveThreshold || deltaY > this.touchMoveThreshold) {
+                        this.isScrolling = true;
+                        return true;
+                    }
+                }
+            }
+            
+            if (e.type === 'touchend') {
+                const wasGesture = this.isScrolling || this.isZooming;
+                this.isScrolling = false;
+                this.isZooming = false;
+                return wasGesture;
+            }
+            
+            return false;
+        }
         
         obterPosicaoComScroll(elemento) {
-    const rect = elemento.getBoundingClientRect();
-    const drawingAreaRect = this.drawingArea.getBoundingClientRect();
-    const scrollLeft = this.drawingArea.scrollLeft || 0;
-    const scrollTop = this.drawingArea.scrollTop || 0;
-    
-    return {
-        left: rect.left - drawingAreaRect.left + scrollLeft,
-        top: rect.top - drawingAreaRect.top + scrollTop,
-        width: rect.width,
-        height: rect.height
-    };
-}
+            const rect = elemento.getBoundingClientRect();
+            const drawingAreaRect = this.drawingArea.getBoundingClientRect();
+            const scrollLeft = this.drawingArea.scrollLeft || 0;
+            const scrollTop = this.drawingArea.scrollTop || 0;
+            
+            return {
+                left: rect.left - drawingAreaRect.left + scrollLeft,
+                top: rect.top - drawingAreaRect.top + scrollTop,
+                width: rect.width,
+                height: rect.height
+            };
+        }
 
         atualizarOrdemEmpilhamento() {
             const todasPecas = this.drawingArea.querySelectorAll('.peca');
@@ -3885,282 +3889,282 @@ _isTouchGesture(e) {
         configurarRedimensionamentoLinhaReta(elemento) {
         }
 
-       criarHandles(elemento) {
-    console.log('Criando handles para:', elemento.className);
-    
-    // Primeiro, desselecionar qualquer elemento anterior
-    this.desselecionarElemento();
-    
-    // Selecionar o novo elemento
-    this.elementoSelecionado = elemento;
-    elemento.classList.add('elemento-selecionado');
-    elemento.style.zIndex = '9999'; // Z-index alto mas menor que os handles
-    
-    const pos = this.obterPosicaoComScroll(elemento);
-    const left = pos.left;
-    const top = pos.top;
-    const width = pos.width;
-    const height = pos.height;
+        criarHandles(elemento) {
+            console.log('Criando handles para:', elemento.className);
+            
+            // Primeiro, desselecionar qualquer elemento anterior
+            this.desselecionarElemento();
+            
+            // Selecionar o novo elemento
+            this.elementoSelecionado = elemento;
+            elemento.classList.add('elemento-selecionado');
+            elemento.style.zIndex = '9999'; // Z-index alto mas menor que os handles
+            
+            const pos = this.obterPosicaoComScroll(elemento);
+            const left = pos.left;
+            const top = pos.top;
+            const width = pos.width;
+            const height = pos.height;
 
-    const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
-    const rad = rotation * Math.PI / 180;
-    
-    const centerX = left + width / 2;
-    const centerY = top + height / 2;
+            const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+            const rad = rotation * Math.PI / 180;
+            
+            const centerX = left + width / 2;
+            const centerY = top + height / 2;
 
-    console.log(`Posição: left=${left}, top=${top}, width=${width}, height=${height}, rotation=${rotation}`);
+            console.log(`Posição: left=${left}, top=${top}, width=${width}, height=${height}, rotation=${rotation}`);
 
-    let relativeHandles = [];
-    
-    if (elemento.classList.contains('linha-reta')) {
-        relativeHandles = [
-            { class: 'handle-se', relX: width / 2, relY: height / 2 },
-            { class: 'handle-nw', relX: -width / 2, relY: -height / 2 },
-        ];
-    } else {
-        relativeHandles = [
-            { class: 'handle-n', relX: 0, relY: -height / 2 },
-            { class: 'handle-s', relX: 0, relY: height / 2 },
-            { class: 'handle-e', relX: width / 2, relY: 0 },
-            { class: 'handle-w', relX: -width / 2, relY: 0 },
-            { class: 'handle-ne', relX: width / 2, relY: -height / 2 },
-            { class: 'handle-nw', relX: -width / 2, relY: -height / 2 },
-            { class: 'handle-se', relX: width / 2, relY: height / 2 },
-            { class: 'handle-sw', relX: -width / 2, relY: height / 2 }
-        ];
-    }
+            let relativeHandles = [];
+            
+            if (elemento.classList.contains('linha-reta')) {
+                relativeHandles = [
+                    { class: 'handle-se', relX: width / 2, relY: height / 2 },
+                    { class: 'handle-nw', relX: -width / 2, relY: -height / 2 },
+                ];
+            } else {
+                relativeHandles = [
+                    { class: 'handle-n', relX: 0, relY: -height / 2 },
+                    { class: 'handle-s', relX: 0, relY: height / 2 },
+                    { class: 'handle-e', relX: width / 2, relY: 0 },
+                    { class: 'handle-w', relX: -width / 2, relY: 0 },
+                    { class: 'handle-ne', relX: width / 2, relY: -height / 2 },
+                    { class: 'handle-nw', relX: -width / 2, relY: -height / 2 },
+                    { class: 'handle-se', relX: width / 2, relY: height / 2 },
+                    { class: 'handle-sw', relX: -width / 2, relY: height / 2 }
+                ];
+            }
 
-    const handles = relativeHandles.map(handle => {
-        const rotatedX = handle.relX * Math.cos(rad) - handle.relY * Math.sin(rad);
-        const rotatedY = handle.relX * Math.sin(rad) + handle.relY * Math.cos(rad);
-        
-        return {
-            class: handle.class,
-            x: centerX + rotatedX,
-            y: centerY + rotatedY
-        };
-    });
+            const handles = relativeHandles.map(handle => {
+                const rotatedX = handle.relX * Math.cos(rad) - handle.relY * Math.sin(rad);
+                const rotatedY = handle.relX * Math.sin(rad) + handle.relY * Math.cos(rad);
+                
+                return {
+                    class: handle.class,
+                    x: centerX + rotatedX,
+                    y: centerY + rotatedY
+                };
+            });
 
-    this.removerHandles();
+            this.removerHandles();
 
-    // Criar container para os handles
-    const handlesContainer = document.createElement('div');
-    handlesContainer.className = 'handles-container';
-    handlesContainer.style.position = 'absolute';
-    handlesContainer.style.left = '0';
-    handlesContainer.style.top = '0';
-    handlesContainer.style.width = '100%';
-    handlesContainer.style.height = '100%';
-    handlesContainer.style.pointerEvents = 'none';
-    handlesContainer.style.zIndex = '10000';
-    
-    this.drawingArea.appendChild(handlesContainer);
-    this.handlesContainer = handlesContainer;
+            // Criar container para os handles
+            const handlesContainer = document.createElement('div');
+            handlesContainer.className = 'handles-container';
+            handlesContainer.style.position = 'absolute';
+            handlesContainer.style.left = '0';
+            handlesContainer.style.top = '0';
+            handlesContainer.style.width = '100%';
+            handlesContainer.style.height = '100%';
+            handlesContainer.style.pointerEvents = 'none';
+            handlesContainer.style.zIndex = '10000';
+            
+            this.drawingArea.appendChild(handlesContainer);
+            this.handlesContainer = handlesContainer;
 
-    handles.forEach(handle => {
-        const handleElement = document.createElement('div');
-        handleElement.className = `handle ${handle.class}`;
-        handleElement.style.left = `${handle.x}px`;
-        handleElement.style.top = `${handle.y}px`;
-        handleElement.style.zIndex = '10001';
-        handleElement.style.position = 'absolute';
-        handleElement.style.pointerEvents = 'auto';
-        
-        console.log(`Criando handle ${handle.class} em x=${handle.x}, y=${handle.y}`);
-        
-        handlesContainer.appendChild(handleElement);
-        this.handles.push(handleElement);
-        
-        this.configurarHandle(handleElement, elemento, handle.class);
-    });
+            handles.forEach(handle => {
+                const handleElement = document.createElement('div');
+                handleElement.className = `handle ${handle.class}`;
+                handleElement.style.left = `${handle.x}px`;
+                handleElement.style.top = `${handle.y}px`;
+                handleElement.style.zIndex = '10001';
+                handleElement.style.position = 'absolute';
+                handleElement.style.pointerEvents = 'auto';
+                
+                console.log(`Criando handle ${handle.class} em x=${handle.x}, y=${handle.y}`);
+                
+                handlesContainer.appendChild(handleElement);
+                this.handles.push(handleElement);
+                
+                this.configurarHandle(handleElement, elemento, handle.class);
+            });
 
-    const handleRotacaoRelY = elemento.classList.contains('linha-reta') ? -60 : -height / 2 - 40;
-    const handleRotacaoX = 0 * Math.cos(rad) - handleRotacaoRelY * Math.sin(rad);
-    const handleRotacaoY = 0 * Math.sin(rad) + handleRotacaoRelY * Math.cos(rad);
+            const handleRotacaoRelY = elemento.classList.contains('linha-reta') ? -60 : -height / 2 - 40;
+            const handleRotacaoX = 0 * Math.cos(rad) - handleRotacaoRelY * Math.sin(rad);
+            const handleRotacaoY = 0 * Math.sin(rad) + handleRotacaoRelY * Math.cos(rad);
 
-    const handleRotacao = document.createElement('div');
-    handleRotacao.className = 'handle handle-rotacao';
-    handleRotacao.style.left = `${centerX + handleRotacaoX}px`;
-    handleRotacao.style.top = `${centerY + handleRotacaoY}px`;
-    handleRotacao.style.zIndex = '10001';
-    handleRotacao.style.position = 'absolute';
-    handleRotacao.style.pointerEvents = 'auto';
-    
-    console.log(`Criando handle de rotação em x=${centerX + handleRotacaoX}, y=${centerY + handleRotacaoY}`);
-    
-    handlesContainer.appendChild(handleRotacao);
-    this.handles.push(handleRotacao);
-    
-    this.configurarHandleRotacao(handleRotacao, elemento);
-    
-    console.log(`${this.handles.length} handles criados com sucesso`);
-}
+            const handleRotacao = document.createElement('div');
+            handleRotacao.className = 'handle handle-rotacao';
+            handleRotacao.style.left = `${centerX + handleRotacaoX}px`;
+            handleRotacao.style.top = `${centerY + handleRotacaoY}px`;
+            handleRotacao.style.zIndex = '10001';
+            handleRotacao.style.position = 'absolute';
+            handleRotacao.style.pointerEvents = 'auto';
+            
+            console.log(`Criando handle de rotação em x=${centerX + handleRotacaoX}, y=${centerY + handleRotacaoY}`);
+            
+            handlesContainer.appendChild(handleRotacao);
+            this.handles.push(handleRotacao);
+            
+            this.configurarHandleRotacao(handleRotacao, elemento);
+            
+            console.log(`${this.handles.length} handles criados com sucesso`);
+        }
 
         configurarHandle(handle, elemento, handleClass) {
-    let initialX, initialY;
-    let initialWidth, initialHeight;
-    let initialLeft, initialTop;
-    let initialRatio;
+            let initialX, initialY;
+            let initialWidth, initialHeight;
+            let initialLeft, initialTop;
+            let initialRatio;
 
-    handle.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-    }, { passive: false });
+            handle.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, { passive: false });
 
-    handle.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-    }, { passive: false });
+            handle.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, { passive: false });
 
-    interact(handle).draggable({
-        preventDefault: 'always',
-        
-        listeners: {
-            start: (event) => {
-                if (event.type.includes('touch')) {
-                    event.preventDefault();
-                    event.stopPropagation();
+            interact(handle).draggable({
+                preventDefault: 'always',
+                
+                listeners: {
+                    start: (event) => {
+                        if (event.type.includes('touch')) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+                        
+                        const style = window.getComputedStyle(elemento);
+                        initialWidth = parseFloat(style.width);
+                        initialHeight = parseFloat(style.height);
+                        initialLeft = parseFloat(style.left);
+                        initialTop = parseFloat(style.top);
+                        
+                        initialRatio = initialWidth / initialHeight;
+                        
+                        initialX = event.clientX || (event.touches && event.touches[0].clientX);
+                        initialY = event.clientY || (event.touches && event.touches[0].clientY);
+
+                        handle.style.cursor = 'grabbing';
+                        console.log('Iniciando redimensionamento proporcional');
+                    },
+                    move: (event) => {
+                        if (event.type.includes('touch')) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+
+                        const currentX = event.clientX || (event.touches && event.touches[0].clientX);
+                        const currentY = event.clientY || (event.touches && event.touches[0].clientY);
+                        
+                        const deltaX = currentX - initialX;
+                        const deltaY = currentY - initialY;
+
+                        const handleClasses = handle.classList;
+                        let isEast = handleClasses.contains('handle-e');
+                        let isWest = handleClasses.contains('handle-w');
+                        let isNorth = handleClasses.contains('handle-n');
+                        let isSouth = handleClasses.contains('handle-s');
+                        let isNorthEast = handleClasses.contains('handle-ne');
+                        let isNorthWest = handleClasses.contains('handle-nw');
+                        let isSouthEast = handleClasses.contains('handle-se');
+                        let isSouthWest = handleClasses.contains('handle-sw');
+
+                        let newWidth = initialWidth;
+                        let newHeight = initialHeight;
+                        let newLeft = initialLeft;
+                        let newTop = initialTop;
+
+                        if (elemento.classList.contains('linha-reta')) {
+                            const minSize = 1;
+                            
+                            if (isEast) {
+                                newWidth = Math.max(initialWidth + deltaX, minSize);
+                                newHeight = 2;
+                            }
+                            else if (isWest) {
+                                newWidth = Math.max(initialWidth - deltaX, minSize);
+                                newHeight = 2;
+                                newLeft = initialLeft + deltaX;
+                            }
+                            else if (isNorth) {
+                                newHeight = 2;
+                                newTop = initialTop + deltaY;
+                            }
+                            else if (isSouth) {
+                                newHeight = 2;
+                            }
+                            else if (isNorthEast) {
+                                newWidth = Math.max(initialWidth + deltaX, minSize);
+                                newHeight = 2;
+                                newTop = initialTop + deltaY;
+                            }
+                            else if (isNorthWest) {
+                                newWidth = Math.max(initialWidth - deltaX, minSize);
+                                newHeight = 2;
+                                newLeft = initialLeft + deltaX;
+                                newTop = initialTop + deltaY;
+                            }
+                            else if (isSouthEast) {
+                                newWidth = Math.max(initialWidth + deltaX, minSize);
+                                newHeight = 2;
+                            }
+                            else if (isSouthWest) {
+                                newWidth = Math.max(initialWidth - deltaX, minSize);
+                                newHeight = 2;
+                                newLeft = initialLeft + deltaX;
+                            }
+                        } else {
+                            if (isEast) {
+                                newWidth = Math.max(initialWidth + deltaX, 10);
+                            }
+                            else if (isWest) {
+                                newWidth = Math.max(initialWidth - deltaX, 10);
+                                newLeft = initialLeft + deltaX;
+                            }
+                            else if (isNorth) {
+                                newHeight = Math.max(initialHeight - deltaY, 10);
+                                newTop = initialTop + deltaY;
+                            }
+                            else if (isSouth) {
+                                newHeight = Math.max(initialHeight + deltaY, 10);
+                            }
+                            else if (isNorthEast) {
+                                newWidth = Math.max(initialWidth + deltaX, 10);
+                                newHeight = newWidth / initialRatio;
+                                newTop = initialTop + (initialHeight - newHeight);
+                            }
+                            else if (isNorthWest) {
+                                newWidth = Math.max(initialWidth - deltaX, 10);
+                                newHeight = newWidth / initialRatio;
+                                newLeft = initialLeft + deltaX;
+                                newTop = initialTop + (initialHeight - newHeight);
+                            }
+                            else if (isSouthEast) {
+                                newWidth = Math.max(initialWidth + deltaX, 10);
+                                newHeight = newWidth / initialRatio;
+                            }
+                            else if (isSouthWest) {
+                                newWidth = Math.max(initialWidth - deltaX, 10);
+                                newHeight = newWidth / initialRatio;
+                                newLeft = initialLeft + deltaX;
+                            }
+                        }
+
+                        elemento.style.width = newWidth + 'px';
+                        elemento.style.height = newHeight + 'px';
+                        
+                        if (isWest || isNorthWest || isSouthWest) {
+                            elemento.style.left = newLeft + 'px';
+                        }
+                        
+                        if (isNorth || isNorthEast || isNorthWest) {
+                            elemento.style.top = newTop + 'px';
+                        }
+
+                        this.atualizarLinhasESimbolos(elemento);
+                        this.atualizarHandles();
+                    },
+                    end: () => {
+                        handle.style.cursor = 'grab';
+                        this.salvarEstadoHistorico('Redimensionar Elemento');
+                        console.log('Redimensionamento proporcional concluído');
+                    }
                 }
-                
-                const style = window.getComputedStyle(elemento);
-                initialWidth = parseFloat(style.width);
-                initialHeight = parseFloat(style.height);
-                initialLeft = parseFloat(style.left);
-                initialTop = parseFloat(style.top);
-                
-                initialRatio = initialWidth / initialHeight;
-                
-                initialX = event.clientX || (event.touches && event.touches[0].clientX);
-                initialY = event.clientY || (event.touches && event.touches[0].clientY);
-
-                handle.style.cursor = 'grabbing';
-                console.log('Iniciando redimensionamento proporcional');
-            },
-            move: (event) => {
-                if (event.type.includes('touch')) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-
-                const currentX = event.clientX || (event.touches && event.touches[0].clientX);
-                const currentY = event.clientY || (event.touches && event.touches[0].clientY);
-                
-                const deltaX = currentX - initialX;
-                const deltaY = currentY - initialY;
-
-                const handleClasses = handle.classList;
-                let isEast = handleClasses.contains('handle-e');
-                let isWest = handleClasses.contains('handle-w');
-                let isNorth = handleClasses.contains('handle-n');
-                let isSouth = handleClasses.contains('handle-s');
-                let isNorthEast = handleClasses.contains('handle-ne');
-                let isNorthWest = handleClasses.contains('handle-nw');
-                let isSouthEast = handleClasses.contains('handle-se');
-                let isSouthWest = handleClasses.contains('handle-sw');
-
-                let newWidth = initialWidth;
-                let newHeight = initialHeight;
-                let newLeft = initialLeft;
-                let newTop = initialTop;
-
-                if (elemento.classList.contains('linha-reta')) {
-                    const minSize = 1;
-                    
-                    if (isEast) {
-                        newWidth = Math.max(initialWidth + deltaX, minSize);
-                        newHeight = 2;
-                    }
-                    else if (isWest) {
-                        newWidth = Math.max(initialWidth - deltaX, minSize);
-                        newHeight = 2;
-                        newLeft = initialLeft + deltaX;
-                    }
-                    else if (isNorth) {
-                        newHeight = 2;
-                        newTop = initialTop + deltaY;
-                    }
-                    else if (isSouth) {
-                        newHeight = 2;
-                    }
-                    else if (isNorthEast) {
-                        newWidth = Math.max(initialWidth + deltaX, minSize);
-                        newHeight = 2;
-                        newTop = initialTop + deltaY;
-                    }
-                    else if (isNorthWest) {
-                        newWidth = Math.max(initialWidth - deltaX, minSize);
-                        newHeight = 2;
-                        newLeft = initialLeft + deltaX;
-                        newTop = initialTop + deltaY;
-                    }
-                    else if (isSouthEast) {
-                        newWidth = Math.max(initialWidth + deltaX, minSize);
-                        newHeight = 2;
-                    }
-                    else if (isSouthWest) {
-                        newWidth = Math.max(initialWidth - deltaX, minSize);
-                        newHeight = 2;
-                        newLeft = initialLeft + deltaX;
-                    }
-                } else {
-                    if (isEast) {
-                        newWidth = Math.max(initialWidth + deltaX, 10);
-                    }
-                    else if (isWest) {
-                        newWidth = Math.max(initialWidth - deltaX, 10);
-                        newLeft = initialLeft + deltaX;
-                    }
-                    else if (isNorth) {
-                        newHeight = Math.max(initialHeight - deltaY, 10);
-                        newTop = initialTop + deltaY;
-                    }
-                    else if (isSouth) {
-                        newHeight = Math.max(initialHeight + deltaY, 10);
-                    }
-                    else if (isNorthEast) {
-                        newWidth = Math.max(initialWidth + deltaX, 10);
-                        newHeight = newWidth / initialRatio;
-                        newTop = initialTop + (initialHeight - newHeight);
-                    }
-                    else if (isNorthWest) {
-                        newWidth = Math.max(initialWidth - deltaX, 10);
-                        newHeight = newWidth / initialRatio;
-                        newLeft = initialLeft + deltaX;
-                        newTop = initialTop + (initialHeight - newHeight);
-                    }
-                    else if (isSouthEast) {
-                        newWidth = Math.max(initialWidth + deltaX, 10);
-                        newHeight = newWidth / initialRatio;
-                    }
-                    else if (isSouthWest) {
-                        newWidth = Math.max(initialWidth - deltaX, 10);
-                        newHeight = newWidth / initialRatio;
-                        newLeft = initialLeft + deltaX;
-                    }
-                }
-
-                elemento.style.width = newWidth + 'px';
-                elemento.style.height = newHeight + 'px';
-                
-                if (isWest || isNorthWest || isSouthWest) {
-                    elemento.style.left = newLeft + 'px';
-                }
-                
-                if (isNorth || isNorthEast || isNorthWest) {
-                    elemento.style.top = newTop + 'px';
-                }
-
-                this.atualizarLinhasESimbolos(elemento);
-                this.atualizarHandles();
-            },
-            end: () => {
-                handle.style.cursor = 'grab';
-                this.salvarEstadoHistorico('Redimensionar Elemento');
-                console.log('Redimensionamento proporcional concluído');
-            }
+            });
         }
-    });
-}
 
         configurarHandleRotacao(handle, elemento) {
             let initialAngle = parseFloat(elemento.getAttribute('data-rotate')) || 0;
@@ -4397,113 +4401,113 @@ _isTouchGesture(e) {
         }
 
         criarPecasBase() {
-    if (this.pecasCriadas) return;
+            if (this.pecasCriadas) return;
 
-    const escala = this.calcularEscalaAutomatica();
-    let posY = 100;
+            const escala = this.calcularEscalaAutomatica();
+            let posY = 100;
 
-    const inicioPosX = 50;
-    const gapHorizontal = 100;
-    const gapVertical = 120;
-    const espacamentoEntreAgrupamentos = 30;
-    const maxLineWidth = this.drawingArea.offsetWidth - 100;
+            const inicioPosX = 50;
+            const gapHorizontal = 100;
+            const gapVertical = 120;
+            const espacamentoEntreAgrupamentos = 30;
+            const maxLineWidth = this.drawingArea.offsetWidth - 100;
 
-    Object.keys(this.gruposPecas).forEach((materialNome, grupoIndex) => {
-        const pecasGrupo = this.gruposPecas[materialNome];
+            Object.keys(this.gruposPecas).forEach((materialNome, grupoIndex) => {
+                const pecasGrupo = this.gruposPecas[materialNome];
 
-        const grupoInfo = this.criarGrupoMaterial(materialNome, grupoIndex, posY);
+                const grupoInfo = this.criarGrupoMaterial(materialNome, grupoIndex, posY);
 
-        const lines = [[]];
-        let currentLineWidth = 0;
+                const lines = [[]];
+                let currentLineWidth = 0;
 
-        pecasGrupo.forEach((peca) => {
-            const { width, height } = this.calcularDimensoesPeca(peca, escala);
+                pecasGrupo.forEach((peca) => {
+                    const { width, height } = this.calcularDimensoesPeca(peca, escala);
 
-            if (width > maxLineWidth) {
-                if (lines[lines.length - 1].length > 0) {
-                    lines.push([]);
-                }
-                lines[lines.length - 1].push({
-                    pecaData: peca,
-                    width: Math.round(width),
-                    height: Math.round(height)
+                    if (width > maxLineWidth) {
+                        if (lines[lines.length - 1].length > 0) {
+                            lines.push([]);
+                        }
+                        lines[lines.length - 1].push({
+                            pecaData: peca,
+                            width: Math.round(width),
+                            height: Math.round(height)
+                        });
+                        lines.push([]);
+                        currentLineWidth = 0;
+                    } else if (currentLineWidth > 0 && (currentLineWidth + width + gapHorizontal) > maxLineWidth) {
+                        lines.push([]);
+                        currentLineWidth = 0;
+                    }
+
+                    lines[lines.length - 1].push({
+                        pecaData: peca,
+                        width: Math.round(width),
+                        height: Math.round(height)
+                    });
+
+                    currentLineWidth += width + gapHorizontal;
                 });
-                lines.push([]);
-                currentLineWidth = 0;
-            } else if (currentLineWidth > 0 && (currentLineWidth + width + gapHorizontal) > maxLineWidth) {
-                lines.push([]);
-                currentLineWidth = 0;
-            }
 
-            lines[lines.length - 1].push({
-                pecaData: peca,
-                width: Math.round(width),
-                height: Math.round(height)
-            });
+                if (lines[lines.length - 1].length === 0) {
+                    lines.pop();
+                }
 
-            currentLineWidth += width + gapHorizontal;
-        });
+                let cumulativeY = 0;
+                lines.forEach((line) => {
+                    if (line.length === 0) return;
 
-        if (lines[lines.length - 1].length === 0) {
-            lines.pop();
-        }
+                    const lineMaxHeight = Math.max(...line.map(p => p.height));
 
-        let cumulativeY = 0;
-        lines.forEach((line) => {
-            if (line.length === 0) return;
+                    let posX = inicioPosX;
+                    line.forEach((pObj) => {
+                        const peca = pObj.pecaData;
+                        const w = pObj.width;
+                        const h = pObj.height;
 
-            const lineMaxHeight = Math.max(...line.map(p => p.height));
+                        if (posX + w > maxLineWidth) {
+                            cumulativeY += lineMaxHeight + gapVertical;
+                            posX = inicioPosX;
+                        }
 
-            let posX = inicioPosX;
-            line.forEach((pObj) => {
-                const peca = pObj.pecaData;
-                const w = pObj.width;
-                const h = pObj.height;
+                        const pecaElement = document.createElement('div');
+                        pecaElement.className = 'peca';
+                        pecaElement.id = `peca-${peca.id}`;
+                        pecaElement.style.width = `${w}px`;
+                        pecaElement.style.height = `${h}px`;
+                        pecaElement.style.left = `${posX}px`;
+                        pecaElement.style.top = `${cumulativeY}px`;
+                        pecaElement.setAttribute('data-peca-id', peca.id);
+                        pecaElement.setAttribute('data-tipo', peca.tipo);
+                        pecaElement.setAttribute('data-rotate', '0');
 
-                if (posX + w > maxLineWidth) {
+                        pecaElement.style.pointerEvents = 'auto';
+
+                        this.criarDimensoes(pecaElement, peca, w, h);
+
+                        if (peca.quantidade > 1) {
+                            this.criarQuantidade(pecaElement, peca.quantidade);
+                        }
+
+                        this.criarLinhasPeca(pecaElement, peca.id, w, h);
+
+                        grupoInfo.areaPecas.appendChild(pecaElement);
+
+                        posX += w + gapHorizontal;
+                    });
+
                     cumulativeY += lineMaxHeight + gapVertical;
-                    posX = inicioPosX;
-                }
+                });
 
-                const pecaElement = document.createElement('div');
-                pecaElement.className = 'peca';
-                pecaElement.id = `peca-${peca.id}`;
-                pecaElement.style.width = `${w}px`;
-                pecaElement.style.height = `${h}px`;
-                pecaElement.style.left = `${posX}px`;
-                pecaElement.style.top = `${cumulativeY}px`;
-                pecaElement.setAttribute('data-peca-id', peca.id);
-                pecaElement.setAttribute('data-tipo', peca.tipo);
-                pecaElement.setAttribute('data-rotate', '0');
-
-                pecaElement.style.pointerEvents = 'auto';
-
-                this.criarDimensoes(pecaElement, peca, w, h);
-
-                if (peca.quantidade > 1) {
-                    this.criarQuantidade(pecaElement, peca.quantidade);
-                }
-
-                this.criarLinhasPeca(pecaElement, peca.id, w, h);
-
-                grupoInfo.areaPecas.appendChild(pecaElement);
-
-                posX += w + gapHorizontal;
+                const alturaUtilizada = cumulativeY > 0 ? cumulativeY : 200;
+                posY += alturaUtilizada + espacamentoEntreAgrupamentos;
             });
 
-            cumulativeY += lineMaxHeight + gapVertical;
-        });
-
-        const alturaUtilizada = cumulativeY > 0 ? cumulativeY : 200;
-        posY += alturaUtilizada + espacamentoEntreAgrupamentos;
-    });
-
-    this.pecasCriadas = true;
-    
-    this.forcarAtualizacaoInteratividade();
-    
-    console.log('Peças base criadas com sucesso!');
-}
+            this.pecasCriadas = true;
+            
+            this.forcarAtualizacaoInteratividade();
+            
+            console.log('Peças base criadas com sucesso!');
+        }
 
         criarGrupoMaterial(materialNome, grupoIndex, posY) {
             const tituloGrupo = document.createElement('div');
@@ -4542,336 +4546,335 @@ _isTouchGesture(e) {
             };
         }
 
-     criarCuba(x, y, tipo, largura = 80, altura = 50) {
-    const cubaElement = document.createElement('div');
-    cubaElement.className = `cuba ${tipo}`;
-    cubaElement.style.position = 'absolute';
-    
-    cubaElement.style.left = `${x}px`;
-    cubaElement.style.top = `${y}px`;
-    cubaElement.style.transform = 'none';
-    cubaElement.setAttribute('data-x', '0');
-    cubaElement.setAttribute('data-y', '0');
-    
-    if (tipo === 'linha-reta') {
-        cubaElement.style.width = `${Math.max(largura, 100)}px`;
-        cubaElement.style.height = '0px';
-        cubaElement.style.borderTop = '2px solid #333';
-        cubaElement.style.backgroundColor = 'transparent';
-    } else if (tipo === 'circulo') {
-        const tamanho = Math.max(largura, altura);
-        cubaElement.style.width = `${tamanho}px`;
-        cubaElement.style.height = `${tamanho}px`;
-        cubaElement.style.borderRadius = '50%';
-        cubaElement.style.border = '2px solid #333';
-    } else {
-        cubaElement.style.width = `${largura}px`;
-        cubaElement.style.height = `${altura}px`;
-        cubaElement.style.border = '2px solid #333';
-        if (tipo === 'oval') cubaElement.style.borderRadius = '50%';
-        else if (tipo === 'elipse') cubaElement.style.borderRadius = '40%';
-        else cubaElement.style.borderRadius = '0';
-    }
+        criarCuba(x, y, tipo, largura = 80, altura = 50) {
+            const cubaElement = document.createElement('div');
+            cubaElement.className = `cuba ${tipo}`;
+            cubaElement.style.position = 'absolute';
+            
+            cubaElement.style.left = `${x}px`;
+            cubaElement.style.top = `${y}px`;
+            cubaElement.style.transform = 'none';
+            cubaElement.setAttribute('data-x', '0');
+            cubaElement.setAttribute('data-y', '0');
+            
+            if (tipo === 'linha-reta') {
+                cubaElement.style.width = `${Math.max(largura, 100)}px`;
+                cubaElement.style.height = '0px';
+                cubaElement.style.borderTop = '2px solid #333';
+                cubaElement.style.backgroundColor = 'transparent';
+            } else if (tipo === 'circulo') {
+                const tamanho = Math.max(largura, altura);
+                cubaElement.style.width = `${tamanho}px`;
+                cubaElement.style.height = `${tamanho}px`;
+                cubaElement.style.borderRadius = '50%';
+                cubaElement.style.border = '2px solid #333';
+            } else {
+                cubaElement.style.width = `${largura}px`;
+                cubaElement.style.height = `${altura}px`;
+                cubaElement.style.border = '2px solid #333';
+                if (tipo === 'oval') cubaElement.style.borderRadius = '50%';
+                else if (tipo === 'elipse') cubaElement.style.borderRadius = '40%';
+                else cubaElement.style.borderRadius = '0';
+            }
 
-    cubaElement.style.backgroundColor = 'transparent';
-    cubaElement.style.boxSizing = 'border-box';
-    cubaElement.style.zIndex = '8';
+            cubaElement.style.backgroundColor = 'transparent';
+            cubaElement.style.boxSizing = 'border-box';
+            cubaElement.style.zIndex = '8';
 
-    if (this.modoSelecaoAtivo) {
-        cubaElement.classList.add('selecionavel');
-    }
+            if (this.modoSelecaoAtivo) {
+                cubaElement.classList.add('selecionavel');
+            }
 
-    this.drawingArea.appendChild(cubaElement);
+            this.drawingArea.appendChild(cubaElement);
 
-    this.configurarInteratividadeCuba(cubaElement, tipo);
-    this.salvarEstadoHistorico('Adicionar Cuba');
-    return cubaElement;
-}
+            this.configurarInteratividadeCuba(cubaElement, tipo);
+            this.salvarEstadoHistorico('Adicionar Cuba');
+            return cubaElement;
+        }
 
         configurarInteratividadeCuba(elemento, tipo) {
-    interact(elemento).draggable({
-        listeners: {
-            start: () => {
-                elemento.style.zIndex = '1000';
-            },
-            move: (event) => {
-                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-                const rotate = elemento.getAttribute('data-rotate') || 0;
+            interact(elemento).draggable({
+                listeners: {
+                    start: () => {
+                        elemento.style.zIndex = '1000';
+                    },
+                    move: (event) => {
+                        let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
+                        let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                        const rotate = elemento.getAttribute('data-rotate') || 0;
 
-                elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
-                elemento.setAttribute('data-x', x);
-                elemento.setAttribute('data-y', y);
-            },
-            end: () => {
-                elemento.style.zIndex = '8';
-                this.salvarEstadoHistorico('Mover Cuba');
-            }
-        }
-    });
-
-    if (tipo === 'linha-reta') {
-        this.configurarHandlesLinhaReta(elemento);
-    } else {
-        interact(elemento).resizable({
-            edges: { left: true, right: true, bottom: true, top: true },
-            listeners: {
-                move: function (event) {
-                    let { x, y } = event.deltaRect;
-
-                    Object.assign(event.target.style, {
-                        width: `${event.rect.width}px`,
-                        height: `${event.rect.height}px`
-                    });
-
-                    const currentX = parseFloat(event.target.getAttribute('data-x')) || 0;
-                    const currentY = parseFloat(event.target.getAttribute('data-y')) || 0;
-                    const currentRotate = event.target.getAttribute('data-rotate') || 0;
-                    
-                    event.target.style.transform = `translate(${currentX + x}px, ${currentY + y}px) rotate(${currentRotate}deg)`;
-                    event.target.setAttribute('data-x', currentX + x);
-                    event.target.setAttribute('data-y', currentY + y);
+                        elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
+                        elemento.setAttribute('data-x', x);
+                        elemento.setAttribute('data-y', y);
+                    },
+                    end: () => {
+                        elemento.style.zIndex = '8';
+                        this.salvarEstadoHistorico('Mover Cuba');
+                    }
                 }
+            });
+
+            if (tipo === 'linha-reta') {
+                this.configurarHandlesLinhaReta(elemento);
+            } else {
+                interact(elemento).resizable({
+                    edges: { left: true, right: true, bottom: true, top: true },
+                    listeners: {
+                        move: function (event) {
+                            let { x, y } = event.deltaRect;
+
+                            Object.assign(event.target.style, {
+                                width: `${event.rect.width}px`,
+                                height: `${event.rect.height}px`
+                            });
+
+                            const currentX = parseFloat(event.target.getAttribute('data-x')) || 0;
+                            const currentY = parseFloat(event.target.getAttribute('data-y')) || 0;
+                            const currentRotate = event.target.getAttribute('data-rotate') || 0;
+                            
+                            event.target.style.transform = `translate(${currentX + x}px, ${currentY + y}px) rotate(${currentRotate}deg)`;
+                            event.target.setAttribute('data-x', currentX + x);
+                            event.target.setAttribute('data-y', currentY + y);
+                        }
+                    }
+                });
             }
-        });
-    }
-}
-
-   manipularCliqueInsercao(e) {
-    if (!this.modoInsercaoAtivo) return;
-    
-    e.preventDefault();
-    e.stopPropagation();
-    
-    const rect = this.drawingArea.getBoundingClientRect();
-    const scrollLeft = this.drawingArea.scrollLeft || 0;
-    const scrollTop = this.drawingArea.scrollTop || 0;
-    
-    let clientX, clientY;
-    
-    if (e.touches && e.touches[0]) {
-        clientX = e.touches[0].clientX;
-        clientY = e.touches[0].clientY;
-    } else {
-        clientX = e.clientX;
-        clientY = e.clientY;
-    }
-    
-    const x = clientX - rect.left + scrollLeft;
-    const y = clientY - rect.top + scrollTop;
-    
-    console.log(`Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y} (scroll: ${scrollLeft}, ${scrollTop})`);
-
-    switch(this.modoInsercaoAtivo) {
-        case 'texto':
-            this.criarTexto(x, y, '');
-            break;
-        case 'cuba':
-            this.mostrarSeletorCuba(x, y);
-            break;
-        case 'legenda':
-            this.mostrarSeletorLegenda(x, y);
-            break;
-        default:
-            console.warn('Modo de inserção desconhecido:', this.modoInsercaoAtivo);
-    }
-    
-    this.desativarTodosOsModos();
-}
-
-    criarTexto(x, y, textoInicial = "") {
-    const textoElement = document.createElement('textarea');
-    textoElement.className = 'texto-legenda';
-
-    textoElement.style.position = 'absolute';
-    textoElement.style.left = `${x}px`;
-    textoElement.style.top = `${y}px`;
-    textoElement.style.transform = 'none';
-    
-    textoElement.setAttribute('data-x', '0');
-    textoElement.setAttribute('data-y', '0');
-    textoElement.setAttribute('data-rotate', '0');
-    
-    textoElement.value = textoInicial;
-    textoElement.setAttribute('data-valor', textoInicial);
-    textoElement.rows = 1;
-    textoElement.placeholder = "Digite seu texto";
-    
-    textoElement.style.background = 'transparent';
-    textoElement.style.border = 'none';
-    textoElement.style.outline = 'none';
-    textoElement.style.resize = 'none';
-    textoElement.style.fontSize = '14px';
-    textoElement.style.fontFamily = 'Arial, sans-serif';
-    textoElement.style.padding = '0px';
-    textoElement.style.overflow = 'hidden';
-    textoElement.style.zIndex = '10';
-    textoElement.style.minWidth = '20px';
-    textoElement.style.minHeight = '20px';
-
-    if (this.modoSelecaoAtivo) {
-        textoElement.classList.add('selecionavel');
-    }
-
-    this.drawingArea.appendChild(textoElement);
-    
-    this.salvarEstadoImediato('Adicionar Caixa de Texto');
-    textoElement.focus();
-
-    textoElement.addEventListener('input', () => {
-        textoElement.style.height = 'auto';
-        textoElement.style.height = (textoElement.scrollHeight) + 'px';
-        textoElement.setAttribute('data-valor', textoElement.value);
-    });
-    
-    textoElement.addEventListener('blur', () => {
-        textoElement.setAttribute('data-valor', textoElement.value);
-        if (textoElement.value.trim() === '') {
-            textoElement.remove();
-            this.salvarEstadoImediato('Remover Texto Vazio');
-        } else {
-            this.salvarEstadoImediato('Editar Texto: ' + textoElement.value.substring(0, 20));
         }
-    });
 
-    this.configurarInteratividadeTexto(textoElement);
-    
-    return textoElement;
-}
+        manipularCliqueInsercao(e) {
+            if (!this.modoInsercaoAtivo) return;
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const rect = this.drawingArea.getBoundingClientRect();
+            const scrollLeft = this.drawingArea.scrollLeft || 0;
+            const scrollTop = this.drawingArea.scrollTop || 0;
+            
+            let clientX, clientY;
+            
+            if (e.touches && e.touches[0]) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            } else {
+                clientX = e.clientX;
+                clientY = e.clientY;
+            }
+            
+            const x = clientX - rect.left + scrollLeft;
+            const y = clientY - rect.top + scrollTop;
+            
+            console.log(`Inserindo ${this.modoInsercaoAtivo} em x:${x}, y:${y} (scroll: ${scrollLeft}, ${scrollTop})`);
 
+            switch(this.modoInsercaoAtivo) {
+                case 'texto':
+                    this.criarTexto(x, y, '');
+                    break;
+                case 'cuba':
+                    this.mostrarSeletorCuba(x, y);
+                    break;
+                case 'legenda':
+                    this.mostrarSeletorLegenda(x, y);
+                    break;
+                default:
+                    console.warn('Modo de inserção desconhecido:', this.modoInsercaoAtivo);
+            }
+            
+            this.desativarTodosOsModos();
+        }
+
+        criarTexto(x, y, textoInicial = "") {
+            const textoElement = document.createElement('textarea');
+            textoElement.className = 'texto-legenda';
+
+            textoElement.style.position = 'absolute';
+            textoElement.style.left = `${x}px`;
+            textoElement.style.top = `${y}px`;
+            textoElement.style.transform = 'none';
+            
+            textoElement.setAttribute('data-x', '0');
+            textoElement.setAttribute('data-y', '0');
+            textoElement.setAttribute('data-rotate', '0');
+            
+            textoElement.value = textoInicial;
+            textoElement.setAttribute('data-valor', textoInicial);
+            textoElement.rows = 1;
+            textoElement.placeholder = "Digite seu texto";
+            
+            textoElement.style.background = 'transparent';
+            textoElement.style.border = 'none';
+            textoElement.style.outline = 'none';
+            textoElement.style.resize = 'none';
+            textoElement.style.fontSize = '14px';
+            textoElement.style.fontFamily = 'Arial, sans-serif';
+            textoElement.style.padding = '0px';
+            textoElement.style.overflow = 'hidden';
+            textoElement.style.zIndex = '10';
+            textoElement.style.minWidth = '20px';
+            textoElement.style.minHeight = '20px';
+
+            if (this.modoSelecaoAtivo) {
+                textoElement.classList.add('selecionavel');
+            }
+
+            this.drawingArea.appendChild(textoElement);
+            
+            this.salvarEstadoImediato('Adicionar Caixa de Texto');
+            textoElement.focus();
+
+            textoElement.addEventListener('input', () => {
+                textoElement.style.height = 'auto';
+                textoElement.style.height = (textoElement.scrollHeight) + 'px';
+                textoElement.setAttribute('data-valor', textoElement.value);
+            });
+            
+            textoElement.addEventListener('blur', () => {
+                textoElement.setAttribute('data-valor', textoElement.value);
+                if (textoElement.value.trim() === '') {
+                    textoElement.remove();
+                    this.salvarEstadoImediato('Remover Texto Vazio');
+                } else {
+                    this.salvarEstadoImediato('Editar Texto: ' + textoElement.value.substring(0, 20));
+                }
+            });
+
+            this.configurarInteratividadeTexto(textoElement);
+            
+            return textoElement;
+        }
 
         configurarInteratividadeTexto(elemento) {
-    this.removerInteratividade(elemento);
-    
-    if (elemento.classList.contains('selecionavel') || this.modoSelecaoAtivo) {
-        if (!elemento.hasAttribute('data-x')) elemento.setAttribute('data-x', '0');
-        if (!elemento.hasAttribute('data-y')) elemento.setAttribute('data-y', '0');
-        if (!elemento.hasAttribute('data-rotate')) elemento.setAttribute('data-rotate', '0');
+            this.removerInteratividade(elemento);
+            
+            if (elemento.classList.contains('selecionavel') || this.modoSelecaoAtivo) {
+                if (!elemento.hasAttribute('data-x')) elemento.setAttribute('data-x', '0');
+                if (!elemento.hasAttribute('data-y')) elemento.setAttribute('data-y', '0');
+                if (!elemento.hasAttribute('data-rotate')) elemento.setAttribute('data-rotate', '0');
 
-        let originalBackground = elemento.style.backgroundColor;
-        
-        interact(elemento).draggable({
-            allowFrom: '.texto-legenda',
-            ignoreFrom: 'input, textarea, button, select',
-            modifiers: [
-                interact.modifiers.restrictRect({
-                    restriction: 'parent',
-                    endOnly: true
-                })
-            ],
-            preventDefault: 'always',
+                let originalBackground = elemento.style.backgroundColor;
+                
+                interact(elemento).draggable({
+                    allowFrom: '.texto-legenda',
+                    ignoreFrom: 'input, textarea, button, select',
+                    modifiers: [
+                        interact.modifiers.restrictRect({
+                            restriction: 'parent',
+                            endOnly: true
+                        })
+                    ],
+                    preventDefault: 'always',
 
-            listeners: {
-                start: (event) => {
-                    if (event.type.includes('touch')) {
-                        event.preventDefault();
+                    listeners: {
+                        start: (event) => {
+                            if (event.type.includes('touch')) {
+                                event.preventDefault();
+                            }
+
+                            elemento.style.zIndex = '1000';
+                            elemento.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
+                            
+                            const currentX = parseFloat(elemento.getAttribute('data-x')) || 0;
+                            const currentY = parseFloat(elemento.getAttribute('data-y')) || 0;
+                            elemento.setAttribute('data-initial-x', currentX.toString());
+                            elemento.setAttribute('data-initial-y', currentY.toString());
+                        },
+                        move: (event) => {
+                            if (event.type.includes('touch')) {
+                                event.preventDefault();
+                            }
+
+                            const initialX = parseFloat(elemento.getAttribute('data-initial-x')) || 0;
+                            const initialY = parseFloat(elemento.getAttribute('data-initial-y')) || 0;
+                            const rotacao = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+
+                            const x = initialX + event.dx;
+                            const y = initialY + event.dy;
+
+                            elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotacao}deg)`;
+                            elemento.setAttribute('data-x', x);
+                            elemento.setAttribute('data-y', y);
+                        },
+                        end: () => {
+                            elemento.style.zIndex = '10';
+                            elemento.style.backgroundColor = originalBackground;
+                            
+                            elemento.removeAttribute('data-initial-x');
+                            elemento.removeAttribute('data-initial-y');
+                            
+                            this.salvarEstadoHistorico('Mover Texto');
+                        }
                     }
+                });
 
-                    elemento.style.zIndex = '1000';
-                    elemento.style.backgroundColor = 'rgba(255, 255, 255, 0.3)';
-                    
-                    const currentX = parseFloat(elemento.getAttribute('data-x')) || 0;
-                    const currentY = parseFloat(elemento.getAttribute('data-y')) || 0;
-                    elemento.setAttribute('data-initial-x', currentX.toString());
-                    elemento.setAttribute('data-initial-y', currentY.toString());
-                },
-                move: (event) => {
-                    if (event.type.includes('touch')) {
-                        event.preventDefault();
-                    }
-
-                    const initialX = parseFloat(elemento.getAttribute('data-initial-x')) || 0;
-                    const initialY = parseFloat(elemento.getAttribute('data-initial-y')) || 0;
-                    const rotacao = parseFloat(elemento.getAttribute('data-rotate')) || 0;
-
-                    const x = initialX + event.dx;
-                    const y = initialY + event.dy;
-
-                    elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotacao}deg)`;
-                    elemento.setAttribute('data-x', x);
-                    elemento.setAttribute('data-y', y);
-                },
-                end: () => {
-                    elemento.style.zIndex = '10';
-                    elemento.style.backgroundColor = originalBackground;
-                    
-                    elemento.removeAttribute('data-initial-x');
-                    elemento.removeAttribute('data-initial-y');
-                    
-                    this.salvarEstadoHistorico('Mover Texto');
-                }
+                interact(elemento).resizable({
+                    edges: { left: false, right: true, bottom: true, top: false },
+                    listeners: {
+                        move: function (event) {
+                            Object.assign(event.target.style, {
+                                width: `${event.rect.width}px`,
+                                height: `${event.rect.height}px`
+                            });
+                        }
+                    },
+                    modifiers: [
+                        interact.modifiers.restrictSize({
+                            min: { width: 50, height: 20 }
+                        })
+                    ]
+                });
             }
-        });
-
-        interact(elemento).resizable({
-            edges: { left: false, right: true, bottom: true, top: false },
-            listeners: {
-                move: function (event) {
-                    Object.assign(event.target.style, {
-                        width: `${event.rect.width}px`,
-                        height: `${event.rect.height}px`
-                    });
-                }
-            },
-            modifiers: [
-                interact.modifiers.restrictSize({
-                    min: { width: 50, height: 20 }
-                })
-            ]
-        });
-    }
-}
+        }
 
         criarLegendaSimplificada(x, y, simbolo = "C", descricao = "Acabamento") {
-    const legendaElement = document.createElement('div');
-    legendaElement.className = 'legenda-simplificada';
-    
-    legendaElement.style.position = 'absolute';
-    legendaElement.style.left = `${x}px`;
-    legendaElement.style.top = `${y}px`;
-    legendaElement.style.transform = 'none';
-    legendaElement.setAttribute('data-x', '0');
-    legendaElement.setAttribute('data-y', '0');
-    
-    legendaElement.innerHTML = `
-        <span class="legenda-simbolo-inline">${simbolo}</span> = <span class="legenda-descricao-inline" contenteditable="true">${descricao}</span>
-    `;
-    
-    if (this.modoSelecaoAtivo) {
-        legendaElement.classList.add('selecionavel');
-    }
-    
-    legendaElement.addEventListener('dblclick', () => {
-        const spanDescricao = legendaElement.querySelector('.legenda-descricao-inline');
-        spanDescricao.focus();
-    });
-    
-    const grupo = this.encontrarGrupoNaPosicao(x, y);
-    if (grupo) {
-        console.log('Adicionando legenda DENTRO do grupo encontrado');
-        
-        const grupoRect = grupo.getBoundingClientRect();
-        const drawingRect = this.drawingArea.getBoundingClientRect();
-        const grupoLeft = grupoRect.left - drawingRect.left;
-        const grupoTop = grupoRect.top - drawingRect.top;
-        
-        const xRelativo = x - grupoLeft;
-        const yRelativo = y - grupoTop;
-        
-        legendaElement.style.left = `${xRelativo}px`;
-        legendaElement.style.top = `${yRelativo}px`;
-        
-        grupo.appendChild(legendaElement);
-    } else {
-        console.log('Adicionando legenda na área PRINCIPAL');
-        this.drawingArea.appendChild(legendaElement);
-    }
-    
-    this.salvarEstadoHistorico('Adicionar Legenda');
-    this.configurarInteratividadeLegenda(legendaElement);
-    
-    return legendaElement;
-}
+            const legendaElement = document.createElement('div');
+            legendaElement.className = 'legenda-simplificada';
+            
+            legendaElement.style.position = 'absolute';
+            legendaElement.style.left = `${x}px`;
+            legendaElement.style.top = `${y}px`;
+            legendaElement.style.transform = 'none';
+            legendaElement.setAttribute('data-x', '0');
+            legendaElement.setAttribute('data-y', '0');
+            
+            legendaElement.innerHTML = `
+                <span class="legenda-simbolo-inline">${simbolo}</span> = <span class="legenda-descricao-inline" contenteditable="true">${descricao}</span>
+            `;
+            
+            if (this.modoSelecaoAtivo) {
+                legendaElement.classList.add('selecionavel');
+            }
+            
+            legendaElement.addEventListener('dblclick', () => {
+                const spanDescricao = legendaElement.querySelector('.legenda-descricao-inline');
+                spanDescricao.focus();
+            });
+            
+            const grupo = this.encontrarGrupoNaPosicao(x, y);
+            if (grupo) {
+                console.log('Adicionando legenda DENTRO do grupo encontrado');
+                
+                const grupoRect = grupo.getBoundingClientRect();
+                const drawingRect = this.drawingArea.getBoundingClientRect();
+                const grupoLeft = grupoRect.left - drawingRect.left;
+                const grupoTop = grupoRect.top - drawingRect.top;
+                
+                const xRelativo = x - grupoLeft;
+                const yRelativo = y - grupoTop;
+                
+                legendaElement.style.left = `${xRelativo}px`;
+                legendaElement.style.top = `${yRelativo}px`;
+                
+                grupo.appendChild(legendaElement);
+            } else {
+                console.log('Adicionando legenda na área PRINCIPAL');
+                this.drawingArea.appendChild(legendaElement);
+            }
+            
+            this.salvarEstadoHistorico('Adicionar Legenda');
+            this.configurarInteratividadeLegenda(legendaElement);
+            
+            return legendaElement;
+        }
 
         configurarInteratividadeLegenda(elemento) {
             const transformInicial = window.getComputedStyle(elemento).transform;
@@ -4976,8 +4979,6 @@ _isTouchGesture(e) {
             }, { passive: false });
         }
 
-       
-
         criarDimensoes(pecaElement, peca, width, height) {
             const pecaId = pecaElement.getAttribute('data-peca-id');
             
@@ -5001,7 +5002,7 @@ _isTouchGesture(e) {
             dimensoesRight.textContent = `${peca.largura}`;
             dimensoesRight.style.right = `${-35}px`;
             dimensoesRight.style.top = `${height / 2}px`;
-	    dimensoesRight.style.zIndex = '10';            
+            dimensoesRight.style.zIndex = '10';            
 
             dimensoesRight.setAttribute('data-peca-id', pecaId);
             dimensoesRight.setAttribute('data-tipo', 'dimensao-right');
@@ -5078,8 +5079,7 @@ _isTouchGesture(e) {
             const simboloElement = document.createElement('div');
             simboloElement.className = 'simbolo-linha';
             simboloElement.textContent = simboloData.texto;
-simboloElement.style.zIndex = '10';
-		
+            simboloElement.style.zIndex = '10';
 
             const angulo = Number(simboloData.rotacao) || 0;
             simboloElement.setAttribute('data-rotacao', angulo);
@@ -5697,295 +5697,292 @@ simboloElement.style.zIndex = '10';
             });
         }
 
-      mostrarModalEstilos() {
-    console.log('Abrindo modal de estilos...');
-    
-    this.fecharModalEstilos();
-    
-    const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
-    
-    if (!elementoAlvo) {
-        console.log('Nenhum elemento selecionado para aplicar estilos');
-        Swal.fire({
-            title: 'Nenhum elemento selecionado',
-            text: 'Por favor, selecione um elemento antes de abrir os estilos.',
-            icon: 'warning',
-            confirmButtonText: 'OK'
-        });
-        return;
-    }
-    
-    this.elementoSelecionadoAntesDoModal = this.elementoSelecionado;
-    this.modalEstilosAberto = true;
-    
-    document.body.classList.add('modal-estilos-aberto');
-    
-    const backdrop = document.createElement('div');
-    backdrop.className = 'modal-backdrop';
-    backdrop.style.cssText = `
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.3);
-        z-index: 19999;
-        pointer-events: auto;
-    `;
-    
-    let touchStartTime = 0;
-    let touchStartX = 0;
-    let touchStartY = 0;
-    let isMultiTouch = false;
-    let isScrolling = false;
-    const touchMoveThreshold = 10;
-    
-    const handleBackdropTouchStart = (e) => {
-        touchStartTime = Date.now();
-        touchStartX = e.touches[0].clientX;
-        touchStartY = e.touches[0].clientY;
-        isMultiTouch = e.touches.length >= 2;
-        isScrolling = false;
-        
-        if (isMultiTouch) {
-            console.log('Multi-toque detectado - permitindo zoom');
-            return;
-        }
-        
-        const isFastTap = (Date.now() - touchStartTime) < 300;
-        if (isFastTap) {
-            e.preventDefault();
-            e.stopPropagation();
-        }
-    };
-    
-    const handleBackdropTouchMove = (e) => {
-        if (e.touches.length >= 2) {
-            isMultiTouch = true;
-            console.log('Gestos de multi-toque - permitindo');
-            return;
-        }
-        
-        if (!isMultiTouch && e.touches.length === 1) {
-            const currentX = e.touches[0].clientX;
-            const currentY = e.touches[0].clientY;
-            const deltaX = Math.abs(currentX - touchStartX);
-            const deltaY = Math.abs(currentY - touchStartY);
+        mostrarModalEstilos() {
+            console.log('Abrindo modal de estilos...');
             
-            if (deltaX > touchMoveThreshold || deltaY > touchMoveThreshold) {
-                isScrolling = true;
-                console.log('Rolagem detectada - permitindo');
+            this.fecharModalEstilos();
+            
+            const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
+            
+            if (!elementoAlvo) {
+                console.log('Nenhum elemento selecionado para aplicar estilos');
+                Swal.fire({
+                    title: 'Nenhum elemento selecionado',
+                    text: 'Por favor, selecione um elemento antes de abrir os estilos.',
+                    icon: 'warning',
+                    confirmButtonText: 'OK'
+                });
                 return;
             }
-        }
-        
-        e.preventDefault();
-        e.stopPropagation();
-    };
-    
-    const handleBackdropTouchEnd = (e) => {
-        if (isMultiTouch || isScrolling) {
-            console.log('Gestos de zoom/rolagem concluídos');
-            isMultiTouch = false;
-            isScrolling = false;
-            return;
-        }
-        
-        const isFastTap = (Date.now() - touchStartTime) < 300;
-        if (isFastTap) {
-            e.preventDefault();
-            e.stopPropagation();
-            console.log('Toque rápido bloqueado - prevenindo desseleção');
-        }
-        
-        isMultiTouch = false;
-        isScrolling = false;
-    };
-    
-    backdrop.addEventListener('touchstart', handleBackdropTouchStart, { passive: false });
-    backdrop.addEventListener('touchmove', handleBackdropTouchMove, { passive: false });
-    backdrop.addEventListener('touchend', handleBackdropTouchEnd, { passive: false });
-    backdrop.addEventListener('touchcancel', handleBackdropTouchEnd, { passive: false });
-    
-    backdrop.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-    });
-    
-    document.body.appendChild(backdrop);
-    this.backdropEstilosAtual = backdrop;
-    
-    const modalEstilos = document.createElement('div');
-    modalEstilos.className = 'modal-estilos';
-    modalEstilos.style.cssText = `
-        position: fixed;
-        z-index: 20000;
-        background: white;
-        padding: 20px;
-        border-radius: 10px;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-        max-width: 400px;
-        width: 90vw;
-        max-height: 80vh;
-        overflow-y: auto;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
-        pointer-events: auto;
-    `;
-    
-    const cores = [
-        '#000000', '#333333', '#666666', '#999999', '#cccccc',
-        '#ff0000', '#ff6b6b', '#ffa500', '#ffd700', '#ffff00',
-        '#00ff00', '#90ee90', '#0000ff', '#87ceeb', '#4e73df',
-        '#8a2be2', '#ee82ee', '#a52a2a', '#deb887', '#ffffff'
-    ];
-    
-    const estilosAtuais = this.obterEstilosAtuais(elementoAlvo);
-    
-    modalEstilos.innerHTML = `
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h6 style="margin: 0;">Estilos e Formatação</h6>
-            <button type="button" class="btn-close" id="fecharModalEstilosBtn"></button>
-        </div>
-        
-        <div class="estilos-secao">
-            <h7>Cores</h7>
-            <div class="paleta-cores" id="paletaCores">
-                ${cores.map(cor => `
-                    <div class="cor-opcao ${estilosAtuais.cor === cor ? 'selecionada' : ''}" 
-                         style="background-color: ${cor}; border: 2px solid ${cor === '#ffffff' ? '#ccc' : cor}"
-                         data-cor="${cor}">
-                    </div>
-                `).join('')}
-            </div>
-            <div class="controle-grupo mt-2">
-                <label>Cor personalizada:</label>
-                <input type="color" id="corPersonalizada" value="${estilosAtuais.cor || '#000000'}">
-                <div class="preview-cor" style="background-color: ${estilosAtuais.cor || '#000000'}" id="previewCor"></div>
-            </div>
-        </div>
-        
-        <div class="estilos-secao">
-            <h7>Texto</h7>
-            <div class="controles-texto">
-                <div class="controle-grupo">
-                    <label>Tamanho:</label>
-                    <input type="range" id="tamanhoTexto" min="8" max="72" value="${estilosAtuais.tamanhoFonte || 16}">
-                    <span id="valorTamanho">${estilosAtuais.tamanhoFonte || 16}px</span>
-                </div>
-                <div class="controle-grupo">
-                    <label>
-                        <input type="checkbox" id="textoNegrito" ${estilosAtuais.negrito ? 'checked' : ''}>
-                        Negrito
-                    </label>
-                </div>
-            </div>
-        </div>
-        
-        <div class="estilos-secao">
-            <h7>Estilo de Linha</h7>
-            <div class="estilos-linha">
-                <div class="opcao-linha ${estilosAtuais.estiloLinha === 'solid' ? 'selecionada' : ''}" 
-                     data-estilo="solid">
-                    <div class="linha-solida"></div>
-                    <small>Contínua</small>
-                </div>
-                <div class="opcao-linha ${estilosAtuais.estiloLinha === 'dashed' ? 'selecionada' : ''}" 
-                     data-estilo="dashed">
-                    <div class="linha-tracejada"></div>
-                    <small>Tracejada</small>
-                </div>
-            </div>
-        </div>
-        
-        <div class="d-flex gap-2 mt-3">
             
-            <button class="btn btn-success flex-fill" id="aplicarEFecharEstilosBtn">
-                <i class="fas fa-check-double me-1"></i> Aplicar e Fechar
-            </button>
-        </div>
-    `;
-    
-    document.body.appendChild(modalEstilos);
-    this.modalEstilosAtual = modalEstilos;
-    
-    const bloquearToqueModal = (e) => {
-        e.stopPropagation();
-    };
-    
-    modalEstilos.addEventListener('touchstart', bloquearToqueModal, { passive: true });
-    modalEstilos.addEventListener('touchend', bloquearToqueModal, { passive: true });
-    modalEstilos.addEventListener('touchmove', bloquearToqueModal, { passive: true });
-    
-    setTimeout(() => {
-        this.configurarEventosModalEstilos();
-    }, 10);
-    
-    console.log('Modal de estilos aberto - gestos de zoom/rolagem permitidos');
-}
+            this.elementoSelecionadoAntesDoModal = this.elementoSelecionado;
+            this.modalEstilosAberto = true;
+            
+            document.body.classList.add('modal-estilos-aberto');
+            
+            const backdrop = document.createElement('div');
+            backdrop.className = 'modal-backdrop';
+            backdrop.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.3);
+                z-index: 19999;
+                pointer-events: auto;
+            `;
+            
+            let touchStartTime = 0;
+            let touchStartX = 0;
+            let touchStartY = 0;
+            let isMultiTouch = false;
+            let isScrolling = false;
+            const touchMoveThreshold = 10;
+            
+            const handleBackdropTouchStart = (e) => {
+                touchStartTime = Date.now();
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+                isMultiTouch = e.touches.length >= 2;
+                isScrolling = false;
+                
+                if (isMultiTouch) {
+                    console.log('Multi-toque detectado - permitindo zoom');
+                    return;
+                }
+                
+                const isFastTap = (Date.now() - touchStartTime) < 300;
+                if (isFastTap) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            };
+            
+            const handleBackdropTouchMove = (e) => {
+                if (e.touches.length >= 2) {
+                    isMultiTouch = true;
+                    console.log('Gestos de multi-toque - permitindo');
+                    return;
+                }
+                
+                if (!isMultiTouch && e.touches.length === 1) {
+                    const currentX = e.touches[0].clientX;
+                    const currentY = e.touches[0].clientY;
+                    const deltaX = Math.abs(currentX - touchStartX);
+                    const deltaY = Math.abs(currentY - touchStartY);
+                    
+                    if (deltaX > touchMoveThreshold || deltaY > touchMoveThreshold) {
+                        isScrolling = true;
+                        console.log('Rolagem detectada - permitindo');
+                        return;
+                    }
+                }
+                
+                e.preventDefault();
+                e.stopPropagation();
+            };
+            
+            const handleBackdropTouchEnd = (e) => {
+                if (isMultiTouch || isScrolling) {
+                    console.log('Gestos de zoom/rolagem concluídos');
+                    isMultiTouch = false;
+                    isScrolling = false;
+                    return;
+                }
+                
+                const isFastTap = (Date.now() - touchStartTime) < 300;
+                if (isFastTap) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log('Toque rápido bloqueado - prevenindo desseleção');
+                }
+                
+                isMultiTouch = false;
+                isScrolling = false;
+            };
+            
+            backdrop.addEventListener('touchstart', handleBackdropTouchStart, { passive: false });
+            backdrop.addEventListener('touchmove', handleBackdropTouchMove, { passive: false });
+            backdrop.addEventListener('touchend', handleBackdropTouchEnd, { passive: false });
+            backdrop.addEventListener('touchcancel', handleBackdropTouchEnd, { passive: false });
+            
+            backdrop.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            });
+            
+            document.body.appendChild(backdrop);
+            this.backdropEstilosAtual = backdrop;
+            
+            const modalEstilos = document.createElement('div');
+            modalEstilos.className = 'modal-estilos';
+            modalEstilos.style.cssText = `
+                position: fixed;
+                z-index: 20000;
+                background: white;
+                padding: 20px;
+                border-radius: 10px;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+                max-width: 400px;
+                width: 90vw;
+                max-height: 80vh;
+                overflow-y: auto;
+                left: 50%;
+                top: 50%;
+                transform: translate(-50%, -50%);
+                pointer-events: auto;
+            `;
+            
+            const cores = [
+                '#000000', '#333333', '#666666', '#999999', '#cccccc',
+                '#ff0000', '#ff6b6b', '#ffa500', '#ffd700', '#ffff00',
+                '#00ff00', '#90ee90', '#0000ff', '#87ceeb', '#4e73df',
+                '#8a2be2', '#ee82ee', '#a52a2a', '#deb887', '#ffffff'
+            ];
+            
+            const estilosAtuais = this.obterEstilosAtuais(elementoAlvo);
+            
+            modalEstilos.innerHTML = `
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 style="margin: 0;">Estilos e Formatação</h6>
+                    <button type="button" class="btn-close" id="fecharModalEstilosBtn"></button>
+                </div>
+                
+                <div class="estilos-secao">
+                    <h7>Cores</h7>
+                    <div class="paleta-cores" id="paletaCores">
+                        ${cores.map(cor => `
+                            <div class="cor-opcao ${estilosAtuais.cor === cor ? 'selecionada' : ''}" 
+                                 style="background-color: ${cor}; border: 2px solid ${cor === '#ffffff' ? '#ccc' : cor}"
+                                 data-cor="${cor}">
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="controle-grupo mt-2">
+                        <label>Cor personalizada:</label>
+                        <input type="color" id="corPersonalizada" value="${estilosAtuais.cor || '#000000'}">
+                        <div class="preview-cor" style="background-color: ${estilosAtuais.cor || '#000000'}" id="previewCor"></div>
+                    </div>
+                </div>
+                
+                <div class="estilos-secao">
+                    <h7>Texto</h7>
+                    <div class="controles-texto">
+                        <div class="controle-grupo">
+                            <label>Tamanho:</label>
+                            <input type="range" id="tamanhoTexto" min="8" max="72" value="${estilosAtuais.tamanhoFonte || 16}">
+                            <span id="valorTamanho">${estilosAtuais.tamanhoFonte || 16}px</span>
+                        </div>
+                        <div class="controle-grupo">
+                            <label>
+                                <input type="checkbox" id="textoNegrito" ${estilosAtuais.negrito ? 'checked' : ''}>
+                                Negrito
+                            </label>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="estilos-secao">
+                    <h7>Estilo de Linha</h7>
+                    <div class="estilos-linha">
+                        <div class="opcao-linha ${estilosAtuais.estiloLinha === 'solid' ? 'selecionada' : ''}" 
+                             data-estilo="solid">
+                            <div class="linha-solida"></div>
+                            <small>Contínua</small>
+                        </div>
+                        <div class="opcao-linha ${estilosAtuais.estiloLinha === 'dashed' ? 'selecionada' : ''}" 
+                             data-estilo="dashed">
+                            <div class="linha-tracejada"></div>
+                            <small>Tracejada</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="d-flex gap-2 mt-3">
+                    
+                    <button class="btn btn-success flex-fill" id="aplicarEFecharEstilosBtn">
+                        <i class="fas fa-check-double me-1"></i> Aplicar e Fechar
+                    </button>
+                </div>
+            `;
+            
+            document.body.appendChild(modalEstilos);
+            this.modalEstilosAtual = modalEstilos;
+            
+            const bloquearToqueModal = (e) => {
+                e.stopPropagation();
+            };
+            
+            modalEstilos.addEventListener('touchstart', bloquearToqueModal, { passive: true });
+            modalEstilos.addEventListener('touchend', bloquearToqueModal, { passive: true });
+            modalEstilos.addEventListener('touchmove', bloquearToqueModal, { passive: true });
+            
+            setTimeout(() => {
+                this.configurarEventosModalEstilos();
+            }, 10);
+            
+            console.log('Modal de estilos aberto - gestos de zoom/rolagem permitidos');
+        }
 
-
-     obterEstilosAtuais(elemento) {
-    if (!elemento) {
-        return {
-            cor: '#000000',
-            tamanhoFonte: 16,
-            negrito: false,
-            estiloLinha: 'solid'
-        };
-    }
-    
-    const estilos = window.getComputedStyle(elemento);
-    
-    let cor = '#000000';
-    if (elemento.classList.contains('peca') || elemento.classList.contains('cuba')) {
-        cor = estilos.borderColor || '#000000';
-    } else if (elemento.classList.contains('texto-legenda') || 
-               elemento.classList.contains('legenda-simplificada') ||
-               elemento.classList.contains('titulo-grupo') ||
-               elemento.classList.contains('simbolo-linha') ||
-               elemento.classList.contains('dimensoes') ||
-               elemento.classList.contains('quantidade-peca')) {
-        cor = estilos.color || '#000000';
-    } else if (elemento.classList.contains('linha-peca')) {
-        cor = estilos.backgroundColor || '#000000';
-    }
-    
-    if (cor.startsWith('rgb')) {
-        cor = this.rgbParaHex(cor);
-    }
-    
-    let tamanhoFonte = parseInt(estilos.fontSize) || 16;
-    const negrito = estilos.fontWeight === 'bold' || estilos.fontWeight === '700';
-    
-    let estiloLinha = 'solid';
-    if (elemento.classList.contains('peca') || elemento.classList.contains('cuba')) {
-        estiloLinha = estilos.borderStyle || 'solid';
-    } else if (elemento.classList.contains('linha-peca')) {
-        estiloLinha = estilos.borderStyle || 'solid';
-    }
-    
-    return {
-        cor: cor,
-        tamanhoFonte: tamanhoFonte,
-        negrito: negrito,
-        estiloLinha: estiloLinha
-    };
-}
-
-
+        obterEstilosAtuais(elemento) {
+            if (!elemento) {
+                return {
+                    cor: '#000000',
+                    tamanhoFonte: 16,
+                    negrito: false,
+                    estiloLinha: 'solid'
+                };
+            }
+            
+            const estilos = window.getComputedStyle(elemento);
+            
+            let cor = '#000000';
+            if (elemento.classList.contains('peca') || elemento.classList.contains('cuba')) {
+                cor = estilos.borderColor || '#000000';
+            } else if (elemento.classList.contains('texto-legenda') || 
+                       elemento.classList.contains('legenda-simplificada') ||
+                       elemento.classList.contains('titulo-grupo') ||
+                       elemento.classList.contains('simbolo-linha') ||
+                       elemento.classList.contains('dimensoes') ||
+                       elemento.classList.contains('quantidade-peca')) {
+                cor = estilos.color || '#000000';
+            } else if (elemento.classList.contains('linha-peca')) {
+                cor = estilos.backgroundColor || '#000000';
+            }
+            
+            if (cor.startsWith('rgb')) {
+                cor = this.rgbParaHex(cor);
+            }
+            
+            let tamanhoFonte = parseInt(estilos.fontSize) || 16;
+            const negrito = estilos.fontWeight === 'bold' || estilos.fontWeight === '700';
+            
+            let estiloLinha = 'solid';
+            if (elemento.classList.contains('peca') || elemento.classList.contains('cuba')) {
+                estiloLinha = estilos.borderStyle || 'solid';
+            } else if (elemento.classList.contains('linha-peca')) {
+                estiloLinha = estilos.borderStyle || 'solid';
+            }
+            
+            return {
+                cor: cor,
+                tamanhoFonte: tamanhoFonte,
+                negrito: negrito,
+                estiloLinha: estiloLinha
+            };
+        }
 
         rgbParaHex(rgb) {
-    const match = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
-    if (!match) return '#000000';
-    
-    const r = parseInt(match[1]).toString(16).padStart(2, '0');
-    const g = parseInt(match[2]).toString(16).padStart(2, '0');
-    const b = parseInt(match[3]).toString(16).padStart(2, '0');
-    
-    return `#${r}${g}${b}`;
-}
+            const match = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+            if (!match) return '#000000';
+            
+            const r = parseInt(match[1]).toString(16).padStart(2, '0');
+            const g = parseInt(match[2]).toString(16).padStart(2, '0');
+            const b = parseInt(match[3]).toString(16).padStart(2, '0');
+            
+            return `#${r}${g}${b}`;
+        }
 
         selecionarCor(cor) {
             console.log('Selecionando cor:', cor);
@@ -6050,266 +6047,262 @@ simboloElement.style.zIndex = '10';
             this.aplicarEstilosElemento(elementoAlvo, true);
         }
 
-configurarEventosModalEstilos() {
-    if (!this.modalEstilosAtual) return;
-    
-    const fecharBtn = this.modalEstilosAtual.querySelector('#fecharModalEstilosBtn');
-    if (fecharBtn) {
-        fecharBtn.addEventListener('click', () => {
-            this.fecharModalEstilos();
-        });
-    }
-    
-    const aplicarBtn = this.modalEstilosAtual.querySelector('#aplicarEstilosBtn');
-    if (aplicarBtn) {
-        aplicarBtn.addEventListener('click', () => {
-            this.aplicarEstilosManterModal();
-        });
-    }
-    
-    const aplicarFecharBtn = this.modalEstilosAtual.querySelector('#aplicarEFecharEstilosBtn');
-    if (aplicarFecharBtn) {
-        aplicarFecharBtn.addEventListener('click', () => {
-            this.aplicarEstilosEFechar();
-        });
-    }
-    
-    const coresOpcoes = this.modalEstilosAtual.querySelectorAll('.cor-opcao');
-    coresOpcoes.forEach(opcao => {
-        opcao.replaceWith(opcao.cloneNode(true));
-    });
-    
-    const novasCoresOpcoes = this.modalEstilosAtual.querySelectorAll('.cor-opcao');
-    novasCoresOpcoes.forEach(opcao => {
-        opcao.addEventListener('click', (e) => {
-            console.log('Cor clicada - bloqueando propagação');
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-            const cor = opcao.getAttribute('data-cor');
-            this.selecionarCor(cor);
-        });
-        
-        opcao.addEventListener('touchstart', (e) => {
-            console.log('Toque na cor - bloqueando propagação');
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-        }, { passive: true });
-        
-        opcao.addEventListener('touchend', (e) => {
-            console.log('Toque finalizado na cor - bloqueando propagação');
-            e.stopPropagation();
-            e.stopImmediatePropagation();
-            const cor = opcao.getAttribute('data-cor');
-            this.selecionarCor(cor);
-        }, { passive: true });
-    });
-    
-    const corPersonalizada = this.modalEstilosAtual.querySelector('#corPersonalizada');
-    if (corPersonalizada) {
-        corPersonalizada.addEventListener('change', (e) => {
-            e.stopPropagation();
-            this.selecionarCor(e.target.value);
-        });
-        
-        corPersonalizada.addEventListener('touchstart', (e) => {
-            e.stopPropagation();
-        }, { passive: true });
-    }
-    
-    const tamanhoTexto = this.modalEstilosAtual.querySelector('#tamanhoTexto');
-    if (tamanhoTexto) {
-        tamanhoTexto.addEventListener('input', (e) => {
-            e.stopPropagation();
-            this.atualizarTamanhoTexto(e.target.value);
-        });
-    }
-    
-    const textoNegrito = this.modalEstilosAtual.querySelector('#textoNegrito');
-    if (textoNegrito) {
-        textoNegrito.addEventListener('change', (e) => {
-            e.stopPropagation();
-            this.toggleNegrito(e.target.checked);
-        });
-    }
-    
-    const opcoesLinha = this.modalEstilosAtual.querySelectorAll('.opcao-linha');
-    opcoesLinha.forEach(opcao => {
-        opcao.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const estilo = opcao.getAttribute('data-estilo');
-            this.selecionarEstiloLinha(estilo);
-        });
-        
-        opcao.addEventListener('touchstart', (e) => {
-            e.stopPropagation();
-        }, { passive: true });
-    });
-    
-    console.log('Eventos do modal de estilos configurados - propagação bloqueada');
-}
-
-
-aplicarEstilosEFechar() {
-    console.log('Aplicando estilos e fechando modal...');
-    
-    try {
-        const elementoAlvo = this.elementoSelecionado || this.elementoSelecionadoAntesDoModal;
-        
-        if (!elementoAlvo) {
-            console.log('Nenhum elemento encontrado para aplicar estilos');
-            this.fecharModalEstilos();
-            return;
-        }
-        
-        console.log('Aplicando estilos ao elemento:', elementoAlvo);
-        
-        this.aplicarEstilosElemento(elementoAlvo);
-        
-        this.salvarEstadoHistorico('Aplicar Estilos');
-        
-        this.fecharModalEstilos();
-        
-        console.log('Estilos aplicados e modal fechado');
-        
-    } catch (error) {
-        console.error('Erro ao aplicar estilos:', error);
-        this.fecharModalEstilos();
-    }
-}
-
-
-       aplicarEstilos() {
-    console.log('Aplicando estilos...');
-    
-    try {
-        const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
-        
-        if (!elementoAlvo) {
-           
-            this.fecharModalEstilos();
+        configurarEventosModalEstilos() {
+            if (!this.modalEstilosAtual) return;
             
-           
+            const fecharBtn = this.modalEstilosAtual.querySelector('#fecharModalEstilosBtn');
+            if (fecharBtn) {
+                fecharBtn.addEventListener('click', () => {
+                    this.fecharModalEstilos();
+                });
+            }
+            
+            const aplicarBtn = this.modalEstilosAtual.querySelector('#aplicarEstilosBtn');
+            if (aplicarBtn) {
+                aplicarBtn.addEventListener('click', () => {
+                    this.aplicarEstilosManterModal();
+                });
+            }
+            
+            const aplicarFecharBtn = this.modalEstilosAtual.querySelector('#aplicarEFecharEstilosBtn');
+            if (aplicarFecharBtn) {
+                aplicarFecharBtn.addEventListener('click', () => {
+                    this.aplicarEstilosEFechar();
+                });
+            }
+            
+            const coresOpcoes = this.modalEstilosAtual.querySelectorAll('.cor-opcao');
+            coresOpcoes.forEach(opcao => {
+                opcao.replaceWith(opcao.cloneNode(true));
+            });
+            
+            const novasCoresOpcoes = this.modalEstilosAtual.querySelectorAll('.cor-opcao');
+            novasCoresOpcoes.forEach(opcao => {
+                opcao.addEventListener('click', (e) => {
+                    console.log('Cor clicada - bloqueando propagação');
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    const cor = opcao.getAttribute('data-cor');
+                    this.selecionarCor(cor);
+                });
                 
-            return;
-        }
-        
-        console.log('Aplicando estilos ao elemento:', elementoAlvo);
-        
-        this.aplicarEstilosElemento(elementoAlvo);
-        
-        this.fecharModalEstilos();
-        
-        setTimeout(() => {
-            this.salvarEstadoHistorico('Aplicar Estilos');
-        }, 50);
-        
-        console.log('Estilos aplicados com sucesso');
-        
-    } catch (error) {
-        console.error('Erro ao aplicar estilos:', error);
-        this.fecharModalEstilos();
-    }
-}
-
-aplicarEstilosManterModal() {
-    console.log('Aplicando estilos (mantendo modal aberto)...');
-    
-    try {
-        const elementoAlvo = this.elementoSelecionado || this.elementoSelecionadoAntesDoModal;
-        
-        if (!elementoAlvo) {
-                        return;
-        }
-        
-        console.log('Aplicando estilos ao elemento:', elementoAlvo);
-        
-        this.aplicarEstilosElemento(elementoAlvo);
-        
-        this.salvarEstadoHistorico('Aplicar Estilos');
-        
-        console.log('Estilos aplicados com sucesso (modal mantido aberto)');
-        
-    } catch (error) {
-        console.error('Erro ao aplicar estilos:', error);
-    }
-}
-
-
-      aplicarEstilosElemento(elemento, preview = false) {
-    const cor = this.corSelecionada;
-    const tamanhoFonte = this.tamanhoTextoSelecionado;
-    const negrito = this.negritoAtivo;
-    const estiloLinha = this.estiloLinhaSelecionado;
-    
-    if (elemento.classList.contains('peca') || elemento.classList.contains('cuba')) {
-        if (cor) elemento.style.borderColor = cor;
-        if (estiloLinha) elemento.style.borderStyle = estiloLinha;
-    }
-    else if (elemento.classList.contains('texto-legenda') || 
-             elemento.classList.contains('legenda-simplificada') ||
-             elemento.classList.contains('titulo-grupo')) {
-        if (cor) elemento.style.color = cor;
-        if (tamanhoFonte) elemento.style.fontSize = `${tamanhoFonte}px`;
-        if (negrito !== null) {
-            elemento.style.fontWeight = negrito ? 'bold' : 'normal';
-        }
-    }
-    else if (elemento.classList.contains('simbolo-linha') ||
-             elemento.classList.contains('dimensoes') ||
-             elemento.classList.contains('quantidade-peca')) {
-        if (cor) elemento.style.color = cor;
-        if (tamanhoFonte) elemento.style.fontSize = `${tamanhoFonte}px`;
-        if (negrito !== null) {
-            elemento.style.fontWeight = negrito ? 'bold' : 'normal';
-        }
-    }
-    else if (elemento.classList.contains('linha-peca')) {
-        if (cor) elemento.style.backgroundColor = cor;
-        if (estiloLinha === 'dashed') {
-            elemento.style.borderStyle = 'dashed';
-        } else {
-            elemento.style.borderStyle = 'solid';
-        }
-    }
-}
-
-     fecharModalEstilos() {
-    console.log('Fechando modal de estilos...');
-    
-    this.modalEstilosAberto = false;
-    
-    document.body.classList.remove('modal-estilos-aberto');
-    
-    if (this.modalEstilosAtual) {
-        try {
-            if (this.modalEstilosAtual.parentNode) {
-                this.modalEstilosAtual.parentNode.removeChild(this.modalEstilosAtual);
+                opcao.addEventListener('touchstart', (e) => {
+                    console.log('Toque na cor - bloqueando propagação');
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                }, { passive: true });
+                
+                opcao.addEventListener('touchend', (e) => {
+                    console.log('Toque finalizado na cor - bloqueando propagação');
+                    e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    const cor = opcao.getAttribute('data-cor');
+                    this.selecionarCor(cor);
+                }, { passive: true });
+            });
+            
+            const corPersonalizada = this.modalEstilosAtual.querySelector('#corPersonalizada');
+            if (corPersonalizada) {
+                corPersonalizada.addEventListener('change', (e) => {
+                    e.stopPropagation();
+                    this.selecionarCor(e.target.value);
+                });
+                
+                corPersonalizada.addEventListener('touchstart', (e) => {
+                    e.stopPropagation();
+                }, { passive: true });
             }
-        } catch (e) {
-            console.error('Erro ao remover modal:', e);
-        }
-        this.modalEstilosAtual = null;
-    }
-    
-    if (this.backdropEstilosAtual) {
-        try {
-            if (this.backdropEstilosAtual.parentNode) {
-                this.backdropEstilosAtual.parentNode.removeChild(this.backdropEstilosAtual);
+            
+            const tamanhoTexto = this.modalEstilosAtual.querySelector('#tamanhoTexto');
+            if (tamanhoTexto) {
+                tamanhoTexto.addEventListener('input', (e) => {
+                    e.stopPropagation();
+                    this.atualizarTamanhoTexto(e.target.value);
+                });
             }
-        } catch (e) {
-            console.error('Erro ao remover backdrop:', e);
+            
+            const textoNegrito = this.modalEstilosAtual.querySelector('#textoNegrito');
+            if (textoNegrito) {
+                textoNegrito.addEventListener('change', (e) => {
+                    e.stopPropagation();
+                    this.toggleNegrito(e.target.checked);
+                });
+            }
+            
+            const opcoesLinha = this.modalEstilosAtual.querySelectorAll('.opcao-linha');
+            opcoesLinha.forEach(opcao => {
+                opcao.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const estilo = opcao.getAttribute('data-estilo');
+                    this.selecionarEstiloLinha(estilo);
+                });
+                
+                opcao.addEventListener('touchstart', (e) => {
+                    e.stopPropagation();
+                }, { passive: true });
+            });
+            
+            console.log('Eventos do modal de estilos configurados - propagação bloqueada');
         }
-        this.backdropEstilosAtual = null;
-    }
-    
-    this.corSelecionada = null;
-    this.tamanhoTextoSelecionado = null;
-    this.negritoAtivo = null;
-    this.estiloLinhaSelecionado = null;
-    
-    console.log('Modal de estilos fechado completamente');
-}
 
+        aplicarEstilosEFechar() {
+            console.log('Aplicando estilos e fechando modal...');
+            
+            try {
+                const elementoAlvo = this.elementoSelecionado || this.elementoSelecionadoAntesDoModal;
+                
+                if (!elementoAlvo) {
+                    console.log('Nenhum elemento encontrado para aplicar estilos');
+                    this.fecharModalEstilos();
+                    return;
+                }
+                
+                console.log('Aplicando estilos ao elemento:', elementoAlvo);
+                
+                this.aplicarEstilosElemento(elementoAlvo);
+                
+                this.salvarEstadoHistorico('Aplicar Estilos');
+                
+                this.fecharModalEstilos();
+                
+                console.log('Estilos aplicados e modal fechado');
+                
+            } catch (error) {
+                console.error('Erro ao aplicar estilos:', error);
+                this.fecharModalEstilos();
+            }
+        }
+
+        aplicarEstilos() {
+            console.log('Aplicando estilos...');
+            
+            try {
+                const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
+                
+                if (!elementoAlvo) {
+                   
+                    this.fecharModalEstilos();
+                    
+                   
+                        
+                    return;
+                }
+                
+                console.log('Aplicando estilos ao elemento:', elementoAlvo);
+                
+                this.aplicarEstilosElemento(elementoAlvo);
+                
+                this.fecharModalEstilos();
+                
+                setTimeout(() => {
+                    this.salvarEstadoHistorico('Aplicar Estilos');
+                }, 50);
+                
+                console.log('Estilos aplicados com sucesso');
+                
+            } catch (error) {
+                console.error('Erro ao aplicar estilos:', error);
+                this.fecharModalEstilos();
+            }
+        }
+
+        aplicarEstilosManterModal() {
+            console.log('Aplicando estilos (mantendo modal aberto)...');
+            
+            try {
+                const elementoAlvo = this.elementoSelecionado || this.elementoSelecionadoAntesDoModal;
+                
+                if (!elementoAlvo) {
+                                        return;
+                }
+                
+                console.log('Aplicando estilos ao elemento:', elementoAlvo);
+                
+                this.aplicarEstilosElemento(elementoAlvo);
+                
+                this.salvarEstadoHistorico('Aplicar Estilos');
+                
+                console.log('Estilos aplicados com sucesso (modal mantido aberto)');
+                
+            } catch (error) {
+                console.error('Erro ao aplicar estilos:', error);
+            }
+        }
+
+        aplicarEstilosElemento(elemento, preview = false) {
+            const cor = this.corSelecionada;
+            const tamanhoFonte = this.tamanhoTextoSelecionado;
+            const negrito = this.negritoAtivo;
+            const estiloLinha = this.estiloLinhaSelecionado;
+            
+            if (elemento.classList.contains('peca') || elemento.classList.contains('cuba')) {
+                if (cor) elemento.style.borderColor = cor;
+                if (estiloLinha) elemento.style.borderStyle = estiloLinha;
+            }
+            else if (elemento.classList.contains('texto-legenda') || 
+                     elemento.classList.contains('legenda-simplificada') ||
+                     elemento.classList.contains('titulo-grupo')) {
+                if (cor) elemento.style.color = cor;
+                if (tamanhoFonte) elemento.style.fontSize = `${tamanhoFonte}px`;
+                if (negrito !== null) {
+                    elemento.style.fontWeight = negrito ? 'bold' : 'normal';
+                }
+            }
+            else if (elemento.classList.contains('simbolo-linha') ||
+                     elemento.classList.contains('dimensoes') ||
+                     elemento.classList.contains('quantidade-peca')) {
+                if (cor) elemento.style.color = cor;
+                if (tamanhoFonte) elemento.style.fontSize = `${tamanhoFonte}px`;
+                if (negrito !== null) {
+                    elemento.style.fontWeight = negrito ? 'bold' : 'normal';
+                }
+            }
+            else if (elemento.classList.contains('linha-peca')) {
+                if (cor) elemento.style.backgroundColor = cor;
+                if (estiloLinha === 'dashed') {
+                    elemento.style.borderStyle = 'dashed';
+                } else {
+                    elemento.style.borderStyle = 'solid';
+                }
+            }
+        }
+
+        fecharModalEstilos() {
+            console.log('Fechando modal de estilos...');
+            
+            this.modalEstilosAberto = false;
+            
+            document.body.classList.remove('modal-estilos-aberto');
+            
+            if (this.modalEstilosAtual) {
+                try {
+                    if (this.modalEstilosAtual.parentNode) {
+                        this.modalEstilosAtual.parentNode.removeChild(this.modalEstilosAtual);
+                    }
+                } catch (e) {
+                    console.error('Erro ao remover modal:', e);
+                }
+                this.modalEstilosAtual = null;
+            }
+            
+            if (this.backdropEstilosAtual) {
+                try {
+                    if (this.backdropEstilosAtual.parentNode) {
+                        this.backdropEstilosAtual.parentNode.removeChild(this.backdropEstilosAtual);
+                    }
+                } catch (e) {
+                    console.error('Erro ao remover backdrop:', e);
+                }
+                this.backdropEstilosAtual = null;
+            }
+            
+            this.corSelecionada = null;
+            this.tamanhoTextoSelecionado = null;
+            this.negritoAtivo = null;
+            this.estiloLinhaSelecionado = null;
+            
+            console.log('Modal de estilos fechado completamente');
+        }
     }
 
     let gerenciadorDesenho;
@@ -6319,12 +6312,6 @@ aplicarEstilosManterModal() {
         gerenciadorDesenho = new GerenciadorDesenho();
         window.gerenciadorDesenho = gerenciadorDesenho;
     });
-
-
-
 </script>
-
-
 </body>
 </html>
-
