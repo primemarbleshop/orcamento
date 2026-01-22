@@ -241,8 +241,7 @@ def listar_orcamentos():
         largura_alisar = float(request.form.get('largura_alisar', 0) or 0)
         data=data_atual
 
-        tem_alisar = request.form.get('alisar', 'Não')
-        largura_alisar = float(request.form.get('largura_alisar', 0) or 0)
+        
 
         tipo_cuba = request.form.get('tipo_cuba', '')
         quantidade_cubas = int(request.form.get('quantidade_cubas', 0)) if tipo_cuba else 0
