@@ -898,45 +898,49 @@
                 </div>
             `;
         }
-        else if (tipoProduto === 'Nicho') {
-            camposEspecificos = `
-                <div class="row dynamic-field">
-                    <div class="col-md-12">
-                        <h5><i class="fas fa-box-open me-2"></i>Configurações do Nicho</h5>
-                    </div>
-                    <div class="col-md-4 form-section">
-                        <label for="profundidade_nicho" class="form-label">Profundidade (cm):</label>
-                        <input type="number" id="profundidade_nicho" name="profundidade_nicho" class="form-control" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
-                    </div>
-                    <div class="col-md-4 form-section">
-                        <label for="tem_fundo" class="form-label">Tem Fundo?</label>
-                        <select name="tem_fundo" id="tem_fundo" class="form-select">
-                            <option value="Sim">Sim</option>
-                            <option value="Não">Não</option>
-                        </select>
-                    </div>
-                    <div class="col-md-4 form-section">
-                        <label for="tem_alisar" class="form-label">Alisar:</label>
-                        <select name="tem_alisar" id="tem_alisar" class="form-select" onchange="toggleAlisarFields()">
-                            <option value="Não">Não</option>
-                            <option value="Sim">Sim</option>
-                        </select>
-                    </div>
-                    <div class="col-md-12" id="alisar_fields" style="display: none;">
-                        <div class="row mt-3">
-                            <div class="col-md-6 form-section">
-                                <label for="largura_alisar" class="form-label">Largura Alisar (cm):</label>
-                                <input type="number" id="largura_alisar" name="largura_alisar" class="form-control" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
-                            </div>
-                        </div>
+       else if (tipoProduto === 'Nicho') {
+    let camposEspecificos = `
+        <div class="row dynamic-field">
+            <div class="col-md-12">
+                <h5><i class="fas fa-box-open me-2"></i>Configurações do Nicho</h5>
+            </div>
+            <div class="col-md-4 form-section">
+                <label for="profundidade_nicho" class="form-label">Profundidade (cm):</label>
+                <input type="number" id="profundidade_nicho" name="profundidade_nicho" class="form-control" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
+            </div>
+            <div class="col-md-4 form-section">
+                <label for="tem_fundo" class="form-label">Tem Fundo?</label>
+                <select name="tem_fundo" id="tem_fundo" class="form-select">
+                    <option value="Sim" selected>Sim</option>
+                    <option value="Não">Não</option>
+                </select>
+            </div>
+            <div class="col-md-4 form-section">
+                <label for="tem_alisar" class="form-label">Alisar:</label>
+                <select name="tem_alisar" id="tem_alisar" class="form-select" onchange="toggleAlisarFields()">
+                    <option value="Não" selected>Não</option>
+                    <option value="Sim">Sim</option>
+                </select>
+            </div>
+            <!-- 🔥 CORREÇÃO: Adicionar o container dos campos de alisar DENTRO do HTML -->
+            <div class="col-md-12" id="alisar_fields" style="display: none;">
+                <div class="row mt-3">
+                    <div class="col-md-6 form-section">
+                        <label for="largura_alisar" class="form-label">Largura Alisar (cm):</label>
+                        <input type="number" id="largura_alisar" name="largura_alisar" class="form-control" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
                     </div>
                 </div>
-            `;
-        }
-
-        // Combinar campos comuns e específicos
-        container.innerHTML = camposEspecificos + camposComuns;
-    }
+            </div>
+        </div>
+    `;
+    
+    container.innerHTML = camposEspecificos;
+    
+    // 🔥 CORREÇÃO: Inicializar imediatamente após criar o HTML
+    setTimeout(() => {
+        toggleAlisarFields();
+    }, 10);
+}
 
     function toggleInstalacaoFields() {
         const select = document.getElementById('instalacao');
@@ -970,12 +974,28 @@
     }
 
     function toggleAlisarFields() {
-        const alisar = document.getElementById('tem_alisar');
-        const fields = document.getElementById('alisar_fields');
-        if (alisar && fields) {
-            fields.style.display = alisar.value === 'Sim' ? 'block' : 'none';
-        }
+    const temAlisarSelect = document.getElementById("tem_alisar");
+    const alisarFields = document.getElementById("alisar_fields");
+    
+    if (!temAlisarSelect || !alisarFields) {
+        console.error("Elementos de alisar não encontrados");
+        return;
     }
+    
+    const temAlisar = temAlisarSelect.value;
+    console.log(`tem_alisar valor: ${temAlisar}`); // Para debug
+    
+    if (temAlisar === "Sim") {
+        alisarFields.style.display = "block";
+        // Garantir que o campo largura_alisar esteja focado/funcional
+        const larguraAlisarInput = document.getElementById("largura_alisar");
+        if (larguraAlisarInput) {
+            larguraAlisarInput.focus();
+        }
+    } else {
+        alisarFields.style.display = "none";
+    }
+}
 
     // =============================================
     // FUNÇÕES DE INTERAÇÃO (ATUALIZADAS)
