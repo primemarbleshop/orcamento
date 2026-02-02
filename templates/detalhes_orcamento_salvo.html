@@ -791,21 +791,12 @@
 
     </br></br></br></br>
 
-   {% for ambiente_nome, descricoes in ambientes_agrupados.items() %}
+ {% for ambiente_nome, descricoes in ambientes_agrupados.items() %}
 {% set ambiente_total = namespace(value=0) %}
 
 <!-- Vamos primeiro coletar todos os tipos de produtos para determinar os campos necessários -->
 {% set tipos_produtos_na_descricao = [] %}
-{% set campos_necessarios = {
-    'saia': false,
-    'fronte': false,
-    'cuba': false,
-    'cooktop': false,
-    'profundidade': false,
-    'fundo': false,
-    'alisar': false,
-    'largura_alisar': false
-} %}
+{% set campos_necessarios = namespace(saia=false, fronte=false, cuba=false, cooktop=false, profundidade=false, fundo=false, alisar=false, largura_alisar=false) %}
 
 {% for descricao_nome, tipos_produtos in descricoes.items() %}
     {% for tipo_produto, produtos in tipos_produtos.items() %}
@@ -818,35 +809,35 @@
             
             <!-- Analisar campos específicos baseados no tipo de produto -->
             {% if tipo_produto in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
-                {% if campos_necessarios.saia == false %}
-                    {% set campos_necessarios.update({'saia': true}) %}
+                {% if not campos_necessarios.saia %}
+                    {% set campos_necessarios.saia = true %}
                 {% endif %}
             {% endif %}
             
             {% if tipo_produto in ["Bancada", "Lavatorio"] %}
-                {% if campos_necessarios.fronte == false %}
-                    {% set campos_necessarios.update({'fronte': true}) %}
+                {% if not campos_necessarios.fronte %}
+                    {% set campos_necessarios.fronte = true %}
                 {% endif %}
-                {% if campos_necessarios.cuba == false %}
-                    {% set campos_necessarios.update({'cuba': true}) %}
+                {% if not campos_necessarios.cuba %}
+                    {% set campos_necessarios.cuba = true %}
                 {% endif %}
             {% endif %}
             
             {% if tipo_produto == "Bancada" %}
-                {% if campos_necessarios.cooktop == false %}
-                    {% set campos_necessarios.update({'cooktop': true}) %}
+                {% if not campos_necessarios.cooktop %}
+                    {% set campos_necessarios.cooktop = true %}
                 {% endif %}
             {% endif %}
             
             {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] %}
-                {% if campos_necessarios.profundidade == false %}
-                    {% set campos_necessarios.update({'profundidade': true}) %}
+                {% if not campos_necessarios.profundidade %}
+                    {% set campos_necessarios.profundidade = true %}
                 {% endif %}
-                {% if campos_necessarios.fundo == false %}
-                    {% set campos_necessarios.update({'fundo': true}) %}
+                {% if not campos_necessarios.fundo %}
+                    {% set campos_necessarios.fundo = true %}
                 {% endif %}
-                {% if campos_necessarios.alisar == false %}
-                    {% set campos_necessarios.update({'alisar': true}) %}
+                {% if not campos_necessarios.alisar %}
+                    {% set campos_necessarios.alisar = true %}
                 {% endif %}
             {% endif %}
         {% endfor %}
@@ -864,16 +855,7 @@
     {% set descricao_total = namespace(value=0) %}
     
     <!-- Reanalisar campos para esta descrição específica -->
-    {% set campos_descricao = {
-        'saia': false,
-        'fronte': false,
-        'cuba': false,
-        'cooktop': false,
-        'profundidade': false,
-        'fundo': false,
-        'alisar': false,
-        'largura_alisar': false
-    } %}
+    {% set campos_descricao = namespace(saia=false, fronte=false, cuba=false, cooktop=false, profundidade=false, fundo=false, alisar=false, largura_alisar=false) %}
     
     {% for tipo_produto, produtos in tipos_produtos.items() %}
         {% for produto in produtos %}
@@ -881,35 +863,35 @@
             
             <!-- Analisar campos específicos baseados no tipo de produto nesta descrição -->
             {% if tipo_produto in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
-                {% if campos_descricao.saia == false %}
-                    {% set campos_descricao.update({'saia': true}) %}
+                {% if not campos_descricao.saia %}
+                    {% set campos_descricao.saia = true %}
                 {% endif %}
             {% endif %}
             
             {% if tipo_produto in ["Bancada", "Lavatorio"] %}
-                {% if campos_descricao.fronte == false %}
-                    {% set campos_descricao.update({'fronte': true}) %}
+                {% if not campos_descricao.fronte %}
+                    {% set campos_descricao.fronte = true %}
                 {% endif %}
-                {% if campos_descricao.cuba == false %}
-                    {% set campos_descricao.update({'cuba': true}) %}
+                {% if not campos_descricao.cuba %}
+                    {% set campos_descricao.cuba = true %}
                 {% endif %}
             {% endif %}
             
             {% if tipo_produto == "Bancada" %}
-                {% if campos_descricao.cooktop == false %}
-                    {% set campos_descricao.update({'cooktop': true}) %}
+                {% if not campos_descricao.cooktop %}
+                    {% set campos_descricao.cooktop = true %}
                 {% endif %}
             {% endif %}
             
             {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] %}
-                {% if campos_descricao.profundidade == false %}
-                    {% set campos_descricao.update({'profundidade': true}) %}
+                {% if not campos_descricao.profundidade %}
+                    {% set campos_descricao.profundidade = true %}
                 {% endif %}
-                {% if campos_descricao.fundo == false %}
-                    {% set campos_descricao.update({'fundo': true}) %}
+                {% if not campos_descricao.fundo %}
+                    {% set campos_descricao.fundo = true %}
                 {% endif %}
-                {% if campos_descricao.alisar == false %}
-                    {% set campos_descricao.update({'alisar': true}) %}
+                {% if not campos_descricao.alisar %}
+                    {% set campos_descricao.alisar = true %}
                 {% endif %}
             {% endif %}
         {% endfor %}
@@ -963,7 +945,7 @@
                         <th>Alisar</th>
                         {% endif %}
                         
-                        {% if campos_descricao.alisar and campos_descricao.largura_alisar %}
+                        {% if campos_descricao.largura_alisar %}
                         <th>Larg. do Alisar</th>
                         {% endif %}
                         
@@ -1064,8 +1046,8 @@
                             </td>
                             {% endif %}
                             
-                            <!-- Largura do Alisar (mostra apenas se campo está ativo e produto tem alisar) -->
-                            {% if campos_descricao.alisar and campos_descricao.largura_alisar %}
+                            <!-- Largura do Alisar (mostra apenas se campo está ativo) -->
+                            {% if campos_descricao.largura_alisar %}
                             <td>
                                 {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] and produto.tem_alisar == "Sim" %}
                                     {{ produto.largura_alisar }} cm
@@ -1080,8 +1062,10 @@
                         </tr>
                         
                         <!-- Verificar se algum produto com alisar tem largura_alisar definida -->
-                        {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] and produto.tem_alisar == "Sim" and produto.largura_alisar and campos_descricao.largura_alisar == false %}
-                            {% set campos_descricao.update({'largura_alisar': true}) %}
+                        {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] and produto.tem_alisar == "Sim" and produto.largura_alisar %}
+                            {% if not campos_descricao.largura_alisar %}
+                                {% set campos_descricao.largura_alisar = true %}
+                            {% endif %}
                         {% endif %}
                         {% endfor %}
                     {% endfor %}
