@@ -627,65 +627,66 @@
 
     // 🔥 NOVA FUNÇÃO: Atualizar tabela com dados do AJAX
     function atualizarTabelaComDados(orcamentos) {
-        const tabelaBody = document.getElementById('orcamento_table');
-        const isAdmin = {{ 'true' if is_admin else 'false' }};
+    const tabelaBody = document.getElementById('orcamento_table');
+    const isAdmin = {{ 'true' if is_admin else 'false' }};
+    
+    if (orcamentos.length === 0) {
+        tabelaBody.innerHTML = '<tr><td colspan="14" class="text-center py-4">Nenhum orçamento encontrado</td></tr>';
+        document.getElementById('valor-final').textContent = "R$ 0,00";
+        return;
+    }
+    
+    let html = '';
+    
+    orcamentos.forEach(orcamento => {
+        const valorFormatado = "R$ " + orcamento.valor_total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
         
-        if (orcamentos.length === 0) {
-            tabelaBody.innerHTML = '<tr><td colspan="13" class="text-center py-4">Nenhum orçamento encontrado</td></tr>';
-            document.getElementById('valor-final').textContent = "R$ 0,00";
-            return;
+        html += `
+        <tr data-id="${orcamento.id}" data-cliente="${orcamento.cliente_nome}" data-data="${orcamento.data_attr}">
+            <td class="checkbox-cell">
+                <input type="checkbox" class="selecionar-orcamento" data-valor="${orcamento.valor_total}" data-id="${orcamento.id}">
+            </td>`;
+        
+        if (isAdmin) {
+            html += `<td>${orcamento.nome_usuario}</td>`;
         }
         
-        let html = '';
-        
-        orcamentos.forEach(orcamento => {
-            const valorFormatado = "R$ " + orcamento.valor_total.toLocaleString('pt-BR', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-            
-            html += `
-            <tr data-id="${orcamento.id}" data-cliente="${orcamento.cliente_nome}" data-data="${orcamento.data_attr}">
-                <td class="checkbox-cell">
-                    <input type="checkbox" class="selecionar-orcamento" data-valor="${orcamento.valor_total}" data-id="${orcamento.id}">
-                </td>`;
-            
-            if (isAdmin) {
-                html += `<td>${orcamento.nome_usuario}</td>`;
-            }
-            
-            html += `
-                <td>${orcamento.cliente_nome}</td>
-                <td>${orcamento.ambiente_nome}</td>
-                <td>${orcamento.tipo_produto}</td>
-                <td>${orcamento.material_nome}</td>
-                <td>${orcamento.quantidade}</td>
-                <td>${orcamento.comprimento}</td>
-                <td>${orcamento.largura}</td>
-                <td>${orcamento.instalacao}</td>
-                <td class="valor-total">${valorFormatado}</td>
-                <td>${orcamento.data}</td>
-                <td>
-                    <div class="action-buttons">
-                        <a href="/orcamentos/edit/${orcamento.id}?${new URLSearchParams(window.location.search)}" class="btn btn-sm btn-custom-primary" title="Editar">
-                            <i class="fas fa-edit"></i>
-                        </a>
-                        <form action="/deletar_orcamento/${orcamento.id}?${new URLSearchParams(window.location.search)}" method="POST" class="d-inline" onsubmit="confirmarExclusao(event, this)">
-                            <button type="submit" class="btn btn-sm btn-custom-danger" title="Excluir">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </form>
-                    </div>
-                </td>
-            </tr>`;
-        });
-        
-        tabelaBody.innerHTML = html;
-        
-        // Reconfigurar event listeners
-        setupRowClickEvents();
-        setupCheckboxEvents();
-        
-        // Atualizar valor total
-        atualizarValorFinal();
-    }
+        html += `
+            <td>${orcamento.cliente_nome}</td>
+            <td>${orcamento.ambiente_nome}</td>
+            <td>${orcamento.tipo_produto}</td>  <!-- PRODUTO -->
+            <td>${orcamento.descricao_nome || 'Não definido'}</td>  <!-- DESCRIÇÃO - CORREÇÃO AQUI! -->
+            <td>${orcamento.material_nome}</td>  <!-- MATERIAL -->
+            <td>${orcamento.quantidade}</td>
+            <td>${orcamento.comprimento}</td>
+            <td>${orcamento.largura}</td>
+            <td>${orcamento.instalacao}</td>
+            <td class="valor-total">${valorFormatado}</td>
+            <td>${orcamento.data}</td>
+            <td>
+                <div class="action-buttons">
+                    <a href="/orcamentos/edit/${orcamento.id}?${new URLSearchParams(window.location.search)}" class="btn btn-sm btn-custom-primary" title="Editar">
+                        <i class="fas fa-edit"></i>
+                    </a>
+                    <form action="/deletar_orcamento/${orcamento.id}?${new URLSearchParams(window.location.search)}" method="POST" class="d-inline" onsubmit="confirmarExclusao(event, this)">
+                        <button type="submit" class="btn btn-sm btn-custom-danger" title="Excluir">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </form>
+                </div>
+            </td>
+        </tr>`;
+    });
+    
+    tabelaBody.innerHTML = html;
+    
+    // Reconfigurar event listeners
+    setupRowClickEvents();
+    setupCheckboxEvents();
+    
+    // Atualizar valor total
+    atualizarValorFinal();
+}
 
     // 🔥 NOVA FUNÇÃO: Configurar eventos dos checkboxes
     function setupCheckboxEvents() {
