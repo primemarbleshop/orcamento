@@ -450,68 +450,67 @@
                     </div>
                 </div>
 
-                <!-- Tabela de orçamentos -->
-                <div class="table-responsive">
-                    <table class="table table-striped table-bordered table-hover">
-                        <thead>
-                            <tr>
-                                <th>    </th>
-                                {% if is_admin %}
-                                    <th>Criado por</th>
-                                {% endif %}
-                                <th>Cliente</th>
-                                <th>Ambiente</th>
-                                <th>Descrição</th>
-                                <th>Produto</th>
-                                <th>Material</th>
-                                <th>Qtd</th>
-                                <th>Compr.</th>
-                                <th>Larg.</th>
-                                <th>Instalação</th>
-                                <th>Valor</th>
-                                <th>  Data  </th>
-                                <th class="actions-cell">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="orcamento_table">
-                            {% for orcamento, nome_usuario in orcamentos %}
-                            <tr data-id="{{ orcamento.id }}" data-cliente="{{ orcamento.cliente.nome }}" data-data="{{ orcamento.data.strftime('%Y-%m-%d %H:%M:%S') }}">
-                                <td class="checkbox-cell">
-                                    <input type="checkbox" class="selecionar-orcamento" data-valor="{{ orcamento.valor_total }}">
-                                </td>
-                                {% if is_admin %}
-                                    <td>{{ nome_usuario }}</td>
-                                {% endif %}
-                                <td>{{ orcamento.cliente.nome }}</td>
-                                <td>{{ orcamento.ambiente.nome if orcamento.ambiente else 'Não definido' }}</td>
-                                <td>{{ orcamento.descricao.nome if orcamento.descricao else 'Não definido' }}</td>
-                                <td>{{ orcamento.tipo_produto }}</td>
-                                <td>{{ orcamento.material.nome }}</td>
-                                <td>{{ orcamento.quantidade }}</td>
-                                <td>{{ orcamento.comprimento }}</td>
-                                <td>{{ orcamento.largura }}</td>
-                                <td>{{ orcamento.instalacao }}</td>
-                                <td class="valor-total">{{ "R$ {:,.2f}".format(orcamento.valor_total).replace(",", "X").replace(".", ",").replace("X", ".") }}</td>
-                                <td>{{ orcamento.data.strftime('%d-%m-%y') }}</td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <!-- Link de edição com filtros preservados -->
-                                        <a href="{{ url_for('editar_orcamento', id=orcamento.id) }}?{{ request.query_string.decode() }}" class="btn btn-sm btn-custom-primary" title="Editar">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <!-- Form de deleção com filtros preservados -->
-                                        <form action="{{ url_for('deletar_orcamento', id=orcamento.id) }}?{{ request.query_string.decode() }}" method="POST" class="d-inline" onsubmit="confirmarExclusao(event, this)">
-                                            <button type="submit" class="btn btn-sm btn-custom-danger" title="Excluir">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
+               <div class="table-responsive">
+    <table class="table table-striped table-bordered table-hover">
+        <thead>
+            <tr>
+                <th>    </th>
+                {% if is_admin %}
+                    <th>Criado por</th>
+                {% endif %}
+                <th>Cliente</th>
+                <th>Ambiente</th>
+                <th>Produto</th>  <!-- Mantém Produto aqui -->
+                <th>Descrição</th>  <!-- Descrição VEM DEPOIS de Produto -->
+                <th>Material</th>  <!-- Material VEM DEPOIS de Descrição -->
+                <th>Qtd</th>
+                <th>Compr.</th>
+                <th>Larg.</th>
+                <th>Instalação</th>
+                <th>Valor</th>
+                <th>  Data  </th>
+                <th class="actions-cell">Ações</th>
+            </tr>
+        </thead>
+        <tbody id="orcamento_table">
+            {% for orcamento, nome_usuario in orcamentos %}
+            <tr data-id="{{ orcamento.id }}" data-cliente="{{ orcamento.cliente.nome }}" data-data="{{ orcamento.data.strftime('%Y-%m-%d %H:%M:%S') }}">
+                <td class="checkbox-cell">
+                    <input type="checkbox" class="selecionar-orcamento" data-valor="{{ orcamento.valor_total }}">
+                </td>
+                {% if is_admin %}
+                    <td>{{ nome_usuario }}</td>
+                {% endif %}
+                <td>{{ orcamento.cliente.nome }}</td>
+                <td>{{ orcamento.ambiente.nome if orcamento.ambiente else 'Não definido' }}</td>
+                <td>{{ orcamento.tipo_produto }}</td>  <!-- PRODUTO primeiro -->
+                <td>{{ orcamento.descricao.nome if orcamento.descricao else 'Não definido' }}</td>  <!-- DESCRIÇÃO depois -->
+                <td>{{ orcamento.material.nome }}</td>  <!-- MATERIAL depois -->
+                <td>{{ orcamento.quantidade }}</td>
+                <td>{{ orcamento.comprimento }}</td>
+                <td>{{ orcamento.largura }}</td>
+                <td>{{ orcamento.instalacao }}</td>
+                <td class="valor-total">{{ "R$ {:,.2f}".format(orcamento.valor_total).replace(",", "X").replace(".", ",").replace("X", ".") }}</td>
+                <td>{{ orcamento.data.strftime('%d-%m-%y') }}</td>
+                <td>
+                    <div class="action-buttons">
+                        <!-- Link de edição com filtros preservados -->
+                        <a href="{{ url_for('editar_orcamento', id=orcamento.id) }}?{{ request.query_string.decode() }}" class="btn btn-sm btn-custom-primary" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                        <!-- Form de deleção com filtros preservados -->
+                        <form action="{{ url_for('deletar_orcamento', id=orcamento.id) }}?{{ request.query_string.decode() }}" method="POST" class="d-inline" onsubmit="confirmarExclusao(event, this)">
+                            <button type="submit" class="btn btn-sm btn-custom-danger" title="Excluir">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
 
                 <!-- Botões de ação -->
                 <div class="row mt-4">
