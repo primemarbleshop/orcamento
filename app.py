@@ -2092,6 +2092,7 @@ def orcamentos_json():
                 'cliente_nome': orcamento.cliente.nome,
                 'ambiente_nome': orcamento.ambiente.nome if orcamento.ambiente else 'Não definido',
                 'descricao_nome': orcamento.descricao.nome if orcamento.descricao else 'Não definido',
+                'produto_nome': orcamento.produto.nome if orcamento.produto else 'Não definido',
                 'tipo_produto': orcamento.tipo_produto,
                 'material_nome': orcamento.material.nome,
                 'quantidade': orcamento.quantidade,
