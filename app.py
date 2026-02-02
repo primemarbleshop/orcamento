@@ -900,7 +900,6 @@ def deletar_orcamentos_selecionados():
     except Exception as e:
         return jsonify({'error': f'Erro ao deletar: {str(e)}'}), 500
 
-# 🚀 Rota para exibir detalhes dos orçamentos selecionados
 @app.route('/detalhes_orcamento', methods=['GET'])
 def detalhes_orcamento():
     try:
@@ -922,22 +921,56 @@ def detalhes_orcamento():
         if not orcamentos:
             return "Nenhum orçamento encontrado!", 404
 
+        # NOVO: Agrupar orçamentos por AMBIENTE -> DESCRIÇÃO -> TIPO DE PRODUTO
+        ambientes_agrupados = {}
+        for orcamento in orcamentos:
+            ambiente_nome = orcamento.ambiente.nome if orcamento.ambiente else 'Sem Ambiente'
+            
+            if ambiente_nome not in ambientes_agrupados:
+                ambientes_agrupados[ambiente_nome] = {}
+            
+            # DENTRO de cada ambiente, agrupar por DESCRIÇÃO
+            descricao_nome = orcamento.descricao.nome if orcamento.descricao else 'Sem Descrição'
+            
+            if descricao_nome not in ambientes_agrupados[ambiente_nome]:
+                ambientes_agrupados[ambiente_nome][descricao_nome] = {}
+            
+            # DENTRO de cada descrição, agrupar por TIPO DE PRODUTO
+            tipo_produto = orcamento.tipo_produto
+            if tipo_produto not in ambientes_agrupados[ambiente_nome][descricao_nome]:
+                ambientes_agrupados[ambiente_nome][descricao_nome][tipo_produto] = []
+            
+            ambientes_agrupados[ambiente_nome][descricao_nome][tipo_produto].append(orcamento)
+
         # Obter o nome do cliente do primeiro orçamento
         cliente_nome = orcamentos[0].cliente.nome if orcamentos else "Orçamentos"
 
         valor_total_final = sum(o.valor_total for o in orcamentos)
         valor_total_formatado = "R$ {:,.2f}".format(valor_total_final).replace(",", "X").replace(".", ",").replace("X", ".")
+        valor_total_float = valor_total_final
+
+        # Obter informações do usuário logado
+        usuario = Usuario.query.filter_by(cpf=session.get('user_cpf')).first()
+        telefone_usuario = usuario.telefone if usuario else ""
 
         return render_template(
             'detalhes_orcamento.html',
             orcamentos=orcamentos,
+            ambientes_agrupados=ambientes_agrupados,  # NOVO: estrutura de agrupamento
             cliente_nome=cliente_nome,
-            valor_total_final=valor_total_formatado
+            valor_total_final=valor_total_formatado,
+            valor_total_float=valor_total_float,
+            telefone_usuario=telefone_usuario,
+            # Adicionar valores padrão para manter compatibilidade com o template
+            prazo_entrega=15,
+            desconto_avista=5,
+            desconto_parcelado=10,
+            observacoes="Medidas sujeitas a confirmação no local. Valores válidos por 7 dias.",
+            exclude_payments=[]
         )
 
     except Exception as e:
         return f"Erro ao carregar detalhes dos orçamentos: {str(e)}", 500
-
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
