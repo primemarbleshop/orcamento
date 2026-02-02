@@ -1231,18 +1231,26 @@ def detalhes_orcamento_salvo(codigo):
     ids = [int(id) for id in orcamento_salvo.orcamentos_ids.split(",")]
     orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
     
-    # Agrupar orçamentos por ambiente
+    # NOVO: Agrupar orçamentos por AMBIENTE primeiro
     ambientes_agrupados = {}
     for orcamento in orcamentos:
         ambiente_nome = orcamento.ambiente.nome if orcamento.ambiente else 'Sem Ambiente'
+        
         if ambiente_nome not in ambientes_agrupados:
             ambientes_agrupados[ambiente_nome] = {}
         
-        tipo_produto = orcamento.tipo_produto
-        if tipo_produto not in ambientes_agrupados[ambiente_nome]:
-            ambientes_agrupados[ambiente_nome][tipo_produto] = []
+        # DENTRO de cada ambiente, agrupar por DESCRIÇÃO
+        descricao_nome = orcamento.descricao.nome if orcamento.descricao else 'Sem Descrição'
         
-        ambientes_agrupados[ambiente_nome][tipo_produto].append(orcamento)
+        if descricao_nome not in ambientes_agrupados[ambiente_nome]:
+            ambientes_agrupados[ambiente_nome][descricao_nome] = {}
+        
+        # DENTRO de cada descrição, agrupar por TIPO DE PRODUTO
+        tipo_produto = orcamento.tipo_produto
+        if tipo_produto not in ambientes_agrupados[ambiente_nome][descricao_nome]:
+            ambientes_agrupados[ambiente_nome][descricao_nome][tipo_produto] = []
+        
+        ambientes_agrupados[ambiente_nome][descricao_nome][tipo_produto].append(orcamento)
 
     valor_total_final = sum(o.valor_total for o in orcamentos)
     valor_total_float = valor_total_final
@@ -1266,7 +1274,7 @@ def detalhes_orcamento_salvo(codigo):
         data_salvo=orcamento_salvo.data_salvo,
         cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
         orcamentos=orcamentos,
-        ambientes_agrupados=ambientes_agrupados,  # Nova variável para agrupamento
+        ambientes_agrupados=ambientes_agrupados,  # Estrutura: Ambiente -> Descrição -> Tipo de Produto
         valor_total_final="R$ {:,.2f}".format(valor_total_final).replace(",", "X").replace(".", ",").replace("X", "."),
         valor_total_float=valor_total_float,
         telefone_usuario=telefone_usuario,
