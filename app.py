@@ -1415,24 +1415,36 @@ def gerar_pdf_orcamento(codigo):
     ids = [int(id) for id in orcamento_salvo.orcamentos_ids.split(",")]
     orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
     
-    # Agrupar orçamentos por ambiente (igual ao detalhes_orcamento_salvo)
+    # 🔥 CORREÇÃO CRÍTICA: Garantir que ambientes_agrupados seja um dicionário de dicionários
     ambientes_agrupados = {}
     for orcamento in orcamentos:
         ambiente_nome = orcamento.ambiente.nome if orcamento.ambiente else 'Sem Ambiente'
+        
+        # Inicializar o dicionário para este ambiente se não existir
         if ambiente_nome not in ambientes_agrupados:
             ambientes_agrupados[ambiente_nome] = {}
         
         tipo_produto = orcamento.tipo_produto
+        
+        # Inicializar a lista para este tipo de produto se não existir
         if tipo_produto not in ambientes_agrupados[ambiente_nome]:
             ambientes_agrupados[ambiente_nome][tipo_produto] = []
         
+        # Adicionar o orçamento à lista correta
         ambientes_agrupados[ambiente_nome][tipo_produto].append(orcamento)
+    
+    # DEBUG: Para verificar a estrutura (remova em produção)
+    print(f"🔍 DEBUG PDF - Estrutura de ambientes_agrupados:")
+    for ambiente, tipos in ambientes_agrupados.items():
+        print(f"  📍 {ambiente}: {len(tipos)} tipos de produto")
+        for tipo, produtos in tipos.items():
+            print(f"    🛠️ {tipo}: {len(produtos)} produtos")
     
     # Calcular valor total
     valor_total_final = sum(o.valor_total for o in orcamentos)
     valor_total_float = valor_total_final
 
-    # Definir logo_url (esta linha estava faltando)
+    # Definir logo_url
     logo_url = "https://orcamento-t9w2.onrender.com/static/logo.jpg"
     
     # Obter informações do usuário
@@ -1445,8 +1457,13 @@ def gerar_pdf_orcamento(codigo):
     desconto_parcelado = orcamento_salvo.desconto_parcelado if orcamento_salvo.desconto_parcelado is not None else 10
     observacoes = orcamento_salvo.observacoes if orcamento_salvo.observacoes is not None else "Medidas sujeitas a confirmação no local. Valores válidos por 7 dias."
     
-    # ✅ NOVO: Obter as opções excluídas salvas no banco
+    # ✅ Obter as opções excluídas salvas no banco
     exclude_payments = orcamento_salvo.exclude_payments.split(',') if orcamento_salvo.exclude_payments else []
+
+    # ✅ Obter parâmetros de exclusão da URL (se houver)
+    exclude_param = request.args.get('exclude_payments', '')
+    if exclude_param:
+        exclude_payments = exclude_param.split(',')
 
     # Renderizar o HTML para o PDF
     rendered_html = render_template(
@@ -1456,7 +1473,7 @@ def gerar_pdf_orcamento(codigo):
         data_salvo=orcamento_salvo.data_salvo,
         cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
         orcamentos=orcamentos,
-        ambientes_agrupados=ambientes_agrupados,
+        ambientes_agrupados=ambientes_agrupados,  # 🔥 Agora é um dicionário de dicionários
         valor_total_final="R$ {:,.2f}".format(valor_total_final).replace(",", "X").replace(".", ",").replace("X", "."),
         valor_total_float=valor_total_float,
         telefone_usuario=telefone_usuario,
@@ -1468,10 +1485,11 @@ def gerar_pdf_orcamento(codigo):
         exclude_payments=exclude_payments
     )
 
-    # Resto do código permanece igual...
+    # Criar arquivo PDF temporário
     temp_pdf_path = "/tmp/temp_orcamento.pdf"
     HTML(string=rendered_html, base_url="https://orcamento-t9w2.onrender.com").write_pdf(temp_pdf_path)
 
+    # Adicionar logo ao PDF
     logo_path = "static/logo.jpg"
     final_pdf_path = "/tmp/final_orcamento.pdf"
     doc = fitz.open(temp_pdf_path)
@@ -1490,6 +1508,7 @@ def gerar_pdf_orcamento(codigo):
     doc.save(final_pdf_path)
     doc.close()
 
+    # Ler e retornar o PDF
     with open(final_pdf_path, "rb") as pdf_file:
         pdf_bytes = pdf_file.read()
 
@@ -1497,8 +1516,11 @@ def gerar_pdf_orcamento(codigo):
     response.headers["Content-Type"] = "application/pdf"
     response.headers["Content-Disposition"] = f"inline; filename=orcamento_{codigo}.pdf"
 
-    os.remove(temp_pdf_path)
-    os.remove(final_pdf_path)
+    # Limpar arquivos temporários
+    if os.path.exists(temp_pdf_path):
+        os.remove(temp_pdf_path)
+    if os.path.exists(final_pdf_path):
+        os.remove(final_pdf_path)
 
     return response
 
