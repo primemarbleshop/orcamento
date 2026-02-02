@@ -277,6 +277,24 @@
                         </div>
 
                         <div class="col-md-6 col-lg-3 form-section">
+    <label for="descricao_id" class="form-label">Descrição:</label>
+    <div class="select-with-buttons">
+        <select name="descricao_id" id="descricao_id" class="form-select">
+            <option value="">Selecione...</option>
+            {% for descricao in descricoes %}
+                <option value="{{ descricao.id }}">{{ descricao.nome }}</option>
+            {% endfor %}
+        </select>
+        <button type="button" class="btn btn-custom-success" data-bs-toggle="modal" data-bs-target="#addDescricaoModal">
+            <i class="fas fa-plus"></i>
+        </button>
+        <button type="button" class="btn btn-custom-danger" id="deleteDescricaoBtn">
+            <i class="fas fa-trash"></i>
+        </button>
+    </div>
+</div>
+
+                        <div class="col-md-6 col-lg-3 form-section">
                             <label for="tipo_produto" class="form-label">Tipo de Produto:</label>
                             <select name="tipo_produto" id="tipo_produto" class="form-select" onchange="toggleFields()" required>
                                 <option value="" disabled selected>Selecione o tipo de produto</option>
@@ -357,6 +375,29 @@
             </div>
         </div>
 
+        <div class="modal fade" id="addDescricaoModal" tabindex="-1" aria-labelledby="addDescricaoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addDescricaoModalLabel">Adicionar Nova Descrição</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addDescricaoForm">
+                    <div class="mb-3">
+                        <label for="nova_descricao_nome" class="form-label">Nome da Descrição:</label>
+                        <input type="text" class="form-control" id="nova_descricao_nome" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-custom-primary" id="saveDescricaoBtn">Salvar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
         <!-- Card da lista de orçamentos -->
         <div class="card card-custom">
             <div class="card-header card-header-custom d-flex justify-content-between align-items-center">
@@ -420,6 +461,7 @@
                                 {% endif %}
                                 <th>Cliente</th>
                                 <th>Ambiente</th>
+                                <th>Descrição</th>
                                 <th>Produto</th>
                                 <th>Material</th>
                                 <th>Qtd</th>
@@ -442,6 +484,7 @@
                                 {% endif %}
                                 <td>{{ orcamento.cliente.nome }}</td>
                                 <td>{{ orcamento.ambiente.nome if orcamento.ambiente else 'Não definido' }}</td>
+                                <td>{{ orcamento.descricao.nome if orcamento.descricao else 'Não definido' }}</td>
                                 <td>{{ orcamento.tipo_produto }}</td>
                                 <td>{{ orcamento.material.nome }}</td>
                                 <td>{{ orcamento.quantidade }}</td>
@@ -732,6 +775,9 @@
         }
         if (localStorage.getItem('ambiente_id')) {
             $('#ambiente_id').val(localStorage.getItem('ambiente_id')).trigger('change');
+        }
+        if (localStorage.getItem('descricao_id')) {
+        $('#descricao_id').val(localStorage.getItem('descricao_id')).trigger('change');
         }
 
         // 🔥 BUSCAR DADOS VIA AJAX - SEM RECARREGAR A PÁGINA
@@ -1122,11 +1168,13 @@
         const tipoProduto = document.getElementById('tipo_produto').value;
         const materialId = document.getElementById('material_id').value;
         const ambienteId = document.getElementById('ambiente_id').value;
+        const descricaoId = document.getElementById('descricao_id').value;
         
         localStorage.setItem('cliente_id', clienteId);
         localStorage.setItem('tipo_produto', tipoProduto);
         localStorage.setItem('material_id', materialId);
         localStorage.setItem('ambiente_id', ambienteId);
+        localStorage.setItem('descricao_id', descricaoId);
     }
 
     // =============================================
@@ -1669,6 +1717,91 @@ function executarEdicaoEmLote(selecionados, dados) {
             });
         });	
     }
+
+document.getElementById('saveDescricaoBtn').addEventListener('click', function() {
+    const nome = document.getElementById('nova_descricao_nome').value.trim();
+    
+    if (!nome) {
+        Swal.fire('Erro', 'Por favor, informe um nome para a descrição.', 'error');
+        return;
+    }
+    
+    fetch('/adicionar_descricao', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ nome: nome })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            $('#addDescricaoModal').modal('hide');
+            
+            const novoOption = document.createElement('option');
+            novoOption.value = data.descricao_id;
+            novoOption.textContent = nome;
+            document.getElementById('descricao_id').appendChild(novoOption);
+            
+            document.getElementById('descricao_id').value = data.descricao_id;
+            salvarSelecoesFormulario();
+            
+            Swal.fire('Sucesso', 'Descrição adicionada com sucesso!', 'success');
+        } else {
+            Swal.fire('Erro', data.message, 'error');
+        }
+    })
+    .catch(error => {
+        Swal.fire('Erro', 'Erro ao adicionar descrição.', 'error');
+    });
+});
+
+// Event listener para deletar descrição
+document.getElementById('deleteDescricaoBtn').addEventListener('click', function() {
+    const descricaoSelect = document.getElementById('descricao_id');
+    const descricaoId = descricaoSelect.value;
+    const descricaoNome = descricaoSelect.options[descricaoSelect.selectedIndex].text;
+    
+    if (!descricaoId) {
+        Swal.fire('Erro', 'Selecione uma descrição para excluir.', 'error');
+        return;
+    }
+    
+    Swal.fire({
+        title: 'Tem certeza?',
+        text: `Deseja excluir a descrição "${descricaoNome}"?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sim, excluir!',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('/deletar_descricao', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ descricao_id: descricaoId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    descricaoSelect.remove(descricaoSelect.selectedIndex);
+                    
+                    if (localStorage.getItem('descricao_id') === descricaoId) {
+                        localStorage.removeItem('descricao_id');
+                    }
+                    
+                    Swal.fire('Sucesso', 'Descrição excluída com sucesso!', 'success');
+                } else {
+                    Swal.fire('Erro', data.message, 'error');
+                }
+            })
+            .catch(error => {
+                Swal.fire('Erro', 'Erro ao excluir descrição.', 'error');
+            });
+        }
+    });
+});
+       
 </script>
 </body>
 </html>
