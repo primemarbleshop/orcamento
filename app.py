@@ -1419,24 +1419,25 @@ def gerar_pdf_orcamento(codigo):
     # Estrutura: Ambiente -> Descrição -> Tipo de Produto -> Lista de Produtos
     ambientes_agrupados = {}
     for orcamento in orcamentos:
+        # Obter nome do ambiente
         ambiente_nome = orcamento.ambiente.nome if orcamento.ambiente else 'Sem Ambiente'
         
         # Inicializar o ambiente se não existir
         if ambiente_nome not in ambientes_agrupados:
             ambientes_agrupados[ambiente_nome] = {}
         
-        # 🔥 NOVO: Adicionar camada de descrição (como na rota detalhes_orcamento_salvo)
-        # Nota: O modelo Orcamento NÃO tem campo 'descricao', então usamos um valor padrão
-        # OU pegamos de outro campo se disponível
-        descricao_nome = 'Sem Descrição'  # Valor padrão
-        
-        # 🔥 SE houver um campo de descrição no modelo Orcamento, use:
-        # descricao_nome = orcamento.descricao if hasattr(orcamento, 'descricao') else 'Sem Descrição'
+        # 🔥 CORREÇÃO: Obter a descrição corretamente
+        # Verificar se o modelo Orcamento tem relacionamento com Descricao
+        if hasattr(orcamento, 'descricao') and orcamento.descricao:
+            descricao_nome = orcamento.descricao.nome
+        else:
+            descricao_nome = 'Sem Descrição'
         
         # Inicializar a descrição se não existir
         if descricao_nome not in ambientes_agrupados[ambiente_nome]:
             ambientes_agrupados[ambiente_nome][descricao_nome] = {}
         
+        # Obter tipo de produto
         tipo_produto = orcamento.tipo_produto
         
         # Inicializar o tipo de produto se não existir
@@ -1447,7 +1448,7 @@ def gerar_pdf_orcamento(codigo):
         ambientes_agrupados[ambiente_nome][descricao_nome][tipo_produto].append(orcamento)
     
     # DEBUG: Para verificar a estrutura (remova em produção)
-    print(f"🔍 DEBUG PDF - Estrutura corrigida (igual a detalhes_orcamento_salvo):")
+    print(f"🔍 DEBUG PDF - Estrutura corrigida:")
     for ambiente, descricoes in ambientes_agrupados.items():
         print(f"  📍 {ambiente}: {len(descricoes)} descrições")
         for descricao, tipos in descricoes.items():
