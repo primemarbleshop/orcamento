@@ -505,7 +505,7 @@
   <br>
     <br>
 
-   {% for ambiente_nome, descricoes in ambientes_agrupados.items() %}
+  {% for ambiente_nome, descricoes in ambientes_agrupados.items() %}
 {% set ambiente_total = namespace(value=0) %}
 {% for descricao_nome, tipos_produtos in descricoes.items() %}
     {% for tipo_produto, produtos in tipos_produtos.items() %}
@@ -529,14 +529,17 @@
             {% set descricao_total.value = descricao_total.value + produto.valor_total %}
         {% endfor %}
     {% endfor %}
-    
+
+    {% set descricao_lower = descricao_nome.lower() %}
+    {% if descricao_lower not in ['-', 'sem descrição'] %}
     <!-- Container para descrição -->
     <div class="tipo-produto-container">
         <div class="produto-header">
             <span>{{ descricao_nome }}</span>
             <span class="ambiente-total">R$ {{ "{:,.2f}".format(descricao_total.value).replace(",", "X").replace(".", ",").replace("X", ".") }}</span>
         </div>
-        <br>
+
+    {% endif %}
         
         <!-- REMOVEMOS o loop de tipo_produto e colocamos TUDO em uma única tabela -->
         <div class="table-responsive">
@@ -658,10 +661,14 @@
                 </tbody>
             </table>
         </div>
+
+    {% if descricao_lower not in ['-', 'sem descrição'] %}
     </div>
-    {% endfor %}
-</div>
-{% endfor %}
+    {% endif %}
+    {% endfor %} 
+    
+</div> 
+{% endfor %} 
 
     <div class="botao-container">
         <!-- Botão para salvar orçamento -->
