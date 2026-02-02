@@ -92,6 +92,13 @@ class Ambiente(db.Model):
     
     __table_args__ = (db.UniqueConstraint('nome', 'dono', name='_ambiente_nome_dono_uc'),)
 
+class Descricao(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False)
+    dono = db.Column(db.String(14), nullable=False)
+    
+    __table_args__ = (db.UniqueConstraint('nome', 'dono', name='_descricao_nome_dono_uc'),)
+
 class OrcamentoSalvo(db.Model):
     __tablename__ = 'orcamento_salvo'
     
@@ -139,6 +146,8 @@ class Orcamento(db.Model):
     cliente = db.relationship('Cliente', backref=db.backref('orcamentos', lazy=True))
     ambiente_id = db.Column(db.Integer, db.ForeignKey('ambiente.id'))
     ambiente = db.relationship('Ambiente', backref=db.backref('orcamentos', lazy=True))
+    descricao_id = db.Column(db.Integer, db.ForeignKey('descricao.id'))  # NOVO CAMPO
+    descricao = db.relationship('Descricao', backref=db.backref('orcamentos', lazy=True))
     tipo_produto = db.Column(db.String(100), nullable=False)
     material_id = db.Column(db.Integer, db.ForeignKey('material.id'))
     material = db.relationship('Material', backref=db.backref('orcamentos', lazy=True))
@@ -193,6 +202,7 @@ def listar_orcamentos():
     selected_cliente_id = None
     selected_material_id = None
     selected_ambiente_id = None
+    selected_descricao_id = None
 
     # Obter parâmetros de filtro da query string
     filtro_cliente = request.args.get('filtro_cliente', 'Todos')
@@ -213,6 +223,7 @@ def listar_orcamentos():
         cliente_id = request.form.get('cliente_id')
         ambiente_id = request.form.get('ambiente_id')
         tipo_produto = request.form['tipo_produto']
+        descricao_id = request.form.get('descricao_id')
         material_id = request.form['material_id']
         quantidade = int(request.form['quantidade'])
         comprimento = float(request.form.get('comprimento', 0) or 0)
@@ -358,6 +369,7 @@ def listar_orcamentos():
             novo_orcamento = Orcamento(
                 cliente_id=cliente_id,
                 ambiente_id=ambiente_id,
+                descricao_id=descricao_id,
                 tipo_produto=tipo_produto,
                 material_id=material_id,
                 quantidade=quantidade,
@@ -391,6 +403,7 @@ def listar_orcamentos():
             selected_cliente_id = int(cliente_id)
             selected_material_id = int(material_id)
             selected_ambiente_id = int(ambiente_id)
+            selected_descricao_id = int(descricao_id) if descricao_id else None
 
         return redirect(url_for('listar_orcamentos'))
 
@@ -444,9 +457,11 @@ def listar_orcamentos():
     if session.get('admin'):
         clientes = Cliente.query.order_by(Cliente.nome).all()
         ambientes = Ambiente.query.order_by(Ambiente.nome).all()
+        descricoes = Descricao.query.order_by(Descricao.nome).all()  # NOVO
     else:
         clientes = Cliente.query.filter_by(dono=user_cpf).order_by(Cliente.nome).all()
         ambientes = Ambiente.query.filter_by(dono=user_cpf).order_by(Ambiente.nome).all()
+        descricoes = Descricao.query.filter_by(dono=user_cpf).order_by(Descricao.nome).all()  # NOVO
 
     materiais = Material.query.order_by(Material.nome).all()
     is_admin = session.get('admin', False)
@@ -456,6 +471,7 @@ def listar_orcamentos():
         orcamentos=orcamentos,
         clientes=clientes,
         ambientes=ambientes,
+        descricoes=descricoes,
         materiais=materiais,
         is_admin=is_admin,
         # Passar os filtros atuais para o template
@@ -601,6 +617,7 @@ def editar_orcamento(id):
     clientes = Cliente.query.filter_by(dono=usuario_cpf).all()
     ambientes = Ambiente.query.filter_by(dono=usuario_cpf).order_by(Ambiente.nome).all()
     materiais = Material.query.all()
+    descricoes = Descricao.query.filter_by(dono=usuario_cpf).order_by(Descricao.nome).all()
 
     # 🔥 CORREÇÃO DEFINITIVA: Filtrar orçamentos salvos
     if session.get('admin'):
@@ -623,6 +640,7 @@ def editar_orcamento(id):
         orcamento.cliente_id = request.form.get('cliente_id')
         orcamento.tipo_produto = request.form['tipo_produto']
         orcamento.ambiente_id = request.form.get('ambiente_id')
+        orcamento.descricao_id = request.form.get('descricao_id')
         orcamento.material_id = request.form['material_id']
         orcamento.quantidade = int(request.form.get('quantidade', orcamento.quantidade))
         orcamento.comprimento = float(request.form.get('comprimento', orcamento.comprimento or 0)or 0)
@@ -807,6 +825,7 @@ def editar_orcamento(id):
         'editar_orcamento.html',
         orcamento=orcamento,
         ambientes=ambientes,
+        descricoes=descricoes,
         clientes=clientes,
         materiais=materiais,
         orcamentos_salvos=orcamentos_salvos
@@ -1759,6 +1778,61 @@ def deletar_ambiente():
             return jsonify({'success': False, 'message': 'Este ambiente está em uso e não pode ser excluído.'}), 400
         
         db.session.delete(ambiente)
+        db.session.commit()
+        
+        return jsonify({'success': True})
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/adicionar_descricao', methods=['POST'])
+def adicionar_descricao():
+    try:
+        data = request.get_json()
+        nome = data.get('nome')
+        
+        if not nome:
+            return jsonify({'success': False, 'message': 'Nome da descrição é obrigatório.'}), 400
+        
+        user_cpf = session.get('user_cpf')
+        
+        # Verifica se já existe uma descrição com o mesmo nome PARA ESTE USUÁRIO
+        descricao_existente = Descricao.query.filter_by(nome=nome, dono=user_cpf).first()
+        
+        if descricao_existente:
+            return jsonify({'success': False, 'message': 'Já existe uma descrição com este nome para o seu usuário.'}), 400
+        
+        nova_descricao = Descricao(nome=nome, dono=user_cpf)
+        db.session.add(nova_descricao)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'descricao_id': nova_descricao.id})
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/deletar_descricao', methods=['POST'])
+def deletar_descricao():
+    try:
+        data = request.get_json()
+        descricao_id = data.get('descricao_id')
+        
+        if not descricao_id:
+            return jsonify({'success': False, 'message': 'ID da descrição é obrigatório.'}), 400
+        
+        user_cpf = session.get('user_cpf')
+        descricao = Descricao.query.filter_by(id=descricao_id, dono=user_cpf).first()
+        
+        if not descricao:
+            return jsonify({'success': False, 'message': 'Descrição não encontrada ou você não tem permissão para excluí-la.'}), 404
+        
+        orcamentos_com_descricao = Orcamento.query.filter_by(descricao_id=descricao_id).count()
+        if orcamentos_com_descricao > 0:
+            return jsonify({'success': False, 'message': 'Esta descrição está em uso e não pode ser excluída.'}), 400
+        
+        db.session.delete(descricao)
         db.session.commit()
         
         return jsonify({'success': True})
