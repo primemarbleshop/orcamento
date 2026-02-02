@@ -1415,30 +1415,45 @@ def gerar_pdf_orcamento(codigo):
     ids = [int(id) for id in orcamento_salvo.orcamentos_ids.split(",")]
     orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
     
-    # 🔥 CORREÇÃO CRÍTICA: Garantir que ambientes_agrupados seja um dicionário de dicionários
+    # 🔥 CORREÇÃO CRÍTICA: USAR EXATAMENTE A MESMA ESTRUTURA QUE detalhes_orcamento_salvo
+    # Estrutura: Ambiente -> Descrição -> Tipo de Produto -> Lista de Produtos
     ambientes_agrupados = {}
     for orcamento in orcamentos:
         ambiente_nome = orcamento.ambiente.nome if orcamento.ambiente else 'Sem Ambiente'
         
-        # Inicializar o dicionário para este ambiente se não existir
+        # Inicializar o ambiente se não existir
         if ambiente_nome not in ambientes_agrupados:
             ambientes_agrupados[ambiente_nome] = {}
         
+        # 🔥 NOVO: Adicionar camada de descrição (como na rota detalhes_orcamento_salvo)
+        # Nota: O modelo Orcamento NÃO tem campo 'descricao', então usamos um valor padrão
+        # OU pegamos de outro campo se disponível
+        descricao_nome = 'Sem Descrição'  # Valor padrão
+        
+        # 🔥 SE houver um campo de descrição no modelo Orcamento, use:
+        # descricao_nome = orcamento.descricao if hasattr(orcamento, 'descricao') else 'Sem Descrição'
+        
+        # Inicializar a descrição se não existir
+        if descricao_nome not in ambientes_agrupados[ambiente_nome]:
+            ambientes_agrupados[ambiente_nome][descricao_nome] = {}
+        
         tipo_produto = orcamento.tipo_produto
         
-        # Inicializar a lista para este tipo de produto se não existir
-        if tipo_produto not in ambientes_agrupados[ambiente_nome]:
-            ambientes_agrupados[ambiente_nome][tipo_produto] = []
+        # Inicializar o tipo de produto se não existir
+        if tipo_produto not in ambientes_agrupados[ambiente_nome][descricao_nome]:
+            ambientes_agrupados[ambiente_nome][descricao_nome][tipo_produto] = []
         
         # Adicionar o orçamento à lista correta
-        ambientes_agrupados[ambiente_nome][tipo_produto].append(orcamento)
+        ambientes_agrupados[ambiente_nome][descricao_nome][tipo_produto].append(orcamento)
     
     # DEBUG: Para verificar a estrutura (remova em produção)
-    print(f"🔍 DEBUG PDF - Estrutura de ambientes_agrupados:")
-    for ambiente, tipos in ambientes_agrupados.items():
-        print(f"  📍 {ambiente}: {len(tipos)} tipos de produto")
-        for tipo, produtos in tipos.items():
-            print(f"    🛠️ {tipo}: {len(produtos)} produtos")
+    print(f"🔍 DEBUG PDF - Estrutura corrigida (igual a detalhes_orcamento_salvo):")
+    for ambiente, descricoes in ambientes_agrupados.items():
+        print(f"  📍 {ambiente}: {len(descricoes)} descrições")
+        for descricao, tipos in descricoes.items():
+            print(f"    📝 {descricao}: {len(tipos)} tipos de produto")
+            for tipo, produtos in tipos.items():
+                print(f"      🛠️ {tipo}: {len(produtos)} produtos")
     
     # Calcular valor total
     valor_total_final = sum(o.valor_total for o in orcamentos)
@@ -1473,7 +1488,7 @@ def gerar_pdf_orcamento(codigo):
         data_salvo=orcamento_salvo.data_salvo,
         cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
         orcamentos=orcamentos,
-        ambientes_agrupados=ambientes_agrupados,  # 🔥 Agora é um dicionário de dicionários
+        ambientes_agrupados=ambientes_agrupados,  # 🔥 AGORA COM A MESMA ESTRUTURA
         valor_total_final="R$ {:,.2f}".format(valor_total_final).replace(",", "X").replace(".", ",").replace("X", "."),
         valor_total_float=valor_total_float,
         telefone_usuario=telefone_usuario,
@@ -1523,7 +1538,6 @@ def gerar_pdf_orcamento(codigo):
         os.remove(final_pdf_path)
 
     return response
-
 
 @app.route('/orcamentos/editar_material_rt_selecionados', methods=['POST'])
 def editar_material_rt_selecionados():
