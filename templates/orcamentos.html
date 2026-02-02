@@ -277,22 +277,22 @@
                         </div>
 
                         <div class="col-md-6 col-lg-3 form-section">
-    <label for="descricao_id" class="form-label">Descrição:</label>
-    <div class="select-with-buttons">
-        <select name="descricao_id" id="descricao_id" class="form-select">
-            <option value="">Selecione...</option>
-            {% for descricao in descricoes %}
-                <option value="{{ descricao.id }}">{{ descricao.nome }}</option>
-            {% endfor %}
-        </select>
-        <button type="button" class="btn btn-custom-success" data-bs-toggle="modal" data-bs-target="#addDescricaoModal">
-            <i class="fas fa-plus"></i>
-        </button>
-        <button type="button" class="btn btn-custom-danger" id="deleteDescricaoBtn">
-            <i class="fas fa-trash"></i>
-        </button>
-    </div>
-</div>
+                            <label for="descricao_id" class="form-label">Descrição:</label>
+                            <div class="select-with-buttons">
+                                <select name="descricao_id" id="descricao_id" class="form-select">
+                                    <option value="">Selecione...</option>
+                                    {% for descricao in descricoes %}
+                                        <option value="{{ descricao.id }}">{{ descricao.nome }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="button" class="btn btn-custom-success" data-bs-toggle="modal" data-bs-target="#addDescricaoModal">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                                <button type="button" class="btn btn-custom-danger" id="deleteDescricaoBtn">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
 
                         <div class="col-md-6 col-lg-3 form-section">
                             <label for="tipo_produto" class="form-label">Tipo de Produto:</label>
@@ -392,11 +392,11 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-custom-primary" id="saveDescricaoBtn">Salvar</button>
+                        <button type="button" class="btn btn-custom-primary" id="saveDescricaoBtn">Salvar</button>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-</div>
 
         <!-- Card da lista de orçamentos -->
         <div class="card card-custom">
@@ -1182,10 +1182,17 @@
     // =============================================
 
      document.addEventListener('DOMContentLoaded', function() {
-        // Inicializar Select2
+        // Inicializar Select2 para todos os campos
         $('#cliente_id, #material_id, #tipo_produto, #ambiente_id, #filtro_cliente').select2({
             width: '100%',
             placeholder: "Selecione",
+            allowClear: true
+        });
+        
+        // INICIALIZAR SELECT2 PARA O CAMPO DE DESCRIÇÃO
+        $('#descricao_id').select2({
+            width: '100%',
+            placeholder: "Selecione uma descrição...",
             allowClear: true
         });
 
@@ -1194,7 +1201,7 @@
         carregarSelecoesSalvas();
         
         // Event listeners para salvar seleções do formulário
-        $('#cliente_id, #tipo_produto, #material_id, #ambiente_id').on('change', function() {
+        $('#cliente_id, #tipo_produto, #material_id, #ambiente_id, #descricao_id').on('change', function() {
             salvarSelecoesFormulario();
             if (this.id === 'tipo_produto') {
                 toggleFields();
@@ -1716,91 +1723,100 @@ function executarEdicaoEmLote(selecionados, dados) {
                 }
             });
         });	
-    }
 
-document.getElementById('saveDescricaoBtn').addEventListener('click', function() {
-    const nome = document.getElementById('nova_descricao_nome').value.trim();
-    
-    if (!nome) {
-        Swal.fire('Erro', 'Por favor, informe um nome para a descrição.', 'error');
-        return;
-    }
-    
-    fetch('/adicionar_descricao', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nome: nome })
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            $('#addDescricaoModal').modal('hide');
+        // Adicionar descrição
+        document.getElementById('saveDescricaoBtn').addEventListener('click', function() {
+            const nome = document.getElementById('nova_descricao_nome').value.trim();
             
-            const novoOption = document.createElement('option');
-            novoOption.value = data.descricao_id;
-            novoOption.textContent = nome;
-            document.getElementById('descricao_id').appendChild(novoOption);
+            if (!nome) {
+                Swal.fire('Erro', 'Por favor, informe um nome para a descrição.', 'error');
+                return;
+            }
             
-            document.getElementById('descricao_id').value = data.descricao_id;
-            salvarSelecoesFormulario();
-            
-            Swal.fire('Sucesso', 'Descrição adicionada com sucesso!', 'success');
-        } else {
-            Swal.fire('Erro', data.message, 'error');
-        }
-    })
-    .catch(error => {
-        Swal.fire('Erro', 'Erro ao adicionar descrição.', 'error');
-    });
-});
-
-// Event listener para deletar descrição
-document.getElementById('deleteDescricaoBtn').addEventListener('click', function() {
-    const descricaoSelect = document.getElementById('descricao_id');
-    const descricaoId = descricaoSelect.value;
-    const descricaoNome = descricaoSelect.options[descricaoSelect.selectedIndex].text;
-    
-    if (!descricaoId) {
-        Swal.fire('Erro', 'Selecione uma descrição para excluir.', 'error');
-        return;
-    }
-    
-    Swal.fire({
-        title: 'Tem certeza?',
-        text: `Deseja excluir a descrição "${descricaoNome}"?`,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#d33',
-        cancelButtonColor: '#3085d6',
-        confirmButtonText: 'Sim, excluir!',
-        cancelButtonText: 'Cancelar'
-    }).then((result) => {
-        if (result.isConfirmed) {
-            fetch('/deletar_descricao', {
+            fetch('/adicionar_descricao', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ descricao_id: descricaoId })
+                body: JSON.stringify({ nome: nome })
             })
             .then(response => response.json())
             .then(data => {
                 if (data.success) {
-                    descricaoSelect.remove(descricaoSelect.selectedIndex);
+                    $('#addDescricaoModal').modal('hide');
                     
-                    if (localStorage.getItem('descricao_id') === descricaoId) {
-                        localStorage.removeItem('descricao_id');
-                    }
+                    // Criar novo option
+                    const novoOption = document.createElement('option');
+                    novoOption.value = data.descricao_id;
+                    novoOption.textContent = nome;
                     
-                    Swal.fire('Sucesso', 'Descrição excluída com sucesso!', 'success');
+                    // Adicionar ao select
+                    document.getElementById('descricao_id').appendChild(novoOption);
+                    
+                    // Selecionar o novo item
+                    $('#descricao_id').val(data.descricao_id).trigger('change');
+                    
+                    // Salvar no localStorage
+                    salvarSelecoesFormulario();
+                    
+                    Swal.fire('Sucesso', 'Descrição adicionada com sucesso!', 'success');
                 } else {
                     Swal.fire('Erro', data.message, 'error');
                 }
             })
             .catch(error => {
-                Swal.fire('Erro', 'Erro ao excluir descrição.', 'error');
+                Swal.fire('Erro', 'Erro ao adicionar descrição.', 'error');
             });
-        }
-    });
-});
+        });
+
+        // Deletar descrição
+        document.getElementById('deleteDescricaoBtn').addEventListener('click', function() {
+            const descricaoSelect = document.getElementById('descricao_id');
+            const descricaoId = $('#descricao_id').val();
+            const descricaoNome = $('#descricao_id option:selected').text();
+            
+            if (!descricaoId) {
+                Swal.fire('Erro', 'Selecione uma descrição para excluir.', 'error');
+                return;
+            }
+            
+            Swal.fire({
+                title: 'Tem certeza?',
+                text: `Deseja excluir a descrição "${descricaoNome}"?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sim, excluir!',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('/deletar_descricao', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ descricao_id: descricaoId })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Remover do select2
+                            $('#descricao_id option[value="' + descricaoId + '"]').remove();
+                            $('#descricao_id').trigger('change');
+                            
+                            if (localStorage.getItem('descricao_id') === descricaoId) {
+                                localStorage.removeItem('descricao_id');
+                            }
+                            
+                            Swal.fire('Sucesso', 'Descrição excluída com sucesso!', 'success');
+                        } else {
+                            Swal.fire('Erro', data.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire('Erro', 'Erro ao excluir descrição.', 'error');
+                    });
+                }
+            });
+        });
+    }
        
 </script>
 </body>
