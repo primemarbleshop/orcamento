@@ -294,6 +294,25 @@
                             </div>
                         </div>
 
+                        <!-- NOVO CAMPO: Produto -->
+                        <div class="col-md-6 col-lg-3 form-section">
+                            <label for="produto_id" class="form-label">Produto:</label>
+                            <div class="select-with-buttons">
+                                <select name="produto_id" id="produto_id" class="form-select">
+                                    <option value="">Selecione...</option>
+                                    {% for produto in produtos %}
+                                        <option value="{{ produto.id }}">{{ produto.nome }}</option>
+                                    {% endfor %}
+                                </select>
+                                <button type="button" class="btn btn-custom-success" data-bs-toggle="modal" data-bs-target="#addProdutoModal">
+                                    <i class="fas fa-plus"></i>
+                                </button>
+                                <button type="button" class="btn btn-custom-danger" id="deleteProdutoBtn">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+
                         <div class="col-md-6 col-lg-3 form-section">
                             <label for="tipo_produto" class="form-label">Tipo de Produto:</label>
                             <select name="tipo_produto" id="tipo_produto" class="form-select" onchange="toggleFields()" required>
@@ -375,24 +394,49 @@
             </div>
         </div>
 
+        <!-- Modal para adicionar descrição -->
         <div class="modal fade" id="addDescricaoModal" tabindex="-1" aria-labelledby="addDescricaoModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="addDescricaoModalLabel">Adicionar Nova Descrição</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <form id="addDescricaoForm">
-                    <div class="mb-3">
-                        <label for="nova_descricao_nome" class="form-label">Nome da Descrição:</label>
-                        <input type="text" class="form-control" id="nova_descricao_nome" required>
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addDescricaoModalLabel">Adicionar Nova Descrição</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <div class="modal-body">
+                        <form id="addDescricaoForm">
+                            <div class="mb-3">
+                                <label for="nova_descricao_nome" class="form-label">Nome da Descrição:</label>
+                                <input type="text" class="form-control" id="nova_descricao_nome" required>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                         <button type="button" class="btn btn-custom-primary" id="saveDescricaoBtn">Salvar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal para adicionar produto -->
+        <div class="modal fade" id="addProdutoModal" tabindex="-1" aria-labelledby="addProdutoModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addProdutoModalLabel">Adicionar Novo Produto</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addProdutoForm">
+                            <div class="mb-3">
+                                <label for="novo_produto_nome" class="form-label">Nome do Produto:</label>
+                                <input type="text" class="form-control" id="novo_produto_nome" required>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-custom-primary" id="saveProdutoBtn">Salvar</button>
                     </div>
                 </div>
             </div>
@@ -460,9 +504,10 @@
                 {% endif %}
                 <th>Cliente</th>
                 <th>Ambiente</th>
-                <th>Descrição</th>  <!-- Descrição VEM DEPOIS de Produto -->
-                <th>Produto</th>  <!-- Mantém Produto aqui -->
-                <th>Material</th>  <!-- Material VEM DEPOIS de Descrição -->
+                <th>Descrição</th>
+                <th>Produto</th>  <!-- NOVA COLUNA: Produto (entidade) -->
+                <th>Tipo de Produto</th>  <!-- Antiga coluna "Produto", agora "Tipo de Produto" -->
+                <th>Material</th>
                 <th>Qtd</th>
                 <th>Compr.</th>
                 <th>Larg.</th>
@@ -483,9 +528,10 @@
                 {% endif %}
                 <td>{{ orcamento.cliente.nome }}</td>
                 <td>{{ orcamento.ambiente.nome if orcamento.ambiente else 'Não definido' }}</td>
-                 <td>{{ orcamento.descricao.nome if orcamento.descricao else 'Não definido' }}</td>  <!-- DESCRIÇÃO depois -->
-                <td>{{ orcamento.tipo_produto }}</td>  <!-- PRODUTO primeiro -->
-                <td>{{ orcamento.material.nome }}</td>  <!-- MATERIAL depois -->
+                <td>{{ orcamento.descricao.nome if orcamento.descricao else 'Não definido' }}</td>
+                <td>{{ orcamento.produto.nome if orcamento.produto else 'Não definido' }}</td>  <!-- NOVO: Produto (entidade) -->
+                <td>{{ orcamento.tipo_produto }}</td>  <!-- Tipo de Produto (antes "Produto") -->
+                <td>{{ orcamento.material.nome }}</td>
                 <td>{{ orcamento.quantidade }}</td>
                 <td>{{ orcamento.comprimento }}</td>
                 <td>{{ orcamento.largura }}</td>
@@ -607,7 +653,7 @@
         
         // Mostrar loading
         const tabelaBody = document.getElementById('orcamento_table');
-        tabelaBody.innerHTML = '<tr><td colspan="13" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><div class="mt-2">Carregando orçamentos...</div></td></tr>';
+        tabelaBody.innerHTML = '<tr><td colspan="14" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><div class="mt-2">Carregando orçamentos...</div></td></tr>';
         
         fetch(`/orcamentos/json?${params.toString()}`)
         .then(response => response.json())
@@ -621,7 +667,7 @@
         })
         .catch(error => {
             console.error('Erro ao buscar dados:', error);
-            tabelaBody.innerHTML = '<tr><td colspan="13" class="text-center text-danger py-4">Erro ao carregar orçamentos: ' + error.message + '</td></tr>';
+            tabelaBody.innerHTML = '<tr><td colspan="14" class="text-center text-danger py-4">Erro ao carregar orçamentos: ' + error.message + '</td></tr>';
         });
     }
 
@@ -631,7 +677,7 @@
     const isAdmin = {{ 'true' if is_admin else 'false' }};
     
     if (orcamentos.length === 0) {
-        tabelaBody.innerHTML = '<tr><td colspan="14" class="text-center py-4">Nenhum orçamento encontrado</td></tr>';
+        tabelaBody.innerHTML = '<tr><td colspan="15" class="text-center py-4">Nenhum orçamento encontrado</td></tr>';
         document.getElementById('valor-final').textContent = "R$ 0,00";
         return;
     }
@@ -654,9 +700,10 @@
         html += `
             <td>${orcamento.cliente_nome}</td>
             <td>${orcamento.ambiente_nome}</td>
-            <td>${orcamento.descricao_nome}</td>  <!-- DESCRIÇÃO - CORREÇÃO AQUI! -->
-            <td>${orcamento.tipo_produto}</td>  <!-- PRODUTO -->
-            <td>${orcamento.material_nome}</td>  <!-- MATERIAL -->
+            <td>${orcamento.descricao_nome}</td>
+            <td>${orcamento.produto_nome || 'Não definido'}</td>  <!-- NOVO: campo produto -->
+            <td>${orcamento.tipo_produto}</td>
+            <td>${orcamento.material_nome}</td>
             <td>${orcamento.quantidade}</td>
             <td>${orcamento.comprimento}</td>
             <td>${orcamento.largura}</td>
@@ -777,7 +824,11 @@
             $('#ambiente_id').val(localStorage.getItem('ambiente_id')).trigger('change');
         }
         if (localStorage.getItem('descricao_id')) {
-        $('#descricao_id').val(localStorage.getItem('descricao_id')).trigger('change');
+            $('#descricao_id').val(localStorage.getItem('descricao_id')).trigger('change');
+        }
+        // NOVO: Carregar produto_id
+        if (localStorage.getItem('produto_id')) {
+            $('#produto_id').val(localStorage.getItem('produto_id')).trigger('change');
         }
 
         // 🔥 BUSCAR DADOS VIA AJAX - SEM RECARREGAR A PÁGINA
@@ -1164,17 +1215,26 @@
     }
 
     function salvarSelecoesFormulario() {
-        const clienteId = document.getElementById('cliente_id').value;
-        const tipoProduto = document.getElementById('tipo_produto').value;
-        const materialId = document.getElementById('material_id').value;
-        const ambienteId = document.getElementById('ambiente_id').value;
-        const descricaoId = document.getElementById('descricao_id').value;
+        const clienteId = $('#cliente_id').val();
+        const tipoProduto = $('#tipo_produto').val();
+        const materialId = $('#material_id').val();
+        const ambienteId = $('#ambiente_id').val();
+        const descricaoId = $('#descricao_id').val();
+        const produtoId = $('#produto_id').val();  // NOVO
         
         localStorage.setItem('cliente_id', clienteId);
         localStorage.setItem('tipo_produto', tipoProduto);
         localStorage.setItem('material_id', materialId);
         localStorage.setItem('ambiente_id', ambienteId);
         localStorage.setItem('descricao_id', descricaoId);
+        localStorage.setItem('produto_id', produtoId);  // NOVO
+        
+        console.log('Seleções salvas no localStorage:', {
+            cliente_id: clienteId,
+            produto_id: produtoId,
+            ambiente_id: ambienteId,
+            descricao_id: descricaoId
+        });
     }
 
     // =============================================
@@ -1183,16 +1243,9 @@
 
      document.addEventListener('DOMContentLoaded', function() {
         // Inicializar Select2 para todos os campos
-        $('#cliente_id, #material_id, #tipo_produto, #ambiente_id, #filtro_cliente').select2({
+        $('#cliente_id, #material_id, #tipo_produto, #ambiente_id, #filtro_cliente, #descricao_id, #produto_id').select2({
             width: '100%',
             placeholder: "Selecione",
-            allowClear: true
-        });
-        
-        // INICIALIZAR SELECT2 PARA O CAMPO DE DESCRIÇÃO
-        $('#descricao_id').select2({
-            width: '100%',
-            placeholder: "Selecione uma descrição...",
             allowClear: true
         });
 
@@ -1201,7 +1254,7 @@
         carregarSelecoesSalvas();
         
         // Event listeners para salvar seleções do formulário
-        $('#cliente_id, #tipo_produto, #material_id, #ambiente_id, #descricao_id').on('change', function() {
+        $('#cliente_id, #tipo_produto, #material_id, #ambiente_id, #descricao_id, #produto_id').on('change', function() {
             salvarSelecoesFormulario();
             if (this.id === 'tipo_produto') {
                 toggleFields();
@@ -1640,7 +1693,7 @@ function executarEdicaoEmLote(selecionados, dados) {
         // 🔥 CHAMAR A FUNÇÃO APÓS O CARREGAMENTO
         selecionarItensDuplicados();
 
-        // Resto do código dos botões de ambiente (mantido igual)
+        // Botões de ambiente
         document.getElementById('saveAmbienteBtn').addEventListener('click', function() {
             const nome = document.getElementById('novo_ambiente_nome').value.trim();
             
@@ -1812,6 +1865,97 @@ function executarEdicaoEmLote(selecionados, dados) {
                     })
                     .catch(error => {
                         Swal.fire('Erro', 'Erro ao excluir descrição.', 'error');
+                    });
+                }
+            });
+        });
+
+        // ADICIONE AQUI OS HANDLERS PARA OS BOTÕES DE PRODUTO
+
+        // Adicionar produto
+        document.getElementById('saveProdutoBtn').addEventListener('click', function() {
+            const nome = document.getElementById('novo_produto_nome').value.trim();
+            
+            if (!nome) {
+                Swal.fire('Erro', 'Por favor, informe um nome para o produto.', 'error');
+                return;
+            }
+            
+            fetch('/adicionar_produto', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome: nome })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    $('#addProdutoModal').modal('hide');
+                    
+                    // Criar novo option para Select2
+                    const novoOption = new Option(nome, data.produto_id, true, true);
+                    $('#produto_id').append(novoOption).trigger('change');
+                    
+                    // Salvar no localStorage
+                    salvarSelecoesFormulario();
+                    
+                    // Limpar campo do modal
+                    document.getElementById('novo_produto_nome').value = '';
+                    
+                    Swal.fire('Sucesso', 'Produto adicionado com sucesso!', 'success');
+                } else {
+                    Swal.fire('Erro', data.message, 'error');
+                }
+            })
+            .catch(error => {
+                Swal.fire('Erro', 'Erro ao adicionar produto.', 'error');
+            });
+        });
+
+        // Deletar produto
+        document.getElementById('deleteProdutoBtn').addEventListener('click', function() {
+            const produtoId = $('#produto_id').val();
+            const produtoNome = $('#produto_id option:selected').text();
+            
+            if (!produtoId) {
+                Swal.fire('Erro', 'Selecione um produto para excluir.', 'error');
+                return;
+            }
+            
+            Swal.fire({
+                title: 'Tem certeza?',
+                text: `Deseja excluir o produto "${produtoNome}"?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Sim, excluir!',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch('/deletar_produto', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ produto_id: produtoId })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            // Remover do Select2
+                            $('#produto_id option[value="' + produtoId + '"]').remove();
+                            $('#produto_id').val('').trigger('change');
+                            
+                            // Remover do localStorage se era o selecionado
+                            if (localStorage.getItem('produto_id') === produtoId) {
+                                localStorage.removeItem('produto_id');
+                            }
+                            
+                            Swal.fire('Sucesso', 'Produto excluído com sucesso!', 'success');
+                        } else {
+                            Swal.fire('Erro', data.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire('Erro', 'Erro ao excluir produto.', 'error');
                     });
                 }
             });
