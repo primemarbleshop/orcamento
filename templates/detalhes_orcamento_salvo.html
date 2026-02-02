@@ -791,35 +791,46 @@
 
     </br></br></br></br>
 
-    {% for descricao_nome, tipos_produtos in descricoes_agrupadas.items() %}
-{% set descricao_total = namespace(value=0) %}
-{% for tipo_produto, produtos in tipos_produtos.items() %}
-    {% for produto in produtos %}
-        {% set descricao_total.value = descricao_total.value + produto.valor_total %}
+   {% for ambiente_nome, descricoes in ambientes_agrupados.items() %}
+{% set ambiente_total = namespace(value=0) %}
+{% for descricao_nome, tipos_produtos in descricoes.items() %}
+    {% for tipo_produto, produtos in tipos_produtos.items() %}
+        {% for produto in produtos %}
+            {% set ambiente_total.value = ambiente_total.value + produto.valor_total %}
+        {% endfor %}
     {% endfor %}
 {% endfor %}
 
-   <!-- Container para ambiente inteiro -->
+<!-- Container para ambiente inteiro -->
 <div class="ambiente-completo">
     <div class="ambiente-header">
         <span>{{ ambiente_nome }}</span>
         <span class="ambiente-total">R$ {{ "{:,.2f}".format(ambiente_total.value).replace(",", "X").replace(".", ",").replace("X", ".") }}</span>
     </div>
 
-    {% for descricao_nome, tipos_produtos in ambientes_agrupados.items() %}
-    <!-- Agora agrupamos por DESCRIÇÃO em vez de Tipo de Produto -->
+    {% for descricao_nome, tipos_produtos in descricoes.items() %}
+    {% set descricao_total = namespace(value=0) %}
+    {% for tipo_produto, produtos in tipos_produtos.items() %}
+        {% for produto in produtos %}
+            {% set descricao_total.value = descricao_total.value + produto.valor_total %}
+        {% endfor %}
+    {% endfor %}
+    
+    <!-- Container para descrição -->
     <div class="descricao-container">
-        <div class="descricao-header">{{ descricao_nome }}</div>
+        <div class="descricao-header">
+            <span>{{ descricao_nome }}</span>
+            <span class="descricao-total">R$ {{ "{:,.2f}".format(descricao_total.value).replace(",", "X").replace(".", ",").replace("X", ".") }}</span>
+        </div>
         
         {% for tipo_produto, produtos in tipos_produtos.items() %}
-        <!-- Dentro de cada descrição, agrupamos por Tipo de Produto -->
+        <!-- Container para cada tipo de produto -->
         <div class="tipo-produto-container">
             <div class="produto-header">{{ tipo_produto }}</div>
             <div class="table-responsive">
                 <table>
                     <thead>
                         <tr>
-                            <!-- REMOVEMOS a coluna Descrição pois já está no cabeçalho -->
                             <th>Material</th>
                             <th>Qtd</th>
                             <th>Comp.</th>
@@ -850,7 +861,6 @@
                     <tbody>
                         {% for produto in produtos %}
                         <tr>
-                            <!-- REMOVEMOS td da descrição -->
                             <td>{{ produto.material.nome }}</td>
                             <td>{{ produto.quantidade }}</td>
                             <td>{{ produto.comprimento }} cm</td>
@@ -893,6 +903,7 @@
     </div>
     {% endfor %}
 </div>
+{% endfor %}
 
     <!-- Rodapé do orçamento -->
     <div class="orcamento-footer">
