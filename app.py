@@ -99,6 +99,13 @@ class Descricao(db.Model):
     
     __table_args__ = (db.UniqueConstraint('nome', 'dono', name='_descricao_nome_dono_uc'),)
 
+class Produto(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    nome = db.Column(db.String(100), nullable=False)
+    dono = db.Column(db.String(14), nullable=False)
+    
+    __table_args__ = (db.UniqueConstraint('nome', 'dono', name='_produto_nome_dono_uc'),)
+
 class OrcamentoSalvo(db.Model):
     __tablename__ = 'orcamento_salvo'
     
@@ -148,6 +155,8 @@ class Orcamento(db.Model):
     ambiente = db.relationship('Ambiente', backref=db.backref('orcamentos', lazy=True))
     descricao_id = db.Column(db.Integer, db.ForeignKey('descricao.id'))  # NOVO CAMPO
     descricao = db.relationship('Descricao', backref=db.backref('orcamentos', lazy=True))
+    produto_id = db.Column(db.Integer, db.ForeignKey('produto.id'))  # NOVO CAMPO
+    produto = db.relationship('Produto', backref=db.backref('orcamentos', lazy=True))  # NOVO CAMPO
     tipo_produto = db.Column(db.String(100), nullable=False)
     material_id = db.Column(db.Integer, db.ForeignKey('material.id'))
     material = db.relationship('Material', backref=db.backref('orcamentos', lazy=True))
@@ -203,6 +212,7 @@ def listar_orcamentos():
     selected_material_id = None
     selected_ambiente_id = None
     selected_descricao_id = None
+    selected_produto_id = None
 
     # Obter parâmetros de filtro da query string
     filtro_cliente = request.args.get('filtro_cliente', 'Todos')
@@ -222,6 +232,7 @@ def listar_orcamentos():
     if request.method == 'POST':
         cliente_id = request.form.get('cliente_id')
         ambiente_id = request.form.get('ambiente_id')
+        produto_id = request.form.get('produto_id')  # NOVO CAMPO
         tipo_produto = request.form['tipo_produto']
         descricao_id = request.form.get('descricao_id')
         material_id = request.form['material_id']
@@ -370,6 +381,7 @@ def listar_orcamentos():
                 cliente_id=cliente_id,
                 ambiente_id=ambiente_id,
                 descricao_id=descricao_id,
+                produto_id=produto_id,
                 tipo_produto=tipo_produto,
                 material_id=material_id,
                 quantidade=quantidade,
@@ -457,11 +469,13 @@ def listar_orcamentos():
     if session.get('admin'):
         clientes = Cliente.query.order_by(Cliente.nome).all()
         ambientes = Ambiente.query.order_by(Ambiente.nome).all()
-        descricoes = Descricao.query.order_by(Descricao.nome).all()  # NOVO
+        descricoes = Descricao.query.order_by(Descricao.nome).all()
+        produtos = Produto.query.order_by(Produto.nome).all()  # NOVO
     else:
         clientes = Cliente.query.filter_by(dono=user_cpf).order_by(Cliente.nome).all()
         ambientes = Ambiente.query.filter_by(dono=user_cpf).order_by(Ambiente.nome).all()
-        descricoes = Descricao.query.filter_by(dono=user_cpf).order_by(Descricao.nome).all()  # NOVO
+        descricoes = Descricao.query.filter_by(dono=user_cpf).order_by(Descricao.nome).all()
+        produtos = Produto.query.filter_by(dono=user_cpf).order_by(Produto.nome).all()  # NOVO
 
     materiais = Material.query.order_by(Material.nome).all()
     is_admin = session.get('admin', False)
@@ -472,6 +486,7 @@ def listar_orcamentos():
         clientes=clientes,
         ambientes=ambientes,
         descricoes=descricoes,
+        produtos=produtos,
         materiais=materiais,
         is_admin=is_admin,
         # Passar os filtros atuais para o template
@@ -618,6 +633,7 @@ def editar_orcamento(id):
     ambientes = Ambiente.query.filter_by(dono=usuario_cpf).order_by(Ambiente.nome).all()
     materiais = Material.query.all()
     descricoes = Descricao.query.filter_by(dono=usuario_cpf).order_by(Descricao.nome).all()
+    produtos = Produto.query.filter_by(dono=usuario_cpf).order_by(Produto.nome).all()
 
     # 🔥 CORREÇÃO DEFINITIVA: Filtrar orçamentos salvos
     if session.get('admin'):
@@ -641,6 +657,7 @@ def editar_orcamento(id):
         orcamento.tipo_produto = request.form['tipo_produto']
         orcamento.ambiente_id = request.form.get('ambiente_id')
         orcamento.descricao_id = request.form.get('descricao_id')
+        orcamento.produto_id = request.form.get('produto_id')  # NOVO CAMPO
         orcamento.material_id = request.form['material_id']
         orcamento.quantidade = int(request.form.get('quantidade', orcamento.quantidade))
         orcamento.comprimento = float(request.form.get('comprimento', orcamento.comprimento or 0)or 0)
@@ -826,6 +843,7 @@ def editar_orcamento(id):
         orcamento=orcamento,
         ambientes=ambientes,
         descricoes=descricoes,
+        produtos=produtos,
         clientes=clientes,
         materiais=materiais,
         orcamentos_salvos=orcamentos_salvos
@@ -1911,6 +1929,61 @@ def deletar_descricao():
             return jsonify({'success': False, 'message': 'Esta descrição está em uso e não pode ser excluída.'}), 400
         
         db.session.delete(descricao)
+        db.session.commit()
+        
+        return jsonify({'success': True})
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/adicionar_produto', methods=['POST'])
+def adicionar_produto():
+    try:
+        data = request.get_json()
+        nome = data.get('nome')
+        
+        if not nome:
+            return jsonify({'success': False, 'message': 'Nome do produto é obrigatório.'}), 400
+        
+        user_cpf = session.get('user_cpf')
+        
+        # Verifica se já existe um produto com o mesmo nome PARA ESTE USUÁRIO
+        produto_existente = Produto.query.filter_by(nome=nome, dono=user_cpf).first()
+        
+        if produto_existente:
+            return jsonify({'success': False, 'message': 'Já existe um produto com este nome para o seu usuário.'}), 400
+        
+        novo_produto = Produto(nome=nome, dono=user_cpf)
+        db.session.add(novo_produto)
+        db.session.commit()
+        
+        return jsonify({'success': True, 'produto_id': novo_produto.id})
+    
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/deletar_produto', methods=['POST'])
+def deletar_produto():
+    try:
+        data = request.get_json()
+        produto_id = data.get('produto_id')
+        
+        if not produto_id:
+            return jsonify({'success': False, 'message': 'ID do produto é obrigatório.'}), 400
+        
+        user_cpf = session.get('user_cpf')
+        produto = Produto.query.filter_by(id=produto_id, dono=user_cpf).first()
+        
+        if not produto:
+            return jsonify({'success': False, 'message': 'Produto não encontrado ou você não tem permissão para excluí-lo.'}), 404
+        
+        orcamentos_com_produto = Orcamento.query.filter_by(produto_id=produto_id).count()
+        if orcamentos_com_produto > 0:
+            return jsonify({'success': False, 'message': 'Este produto está em uso e não pode ser excluído.'}), 400
+        
+        db.session.delete(produto)
         db.session.commit()
         
         return jsonify({'success': True})
