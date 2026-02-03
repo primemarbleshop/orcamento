@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -1481,6 +1480,40 @@ let hiddenPaymentOptions = [];
     hiddenPaymentOptions = {{ exclude_payments|tojson }};
 {% endif %}
 
+// FUNÇÃO ADICIONADA: Formatar data de UTC para Horário de Brasília
+function formatarDataBrasil(dataString) {
+    if (!dataString) return 'Data não disponível';
+    
+    try {
+        // Cria a data a partir da string (assumindo que vem em UTC)
+        const dataUTC = new Date(dataString);
+        
+        // Verifica se a data é válida
+        if (isNaN(dataUTC.getTime())) {
+            return dataString;
+        }
+        
+        // Ajusta para o fuso horário de Brasília (UTC-3)
+        // Obtém o timestamp em UTC e adiciona 3 horas para converter para UTC-3
+        const timestampUTC = dataUTC.getTime();
+        const offsetBrasilia = -3 * 60 * 60 * 1000; // -3 horas em milissegundos
+        const dataBrasilia = new Date(timestampUTC + offsetBrasilia);
+        
+        // Formata a data no formato brasileiro
+        return dataBrasilia.toLocaleString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    } catch (error) {
+        console.error('Erro ao formatar data:', error, dataString);
+        return dataString; // Retorna a string original se houver erro
+    }
+}
+
 // Função para excluir item do orçamento salvo (APENAS da lista) - COM SweetAlert2
 function excluirItem(itemId, ambiente, descricao, tipoProduto) {
     Swal.fire({
@@ -1518,7 +1551,7 @@ function abrirModalItensExcluidos() {
     carregarItensExcluidosModal();
 }
 
-// Função para carregar itens excluídos no modal
+// Função para carregar itens excluídos no modal - ATUALIZADA COM FORMATAÇÃO DE DATA
 function carregarItensExcluidosModal() {
     const modalBody = document.getElementById('modalItensExcluidosBody');
     
@@ -1546,6 +1579,9 @@ function carregarItensExcluidosModal() {
                     `;
                     
                     data.itens.forEach(item => {
+                        // Usar a função de formatação de data ajustada
+                        const dataFormatada = formatarDataBrasil(item.data_remocao);
+                        
                         html += `
                             <div class="item-card-modal">
                                 <div class="item-header-modal">
@@ -1556,7 +1592,7 @@ function carregarItensExcluidosModal() {
                                         </h6>
                                         <small class="text-muted">ID: ${item.id} | Cliente: ${item.cliente_nome}</small>
                                         <div class="mt-1">
-                                            <span class="badge-status-modal">Removido em: ${item.data_remocao}</span>
+                                            <span class="badge-status-modal">Removido em: ${dataFormatada}</span>
                                         </div>
                                     </div>
                                     <div>
