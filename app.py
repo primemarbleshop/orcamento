@@ -2087,7 +2087,7 @@ def orcamentos_json():
              .join(Cliente, Orcamento.cliente_id == Cliente.id)\
              .join(Material, Orcamento.material_id == Material.id)\
              .outerjoin(Ambiente, Orcamento.ambiente_id == Ambiente.id)\
-             .outerjoin(Descricao, Orcamento.descricao_id == Descricao.id)\  # 🔥 ADICIONADO
+             .outerjoin(Descricao, Orcamento.descricao_id == Descricao.id)  # 🔥 ADICIONADO
              .outerjoin(Produto, Orcamento.produto_id == Produto.id)        # 🔥 ADICIONADO
         else:
             query = db.session.query(
@@ -2102,8 +2102,8 @@ def orcamentos_json():
              .join(Cliente, Orcamento.cliente_id == Cliente.id)\
              .join(Material, Orcamento.material_id == Material.id)\
              .outerjoin(Ambiente, Orcamento.ambiente_id == Ambiente.id)\
-             .outerjoin(Descricao, Orcamento.descricao_id == Descricao.id)\  # 🔥 ADICIONADO
-             .outerjoin(Produto, Orcamento.produto_id == Produto.id)\        # 🔥 ADICIONADO
+             .outerjoin(Descricao, Orcamento.descricao_id == Descricao.id)  # 🔥 ADICIONADO
+             .outerjoin(Produto, Orcamento.produto_id == Produto.id)        # 🔥 ADICIONADO
              .filter(Orcamento.dono == user_cpf)
 
         # Aplicar filtros
