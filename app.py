@@ -873,21 +873,43 @@ def deletar_material(id):
 
 @app.route('/deletar_orcamento/<int:id>', methods=['POST'])
 def deletar_orcamento(id):
+    """Esta rota exclui fisicamente do banco de dados (apenas do gerenciador)"""
     orcamento = Orcamento.query.get(id)
     if not orcamento:
         flash("Erro: Orçamento não encontrado.", "error")
         return redirect(url_for('listar_orcamentos'))
 
     # Verifica se esse orçamento pertence a um orçamento salvo
-    orcamento_salvo = OrcamentoSalvo.query.filter(OrcamentoSalvo.orcamentos_ids.contains(str(id))).first()
+    orcamento_salvo = OrcamentoSalvo.query.filter(
+        OrcamentoSalvo.orcamentos_ids.like(f'%{id}%')
+    ).first()
 
-    # Exclui o orçamento individual
+    # 🔥 AGORA: Se estiver em um orçamento salvo, apenas remove da lista
+    if orcamento_salvo:
+        # Remover da lista de IDs
+        ids = orcamento_salvo.orcamentos_ids.split(',')
+        ids_atualizados = [item_id for item_id in ids if item_id.strip() != str(id)]
+        
+        # Se ainda houver itens, atualizar
+        if ids_atualizados:
+            orcamento_salvo.orcamentos_ids = ','.join(ids_atualizados)
+            
+            # Recalcular valor
+            orcamentos_restantes = Orcamento.query.filter(
+                Orcamento.id.in_([int(item_id) for item_id in ids_atualizados if item_id.strip().isdigit()])
+            ).all()
+            
+            orcamento_salvo.valor_total = sum(orc.valor_total for orc in orcamentos_restantes)
+            
+            flash(f"Item removido do orçamento salvo {orcamento_salvo.codigo}.", "warning")
+        else:
+            # Se não houver mais itens, excluir o orçamento salvo
+            db.session.delete(orcamento_salvo)
+            flash(f"Orçamento salvo {orcamento_salvo.codigo} excluído por não ter mais itens.", "warning")
+
+    # 🔥 EXCLUIR FISICAMENTE (apenas da tabela Orcamento)
     db.session.delete(orcamento)
     db.session.commit()
-
-    # Atualiza o orçamento salvo após a remoção
-    if orcamento_salvo:
-        atualizar_valor_orcamento_salvo(orcamento_salvo.id)
 
     flash("Orçamento excluído com sucesso!", "success")
     return redirect(url_for('listar_orcamentos'))
@@ -2489,7 +2511,7 @@ def excluir_item_orcamento(codigo):
             flash("Você não tem permissão para excluir itens deste orçamento!", "error")
             return redirect(url_for('detalhes_orcamento_salvo', codigo=codigo))
         
-        # Buscar o item a ser excluído
+        # Verificar se o item existe (mas NÃO vamos excluí-lo fisicamente)
         orcamento_item = Orcamento.query.get(int(item_id))
         
         if not orcamento_item:
@@ -2503,53 +2525,25 @@ def excluir_item_orcamento(codigo):
             flash("Este item não pertence a este orçamento!", "error")
             return redirect(url_for('detalhes_orcamento_salvo', codigo=codigo))
         
-        # Lógica para verificar se deve remover o ambiente/descrição se estiverem vazios
-        # Verificar se é o último item do ambiente
-        if ambiente_nome and ambiente_nome != 'Sem Ambiente':
-            # Buscar todos os orçamentos deste orçamento salvo com o mesmo ambiente
-            ambiente_items = Orcamento.query.filter(
-                Orcamento.id.in_([int(id) for id in orcamento_ids if id.isdigit()]),
-                Orcamento.ambiente_id == orcamento_item.ambiente_id
-            ).all()
-            
-            # Se este for o único item deste ambiente, marcar para remover o ambiente
-            if len(ambiente_items) == 1 and ambiente_items[0].id == orcamento_item.id:
-                print(f"⚠️ Este é o último item do ambiente '{ambiente_nome}'")
+        # 🔥 MUDANÇA PRINCIPAL: NÃO EXCLUIR DO BANCO DE DADOS
+        # Apenas remover da lista de IDs do orçamento salvo
         
-        # Verificar se é o último item da descrição
-        if descricao_nome and descricao_nome != 'Sem Descrição':
-            # Buscar todos os orçamentos deste orçamento salvo com a mesma descrição
-            descricao_items = Orcamento.query.filter(
-                Orcamento.id.in_([int(id) for id in orcamento_ids if id.isdigit()]),
-                Orcamento.descricao_id == orcamento_item.descricao_id
-            ).all()
-            
-            # Se este for o único item desta descrição, marcar para remover a descrição
-            if len(descricao_items) == 1 and descricao_items[0].id == orcamento_item.id:
-                print(f"⚠️ Este é o último item da descrição '{descricao_nome}'")
-        
-        # 🔥 CORREÇÃO CRÍTICA: NÃO FAZER COMMIT DUAS VEZES!
-        # Remover o ID do item excluído da lista de IDs ANTES de excluir o item
-        orcamento_ids_atualizados = [id for id in orcamento_ids if id != str(item_id)]
+        # Remover o ID do item excluído da lista de IDs
+        orcamento_ids_atualizados = [id.strip() for id in orcamento_ids if id.strip() != str(item_id)]
         
         # Verificar se ainda há itens no orçamento salvo
         if not orcamento_ids_atualizados:
-            # Se não houver mais itens, excluir o orçamento salvo também
+            # Se não houver mais itens, excluir o orçamento salvo
             db.session.delete(orcamento_salvo)
-            db.session.delete(orcamento_item)
             db.session.commit()
             
-            flash("Todos os itens foram excluídos. O orçamento salvo foi removido.", "success")
+            flash("Todos os itens foram removidos. O orçamento salvo foi excluído.", "success")
             return redirect(url_for('listar_orcamentos_salvos'))
         
-        # 🔥 EXCLUIR O ITEM E ATUALIZAR O ORÇAMENTO SALVO EM UMA ÚNICA TRANSAÇÃO
-        # 1. Excluir o item
-        db.session.delete(orcamento_item)
-        
-        # 2. Atualizar a lista de IDs no orçamento salvo
+        # Atualizar a lista de IDs no orçamento salvo
         orcamento_salvo.orcamentos_ids = ','.join(orcamento_ids_atualizados)
         
-        # 3. Recalcular o valor total do orçamento salvo
+        # Recalcular o valor total do orçamento salvo
         orcamentos_restantes = Orcamento.query.filter(
             Orcamento.id.in_([int(id) for id in orcamento_ids_atualizados if id.isdigit()])
         ).all()
@@ -2557,35 +2551,111 @@ def excluir_item_orcamento(codigo):
         novo_valor_total = sum(orc.valor_total for orc in orcamentos_restantes)
         orcamento_salvo.valor_total = novo_valor_total
         
-        # 🔥 APENAS UM COMMIT PARA TODAS AS OPERAÇÕES
         db.session.commit()
         
         # 🔥 Log da operação
-        print(f"✅ Item excluído: ID={item_id}, Tipo={tipo_produto}")
+        print(f"✅ Item removido da lista (não excluído do BD): ID={item_id}, Tipo={tipo_produto}")
         print(f"💰 Valor total atualizado: R$ {novo_valor_total:.2f}")
         print(f"📋 IDs restantes: {orcamento_ids_atualizados}")
         
         # 🔥 Redirecionar com mensagem de sucesso
-        flash("Item excluído com sucesso! O orçamento foi atualizado.", "success")
+        flash("Item removido do orçamento salvo com sucesso!", "success")
         return redirect(url_for('detalhes_orcamento_salvo', codigo=codigo, item_excluido='true'))
     
     except Exception as e:
         db.session.rollback()
-        print(f"❌ Erro ao excluir item: {str(e)}")
+        print(f"❌ Erro ao remover item: {str(e)}")
         import traceback
         traceback.print_exc()
         
-        flash(f"Erro ao excluir item: {str(e)}", "error")
+        flash(f"Erro ao remover item: {str(e)}", "error")
         return redirect(url_for('detalhes_orcamento_salvo', codigo=codigo, erro='true'))
+
+@app.route('/restaurar_item_orcamento/<codigo>/<int:item_id>', methods=['POST'])
+def restaurar_item_orcamento(codigo, item_id):
+    """Rota para restaurar um item que foi removido do orçamento salvo"""
+    try:
+        if 'user_cpf' not in session:
+            return jsonify({"success": False, "error": "Não autenticado"}), 401
+        
+        orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
+        if not orcamento_salvo:
+            return jsonify({"success": False, "error": "Orçamento não encontrado"}), 404
+        
+        # Verificar se o item existe
+        orcamento_item = Orcamento.query.get(item_id)
+        if not orcamento_item:
+            return jsonify({"success": False, "error": "Item não encontrado"}), 404
+        
+        # Verificar se o item já está na lista
+        orcamento_ids = orcamento_salvo.orcamentos_ids.split(',')
+        if str(item_id) in [id.strip() for id in orcamento_ids]:
+            return jsonify({"success": False, "error": "Item já está no orçamento"}), 400
+        
+        # Adicionar o item de volta à lista
+        orcamento_ids.append(str(item_id))
+        orcamento_salvo.orcamentos_ids = ','.join(orcamento_ids)
+        
+        # Recalcular valor total
+        orcamentos = Orcamento.query.filter(
+            Orcamento.id.in_([int(id) for id in orcamento_ids if id.strip().isdigit()])
+        ).all()
+        
+        novo_valor_total = sum(orc.valor_total for orc in orcamentos)
+        orcamento_salvo.valor_total = novo_valor_total
+        
+        db.session.commit()
+        
+        return jsonify({
+            "success": True,
+            "message": "Item restaurado com sucesso",
+            "novo_valor_total": novo_valor_total
+        })
     
     except Exception as e:
         db.session.rollback()
-        print(f"❌ Erro ao excluir item: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        
-        flash(f"Erro ao excluir item: {str(e)}", "error")
-        return redirect(url_for('detalhes_orcamento_salvo', codigo=codigo, erro='true'))
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/itens_excluidos_orcamento/<codigo>')
+def itens_excluidos_orcamento(codigo):
+    """Página para ver itens que foram removidos do orçamento salvo"""
+    if 'user_cpf' not in session:
+        return redirect(url_for('login'))
+    
+    orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
+    if not orcamento_salvo:
+        flash("Orçamento não encontrado", "error")
+        return redirect(url_for('listar_orcamentos_salvos'))
+    
+    # IDs atuais no orçamento salvo
+    ids_atuais = [int(id.strip()) for id in orcamento_salvo.orcamentos_ids.split(',') if id.strip().isdigit()]
+    
+    # Buscar todos os orçamentos do cliente (para sugerir itens para restaurar)
+    primeiro_id = ids_atuais[0] if ids_atuais else None
+    if primeiro_id:
+        primeiro_orcamento = Orcamento.query.get(primeiro_id)
+        if primeiro_orcamento:
+            cliente_id = primeiro_orcamento.cliente_id
+            
+            # Todos os orçamentos deste cliente
+            todos_orcamentos_cliente = Orcamento.query.filter_by(cliente_id=cliente_id).all()
+            
+            # Filtrar apenas os que NÃO estão no orçamento salvo
+            itens_disponiveis = [
+                orc for orc in todos_orcamentos_cliente 
+                if orc.id not in ids_atuais
+            ]
+        else:
+            itens_disponiveis = []
+    else:
+        itens_disponiveis = []
+    
+    return render_template(
+        'itens_excluidos_orcamento.html',
+        codigo=codigo,
+        itens_disponiveis=itens_disponiveis,
+        total_itens=len(itens_disponiveis)
+    )
 
 
 
