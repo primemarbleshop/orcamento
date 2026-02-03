@@ -2372,8 +2372,6 @@ def excluir_item_orcamento(codigo):
             return redirect(url_for('detalhes_orcamento_salvo', codigo=codigo))
         
         # Lógica para verificar se deve remover o ambiente/descrição se estiverem vazios
-        remover_ambiente_ou_descricao = False
-        
         # Verificar se é o último item do ambiente
         if ambiente_nome and ambiente_nome != 'Sem Ambiente':
             # Buscar todos os orçamentos deste orçamento salvo com o mesmo ambiente
@@ -2385,7 +2383,6 @@ def excluir_item_orcamento(codigo):
             # Se este for o único item deste ambiente, marcar para remover o ambiente
             if len(ambiente_items) == 1 and ambiente_items[0].id == orcamento_item.id:
                 print(f"⚠️ Este é o último item do ambiente '{ambiente_nome}'")
-                # Não removemos o ambiente do banco, apenas não aparecerá mais na lista
         
         # Verificar se é o último item da descrição
         if descricao_nome and descricao_nome != 'Sem Descrição':
@@ -2398,57 +2395,56 @@ def excluir_item_orcamento(codigo):
             # Se este for o único item desta descrição, marcar para remover a descrição
             if len(descricao_items) == 1 and descricao_items[0].id == orcamento_item.id:
                 print(f"⚠️ Este é o último item da descrição '{descricao_nome}'")
-                # Não removemos a descrição do banco, apenas não aparecerá mais na lista
         
-        # 🔥 PRIMEIRO: Excluir o item do banco de dados
-        db.session.delete(orcamento_item)
-        db.session.commit()
-        
-        # 🔥 SEGUNDO: Atualizar a lista de IDs no orçamento salvo
-        # Remover o ID do item excluído da lista de IDs
+        # 🔥 CORREÇÃO CRÍTICA: NÃO FAZER COMMIT DUAS VEZES!
+        # Remover o ID do item excluído da lista de IDs ANTES de excluir o item
         orcamento_ids_atualizados = [id for id in orcamento_ids if id != str(item_id)]
         
         # Verificar se ainda há itens no orçamento salvo
-        if orcamento_ids_atualizados:
-            orcamento_salvo.orcamentos_ids = ','.join(orcamento_ids_atualizados)
-        else:
+        if not orcamento_ids_atualizados:
             # Se não houver mais itens, excluir o orçamento salvo também
             db.session.delete(orcamento_salvo)
+            db.session.delete(orcamento_item)
             db.session.commit()
             
             flash("Todos os itens foram excluídos. O orçamento salvo foi removido.", "success")
             return redirect(url_for('listar_orcamentos_salvos'))
         
-        # 🔥 TERCEIRO: Recalcular o valor total do orçamento salvo
-        # Buscar todos os orçamentos restantes
+        # 🔥 EXCLUIR O ITEM E ATUALIZAR O ORÇAMENTO SALVO EM UMA ÚNICA TRANSAÇÃO
+        # 1. Excluir o item
+        db.session.delete(orcamento_item)
+        
+        # 2. Atualizar a lista de IDs no orçamento salvo
+        orcamento_salvo.orcamentos_ids = ','.join(orcamento_ids_atualizados)
+        
+        # 3. Recalcular o valor total do orçamento salvo
         orcamentos_restantes = Orcamento.query.filter(
             Orcamento.id.in_([int(id) for id in orcamento_ids_atualizados if id.isdigit()])
         ).all()
         
-        # Calcular novo valor total
         novo_valor_total = sum(orc.valor_total for orc in orcamentos_restantes)
         orcamento_salvo.valor_total = novo_valor_total
         
+        # 🔥 APENAS UM COMMIT PARA TODAS AS OPERAÇÕES
         db.session.commit()
         
-        # 🔥 QUARTO: Verificar se há agrupamentos vazios
-        # Verificar ambientes únicos nos orçamentos restantes
-        ambientes_restantes = set()
-        for orc in orcamentos_restantes:
-            if orc.ambiente:
-                ambientes_restantes.add(orc.ambiente.nome)
-        
-        # Se o ambiente excluído não está mais na lista, não será mais exibido no template
-        # (Isso é tratado automaticamente pela lógica de agrupamento no template)
-        
-        # 🔥 QUINTO: Log da operação
+        # 🔥 Log da operação
         print(f"✅ Item excluído: ID={item_id}, Tipo={tipo_produto}")
         print(f"💰 Valor total atualizado: R$ {novo_valor_total:.2f}")
         print(f"📋 IDs restantes: {orcamento_ids_atualizados}")
         
-        # 🔥 SEXTO: Redirecionar com mensagem de sucesso
+        # 🔥 Redirecionar com mensagem de sucesso
         flash("Item excluído com sucesso! O orçamento foi atualizado.", "success")
         return redirect(url_for('detalhes_orcamento_salvo', codigo=codigo, item_excluido='true'))
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Erro ao excluir item: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        flash(f"Erro ao excluir item: {str(e)}", "error")
+        return redirect(url_for('detalhes_orcamento_salvo', codigo=codigo, erro='true'))
     
     except Exception as e:
         db.session.rollback()
