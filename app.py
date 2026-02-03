@@ -2326,6 +2326,179 @@ def detalhes_ordem_servico(codigo):
         desenho_salvo=desenho_salvo
     )
 
+@app.route('/excluir_item_orcamento/<codigo>', methods=['POST'])
+def excluir_item_orcamento(codigo):
+    try:
+        # Verificar se o usuário está logado
+        if 'user_cpf' not in session:
+            flash("Você precisa fazer login para realizar esta ação.", "error")
+            return redirect(url_for('login'))
+        
+        # Obter dados do formulário
+        item_id = request.form.get('item_id')
+        ambiente_nome = request.form.get('ambiente')
+        descricao_nome = request.form.get('descricao')
+        tipo_produto = request.form.get('tipo_produto')
+        
+        if not item_id:
+            flash("ID do item não fornecido!", "error")
+            return redirect(url_for('detalhes_orcamento_salvo', codigo=codigo))
+        
+        # Buscar o orçamento salvo
+        orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
+        
+        if not orcamento_salvo:
+            flash("Orçamento salvo não encontrado!", "error")
+            return redirect(url_for('listar_orcamentos_salvos'))
+        
+        # Verificar permissões
+        usuario = Usuario.query.filter_by(cpf=session.get('user_cpf')).first()
+        if not session.get('admin') and orcamento_salvo.criado_por != usuario.nome:
+            flash("Você não tem permissão para excluir itens deste orçamento!", "error")
+            return redirect(url_for('detalhes_orcamento_salvo', codigo=codigo))
+        
+        # Buscar o item a ser excluído
+        orcamento_item = Orcamento.query.get(int(item_id))
+        
+        if not orcamento_item:
+            flash("Item não encontrado!", "error")
+            return redirect(url_for('detalhes_orcamento_salvo', codigo=codigo))
+        
+        # Verificar se o item pertence a este orçamento salvo
+        orcamento_ids = orcamento_salvo.orcamentos_ids.split(',')
+        
+        if str(item_id) not in orcamento_ids:
+            flash("Este item não pertence a este orçamento!", "error")
+            return redirect(url_for('detalhes_orcamento_salvo', codigo=codigo))
+        
+        # Lógica para verificar se deve remover o ambiente/descrição se estiverem vazios
+        remover_ambiente_ou_descricao = False
+        
+        # Verificar se é o último item do ambiente
+        if ambiente_nome and ambiente_nome != 'Sem Ambiente':
+            # Buscar todos os orçamentos deste orçamento salvo com o mesmo ambiente
+            ambiente_items = Orcamento.query.filter(
+                Orcamento.id.in_([int(id) for id in orcamento_ids if id.isdigit()]),
+                Orcamento.ambiente_id == orcamento_item.ambiente_id
+            ).all()
+            
+            # Se este for o único item deste ambiente, marcar para remover o ambiente
+            if len(ambiente_items) == 1 and ambiente_items[0].id == orcamento_item.id:
+                print(f"⚠️ Este é o último item do ambiente '{ambiente_nome}'")
+                # Não removemos o ambiente do banco, apenas não aparecerá mais na lista
+        
+        # Verificar se é o último item da descrição
+        if descricao_nome and descricao_nome != 'Sem Descrição':
+            # Buscar todos os orçamentos deste orçamento salvo com a mesma descrição
+            descricao_items = Orcamento.query.filter(
+                Orcamento.id.in_([int(id) for id in orcamento_ids if id.isdigit()]),
+                Orcamento.descricao_id == orcamento_item.descricao_id
+            ).all()
+            
+            # Se este for o único item desta descrição, marcar para remover a descrição
+            if len(descricao_items) == 1 and descricao_items[0].id == orcamento_item.id:
+                print(f"⚠️ Este é o último item da descrição '{descricao_nome}'")
+                # Não removemos a descrição do banco, apenas não aparecerá mais na lista
+        
+        # 🔥 PRIMEIRO: Excluir o item do banco de dados
+        db.session.delete(orcamento_item)
+        db.session.commit()
+        
+        # 🔥 SEGUNDO: Atualizar a lista de IDs no orçamento salvo
+        # Remover o ID do item excluído da lista de IDs
+        orcamento_ids_atualizados = [id for id in orcamento_ids if id != str(item_id)]
+        
+        # Verificar se ainda há itens no orçamento salvo
+        if orcamento_ids_atualizados:
+            orcamento_salvo.orcamentos_ids = ','.join(orcamento_ids_atualizados)
+        else:
+            # Se não houver mais itens, excluir o orçamento salvo também
+            db.session.delete(orcamento_salvo)
+            db.session.commit()
+            
+            flash("Todos os itens foram excluídos. O orçamento salvo foi removido.", "success")
+            return redirect(url_for('listar_orcamentos_salvos'))
+        
+        # 🔥 TERCEIRO: Recalcular o valor total do orçamento salvo
+        # Buscar todos os orçamentos restantes
+        orcamentos_restantes = Orcamento.query.filter(
+            Orcamento.id.in_([int(id) for id in orcamento_ids_atualizados if id.isdigit()])
+        ).all()
+        
+        # Calcular novo valor total
+        novo_valor_total = sum(orc.valor_total for orc in orcamentos_restantes)
+        orcamento_salvo.valor_total = novo_valor_total
+        
+        db.session.commit()
+        
+        # 🔥 QUARTO: Verificar se há agrupamentos vazios
+        # Verificar ambientes únicos nos orçamentos restantes
+        ambientes_restantes = set()
+        for orc in orcamentos_restantes:
+            if orc.ambiente:
+                ambientes_restantes.add(orc.ambiente.nome)
+        
+        # Se o ambiente excluído não está mais na lista, não será mais exibido no template
+        # (Isso é tratado automaticamente pela lógica de agrupamento no template)
+        
+        # 🔥 QUINTO: Log da operação
+        print(f"✅ Item excluído: ID={item_id}, Tipo={tipo_produto}")
+        print(f"💰 Valor total atualizado: R$ {novo_valor_total:.2f}")
+        print(f"📋 IDs restantes: {orcamento_ids_atualizados}")
+        
+        # 🔥 SEXTO: Redirecionar com mensagem de sucesso
+        flash("Item excluído com sucesso! O orçamento foi atualizado.", "success")
+        return redirect(url_for('detalhes_orcamento_salvo', codigo=codigo, item_excluido='true'))
+    
+    except Exception as e:
+        db.session.rollback()
+        print(f"❌ Erro ao excluir item: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        
+        flash(f"Erro ao excluir item: {str(e)}", "error")
+        return redirect(url_for('detalhes_orcamento_salvo', codigo=codigo, erro='true'))
+
+def recriar_agrupamentos_orcamento(codigo_orcamento):
+    """
+    Função auxiliar para recriar os agrupamentos de um orçamento salvo.
+    Esta função não precisa ser uma rota, apenas uma função auxiliar.
+    """
+    try:
+        orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo_orcamento).first()
+        
+        if not orcamento_salvo:
+            return None
+        
+        ids = [int(id) for id in orcamento_salvo.orcamentos_ids.split(",")]
+        orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
+        
+        # Reagrupar por ambiente -> descrição -> tipo de produto
+        ambientes_agrupados = {}
+        
+        for orcamento in orcamentos:
+            ambiente_nome = orcamento.ambiente.nome if orcamento.ambiente else 'Sem Ambiente'
+            
+            if ambiente_nome not in ambientes_agrupados:
+                ambientes_agrupados[ambiente_nome] = {}
+            
+            descricao_nome = orcamento.descricao.nome if orcamento.descricao else 'Sem Descrição'
+            
+            if descricao_nome not in ambientes_agrupados[ambiente_nome]:
+                ambientes_agrupados[ambiente_nome][descricao_nome] = {}
+            
+            tipo_produto = orcamento.tipo_produto
+            if tipo_produto not in ambientes_agrupados[ambiente_nome][descricao_nome]:
+                ambientes_agrupados[ambiente_nome][descricao_nome][tipo_produto] = []
+            
+            ambientes_agrupados[ambiente_nome][descricao_nome][tipo_produto].append(orcamento)
+        
+        return ambientes_agrupados
+    
+    except Exception as e:
+        print(f"Erro ao recriar agrupamentos: {str(e)}")
+        return None
+
 if __name__ == '__main__':
     criar_banco()
     app.run(debug=True)
