@@ -2073,47 +2073,34 @@ def orcamentos_json():
         except (ValueError, TypeError):
             limite_int = 15
 
-        # 🔥 CORREÇÃO CRÍTICA: ADICIONAR OUTERJOINS PARA DESCRIÇÃO E PRODUTO
-        if is_admin:
-            query = db.session.query(
-                Orcamento,
-                Usuario.nome.label('nome_usuario'),
-                Cliente.nome.label('cliente_nome'),
-                Ambiente.nome.label('ambiente_nome'),
-                Descricao.nome.label('descricao_nome'),  # 🔥 ADICIONADO
-                Produto.nome.label('produto_nome'),      # 🔥 ADICIONADO
-                Material.nome.label('material_nome')
-            ).join(Usuario, Orcamento.dono == Usuario.cpf)\
-             .join(Cliente, Orcamento.cliente_id == Cliente.id)\
-             .join(Material, Orcamento.material_id == Material.id)\
-             .outerjoin(Ambiente, Orcamento.ambiente_id == Ambiente.id)\
-             .outerjoin(Descricao, Orcamento.descricao_id == Descricao.id)  # 🔥 ADICIONADO
-             .outerjoin(Produto, Orcamento.produto_id == Produto.id)        # 🔥 ADICIONADO
-        else:
-            query = db.session.query(
-                Orcamento,
-                Usuario.nome.label('nome_usuario'),
-                Cliente.nome.label('cliente_nome'),
-                Ambiente.nome.label('ambiente_nome'),
-                Descricao.nome.label('descricao_nome'),  # 🔥 ADICIONADO
-                Produto.nome.label('produto_nome'),      # 🔥 ADICIONADO
-                Material.nome.label('material_nome')
-            ).join(Usuario, Orcamento.dono == Usuario.cpf)\
-             .join(Cliente, Orcamento.cliente_id == Cliente.id)\
-             .join(Material, Orcamento.material_id == Material.id)\
-             .outerjoin(Ambiente, Orcamento.ambiente_id == Ambiente.id)\
-             .outerjoin(Descricao, Orcamento.descricao_id == Descricao.id)  # 🔥 ADICIONADO
-             .outerjoin(Produto, Orcamento.produto_id == Produto.id)        # 🔥 ADICIONADO
-             .filter(Orcamento.dono == user_cpf)
+        # 🔥 CORREÇÃO: Query corrigida com outerjoins adequados
+        query_base = db.session.query(
+            Orcamento,
+            Usuario.nome.label('nome_usuario'),
+            Cliente.nome.label('cliente_nome'),
+            Ambiente.nome.label('ambiente_nome'),
+            Descricao.nome.label('descricao_nome'),
+            Produto.nome.label('produto_nome'),
+            Material.nome.label('material_nome')
+        ).join(Usuario, Orcamento.dono == Usuario.cpf)\
+         .join(Cliente, Orcamento.cliente_id == Cliente.id)\
+         .join(Material, Orcamento.material_id == Material.id)\
+         .outerjoin(Ambiente, Orcamento.ambiente_id == Ambiente.id)\
+         .outerjoin(Descricao, Orcamento.descricao_id == Descricao.id)\
+         .outerjoin(Produto, Orcamento.produto_id == Produto.id)
 
-        # Aplicar filtros
+        # Aplicar filtro de usuário se não for admin
+        if not is_admin:
+            query_base = query_base.filter(Orcamento.dono == user_cpf)
+
+        # Aplicar filtros adicionais
         if filtro_cliente != 'Todos':
-            query = query.filter(Cliente.nome == filtro_cliente)
+            query_base = query_base.filter(Cliente.nome == filtro_cliente)
         
         if filtro_data_inicio:
             try:
                 data_inicio = datetime.strptime(filtro_data_inicio, '%Y-%m-%d')
-                query = query.filter(Orcamento.data >= data_inicio)
+                query_base = query_base.filter(Orcamento.data >= data_inicio)
             except ValueError:
                 pass
         
@@ -2121,39 +2108,41 @@ def orcamentos_json():
             try:
                 data_fim = datetime.strptime(filtro_data_fim, '%Y-%m-%d')
                 data_fim = data_fim.replace(hour=23, minute=59, second=59)
-                query = query.filter(Orcamento.data <= data_fim)
+                query_base = query_base.filter(Orcamento.data <= data_fim)
             except ValueError:
                 pass
 
         # Ordenar e limitar
-        query = query.order_by(Orcamento.data.desc())
+        query_base = query_base.order_by(Orcamento.data.desc())
         
         if limite_int > 0:
-            query = query.limit(limite_int)
+            query_base = query_base.limit(limite_int)
 
-        orcamentos_data = query.all()
+        orcamentos_data = query_base.all()
 
         # Formatar dados para JSON
         orcamentos_json = []
-        for orcamento, nome_usuario, cliente_nome, ambiente_nome, descricao_nome, produto_nome, material_nome in orcamentos_data:
+        for row in orcamentos_data:
+            orcamento = row[0]  # Primeiro elemento é o objeto Orcamento
+            
             orcamentos_json.append({
                 'id': orcamento.id,
-                'cliente_nome': cliente_nome,
-                'ambiente_nome': ambiente_nome if ambiente_nome else 'Não definido',
-                'descricao_nome': descricao_nome if descricao_nome else 'Não definido',  # 🔥 AGORA VEM DO JOIN
-                'produto_nome': produto_nome if produto_nome else 'Não definido',        # 🔥 AGORA VEM DO JOIN
+                'cliente_nome': row.cliente_nome if hasattr(row, 'cliente_nome') else '',
+                'ambiente_nome': row.ambiente_nome if hasattr(row, 'ambiente_nome') and row.ambiente_nome else 'Não definido',
+                'descricao_nome': row.descricao_nome if hasattr(row, 'descricao_nome') and row.descricao_nome else 'Não definido',
+                'produto_nome': row.produto_nome if hasattr(row, 'produto_nome') and row.produto_nome else 'Não definido',
                 'tipo_produto': orcamento.tipo_produto,
-                'material_nome': material_nome,
+                'material_nome': row.material_nome if hasattr(row, 'material_nome') else '',
                 'quantidade': orcamento.quantidade,
                 'comprimento': orcamento.comprimento,
                 'largura': orcamento.largura,
                 'instalacao': orcamento.instalacao,
                 'valor_total': orcamento.valor_total,
-                'data': orcamento.data.strftime('%d-%m-%y'),
-                'nome_usuario': nome_usuario,
-                'data_attr': orcamento.data.strftime('%Y-%m-%d %H:%M:%S')
+                'data': orcamento.data.strftime('%d-%m-%y') if orcamento.data else '',
+                'nome_usuario': row.nome_usuario if hasattr(row, 'nome_usuario') else '',
+                'data_attr': orcamento.data.strftime('%Y-%m-%d %H:%M:%S') if orcamento.data else ''
             })
- 
+
         return jsonify({
             'success': True,
             'orcamentos': orcamentos_json,
@@ -2161,7 +2150,9 @@ def orcamentos_json():
         })
 
     except Exception as e:
-        print(f"❌ Erro em /orcamentos/json: {str(e)}")  # Para debug
+        import traceback
+        print(f"❌ Erro em /orcamentos/json: {str(e)}")
+        print(traceback.format_exc())  # Para debug mais detalhado
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/ordens_servico')
