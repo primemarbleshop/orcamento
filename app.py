@@ -1562,10 +1562,12 @@ def gerar_pdf_orcamento(codigo):
 def editar_material_rt_selecionados():
     data = request.get_json()
     orcamento_ids = data.get('orcamento_ids', [])
-    cliente_id = data.get('cliente_id')  # Novo campo
+    cliente_id = data.get('cliente_id')
     material_id = data.get('material_id')
     rt = data.get('rt')
     rt_percentual = data.get('rt_percentual', 0.0)
+    descricao_id = data.get('descricao_id')  # 🔥 NOVO: Adicionar descrição
+    produto_id = data.get('produto_id')      # 🔥 NOVO: Adicionar produto
 
     if not orcamento_ids:
         return jsonify({'erro': 'Nenhum orçamento selecionado.'}), 400
@@ -1585,6 +1587,22 @@ def editar_material_rt_selecionados():
             return jsonify({'erro': 'Material não encontrado.'}), 404
     else:
         material = None
+
+    # Se descricao_id foi fornecido, validar se existe
+    if descricao_id:
+        descricao = Descricao.query.get(descricao_id)
+        if not descricao:
+            return jsonify({'erro': 'Descrição não encontrada.'}), 404
+    else:
+        descricao = None
+
+    # Se produto_id foi fornecido, validar se existe
+    if produto_id:
+        produto = Produto.query.get(produto_id)
+        if not produto:
+            return jsonify({'erro': 'Produto não encontrado.'}), 404
+    else:
+        produto = None
 
     cuba_valores = {
         'Embutida': 225,
@@ -1613,6 +1631,14 @@ def editar_material_rt_selecionados():
             material_para_calculo = material
         else:
             material_para_calculo = orcamento.material
+        
+        # 🔥 NOVO: Atualizar descrição apenas se foi fornecida
+        if descricao_id:
+            orcamento.descricao_id = descricao_id
+        
+        # 🔥 NOVO: Atualizar produto apenas se foi fornecido
+        if produto_id:
+            orcamento.produto_id = produto_id
         
         # Atualizar RT apenas se foi fornecida
         if rt is not None:
@@ -1734,7 +1760,7 @@ def editar_material_rt_selecionados():
     for orcamento_salvo in orcamentos_salvos:
         atualizar_valor_orcamento_salvo(orcamento_salvo.id)
 
-    return jsonify({'success': 'Cliente, materiais e RT atualizados, valores recalculados e orçamentos salvos atualizados.'})
+    return jsonify({'success': 'Cliente, materiais, descrição, produto e RT atualizados, valores recalculados e orçamentos salvos atualizados.'})
 
 
 @app.route('/orcamentos/duplicar_selecionados', methods=['POST'])
@@ -1752,35 +1778,37 @@ def duplicar_selecionados():
             original = Orcamento.query.get(id)
             if original:
                 novo_orcamento = Orcamento(
-                    cliente_id = original.cliente_id,
-                    ambiente_id = original.ambiente_id,
-                    tipo_produto = original.tipo_produto,
-                    material_id = original.material_id,
-                    quantidade = original.quantidade,
-                    comprimento = original.comprimento,
-                    largura = original.largura,
-                    instalacao = original.instalacao or "Não",
-                    instalacao_valor = original.instalacao_valor or 0,
-                    rt = original.rt,
-                    rt_percentual = original.rt_percentual,
-                    comprimento_saia = original.comprimento_saia,
-                    largura_saia = original.largura_saia,
-                    comprimento_fronte = original.comprimento_fronte,
-                    largura_fronte = original.largura_fronte,
-                    tipo_cuba = original.tipo_cuba,
-                    quantidade_cubas = original.quantidade_cubas,
-                    modelo_cuba = original.modelo_cuba,
-                    comprimento_cuba = original.comprimento_cuba,
-                    largura_cuba = original.largura_cuba,
-                    profundidade_cuba = original.profundidade_cuba,
-                    tem_cooktop = original.tem_cooktop,
-                    profundidade_nicho = original.profundidade_nicho,
-                    tem_fundo = original.tem_fundo,
-                    tem_alisar = original.tem_alisar,
-                    largura_alisar = original.largura_alisar,
-                    valor_total = original.valor_total,
-                    dono = original.dono,
-                    data = datetime.now(br_tz)
+                    cliente_id=original.cliente_id,
+                    ambiente_id=original.ambiente_id,
+                    descricao_id=original.descricao_id,  # 🔥 ADICIONAR DESCRIÇÃO
+                    produto_id=original.produto_id,      # 🔥 ADICIONAR PRODUTO
+                    tipo_produto=original.tipo_produto,
+                    material_id=original.material_id,
+                    quantidade=original.quantidade,
+                    comprimento=original.comprimento,
+                    largura=original.largura,
+                    instalacao=original.instalacao or "Não",
+                    instalacao_valor=original.instalacao_valor or 0,
+                    rt=original.rt,
+                    rt_percentual=original.rt_percentual,
+                    comprimento_saia=original.comprimento_saia,
+                    largura_saia=original.largura_saia,
+                    comprimento_fronte=original.comprimento_fronte,
+                    largura_fronte=original.largura_fronte,
+                    tipo_cuba=original.tipo_cuba,
+                    quantidade_cubas=original.quantidade_cubas,
+                    modelo_cuba=original.modelo_cuba,
+                    comprimento_cuba=original.comprimento_cuba,
+                    largura_cuba=original.largura_cuba,
+                    profundidade_cuba=original.profundidade_cuba,
+                    tem_cooktop=original.tem_cooktop,
+                    profundidade_nicho=original.profundidade_nicho,
+                    tem_fundo=original.tem_fundo,
+                    tem_alisar=original.tem_alisar,
+                    largura_alisar=original.largura_alisar,
+                    valor_total=original.valor_total,
+                    dono=original.dono,
+                    data=datetime.now(br_tz)
                 )
 
                 db.session.add(novo_orcamento)
