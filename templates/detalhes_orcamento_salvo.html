@@ -777,6 +777,36 @@
         font-size: 9px;
     }
     
+    /* Estilos para botão de ver itens excluídos */
+    .btn-itens-excluidos {
+        background-color: #ffc107;
+        border-color: #ffc107;
+        color: black;
+        padding: 5px 10px;
+        font-size: 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-top: 5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .btn-itens-excluidos:hover {
+        background-color: #e0a800;
+        border-color: #e0a800;
+        color: black;
+    }
+    
+    .badge-excluidos {
+        background-color: #dc3545;
+        color: white;
+        border-radius: 10px;
+        padding: 1px 6px;
+        font-size: 10px;
+        margin-left: 5px;
+    }
+    
     /* Para impressão, ocultar botões de exclusão */
     @media print {
         .btn-excluir {
@@ -790,6 +820,10 @@
         .produto-nome-container {
             padding-right: 0;
         }
+        
+        .btn-itens-excluidos {
+            display: none !important;
+        }
     }
     </style>
 </head>
@@ -799,6 +833,12 @@
     <div class="top-buttons-container">
         <a href="/orcamentos_salvos" class="btn btn-custom-primary">
             <i class="fas fa-arrow-left me-1"></i> Voltar Para Orçamentos Salvos
+        </a>
+        
+        <!-- Botão para ver itens excluídos -->
+        <a href="/itens_excluidos_orcamento/{{ codigo_orcamento }}" class="btn btn-itens-excluidos" id="btnItensExcluidos">
+            <i class="fas fa-history"></i> Itens Removidos
+            <span class="badge-excluidos" id="contadorItensExcluidos">0</span>
         </a>
     </div>
     {% endif %}
@@ -1014,7 +1054,7 @@
                                     {% if not pdf %}
                                     <button class="btn-excluir" 
                                             onclick="excluirItem('{{ produto.id }}', '{{ ambiente_nome }}', '{{ descricao_nome }}', '{{ tipo_produto }}')"
-                                            title="Excluir item">
+                                            title="Remover apenas deste orçamento salvo (não exclui do sistema)">
                                         <i class="fas fa-trash"></i>
                                     </button>
                                     {% endif %}
@@ -1341,9 +1381,9 @@ let hiddenPaymentOptions = [];
     hiddenPaymentOptions = {{ exclude_payments|tojson }};
 {% endif %}
 
-// Função para excluir item do orçamento
+// Função para excluir item do orçamento salvo (APENAS da lista)
 function excluirItem(itemId, ambiente, descricao, tipoProduto) {
-    if (confirm('Tem certeza que deseja excluir este item do orçamento?')) {
+    if (confirm('Tem certeza que deseja remover este item do orçamento salvo?\n\n⚠️ Atenção: O item não será excluído do sistema, apenas removido desta lista.')) {
         // Preencher os campos do formulário de exclusão
         document.getElementById('itemIdExcluir').value = itemId;
         document.getElementById('ambienteExcluir').value = ambiente;
@@ -1521,15 +1561,26 @@ document.getElementById('btnSalvarRodape').addEventListener('click', function() 
     // Garantir que todos os valores estejam atualizados no formulário
     atualizarFormulario();
     
-    // DEBUG: Verificar os valores que estão sendo enviados
-    console.log('Prazo entrega:', document.getElementById('formPrazoEntrega').value);
-    console.log('Desconto à vista:', document.getElementById('formDescontoAvista').value);
-    console.log('Desconto parcelado:', document.getElementById('formDescontoParcelado').value);
-    console.log('Observações:', document.getElementById('formObservacoes').value);
-    console.log('Pagamentos excluídos:', document.getElementById('formExcludePayments').value);
-    
     document.getElementById('rodapeForm').submit();
 });
+
+// Função para carregar contador de itens excluídos
+function carregarContadorItensExcluidos() {
+    fetch(`/api/itens_excluidos_count/{{ codigo_orcamento }}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.count > 0) {
+                const contador = document.getElementById('contadorItensExcluidos');
+                if (contador) {
+                    contador.textContent = data.count;
+                    contador.style.display = 'inline-block';
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar contador:', error);
+        });
+}
 
 // Verificar se há mensagens de sucesso ou erro na URL
 document.addEventListener('DOMContentLoaded', function() {
@@ -1538,11 +1589,11 @@ document.addEventListener('DOMContentLoaded', function() {
     // Verificar se há parâmetro de sucesso na URL
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('item_excluido')) {
-        alert('Item excluído com sucesso! O orçamento foi atualizado.');
+        alert('Item removido do orçamento salvo com sucesso!\n\nO item não foi excluído do sistema, apenas removido desta lista.');
     }
     
     if (urlParams.has('erro')) {
-        alert('Erro ao excluir item. Tente novamente.');
+        alert('Erro ao remover item. Tente novamente.');
     }
     
     // Inicializar botões de ocultar/mostrar no PDF
@@ -1559,6 +1610,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Inicializar campos do formulário com valores atuais
     atualizarFormulario();
+    
+    // Carregar contador de itens excluídos
+    carregarContadorItensExcluidos();
 });
 </script>
 </body>
