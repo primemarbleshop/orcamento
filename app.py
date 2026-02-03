@@ -2073,21 +2073,42 @@ def orcamentos_json():
         except (ValueError, TypeError):
             limite_int = 15
 
-        # Construir query base (mesma lógica da rota original)
+        # 🔥 CORREÇÃO CRÍTICA: ADICIONAR OUTERJOINS PARA DESCRIÇÃO E PRODUTO
         if is_admin:
             query = db.session.query(
                 Orcamento,
-                Usuario.nome.label('nome_usuario')
-            ).join(Usuario, Orcamento.dono == Usuario.cpf)
+                Usuario.nome.label('nome_usuario'),
+                Cliente.nome.label('cliente_nome'),
+                Ambiente.nome.label('ambiente_nome'),
+                Descricao.nome.label('descricao_nome'),  # 🔥 ADICIONADO
+                Produto.nome.label('produto_nome'),      # 🔥 ADICIONADO
+                Material.nome.label('material_nome')
+            ).join(Usuario, Orcamento.dono == Usuario.cpf)\
+             .join(Cliente, Orcamento.cliente_id == Cliente.id)\
+             .join(Material, Orcamento.material_id == Material.id)\
+             .outerjoin(Ambiente, Orcamento.ambiente_id == Ambiente.id)\
+             .outerjoin(Descricao, Orcamento.descricao_id == Descricao.id)\  # 🔥 ADICIONADO
+             .outerjoin(Produto, Orcamento.produto_id == Produto.id)        # 🔥 ADICIONADO
         else:
             query = db.session.query(
                 Orcamento,
-                Usuario.nome.label('nome_usuario')
-            ).join(Usuario, Orcamento.dono == Usuario.cpf).filter(Orcamento.dono == user_cpf)
+                Usuario.nome.label('nome_usuario'),
+                Cliente.nome.label('cliente_nome'),
+                Ambiente.nome.label('ambiente_nome'),
+                Descricao.nome.label('descricao_nome'),  # 🔥 ADICIONADO
+                Produto.nome.label('produto_nome'),      # 🔥 ADICIONADO
+                Material.nome.label('material_nome')
+            ).join(Usuario, Orcamento.dono == Usuario.cpf)\
+             .join(Cliente, Orcamento.cliente_id == Cliente.id)\
+             .join(Material, Orcamento.material_id == Material.id)\
+             .outerjoin(Ambiente, Orcamento.ambiente_id == Ambiente.id)\
+             .outerjoin(Descricao, Orcamento.descricao_id == Descricao.id)\  # 🔥 ADICIONADO
+             .outerjoin(Produto, Orcamento.produto_id == Produto.id)\        # 🔥 ADICIONADO
+             .filter(Orcamento.dono == user_cpf)
 
-        # Aplicar filtros (mesma lógica da rota original)
+        # Aplicar filtros
         if filtro_cliente != 'Todos':
-            query = query.join(Cliente).filter(Cliente.nome == filtro_cliente)
+            query = query.filter(Cliente.nome == filtro_cliente)
         
         if filtro_data_inicio:
             try:
@@ -2114,15 +2135,15 @@ def orcamentos_json():
 
         # Formatar dados para JSON
         orcamentos_json = []
-        for orcamento, nome_usuario in orcamentos_data:
+        for orcamento, nome_usuario, cliente_nome, ambiente_nome, descricao_nome, produto_nome, material_nome in orcamentos_data:
             orcamentos_json.append({
                 'id': orcamento.id,
-                'cliente_nome': orcamento.cliente.nome,
-                'ambiente_nome': orcamento.ambiente.nome if orcamento.ambiente else 'Não definido',
-                'descricao_nome': orcamento.descricao.nome if orcamento.descricao else 'Não definido',
-                'produto_nome': orcamento.produto.nome if orcamento.produto else orcamento.tipo_produto,
+                'cliente_nome': cliente_nome,
+                'ambiente_nome': ambiente_nome if ambiente_nome else 'Não definido',
+                'descricao_nome': descricao_nome if descricao_nome else 'Não definido',  # 🔥 AGORA VEM DO JOIN
+                'produto_nome': produto_nome if produto_nome else 'Não definido',        # 🔥 AGORA VEM DO JOIN
                 'tipo_produto': orcamento.tipo_produto,
-                'material_nome': orcamento.material.nome,
+                'material_nome': material_nome,
                 'quantidade': orcamento.quantidade,
                 'comprimento': orcamento.comprimento,
                 'largura': orcamento.largura,
@@ -2140,6 +2161,7 @@ def orcamentos_json():
         })
 
     except Exception as e:
+        print(f"❌ Erro em /orcamentos/json: {str(e)}")  # Para debug
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/ordens_servico')
