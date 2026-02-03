@@ -2153,7 +2153,7 @@ def orcamentos_json():
                 'nome_usuario': nome_usuario,
                 'data_attr': orcamento.data.strftime('%Y-%m-%d %H:%M:%S')
             })
-
+ 
         return jsonify({
             'success': True,
             'orcamentos': orcamentos_json,
