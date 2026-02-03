@@ -902,7 +902,7 @@
     {% if not pdf %}
     <div class="top-buttons-container">
         <a href="/orcamentos_salvos" class="btn btn-custom-primary">
-            <i class="fas fa-arrow-left me-1"></i> Voltar 
+            <i class="fas fa-arrow-left me-1"></i> Voltar Para Orçamentos Salvos
         </a>
         
         <!-- Botão para ver itens excluídos (MODAL) -->
@@ -1486,7 +1486,10 @@ function excluirItem(itemId, ambiente, descricao, tipoProduto) {
     Swal.fire({
         title: 'Tem certeza?',
         html: `Deseja remover este item do orçamento salvo?<br><br>
-               
+               <strong>Atenção:</strong> O item não será excluído do sistema, apenas removido desta lista.<br>
+               <small>Ambiente: ${ambiente}<br>
+               Descrição: ${descricao}<br>
+               Tipo: ${tipoProduto}</small>`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#d33',
@@ -1875,23 +1878,67 @@ document.getElementById('btnSalvarRodape').addEventListener('click', function() 
     document.getElementById('rodapeForm').submit();
 });
 
-// Verificar se há mensagens de sucesso ou erro na URL
+// Verificar se há mensagens de sucesso ou erro na URL - CORRIGIDO
 document.addEventListener('DOMContentLoaded', function() {
     atualizarParcelamento();
     
+    // Verificar se há parâmetro de sucesso na URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasItemExcluido = urlParams.has('item_excluido');
+    const hasErro = urlParams.has('erro');
     
+    // Usar sessionStorage para controlar se a mensagem já foi mostrada nesta sessão
+    const mensagemExcluidoMostrada = sessionStorage.getItem('mensagem_excluido_mostrada_' + window.location.pathname);
+    const mensagemErroMostrada = sessionStorage.getItem('mensagem_erro_mostrada_' + window.location.pathname);
+    
+    // Só mostrar a mensagem se:
+    // 1. Houver o parâmetro na URL
+    // 2. A mensagem ainda não foi mostrada nesta sessão para esta página
+    // 3. Não estamos em modo de recarregamento (F5)
+    if (hasItemExcluido && !mensagemExcluidoMostrada && performance.navigation.type === 0) {
+        Swal.fire({
+            title: 'Item Removido!',
+            text: 'Item removido do orçamento salvo com sucesso!\n\nO item não foi excluído do sistema, apenas removido desta lista.',
+            icon: 'success',
+            confirmButtonText: 'OK'
+        }).then(() => {
+            // Marcar que a mensagem foi mostrada
+            sessionStorage.setItem('mensagem_excluido_mostrada_' + window.location.pathname, 'true');
+            
+            // Remover o parâmetro da URL sem recarregar
+            urlParams.delete('item_excluido');
+            const novaUrl = window.location.pathname + 
+                (urlParams.toString() ? '?' + urlParams.toString() : '');
+            window.history.replaceState({}, '', novaUrl);
+        });
+        
         // Atualizar contador
         carregarContadorItensExcluidos();
     }
     
-    if (urlParams.has('erro')) {
+    if (hasErro && !mensagemErroMostrada && performance.navigation.type === 0) {
         Swal.fire({
             title: 'Erro!',
             text: 'Erro ao remover item. Tente novamente.',
             icon: 'error',
             confirmButtonText: 'OK'
+        }).then(() => {
+            // Marcar que a mensagem foi mostrada
+            sessionStorage.setItem('mensagem_erro_mostrada_' + window.location.pathname, 'true');
+            
+            // Remover o parâmetro da URL sem recarregar
+            urlParams.delete('erro');
+            const novaUrl = window.location.pathname + 
+                (urlParams.toString() ? '?' + urlParams.toString() : '');
+            window.history.replaceState({}, '', novaUrl);
         });
     }
+    
+    // Limpar as flags quando o usuário sair da página
+    window.addEventListener('beforeunload', function() {
+        sessionStorage.removeItem('mensagem_excluido_mostrada_' + window.location.pathname);
+        sessionStorage.removeItem('mensagem_erro_mostrada_' + window.location.pathname);
+    });
     
     // Inicializar botões de ocultar/mostrar no PDF
     document.querySelectorAll('.btn-toggle-pdf').forEach(button => {
@@ -1908,7 +1955,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Inicializar campos do formulário com valores atuais
     atualizarFormulario();
     
-    // Carregar contador de itens excluídos
+    // Carregar contador de itens excluídos (sempre carregar, mesmo sem mensagem)
     carregarContadorItensExcluidos();
 });
 </script>
