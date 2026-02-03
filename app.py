@@ -2657,6 +2657,53 @@ def itens_excluidos_orcamento(codigo):
         total_itens=len(itens_disponiveis)
     )
 
+@app.route('/api/itens_excluidos_modal/<codigo>')
+def itens_excluidos_modal(codigo):
+    """API para carregar itens excluídos no modal"""
+    try:
+        if 'user_cpf' not in session:
+            return jsonify({"success": False, "error": "Não autenticado"}), 401
+        
+        orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
+        if not orcamento_salvo:
+            return jsonify({"success": False, "error": "Orçamento não encontrado"}), 404
+        
+        # IDs atuais no orçamento salvo
+        ids_atuais = [int(id.strip()) for id in orcamento_salvo.orcamentos_ids.split(',') if id.strip().isdigit()]
+        
+        if not ids_atuais:
+            return jsonify({"success": True, "itens": []})
+        
+        primeiro_orcamento = Orcamento.query.get(ids_atuais[0])
+        if not primeiro_orcamento:
+            return jsonify({"success": True, "itens": []})
+        
+        # Todos os orçamentos deste cliente
+        todos_orcamentos_cliente = Orcamento.query.filter_by(cliente_id=primeiro_orcamento.cliente_id).all()
+        
+        # Filtrar os que NÃO estão no orçamento salvo
+        itens_disponiveis = []
+        for orc in todos_orcamentos_cliente:
+            if orc.id not in ids_atuais:
+                itens_disponiveis.append({
+                    'id': orc.id,
+                    'tipo_produto': orc.tipo_produto,
+                    'produto_nome': orc.produto.nome if orc.produto else None,
+                    'material_nome': orc.material.nome if orc.material else '',
+                    'comprimento': orc.comprimento,
+                    'largura': orc.largura,
+                    'quantidade': orc.quantidade,
+                    'valor_total': orc.valor_total,
+                    'cliente_nome': orc.cliente.nome if orc.cliente else '',
+                    'ambiente_nome': orc.ambiente.nome if orc.ambiente else None,
+                    'descricao_nome': orc.descricao.nome if orc.descricao else None
+                })
+        
+        return jsonify({"success": True, "itens": itens_disponiveis})
+    
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
 
 
 if __name__ == '__main__':
