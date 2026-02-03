@@ -1273,59 +1273,94 @@ def listar_orcamentos_salvos():
 
 @app.route('/detalhes_orcamento_salvo/<codigo>')
 def detalhes_orcamento_salvo(codigo):
+    # Verificar se o usuário está logado
+    if 'user_cpf' not in session:
+        flash("Você precisa fazer login para acessar esta página.", "error")
+        return redirect(url_for('login'))
+    
+    # Buscar o orçamento salvo
     orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
-
+    
     if not orcamento_salvo:
         flash("Orçamento salvo não encontrado!", "danger")
         return redirect(url_for('listar_orcamentos_salvos'))
-
-    ids = [int(id) for id in orcamento_salvo.orcamentos_ids.split(",")]
+    
+    # Verificar permissões
+    usuario = Usuario.query.filter_by(cpf=session.get('user_cpf')).first()
+    is_admin = session.get('admin')
+    
+    # Admin pode ver tudo, usuário comum só vê seus próprios orçamentos
+    if not is_admin and orcamento_salvo.criado_por != usuario.nome:
+        flash("Você não tem permissão para acessar este orçamento!", "error")
+        return redirect(url_for('listar_orcamentos_salvos'))
+    
+    # Buscar os orçamentos vinculados
+    ids = [int(id) for id in orcamento_salvo.orcamentos_ids.split(",") if id.strip()]
     orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
     
-    # NOVO: Agrupar orçamentos por AMBIENTE primeiro
-    ambientes_agrupados = {}
-    for orcamento in orcamentos:
-        ambiente_nome = orcamento.ambiente.nome if orcamento.ambiente else 'Sem Ambiente'
-        
-        if ambiente_nome not in ambientes_agrupados:
-            ambientes_agrupados[ambiente_nome] = {}
-        
-        # DENTRO de cada ambiente, agrupar por DESCRIÇÃO
-        descricao_nome = orcamento.descricao.nome if orcamento.descricao else 'Sem Descrição'
-        
-        if descricao_nome not in ambientes_agrupados[ambiente_nome]:
-            ambientes_agrupados[ambiente_nome][descricao_nome] = {}
-        
-        # DENTRO de cada descrição, agrupar por TIPO DE PRODUTO
-        tipo_produto = orcamento.tipo_produto
-        if tipo_produto not in ambientes_agrupados[ambiente_nome][descricao_nome]:
-            ambientes_agrupados[ambiente_nome][descricao_nome][tipo_produto] = []
-        
-        ambientes_agrupados[ambiente_nome][descricao_nome][tipo_produto].append(orcamento)
-
+    if not orcamentos:
+        flash("Orçamento salvo não contém itens válidos!", "danger")
+        return redirect(url_for('listar_orcamentos_salvos'))
+    
+    # Usar a função auxiliar para criar os agrupamentos
+    ambientes_agrupados = recriar_agrupamentos_orcamento(codigo)
+    
+    # Se a função retornar None (erro), criar estrutura manualmente como fallback
+    if ambientes_agrupados is None:
+        ambientes_agrupados = {}
+        for orcamento in orcamentos:
+            ambiente_nome = orcamento.ambiente.nome if orcamento.ambiente else 'Sem Ambiente'
+            
+            if ambiente_nome not in ambientes_agrupados:
+                ambientes_agrupados[ambiente_nome] = {}
+            
+            descricao_nome = orcamento.descricao.nome if orcamento.descricao else 'Sem Descrição'
+            
+            if descricao_nome not in ambientes_agrupados[ambiente_nome]:
+                ambientes_agrupados[ambiente_nome][descricao_nome] = {}
+            
+            tipo_produto = orcamento.tipo_produto
+            if tipo_produto not in ambientes_agrupados[ambiente_nome][descricao_nome]:
+                ambientes_agrupados[ambiente_nome][descricao_nome][tipo_produto] = []
+            
+            ambientes_agrupados[ambiente_nome][descricao_nome][tipo_produto].append(orcamento)
+    
+    # Calcular valor total
     valor_total_final = sum(o.valor_total for o in orcamentos)
     valor_total_float = valor_total_final
-
+    
+    # Configurar logo URL
     logo_url = "https://orcamento-t9w2.onrender.com/static/logo.jpg"
     
+    # Obter informações do usuário
     usuario = Usuario.query.filter_by(cpf=session.get('user_cpf')).first()
     telefone_usuario = usuario.telefone if usuario else ""
-
+    
+    # Obter informações do cliente do primeiro orçamento
+    cliente_nome = orcamentos[0].cliente.nome if orcamentos else "Desconhecido"
+    
+    # Obter configurações do rodapé do orçamento salvo (com valores padrão como fallback)
     prazo_entrega = orcamento_salvo.prazo_entrega if orcamento_salvo.prazo_entrega is not None else 15
     desconto_avista = orcamento_salvo.desconto_avista if orcamento_salvo.desconto_avista is not None else 5
     desconto_parcelado = orcamento_salvo.desconto_parcelado if orcamento_salvo.desconto_parcelado is not None else 10
     observacoes = orcamento_salvo.observacoes if orcamento_salvo.observacoes is not None else "Medidas sujeitas a confirmação no local. Valores válidos por 7 dias."
     
+    # Obter opções de pagamento excluídas
     exclude_payments = orcamento_salvo.exclude_payments.split(',') if orcamento_salvo.exclude_payments else []
-
+    
+    # Verificar se há parâmetros de URL para mensagens de sucesso/erro
+    item_excluido = request.args.get('item_excluido')
+    erro = request.args.get('erro')
+    
+    # Renderizar o template
     return render_template(
         "detalhes_orcamento_salvo.html",
         logo_url=logo_url,
         codigo_orcamento=orcamento_salvo.codigo,
         data_salvo=orcamento_salvo.data_salvo,
-        cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
+        cliente_nome=cliente_nome,
         orcamentos=orcamentos,
-        ambientes_agrupados=ambientes_agrupados,  # Estrutura: Ambiente -> Descrição -> Tipo de Produto
+        ambientes_agrupados=ambientes_agrupados,
         valor_total_final="R$ {:,.2f}".format(valor_total_final).replace(",", "X").replace(".", ",").replace("X", "."),
         valor_total_float=valor_total_float,
         telefone_usuario=telefone_usuario,
@@ -1333,9 +1368,106 @@ def detalhes_orcamento_salvo(codigo):
         desconto_avista=desconto_avista,
         desconto_parcelado=desconto_parcelado,
         observacoes=observacoes,
-        exclude_payments=exclude_payments
+        exclude_payments=exclude_payments,
+        # Passar parâmetro para saber se estamos em modo PDF ou não
+        pdf=False,
+        # Passar o usuário atual para verificar permissões no template
+        usuario_atual=usuario,
+        is_admin=is_admin
     )
 
+def recriar_agrupamentos_orcamento(codigo_orcamento):
+    """
+    Função auxiliar para recriar os agrupamentos de um orçamento salvo.
+    Estrutura: Ambiente -> Descrição -> Tipo de Produto -> Lista de Produtos
+    """
+    try:
+        orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo_orcamento).first()
+        
+        if not orcamento_salvo:
+            print(f"⚠️ Orçamento salvo não encontrado: {codigo_orcamento}")
+            return None
+        
+        # Extrair IDs dos orçamentos (com validação)
+        ids_str = orcamento_salvo.orcamentos_ids
+        if not ids_str or not ids_str.strip():
+            print(f"⚠️ Lista de IDs vazia para orçamento: {codigo_orcamento}")
+            return {}
+        
+        ids = []
+        for id_str in ids_str.split(','):
+            id_str = id_str.strip()
+            if id_str and id_str.isdigit():
+                ids.append(int(id_str))
+            else:
+                print(f"⚠️ ID inválido ignorado: '{id_str}'")
+        
+        if not ids:
+            print(f"⚠️ Nenhum ID válido encontrado para orçamento: {codigo_orcamento}")
+            return {}
+        
+        # Buscar orçamentos
+        orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
+        
+        if not orcamentos:
+            print(f"⚠️ Nenhum orçamento encontrado para os IDs: {ids}")
+            return {}
+        
+        # Reagrupar por ambiente -> descrição -> tipo de produto
+        ambientes_agrupados = {}
+        
+        for orcamento in orcamentos:
+            # Obter nome do ambiente
+            if orcamento.ambiente:
+                ambiente_nome = orcamento.ambiente.nome
+            else:
+                ambiente_nome = 'Sem Ambiente'
+                print(f"ℹ️ Orçamento {orcamento.id} sem ambiente definido")
+            
+            # Inicializar o ambiente se não existir
+            if ambiente_nome not in ambientes_agrupados:
+                ambientes_agrupados[ambiente_nome] = {}
+            
+            # Obter nome da descrição
+            if orcamento.descricao:
+                descricao_nome = orcamento.descricao.nome
+            else:
+                descricao_nome = 'Sem Descrição'
+                print(f"ℹ️ Orçamento {orcamento.id} sem descrição definida")
+            
+            # Inicializar a descrição se não existir
+            if descricao_nome not in ambientes_agrupados[ambiente_nome]:
+                ambientes_agrupados[ambiente_nome][descricao_nome] = {}
+            
+            # Obter tipo de produto
+            tipo_produto = orcamento.tipo_produto
+            if not tipo_produto:
+                tipo_produto = 'Não especificado'
+                print(f"ℹ️ Orçamento {orcamento.id} sem tipo de produto definido")
+            
+            # Inicializar o tipo de produto se não existir
+            if tipo_produto not in ambientes_agrupados[ambiente_nome][descricao_nome]:
+                ambientes_agrupados[ambiente_nome][descricao_nome][tipo_produto] = []
+            
+            # Adicionar o orçamento à lista correta
+            ambientes_agrupados[ambiente_nome][descricao_nome][tipo_produto].append(orcamento)
+        
+        # Log para debug
+        print(f"✅ Agrupamentos recriados para {codigo_orcamento}:")
+        for ambiente, descricoes in ambientes_agrupados.items():
+            print(f"  📍 {ambiente}: {len(descricoes)} descrições")
+            for descricao, tipos in descricoes.items():
+                print(f"    📝 {descricao}: {len(tipos)} tipos de produto")
+                total_itens = sum(len(produtos) for produtos in tipos.values())
+                print(f"      📦 Total de itens nesta descrição: {total_itens}")
+        
+        return ambientes_agrupados
+    
+    except Exception as e:
+        print(f"❌ Erro ao recriar agrupamentos para {codigo_orcamento}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return None
 
 @app.route('/orcamentos_salvos')
 def orcamentos_salvos():
@@ -2455,45 +2587,7 @@ def excluir_item_orcamento(codigo):
         flash(f"Erro ao excluir item: {str(e)}", "error")
         return redirect(url_for('detalhes_orcamento_salvo', codigo=codigo, erro='true'))
 
-def recriar_agrupamentos_orcamento(codigo_orcamento):
-    """
-    Função auxiliar para recriar os agrupamentos de um orçamento salvo.
-    Esta função não precisa ser uma rota, apenas uma função auxiliar.
-    """
-    try:
-        orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo_orcamento).first()
-        
-        if not orcamento_salvo:
-            return None
-        
-        ids = [int(id) for id in orcamento_salvo.orcamentos_ids.split(",")]
-        orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
-        
-        # Reagrupar por ambiente -> descrição -> tipo de produto
-        ambientes_agrupados = {}
-        
-        for orcamento in orcamentos:
-            ambiente_nome = orcamento.ambiente.nome if orcamento.ambiente else 'Sem Ambiente'
-            
-            if ambiente_nome not in ambientes_agrupados:
-                ambientes_agrupados[ambiente_nome] = {}
-            
-            descricao_nome = orcamento.descricao.nome if orcamento.descricao else 'Sem Descrição'
-            
-            if descricao_nome not in ambientes_agrupados[ambiente_nome]:
-                ambientes_agrupados[ambiente_nome][descricao_nome] = {}
-            
-            tipo_produto = orcamento.tipo_produto
-            if tipo_produto not in ambientes_agrupados[ambiente_nome][descricao_nome]:
-                ambientes_agrupados[ambiente_nome][descricao_nome][tipo_produto] = []
-            
-            ambientes_agrupados[ambiente_nome][descricao_nome][tipo_produto].append(orcamento)
-        
-        return ambientes_agrupados
-    
-    except Exception as e:
-        print(f"Erro ao recriar agrupamentos: {str(e)}")
-        return None
+
 
 if __name__ == '__main__':
     criar_banco()
