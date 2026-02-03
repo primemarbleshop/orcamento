@@ -742,6 +742,55 @@
     .detalhes-orcamento {
         margin-top: 3px;
     }
+
+    /* NOVOS ESTILOS PARA BOTÃO DE EXCLUIR */
+    .btn-excluir {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        padding: 2px 6px;
+        cursor: pointer;
+        font-size: 10px;
+        border-radius: 3px;
+        margin-left: 5px;
+        transition: background-color 0.2s;
+    }
+    
+    .btn-excluir:hover {
+        background-color: #c82333;
+    }
+    
+    .excluir-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+    }
+    
+    .produto-nome-container {
+        flex: 1;
+        min-width: 0;
+        padding-right: 5px;
+    }
+    
+    .btn-excluir i {
+        font-size: 9px;
+    }
+    
+    /* Para impressão, ocultar botões de exclusão */
+    @media print {
+        .btn-excluir {
+            display: none !important;
+        }
+        
+        .excluir-container {
+            display: block;
+        }
+        
+        .produto-nome-container {
+            padding-right: 0;
+        }
+    }
     </style>
 </head>
 <body>
@@ -791,7 +840,7 @@
 
     </br></br></br></br>
 
- {% for ambiente_nome, descricoes in ambientes_agrupados.items() %}
+{% for ambiente_nome, descricoes in ambientes_agrupados.items() %}
 {% set ambiente_total = namespace(value=0) %}
 
 <!-- Vamos primeiro coletar todos os tipos de produtos para determinar os campos necessários -->
@@ -957,7 +1006,20 @@
                     {% for tipo_produto, produtos in tipos_produtos.items() %}
                         {% for produto in produtos %}
                         <tr>
-                            <td>{{ produto.produto.nome if produto.produto else tipo_produto }}</td> 
+                            <td>
+                                <div class="excluir-container">
+                                    <div class="produto-nome-container">
+                                        {{ produto.produto.nome if produto.produto else tipo_produto }}
+                                    </div>
+                                    {% if not pdf %}
+                                    <button class="btn-excluir" 
+                                            onclick="excluirItem('{{ produto.id }}', '{{ ambiente_nome }}', '{{ descricao_nome }}', '{{ tipo_produto }}')"
+                                            title="Excluir item">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
                             <td>{{ produto.material.nome }}</td>                            
                             <td>{{ produto.quantidade }}</td>
                             <td>{{ produto.comprimento }} cm</td>
@@ -1250,13 +1312,20 @@
         <button type="button" id="btnSalvarRodape" class="btn-save-rodape">
             <i class="fas fa-save me-1"></i> Salvar Alterações do Rodapé
         </button>
-    </div>
-    <div>    
+        
         <!-- Botão Gerar PDF com parâmetros de exclusão -->
         <a href="/gerar_pdf_orcamento/{{ codigo_orcamento }}?exclude_payments={{ exclude_payments|join(',') }}" class="btn btn-custom-success btn-pdf" id="btnGerarPDF" title="Gerar PDF">
             <i class="fas fa-file-pdf"></i> Gerar PDF
         </a>
     </div>
+    
+    <!-- Formulário para exclusão de item (escondido) -->
+    <form id="formExcluirItem" method="POST" action="{{ url_for('excluir_item_orcamento', codigo=codigo_orcamento) }}" style="display: none;">
+        <input type="hidden" id="itemIdExcluir" name="item_id">
+        <input type="hidden" id="ambienteExcluir" name="ambiente">
+        <input type="hidden" id="descricaoExcluir" name="descricao">
+        <input type="hidden" id="tipoProdutoExcluir" name="tipo_produto">
+    </form>
     {% endif %}
 
 </div>
@@ -1271,6 +1340,20 @@ let hiddenPaymentOptions = [];
 {% if exclude_payments %}
     hiddenPaymentOptions = {{ exclude_payments|tojson }};
 {% endif %}
+
+// Função para excluir item do orçamento
+function excluirItem(itemId, ambiente, descricao, tipoProduto) {
+    if (confirm('Tem certeza que deseja excluir este item do orçamento?')) {
+        // Preencher os campos do formulário de exclusão
+        document.getElementById('itemIdExcluir').value = itemId;
+        document.getElementById('ambienteExcluir').value = ambiente;
+        document.getElementById('descricaoExcluir').value = descricao;
+        document.getElementById('tipoProdutoExcluir').value = tipoProduto;
+        
+        // Submeter o formulário
+        document.getElementById('formExcluirItem').submit();
+    }
+}
 
 // Função para alternar visibilidade no PDF
 function togglePdfVisibility(paymentOptionId) {
@@ -1299,7 +1382,7 @@ function togglePdfVisibility(paymentOptionId) {
     updatePdfButtonLink();
 }
 
-// NOVA FUNÇÃO: Atualizar o link do botão Gerar PDF
+// Função para atualizar o link do botão Gerar PDF
 function updatePdfButtonLink() {
     const pdfButton = document.getElementById('btnGerarPDF');
     if (pdfButton) {
@@ -1423,9 +1506,9 @@ function atualizarValorComDesconto(field, desconto) {
     valorElement.textContent = formatarMoeda(valorFinal);
 }
 
-// NOVA FUNÇÃO: Atualizar todos os campos do formulário com os valores atuais
+// Função para atualizar todos os campos do formulário com os valores atuais
 function atualizarFormulario() {
-    // CORREÇÃO: Usar textContent em vez de value para elementos de exibição
+    // Usar textContent em vez de value para elementos de exibição
     document.getElementById('formPrazoEntrega').value = document.getElementById('deliveryDaysDisplay').textContent;
     document.getElementById('formDescontoAvista').value = document.getElementById('discount1Display').textContent;
     document.getElementById('formDescontoParcelado').value = document.getElementById('discount2Display').textContent;
@@ -1433,7 +1516,7 @@ function atualizarFormulario() {
     document.getElementById('formExcludePayments').value = hiddenPaymentOptions.join(',');
 }
 
-// Event listener para o botão Salvar Alterações do Rodapé - MODIFICADO
+// Event listener para o botão Salvar Alterações do Rodapé
 document.getElementById('btnSalvarRodape').addEventListener('click', function() {
     // Garantir que todos os valores estejam atualizados no formulário
     atualizarFormulario();
@@ -1448,9 +1531,19 @@ document.getElementById('btnSalvarRodape').addEventListener('click', function() 
     document.getElementById('rodapeForm').submit();
 });
 
-// Inicializar quando o documento estiver carregado
+// Verificar se há mensagens de sucesso ou erro na URL
 document.addEventListener('DOMContentLoaded', function() {
     atualizarParcelamento();
+    
+    // Verificar se há parâmetro de sucesso na URL
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.has('item_excluido')) {
+        alert('Item excluído com sucesso! O orçamento foi atualizado.');
+    }
+    
+    if (urlParams.has('erro')) {
+        alert('Erro ao excluir item. Tente novamente.');
+    }
     
     // Inicializar botões de ocultar/mostrar no PDF
     document.querySelectorAll('.btn-toggle-pdf').forEach(button => {
