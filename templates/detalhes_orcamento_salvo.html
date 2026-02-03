@@ -1,3 +1,5 @@
+[file name]: detalhes_orcamento_salvo.html
+[file content begin]
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
@@ -6,6 +8,8 @@
     <title>Detalhes dos Orçamentos</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <style>
     /* Estilos mantidos conforme o código original */
     .main-container {
@@ -1248,7 +1252,7 @@
     {% endfor %} <!-- FECHAMENTO DO LOOP DAS DESCRIÇÕES -->
     
 </div> <!-- FECHAMENTO DA DIV .ambiente-completo -->
-{% endfor %} <!-- FECHAMENTO DO LOOP DOS AMBIENTES %}
+{% endfor %} <!-- FECHAMENTO DO LOOP DOS AMBIENTES}
 
     <!-- Rodapé do orçamento -->
     <div class="orcamento-footer">
@@ -1464,6 +1468,8 @@
     </div>
 </div>
 
+<!-- SweetAlert2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
 // Variáveis globais para armazenar os valores
@@ -1476,18 +1482,34 @@ let hiddenPaymentOptions = [];
     hiddenPaymentOptions = {{ exclude_payments|tojson }};
 {% endif %}
 
-// Função para excluir item do orçamento salvo (APENAS da lista)
+// Função para excluir item do orçamento salvo (APENAS da lista) - COM SweetAlert2
 function excluirItem(itemId, ambiente, descricao, tipoProduto) {
-    if (confirm('Tem certeza que deseja remover este item do orçamento salvo?\n\n⚠️ Atenção: O item não será excluído do sistema, apenas removido desta lista.')) {
-        // Preencher os campos do formulário de exclusão
-        document.getElementById('itemIdExcluir').value = itemId;
-        document.getElementById('ambienteExcluir').value = ambiente;
-        document.getElementById('descricaoExcluir').value = descricao;
-        document.getElementById('tipoProdutoExcluir').value = tipoProduto;
-        
-        // Submeter o formulário
-        document.getElementById('formExcluirItem').submit();
-    }
+    Swal.fire({
+        title: 'Tem certeza?',
+        html: `Deseja remover este item do orçamento salvo?<br><br>
+               <strong>Atenção:</strong> O item não será excluído do sistema, apenas removido desta lista.<br>
+               <small>Ambiente: ${ambiente}<br>
+               Descrição: ${descricao}<br>
+               Tipo: ${tipoProduto}</small>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sim, remover!',
+        cancelButtonText: 'Cancelar',
+        width: '500px'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Preencher os campos do formulário de exclusão
+            document.getElementById('itemIdExcluir').value = itemId;
+            document.getElementById('ambienteExcluir').value = ambiente;
+            document.getElementById('descricaoExcluir').value = descricao;
+            document.getElementById('tipoProdutoExcluir').value = tipoProduto;
+            
+            // Submeter o formulário
+            document.getElementById('formExcluirItem').submit();
+        }
+    });
 }
 
 // Função para abrir modal de itens excluídos
@@ -1524,7 +1546,7 @@ function carregarItensExcluidosModal() {
                     let html = `
                         <div class="alert alert-info">
                             <i class="fas fa-info-circle me-2"></i>
-                            Total de ${data.itens.length} itens disponíveis para restaurar ao orçamento.
+                            Total de ${data.itens.length} itens removidos deste orçamento.
                         </div>
                     `;
                     
@@ -1538,9 +1560,11 @@ function carregarItensExcluidosModal() {
                                             ${item.produto_nome ? ' - ' + item.produto_nome : ''}
                                         </h6>
                                         <small class="text-muted">ID: ${item.id} | Cliente: ${item.cliente_nome}</small>
+                                        <div class="mt-1">
+                                            <span class="badge-status-modal">Removido em: ${item.data_remocao}</span>
+                                        </div>
                                     </div>
                                     <div>
-                                        <span class="badge-status-modal">Removido</span>
                                         <button class="btn-restaurar-modal ms-2" onclick="restaurarItemModal(${item.id})">
                                             <i class="fas fa-undo me-1"></i> Restaurar
                                         </button>
@@ -1587,7 +1611,7 @@ function carregarItensExcluidosModal() {
                         <div class="empty-state-modal">
                             <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
                             <h5>Nenhum item removido</h5>
-                            <p class="text-muted">Todos os itens deste cliente estão atualmente no orçamento.</p>
+                            <p class="text-muted">Nenhum item foi removido deste orçamento até o momento.</p>
                         </div>
                     `;
                 }
@@ -1611,37 +1635,56 @@ function carregarItensExcluidosModal() {
         });
 }
 
-// Função para restaurar item direto do modal
+// Função para restaurar item direto do modal - COM SweetAlert2
 function restaurarItemModal(itemId) {
-    if (confirm('Deseja restaurar este item ao orçamento?')) {
-        fetch(`/restaurar_item_orcamento/{{ codigo_orcamento }}/${itemId}`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                alert('Item restaurado com sucesso!');
-                // Atualizar contador
-                carregarContadorItensExcluidos();
-                // Fechar o modal
-                const modal = bootstrap.Modal.getInstance(document.getElementById('modalItensExcluidos'));
-                modal.hide();
-                // Recarregar página principal
-                setTimeout(() => {
-                    window.location.reload();
-                }, 500);
-            } else {
-                alert('Erro ao restaurar item: ' + data.error);
-            }
-        })
-        .catch(error => {
-            console.error('Erro:', error);
-            alert('Erro ao restaurar item');
-        });
-    }
+    Swal.fire({
+        title: 'Restaurar Item',
+        text: 'Deseja restaurar este item ao orçamento?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sim, restaurar!',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/restaurar_item_orcamento/{{ codigo_orcamento }}/${itemId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: 'Sucesso!',
+                        text: 'Item restaurado com sucesso!',
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    }).then(() => {
+                        // Atualizar contador
+                        carregarContadorItensExcluidos();
+                        // Fechar o modal
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('modalItensExcluidos'));
+                        if (modal) {
+                            modal.hide();
+                        }
+                        // Recarregar página principal
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 500);
+                    });
+                } else {
+                    Swal.fire('Erro!', 'Erro ao restaurar item: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                Swal.fire('Erro!', 'Erro ao restaurar item', 'error');
+            });
+        }
+    });
 }
 
 // Função para alternar visibilidade no PDF
@@ -1843,13 +1886,23 @@ document.addEventListener('DOMContentLoaded', function() {
     // Verificar se há parâmetro de sucesso na URL
     const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.has('item_excluido')) {
-        alert('Item removido do orçamento salvo com sucesso!\n\nO item não foi excluído do sistema, apenas removido desta lista.');
+        Swal.fire({
+            title: 'Item Removido!',
+            text: 'Item removido do orçamento salvo com sucesso!\n\nO item não foi excluído do sistema, apenas removido desta lista.',
+            icon: 'success',
+            confirmButtonText: 'OK'
+        });
         // Atualizar contador
         carregarContadorItensExcluidos();
     }
     
     if (urlParams.has('erro')) {
-        alert('Erro ao remover item. Tente novamente.');
+        Swal.fire({
+            title: 'Erro!',
+            text: 'Erro ao remover item. Tente novamente.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
     }
     
     // Inicializar botões de ocultar/mostrar no PDF
