@@ -106,6 +106,17 @@ class Produto(db.Model):
     
     __table_args__ = (db.UniqueConstraint('nome', 'dono', name='_produto_nome_dono_uc'),)
 
+class ItemRemovidoOrcamento(db.Model):
+    __tablename__ = 'item_removido_orcamento'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    orcamento_salvo_codigo = db.Column(db.String, db.ForeignKey('orcamento_salvo.codigo', ondelete='CASCADE'), nullable=False)
+    item_id = db.Column(db.Integer, nullable=False)
+    cliente_id = db.Column(db.Integer, nullable=False)
+    data_remocao = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    __table_args__ = (db.UniqueConstraint('orcamento_salvo_codigo', 'item_id', name='_unique_remocao_item'),)
+
 class OrcamentoSalvo(db.Model):
     __tablename__ = 'orcamento_salvo'
     
@@ -1531,7 +1542,12 @@ def deletar_orcamento_salvo(orcamento_id):
         if not orcamento:
             return jsonify({"error": "Orçamento não encontrado."}), 404
 
-        # 🔥 CORREÇÃO: Primeiro exclui os desenhos associados
+        # 🔥 CORREÇÃO: Excluir registros de remoção associados
+        ItemRemovidoOrcamento.query.filter_by(
+            orcamento_salvo_codigo=orcamento.codigo
+        ).delete()
+        
+        # 🔥 Excluir desenhos associados
         DesenhoOrdemServico.query.filter_by(orcamento_salvo_codigo=orcamento.codigo).delete()
         
         # Depois exclui o orçamento salvo
@@ -2525,8 +2541,21 @@ def excluir_item_orcamento(codigo):
             flash("Este item não pertence a este orçamento!", "error")
             return redirect(url_for('detalhes_orcamento_salvo', codigo=codigo))
         
-        # 🔥 MUDANÇA PRINCIPAL: NÃO EXCLUIR DO BANCO DE DADOS
-        # Apenas remover da lista de IDs do orçamento salvo
+        # 🔥 REGISTRAR REMOÇÃO antes de remover da lista
+        # Verificar se já existe registro para este item
+        remocao_existente = ItemRemovidoOrcamento.query.filter_by(
+            orcamento_salvo_codigo=codigo,
+            item_id=item_id
+        ).first()
+        
+        if not remocao_existente:
+            # Criar novo registro de remoção
+            nova_remocao = ItemRemovidoOrcamento(
+                orcamento_salvo_codigo=codigo,
+                item_id=item_id,
+                cliente_id=orcamento_item.cliente_id
+            )
+            db.session.add(nova_remocao)
         
         # Remover o ID do item excluído da lista de IDs
         orcamento_ids_atualizados = [id.strip() for id in orcamento_ids if id.strip() != str(item_id)]
@@ -2596,6 +2625,12 @@ def restaurar_item_orcamento(codigo, item_id):
         orcamento_ids.append(str(item_id))
         orcamento_salvo.orcamentos_ids = ','.join(orcamento_ids)
         
+        # 🔥 REMOVER REGISTRO DE REMOÇÃO
+        ItemRemovidoOrcamento.query.filter_by(
+            orcamento_salvo_codigo=codigo,
+            item_id=item_id
+        ).delete()
+        
         # Recalcular valor total
         orcamentos = Orcamento.query.filter(
             Orcamento.id.in_([int(id) for id in orcamento_ids if id.strip().isdigit()])
@@ -2659,7 +2694,7 @@ def itens_excluidos_orcamento(codigo):
 
 @app.route('/api/itens_excluidos_modal/<codigo>')
 def itens_excluidos_modal(codigo):
-    """API para carregar itens excluídos no modal"""
+    """API para carregar itens EXCLUÍDOS (removidos) deste orçamento específico"""
     try:
         if 'user_cpf' not in session:
             return jsonify({"success": False, "error": "Não autenticado"}), 401
@@ -2668,38 +2703,50 @@ def itens_excluidos_modal(codigo):
         if not orcamento_salvo:
             return jsonify({"success": False, "error": "Orçamento não encontrado"}), 404
         
-        # IDs atuais no orçamento salvo
-        ids_atuais = [int(id.strip()) for id in orcamento_salvo.orcamentos_ids.split(',') if id.strip().isdigit()]
+        # Buscar itens registrados como removidos deste orçamento
+        remocoes = ItemRemovidoOrcamento.query.filter_by(
+            orcamento_salvo_codigo=codigo
+        ).all()
         
-        if not ids_atuais:
-            return jsonify({"success": True, "itens": []})
+        itens_removidos = []
         
-        primeiro_orcamento = Orcamento.query.get(ids_atuais[0])
-        if not primeiro_orcamento:
-            return jsonify({"success": True, "itens": []})
-        
-        # Todos os orçamentos deste cliente
-        todos_orcamentos_cliente = Orcamento.query.filter_by(cliente_id=primeiro_orcamento.cliente_id).all()
-        
-        # Filtrar os que NÃO estão no orçamento salvo
-        itens_disponiveis = []
-        for orc in todos_orcamentos_cliente:
-            if orc.id not in ids_atuais:
-                itens_disponiveis.append({
-                    'id': orc.id,
-                    'tipo_produto': orc.tipo_produto,
-                    'produto_nome': orc.produto.nome if orc.produto else None,
-                    'material_nome': orc.material.nome if orc.material else '',
-                    'comprimento': orc.comprimento,
-                    'largura': orc.largura,
-                    'quantidade': orc.quantidade,
-                    'valor_total': orc.valor_total,
-                    'cliente_nome': orc.cliente.nome if orc.cliente else '',
-                    'ambiente_nome': orc.ambiente.nome if orc.ambiente else None,
-                    'descricao_nome': orc.descricao.nome if orc.descricao else None
+        for remocao in remocoes:
+            orcamento = Orcamento.query.get(remocao.item_id)
+            
+            if orcamento:  # Se o item ainda existe no sistema
+                itens_removidos.append({
+                    'id': orcamento.id,
+                    'tipo_produto': orcamento.tipo_produto,
+                    'produto_nome': orcamento.produto.nome if orcamento.produto else None,
+                    'material_nome': orcamento.material.nome if orcamento.material else '',
+                    'comprimento': orcamento.comprimento,
+                    'largura': orcamento.largura,
+                    'quantidade': orcamento.quantidade,
+                    'valor_total': orcamento.valor_total,
+                    'cliente_nome': orcamento.cliente.nome if orcamento.cliente else '',
+                    'ambiente_nome': orcamento.ambiente.nome if orcamento.ambiente else None,
+                    'descricao_nome': orcamento.descricao.nome if orcamento.descricao else None,
+                    'data_remocao': remocao.data_remocao.strftime('%d/%m/%Y %H:%M') if remocao.data_remocao else ''
                 })
         
-        return jsonify({"success": True, "itens": itens_disponiveis})
+        return jsonify({"success": True, "itens": itens_removidos})
+    
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+@app.route('/api/itens_excluidos_count/<codigo>')
+def itens_excluidos_count(codigo):
+    """API para contar quantos itens foram removidos deste orçamento"""
+    try:
+        if 'user_cpf' not in session:
+            return jsonify({"success": False, "error": "Não autenticado"}), 401
+        
+        # Contar itens removidos deste orçamento
+        count = db.session.query(db.func.count(ItemRemovidoOrcamento.id)).filter_by(
+            orcamento_salvo_codigo=codigo
+        ).scalar() or 0
+        
+        return jsonify({"success": True, "count": count})
     
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 500
