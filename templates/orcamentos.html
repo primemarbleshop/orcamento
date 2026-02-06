@@ -529,7 +529,13 @@
                 <td>{{ orcamento.cliente.nome }}</td>
                 <td>{{ orcamento.ambiente.nome if orcamento.ambiente else 'Não definido' }}</td>
                 <td>{{ orcamento.descricao.nome if orcamento.descricao else 'Não definido' }}</td>
-                <td>{{ orcamento.produto.nome if orcamento.produto else orcamento.tipo_produto }}</td>  <!-- NOVO: Produto (entidade) -->
+                <td>
+    {% if orcamento.produto and orcamento.produto.nome != 'Não definido' %}
+        {{ orcamento.produto.nome }}
+    {% else %}
+        {{ orcamento.tipo_produto }}
+    {% endif %}
+</td>
                   <!-- Tipo de Produto (antes "Produto") -->
                 <td>{{ orcamento.material.nome }}</td>
                 <td>{{ orcamento.quantidade }}</td>
@@ -701,7 +707,7 @@
             <td>${orcamento.cliente_nome}</td>
             <td>${orcamento.ambiente_nome}</td>
             <td>${orcamento.descricao_nome}</td>
-            <td>${orcamento.produto_nome || orcamento.tipo_produto}</td>  <!-- NOVO: campo produto -->
+            <td>${ (orcamento.produto_nome && orcamento.produto_nome !== 'Não definido') ? orcamento.produto_nome : orcamento.tipo_produto }</td>
             <td>${orcamento.material_nome}</td>
             <td>${orcamento.quantidade}</td>
             <td>${orcamento.comprimento}</td>
