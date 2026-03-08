@@ -1250,7 +1250,7 @@
     {% endfor %} <!-- FECHAMENTO DO LOOP DAS DESCRIÇÕES -->
     
 </div> <!-- FECHAMENTO DA DIV .ambiente-completo -->
-{% endfor %} <!-- FECHAMENTO DO LOOP DOS AMBIENTES}
+{% endfor %} <!-- FECHAMENTO DO LOOP DOS AMBIENTES -->
 
     <!-- Rodapé do orçamento -->
     <div class="orcamento-footer">
@@ -1281,38 +1281,61 @@
             <div class="footer-title">Condições de Pagamento:</div>
             <div class="footer-content">
                 <div class="payment-options-container" id="paymentOptionsContainer">
-                    <!-- Cartão de Crédito -->
-<div class="payment-option {% if '1' in exclude_payments %}hidden-in-pdf oculto-pdf{% endif %}" id="payment-option-1">
-    <h4>Cartão de Crédito</h4>
-    <div class="payment-detail">
-        • Pagamento de 100% na aprovação do orçamento
-    </div>
-    <div class="installment-calc" id="parcelamentoSimplificado">
-        R$ {{ "{:,.2f}".format(valor_total_float).replace(",", "X").replace(".", ",").replace("X", ".") }} em até 
-        <span id="maxParcelas">
-        {%- if max_parcelas is defined -%}
-            {{ max_parcelas }}
-        {%- else -%}
-            {%- set max_parcelas_calculado = (valor_total_float / 100)|int -%}
-            {%- if max_parcelas_calculado < 1 -%}
-                {%- set max_parcelas_calculado = 1 -%}
-            {%- endif -%}
-            {%- if max_parcelas_calculado > 10 -%}
-                10
-            {%- else -%}
-                {{ max_parcelas_calculado }}
-            {%- endif -%}
-        {%- endif -%}
-        </span>x sem juros
-    </div>
-    {% if not pdf %}
-    <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-1')">
-        {% if '1' in exclude_payments %}Mostrar{% else %}Ocultar{% endif %} no PDF
-    </button>
-    {% endif %}
-</div>
+                    <!-- Cartão de Crédito (com edição de parcelas) -->
+                    <div class="payment-option {% if '1' in exclude_payments %}hidden-in-pdf oculto-pdf{% endif %}" id="payment-option-1">
+                        <h4>Cartão de Crédito</h4>
+                        <div class="payment-detail">
+                           • Pagamento de 100% na aprovação do orçamento
+                        </div>
+                        <div class="installment-calc" id="parcelamentoSimplificado">
+                             R$ {{ "{:,.2f}".format(valor_total_float).replace(",", "X").replace(".", ",").replace("X", ".") }} em até 
+                             <span id="maxParcelasDisplay">
+                             {%- if max_parcelas is not none -%}
+                                 {{ max_parcelas }}
+                             {%- else -%}
+                                 {%- set max_parcelas_calculado = (valor_total_float / 100)|int -%}
+                                 {%- if max_parcelas_calculado < 1 -%}
+                                     {%- set max_parcelas_calculado = 1 -%}
+                                 {%- endif -%}
+                                 {%- if max_parcelas_calculado > 10 -%}
+                                     10
+                                 {%- else -%}
+                                     {{ max_parcelas_calculado }}
+                                 {%- endif -%}
+                             {%- endif -%}
+                             </span>x sem juros
+                             {% if not pdf %}
+                             <button class="btn-edit" onclick="toggleEdit('maxParcelas')">Editar</button>
+                             {% endif %}
+                        </div>
+                        
+                        {% if not pdf %}
+                        <div id="maxParcelasEdit" class="edit-mode" style="display: none;">
+                            <input type="number" id="maxParcelasInput" class="edit-field" value="
+                                {%- if max_parcelas is not none -%}
+                                    {{ max_parcelas }}
+                                {%- else -%}
+                                    {%- set max_parcelas_calculado = (valor_total_float / 100)|int -%}
+                                    {%- if max_parcelas_calculado < 1 -%}
+                                        1
+                                    {%- elif max_parcelas_calculado > 10 -%}
+                                        10
+                                    {%- else -%}
+                                        {{ max_parcelas_calculado }}
+                                    {%- endif -%}
+                                {%- endif -%}
+                            " min="1" max="12">
+                            <button class="btn-save" onclick="saveMaxParcelas()">Salvar</button>
+                            <button class="btn-cancel" onclick="cancelEdit('maxParcelas')">Cancelar</button>
+                        </div>
+                        
+                        <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-1')">
+                            {% if '1' in exclude_payments %}Mostrar{% else %}Ocultar{% endif %} no PDF
+                        </button>
+                        {% endif %}
+                    </div>
                     
-                    <!-- À vista (Dinheiro/PIX) -->
+                    <!-- À vista (Dinheiro/PIX) - Primeira opção -->
                     <div class="payment-option {% if '2' in exclude_payments %}hidden-in-pdf oculto-pdf{% endif %}" id="payment-option-2">
                         <h4>À vista (Dinheiro/PIX)</h4>
                         <div class="payment-detail">
@@ -1347,7 +1370,7 @@
                         {% endif %}
                     </div>
 
-                    <!-- À vista (Dinheiro/PIX) -->
+                    <!-- À vista (Dinheiro/PIX) - Segunda opção -->
                     <div class="payment-option {% if '3' in exclude_payments %}hidden-in-pdf oculto-pdf{% endif %}" id="payment-option-3">
                         <h4>À vista (Dinheiro/PIX)</h4>
                         <div class="payment-detail">
@@ -1409,6 +1432,7 @@
             <input type="hidden" name="desconto_parcelado" id="formDescontoParcelado" value="{{ desconto_parcelado }}">
             <input type="hidden" name="observacoes" id="formObservacoes" value="{{ observacoes }}">
             <input type="hidden" name="exclude_payments" id="formExcludePayments" value="{{ exclude_payments|join(',') }}">
+            <input type="hidden" name="max_parcelas" id="formMaxParcelas" value="{{ max_parcelas if max_parcelas is not none else '' }}">
         </form>
         {% endif %}
     </div>
@@ -1777,30 +1801,85 @@ function atualizarParcelamento() {
 
 // Função para alternar entre modo de visualização e edição
 function toggleEdit(field) {
-    const displayElement = document.getElementById(field + 'Display');
-    const editElement = document.getElementById(field + 'Edit');
-    
-    // Salvar valor original se ainda não foi salvo
-    if (!valoresOriginais[field]) {
-        if (field === 'observacoes') {
-            valoresOriginais[field] = displayElement.textContent;
+    if (field === 'maxParcelas') {
+        // Para o campo de parcelas, o display está dentro de um elemento pai
+        const displayParent = document.getElementById('maxParcelasDisplay').parentNode;
+        const editElement = document.getElementById('maxParcelasEdit');
+        
+        // Salvar valor original se ainda não foi salvo
+        if (!valoresOriginais['maxParcelas']) {
+            valoresOriginais['maxParcelas'] = document.getElementById('maxParcelasInput').value;
+        }
+        
+        // Alternar visibilidade
+        if (displayParent.style.display === 'none') {
+            displayParent.style.display = '';
+            editElement.style.display = 'none';
         } else {
-            valoresOriginais[field] = document.getElementById(field + 'Input').value;
+            displayParent.style.display = 'none';
+            editElement.style.display = '';
+        }
+    } else {
+        // Lógica original para outros campos
+        const displayElement = document.getElementById(field + 'Display');
+        const editElement = document.getElementById(field + 'Edit');
+        
+        // Salvar valor original se ainda não foi salvo
+        if (!valoresOriginais[field]) {
+            if (field === 'observacoes') {
+                valoresOriginais[field] = displayElement.textContent;
+            } else {
+                valoresOriginais[field] = document.getElementById(field + 'Input').value;
+            }
+        }
+        
+        // Alternar visibilidade
+        if (displayElement.style.display === 'none') {
+            displayElement.style.display = '';
+            editElement.style.display = 'none';
+        } else {
+            displayElement.style.display = 'none';
+            editElement.style.display = '';
         }
     }
+}
+
+// Função específica para salvar o número de parcelas
+function saveMaxParcelas() {
+    const inputElement = document.getElementById('maxParcelasInput');
+    const displaySpan = document.getElementById('maxParcelasDisplay');
+    const formElement = document.getElementById('formMaxParcelas');
     
-    // Alternar visibilidade
-    if (displayElement.style.display === 'none') {
-        displayElement.style.display = '';
-        editElement.style.display = 'none';
-    } else {
-        displayElement.style.display = 'none';
-        editElement.style.display = '';
-    }
+    let newValue = parseInt(inputElement.value);
+    
+    // Validação
+    if (isNaN(newValue) || newValue < 1) newValue = 1;
+    if (newValue > 12) newValue = 12; // Limite máximo
+    
+    // Atualizar display
+    displaySpan.textContent = newValue;
+    
+    // Atualizar campo do formulário
+    formElement.value = newValue;
+    
+    // Sair do modo de edição
+    // O display está dentro de um elemento pai, precisamos restaurar a visibilidade do pai
+    const displayParent = displaySpan.parentNode;
+    const editElement = document.getElementById('maxParcelasEdit');
+    displayParent.style.display = '';
+    editElement.style.display = 'none';
+    
+    // Limpar valor original
+    delete valoresOriginais['maxParcelas'];
 }
 
 // Função para salvar valores editados
 function saveValue(field) {
+    if (field === 'maxParcelas') {
+        saveMaxParcelas();
+        return;
+    }
+    
     const inputElement = document.getElementById(field + 'Input');
     const displayElement = document.getElementById(field + 'Display');
     const formElement = document.getElementById('form' + field.charAt(0).toUpperCase() + field.slice(1));
@@ -1830,28 +1909,45 @@ function saveValue(field) {
 
 // Função para cancelar edição e restaurar valor original
 function cancelEdit(field) {
-    const inputElement = document.getElementById(field + 'Input');
-    const displayElement = document.getElementById(field + 'Display');
-    
-    // Restaurar valor original
-    if (field === 'observacoes') {
-        inputElement.value = valoresOriginais[field];
-        displayElement.textContent = valoresOriginais[field];
-    } else {
-        inputElement.value = valoresOriginais[field];
-        displayElement.textContent = valoresOriginais[field];
+    if (field === 'maxParcelas') {
+        const inputElement = document.getElementById('maxParcelasInput');
+        const displaySpan = document.getElementById('maxParcelasDisplay');
+        const displayParent = displaySpan.parentNode;
+        const editElement = document.getElementById('maxParcelasEdit');
         
-        // Atualizar valores calculados se for desconto
-        if (field === 'discount1' || field === 'discount2') {
-            atualizarValorComDesconto(field, valoresOriginais[field]);
+        // Restaurar valor original no input
+        inputElement.value = valoresOriginais['maxParcelas'];
+        
+        // Restaurar visibilidade
+        displayParent.style.display = '';
+        editElement.style.display = 'none';
+        
+        // Limpar valor original
+        delete valoresOriginais['maxParcelas'];
+    } else {
+        const inputElement = document.getElementById(field + 'Input');
+        const displayElement = document.getElementById(field + 'Display');
+        
+        // Restaurar valor original
+        if (field === 'observacoes') {
+            inputElement.value = valoresOriginais[field];
+            displayElement.textContent = valoresOriginais[field];
+        } else {
+            inputElement.value = valoresOriginais[field];
+            displayElement.textContent = valoresOriginais[field];
+            
+            // Atualizar valores calculados se for desconto
+            if (field === 'discount1' || field === 'discount2') {
+                atualizarValorComDesconto(field, valoresOriginais[field]);
+            }
         }
+        
+        // Sair do modo de edição
+        toggleEdit(field);
+        
+        // Limpar valor original
+        delete valoresOriginais[field];
     }
-    
-    // Sair do modo de edição
-    toggleEdit(field);
-    
-    // Limpar valor original
-    delete valoresOriginais[field];
 }
 
 // Função para atualizar o valor com desconto
@@ -1868,12 +1964,12 @@ function atualizarValorComDesconto(field, desconto) {
 
 // Função para atualizar todos os campos do formulário com os valores atuais
 function atualizarFormulario() {
-    // Usar textContent em vez de value para elementos de exibição
     document.getElementById('formPrazoEntrega').value = document.getElementById('deliveryDaysDisplay').textContent;
     document.getElementById('formDescontoAvista').value = document.getElementById('discount1Display').textContent;
     document.getElementById('formDescontoParcelado').value = document.getElementById('discount2Display').textContent;
     document.getElementById('formObservacoes').value = document.getElementById('observacoesDisplay').textContent;
     document.getElementById('formExcludePayments').value = hiddenPaymentOptions.join(',');
+    document.getElementById('formMaxParcelas').value = document.getElementById('maxParcelasDisplay').textContent;
 }
 
 // Função para carregar contador de itens excluídos
