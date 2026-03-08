@@ -135,6 +135,7 @@ class OrcamentoSalvo(db.Model):
     exclude_payments = db.Column(db.String(50), default='')
     desenhos_ordem_servico = db.relationship('DesenhoOrdemServico', backref='orcamento', lazy=True)
     desenho_ordem_servico = db.Column(db.Text, nullable=True)
+    max_parcelas = db.Column(db.Integer, nullable=True)
 
     @property
     def cliente_nome(self):
@@ -1406,7 +1407,8 @@ def detalhes_orcamento_salvo(codigo):
         pdf=False,
         # Passar o usuário atual para verificar permissões no template
         usuario_atual=usuario,
-        is_admin=is_admin
+        is_admin=is_admin,
+        max_parcelas = orcamento_salvo.max_parcelas
     )
 
 def recriar_agrupamentos_orcamento(codigo_orcamento):
@@ -1603,73 +1605,48 @@ def gerar_pdf_orcamento(codigo):
     ids = [int(id) for id in orcamento_salvo.orcamentos_ids.split(",")]
     orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
     
-    # 🔥 CORREÇÃO CRÍTICA: USAR EXATAMENTE A MESMA ESTRUTURA QUE detalhes_orcamento_salvo
-    # Estrutura: Ambiente -> Descrição -> Tipo de Produto -> Lista de Produtos
+    # 🔥 Estrutura de agrupamento: Ambiente -> Descrição -> Tipo de Produto
     ambientes_agrupados = {}
     for orcamento in orcamentos:
-        # Obter nome do ambiente
         ambiente_nome = orcamento.ambiente.nome if orcamento.ambiente else 'Sem Ambiente'
-        
-        # Inicializar o ambiente se não existir
         if ambiente_nome not in ambientes_agrupados:
             ambientes_agrupados[ambiente_nome] = {}
         
-        # 🔥 CORREÇÃO: Obter a descrição corretamente
-        # Verificar se o modelo Orcamento tem relacionamento com Descricao
-        if hasattr(orcamento, 'descricao') and orcamento.descricao:
-            descricao_nome = orcamento.descricao.nome
-        else:
-            descricao_nome = 'Sem Descrição'
-        
-        # Inicializar a descrição se não existir
+        descricao_nome = orcamento.descricao.nome if orcamento.descricao else 'Sem Descrição'
         if descricao_nome not in ambientes_agrupados[ambiente_nome]:
             ambientes_agrupados[ambiente_nome][descricao_nome] = {}
         
-        # Obter tipo de produto
         tipo_produto = orcamento.tipo_produto
-        
-        # Inicializar o tipo de produto se não existir
         if tipo_produto not in ambientes_agrupados[ambiente_nome][descricao_nome]:
             ambientes_agrupados[ambiente_nome][descricao_nome][tipo_produto] = []
         
-        # Adicionar o orçamento à lista correta
         ambientes_agrupados[ambiente_nome][descricao_nome][tipo_produto].append(orcamento)
-    
-    # DEBUG: Para verificar a estrutura (remova em produção)
-    print(f"🔍 DEBUG PDF - Estrutura corrigida:")
-    for ambiente, descricoes in ambientes_agrupados.items():
-        print(f"  📍 {ambiente}: {len(descricoes)} descrições")
-        for descricao, tipos in descricoes.items():
-            print(f"    📝 {descricao}: {len(tipos)} tipos de produto")
-            for tipo, produtos in tipos.items():
-                print(f"      🛠️ {tipo}: {len(produtos)} produtos")
     
     # Calcular valor total
     valor_total_final = sum(o.valor_total for o in orcamentos)
     valor_total_float = valor_total_final
 
-    # Definir logo_url
     logo_url = "https://orcamento-t9w2.onrender.com/static/logo.jpg"
     
-    # Obter informações do usuário
     usuario = Usuario.query.filter_by(cpf=session.get('user_cpf')).first()
     telefone_usuario = usuario.telefone if usuario else ""
 
-    # ✅ USAR OS VALORES SALVOS NO BANCO COM VALORES PADRÃO DE FALLBACK
+    # ✅ Valores do rodapé (com fallback)
     prazo_entrega = orcamento_salvo.prazo_entrega if orcamento_salvo.prazo_entrega is not None else 15
     desconto_avista = orcamento_salvo.desconto_avista if orcamento_salvo.desconto_avista is not None else 5
     desconto_parcelado = orcamento_salvo.desconto_parcelado if orcamento_salvo.desconto_parcelado is not None else 10
     observacoes = orcamento_salvo.observacoes if orcamento_salvo.observacoes is not None else "Medidas sujeitas a confirmação no local. Valores válidos por 7 dias."
     
-    # ✅ Obter as opções excluídas salvas no banco
-    exclude_payments = orcamento_salvo.exclude_payments.split(',') if orcamento_salvo.exclude_payments else []
+    # ✅ NOVO: Obter max_parcelas (pode ser None)
+    max_parcelas = orcamento_salvo.max_parcelas
 
-    # ✅ Obter parâmetros de exclusão da URL (se houver)
+    # ✅ Opções excluídas
+    exclude_payments = orcamento_salvo.exclude_payments.split(',') if orcamento_salvo.exclude_payments else []
     exclude_param = request.args.get('exclude_payments', '')
     if exclude_param:
         exclude_payments = exclude_param.split(',')
 
-    # Renderizar o HTML para o PDF
+    # Renderizar HTML
     rendered_html = render_template(
         "detalhes_orcamento_salvo.html",
         logo_url=logo_url,
@@ -1677,7 +1654,7 @@ def gerar_pdf_orcamento(codigo):
         data_salvo=orcamento_salvo.data_salvo,
         cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
         orcamentos=orcamentos,
-        ambientes_agrupados=ambientes_agrupados,  # 🔥 AGORA COM A MESMA ESTRUTURA
+        ambientes_agrupados=ambientes_agrupados,
         valor_total_final="R$ {:,.2f}".format(valor_total_final).replace(",", "X").replace(".", ",").replace("X", "."),
         valor_total_float=valor_total_float,
         telefone_usuario=telefone_usuario,
@@ -1686,33 +1663,36 @@ def gerar_pdf_orcamento(codigo):
         desconto_parcelado=desconto_parcelado,
         observacoes=observacoes,
         pdf=True,
-        exclude_payments=exclude_payments
+        exclude_payments=exclude_payments,
+        max_parcelas=max_parcelas   # <-- ESSENCIAL para evitar NameError
     )
 
-    # Criar arquivo PDF temporário
-    temp_pdf_path = "/tmp/temp_orcamento.pdf"
+    # 🔥 Geração do PDF com arquivos temporários (compatível com Windows)
+    import tempfile
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_pdf:
+        temp_pdf_path = temp_pdf.name
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as final_pdf:
+        final_pdf_path = final_pdf.name
+
     HTML(string=rendered_html, base_url="https://orcamento-t9w2.onrender.com").write_pdf(temp_pdf_path)
 
-    # Adicionar logo ao PDF
+    # Adicionar logo (se existir)
+    import fitz  # PyMuPDF
     logo_path = "static/logo.jpg"
-    final_pdf_path = "/tmp/final_orcamento.pdf"
     doc = fitz.open(temp_pdf_path)
-
     if os.path.exists(logo_path):
         page = doc[0]
         page_width = page.rect.width
         page_height = page.rect.height
-
         logo_width = 210
         logo_height = 105
-
         rect = fitz.Rect(page_width - logo_width - -20, 20, page_width - -20, 20 + logo_height)
         page.insert_image(rect, filename=logo_path)
-
     doc.save(final_pdf_path)
     doc.close()
 
-    # Ler e retornar o PDF
+    # Ler PDF final e retornar
     with open(final_pdf_path, "rb") as pdf_file:
         pdf_bytes = pdf_file.read()
 
@@ -1720,11 +1700,9 @@ def gerar_pdf_orcamento(codigo):
     response.headers["Content-Type"] = "application/pdf"
     response.headers["Content-Disposition"] = f"inline; filename=orcamento_{codigo}.pdf"
 
-    # Limpar arquivos temporários
-    if os.path.exists(temp_pdf_path):
-        os.remove(temp_pdf_path)
-    if os.path.exists(final_pdf_path):
-        os.remove(final_pdf_path)
+    # Limpar temporários
+    os.unlink(temp_pdf_path)
+    os.unlink(final_pdf_path)
 
     return response
 
@@ -2014,9 +1992,12 @@ def salvar_rodape_orcamento(codigo):
     orcamento_salvo.desconto_parcelado = float(request.form.get('desconto_parcelado', 10))
     orcamento_salvo.observacoes = request.form.get('observacoes', '')
     
-    # ✅ NOVO: Salvar as opções de pagamento excluídas
+    # ✅ NOVO: Salvar o número máximo de parcelas (pode ser vazio)
+    max_parcelas = request.form.get('max_parcelas', '')
+    orcamento_salvo.max_parcelas = int(max_parcelas) if max_parcelas.strip() else None
+    
+    # ✅ Salvar as opções de pagamento excluídas
     exclude_payments = request.form.get('exclude_payments', '')
-    # Armazenar no banco de dados (você precisa adicionar este campo no modelo)
     orcamento_salvo.exclude_payments = exclude_payments
     
     db.session.commit()
