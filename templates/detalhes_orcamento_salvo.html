@@ -956,53 +956,51 @@
 {% set tipos_produtos_na_descricao = [] %}
 {% set campos_necessarios = namespace(saia=false, fronte=false, cuba=false, cooktop=false, profundidade=false, fundo=false, alisar=false, largura_alisar=false) %}
 
-    {% for descricao_nome, tipos_produtos in descricoes.items() %}
-    {% set descricao_total = namespace(value=0) %}
-    
-    <!-- Reanalisar campos para esta descrição específica -->
-    {% set campos_descricao = namespace(saia=false, fronte=false, cuba=false, cooktop=false, profundidade=false, fundo=false, alisar=false, largura_alisar=false) %}
-    
-    <!-- PRIMEIRO: Identificar quais tipos de produto existem nesta descrição -->
-    {% set tipos_na_descricao = [] %}
+{% for descricao_nome, tipos_produtos in descricoes.items() %}
     {% for tipo_produto, produtos in tipos_produtos.items() %}
-        {% if tipo_produto not in tipos_na_descricao %}
-            {% set tipos_na_descricao = tipos_na_descricao + [tipo_produto] %}
-        {% endif %}
-    {% endfor %}
-    
-    <!-- SEGUNDO: Ativar campos baseados nos tipos de produto presentes (UMA ÚNICA VEZ) -->
-    {% for tipo_produto in tipos_na_descricao %}
-        {% if tipo_produto in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
-            {% set campos_descricao.saia = true %}
+        {% if tipo_produto not in tipos_produtos_na_descricao %}
+            {% set tipos_produtos_na_descricao = tipos_produtos_na_descricao + [tipo_produto] %}
         {% endif %}
         
-        {% if tipo_produto in ["Bancada", "Lavatorio"] %}
-            {% set campos_descricao.fronte = true %}
-            {% set campos_descricao.cuba = true %}
-        {% endif %}
-        
-        {% if tipo_produto == "Bancada" %}
-            {% set campos_descricao.cooktop = true %}
-        {% endif %}
-        
-        {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] %}
-            {% set campos_descricao.profundidade = true %}
-            {% set campos_descricao.fundo = true %}
-            {% set campos_descricao.alisar = true %}
-        {% endif %}
-    {% endfor %}
-    
-    <!-- TERCEIRO: Calcular totais e verificar campos especiais como largura_alisar -->
-    {% for tipo_produto, produtos in tipos_produtos.items() %}
         {% for produto in produtos %}
-            {% set descricao_total.value = descricao_total.value + produto.valor_total %}
+            {% set ambiente_total.value = ambiente_total.value + produto.valor_total %}
             
-            <!-- Verificar se algum produto com alisar tem largura_alisar definida -->
-            {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] and produto.tem_alisar == "Sim" and produto.largura_alisar %}
-                {% set campos_descricao.largura_alisar = true %}
+            <!-- Analisar campos específicos baseados no tipo de produto -->
+            {% if tipo_produto in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
+                {% if not campos_necessarios.saia %}
+                    {% set campos_necessarios.saia = true %}
+                {% endif %}
+            {% endif %}
+            
+            {% if tipo_produto in ["Bancada", "Lavatorio"] %}
+                {% if not campos_necessarios.fronte %}
+                    {% set campos_necessarios.fronte = true %}
+                {% endif %}
+                {% if not campos_necessarios.cuba %}
+                    {% set campos_necessarios.cuba = true %}
+                {% endif %}
+            {% endif %}
+            
+            {% if tipo_produto == "Bancada" %}
+                {% if not campos_necessarios.cooktop %}
+                    {% set campos_necessarios.cooktop = true %}
+                {% endif %}
+            {% endif %}
+            
+            {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] %}
+                {% if not campos_necessarios.profundidade %}
+                    {% set campos_necessarios.profundidade = true %}
+                {% endif %}
+                {% if not campos_necessarios.fundo %}
+                    {% set campos_necessarios.fundo = true %}
+                {% endif %}
+                {% if not campos_necessarios.alisar %}
+                    {% set campos_necessarios.alisar = true %}
+                {% endif %}
             {% endif %}
         {% endfor %}
     {% endfor %}
+{% endfor %}
 
 <!-- Container para ambiente inteiro -->
 <div class="ambiente-completo">
@@ -1011,50 +1009,48 @@
         <span class="ambiente-total">R$ {{ "{:,.2f}".format(ambiente_total.value).replace(",", "X").replace(".", ",").replace("X", ".") }}</span>
     </div>
 
-        {% for descricao_nome, tipos_produtos in descricoes.items() %}
+    {% for descricao_nome, tipos_produtos in descricoes.items() %}
     {% set descricao_total = namespace(value=0) %}
     
     <!-- Reanalisar campos para esta descrição específica -->
     {% set campos_descricao = namespace(saia=false, fronte=false, cuba=false, cooktop=false, profundidade=false, fundo=false, alisar=false, largura_alisar=false) %}
     
-    <!-- PRIMEIRO: Identificar quais tipos de produto existem nesta descrição -->
-    {% set tipos_na_descricao = [] %}
-    {% for tipo_produto, produtos in tipos_produtos.items() %}
-        {% if tipo_produto not in tipos_na_descricao %}
-            {% set tipos_na_descricao = tipos_na_descricao + [tipo_produto] %}
-        {% endif %}
-    {% endfor %}
-    
-    <!-- SEGUNDO: Ativar campos baseados nos tipos de produto presentes (UMA ÚNICA VEZ) -->
-    {% for tipo_produto in tipos_na_descricao %}
-        {% if tipo_produto in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
-            {% set campos_descricao.saia = true %}
-        {% endif %}
-        
-        {% if tipo_produto in ["Bancada", "Lavatorio"] %}
-            {% set campos_descricao.fronte = true %}
-            {% set campos_descricao.cuba = true %}
-        {% endif %}
-        
-        {% if tipo_produto == "Bancada" %}
-            {% set campos_descricao.cooktop = true %}
-        {% endif %}
-        
-        {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] %}
-            {% set campos_descricao.profundidade = true %}
-            {% set campos_descricao.fundo = true %}
-            {% set campos_descricao.alisar = true %}
-        {% endif %}
-    {% endfor %}
-    
-    <!-- TERCEIRO: Calcular totais e verificar campos especiais como largura_alisar -->
     {% for tipo_produto, produtos in tipos_produtos.items() %}
         {% for produto in produtos %}
             {% set descricao_total.value = descricao_total.value + produto.valor_total %}
             
-            <!-- Verificar se algum produto com alisar tem largura_alisar definida -->
-            {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] and produto.tem_alisar == "Sim" and produto.largura_alisar %}
-                {% set campos_descricao.largura_alisar = true %}
+            <!-- Analisar campos específicos baseados no tipo de produto nesta descrição -->
+            {% if tipo_produto in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
+                {% if not campos_descricao.saia %}
+                    {% set campos_descricao.saia = true %}
+                {% endif %}
+            {% endif %}
+            
+            {% if tipo_produto in ["Bancada", "Lavatorio"] %}
+                {% if not campos_descricao.fronte %}
+                    {% set campos_descricao.fronte = true %}
+                {% endif %}
+                {% if not campos_descricao.cuba %}
+                    {% set campos_descricao.cuba = true %}
+                {% endif %}
+            {% endif %}
+            
+            {% if tipo_produto == "Bancada" %}
+                {% if not campos_descricao.cooktop %}
+                    {% set campos_descricao.cooktop = true %}
+                {% endif %}
+            {% endif %}
+            
+            {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] %}
+                {% if not campos_descricao.profundidade %}
+                    {% set campos_descricao.profundidade = true %}
+                {% endif %}
+                {% if not campos_descricao.fundo %}
+                    {% set campos_descricao.fundo = true %}
+                {% endif %}
+                {% if not campos_descricao.alisar %}
+                    {% set campos_descricao.alisar = true %}
+                {% endif %}
             {% endif %}
         {% endfor %}
     {% endfor %}
