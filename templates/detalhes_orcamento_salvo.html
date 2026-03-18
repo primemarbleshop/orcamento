@@ -1067,180 +1067,175 @@
         <div class="table-responsive">
             <table>
                 <thead>
-                    <tr>
-                        <th>Produto</th>
-                        <th>Material</th>
-                        <th>Qtd</th>
-                        <th>Comp.</th>
-                        <th>Larg.</th>
-                      
-                        <!-- Campos condicionais baseados nos produtos presentes -->
-                        {% if campos_descricao.saia %}
-                        <th>Saia</th>
-                        {% endif %}
-                        
-                        {% if campos_descricao.fronte %}
-                        <th>Fronte</th>
-                        {% endif %}
-                        
-                        {% if campos_descricao.cuba %}
-                        <th>Cuba</th>
-                        {% endif %}
-                        
-                        {% if campos_descricao.cooktop %}
-                        <th>Cooktop</th>
-                        {% endif %}
-                        
-                        {% if campos_descricao.profundidade %}
-                        <th>Profundidade</th>
-                        {% endif %}
-                        
-                        {% if campos_descricao.fundo %}
-                        <th>Fundo</th>
-                        {% endif %}
-                        
-                        {% if campos_descricao.alisar %}
-                        <th>Alisar</th>
-                        {% endif %}
-                        
-                        {% if campos_descricao.largura_alisar %}
-                        <th>Larg. do Alisar</th>
-                        {% endif %}
-                        
-                        <th>Instalação</th>
-                        <th>Valor</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for tipo_produto, produtos in tipos_produtos.items() %}
-                        {% for produto in produtos %}
-                        <tr>
-                            <td>
-                                <div class="excluir-container">
-                                    <div class="produto-nome-container">
-                                        {{ produto.produto.nome if produto.produto else tipo_produto }}
-                                    </div>
-                                    {% if not pdf %}
-                                    <button class="btn-excluir" 
-                                            onclick="excluirItem('{{ produto.id }}', '{{ ambiente_nome }}', '{{ descricao_nome }}', '{{ tipo_produto }}')"
-                                            title="Remover apenas deste orçamento salvo (não exclui do sistema)">
-                                        <i class="fas fa-trash"></i>
-                                    </button>
-                                    {% endif %}
-                                </div>
-                            </td>
-                            <td>{{ produto.material.nome }}</td>                            
-                            <td>{{ produto.quantidade }}</td>
-                            <td>{{ produto.comprimento }} cm</td>
-                            <td>{{ produto.largura }} cm</td>
-                            
-                            <!-- Saia (mostra apenas se for relevante para o tipo de produto e campo está ativo) -->
-                            {% if campos_descricao.saia %}
-                            <td>
-                                {% if tipo_produto in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
-                                    {{ produto.comprimento_saia }} x {{ produto.largura_saia }} cm
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
-                            {% endif %}
-                            
-                            <!-- Fronte (mostra apenas se campo está ativo) -->
-                            {% if campos_descricao.fronte %}
-                            <td>
-                                {% if tipo_produto in ["Bancada", "Lavatorio"] %}
-                                    {{ produto.comprimento_fronte }} x {{ produto.largura_fronte }} cm
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
-                            {% endif %}
-                            
-                            <!-- Cuba (mostra apenas se campo está ativo) -->
-                            {% if campos_descricao.cuba %}
-                            <td>
-                                {% if tipo_produto in ["Bancada", "Lavatorio"] %}
-                                    {% if produto.tipo_cuba == "Esculpida" %}
-                                        Esculpida ({{ produto.quantidade_cubas }}) - {{ produto.comprimento_cuba }} x {{ produto.largura_cuba }} x {{ produto.profundidade_cuba }} cm
-                                    {% elif produto.tipo_cuba %}
-                                        {{ produto.tipo_cuba }} ({{ produto.quantidade_cubas }})
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
-                            {% endif %}
-                            
-                            <!-- Cooktop (mostra apenas se campo está ativo) -->
-                            {% if campos_descricao.cooktop %}
-                            <td>
-                                {% if tipo_produto == "Bancada" %}
-                                    {% if produto.tem_cooktop == "Sim" %}Sim{% else %}-{% endif %}
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
-                            {% endif %}
-                            
-                            <!-- Profundidade (mostra apenas se campo está ativo) -->
-                            {% if campos_descricao.profundidade %}
-                            <td>
-                                {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] %}
-                                    {{ produto.profundidade_nicho }} cm
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
-                            {% endif %}
-                            
-                            <!-- Fundo (mostra apenas se campo está ativo) -->
-                            {% if campos_descricao.fundo %}
-                            <td>
-                                {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] %}
-                                    {% if produto.tem_fundo == "Sim" %}Sim{% else %}Não{% endif %}
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
-                            {% endif %}
-                            
-                            <!-- Alisar (mostra apenas se campo está ativo) -->
-                            {% if campos_descricao.alisar %}
-                            <td>
-                                {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] %}
-                                    {% if produto.tem_alisar == "Sim" %}Sim{% else %}Não{% endif %}
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
-                            {% endif %}
-                            
-                            <!-- Largura do Alisar (mostra apenas se campo está ativo) -->
-                            {% if campos_descricao.largura_alisar %}
-                            <td>
-                                {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] and produto.tem_alisar == "Sim" %}
-                                    {{ produto.largura_alisar }} cm
-                                {% else %}
-                                    -
-                                {% endif %}
-                            </td>
-                            {% endif %}
-                            
-                            <td>{{ produto.instalacao }}</td>
-                            <td>R$ {{ "{:,.2f}".format(produto.valor_total).replace(",", "X").replace(".", ",").replace("X", ".") }}</td>
-                        </tr>
-                        
-                        <!-- Verificar se algum produto com alisar tem largura_alisar definida -->
-                        {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] and produto.tem_alisar == "Sim" and produto.largura_alisar %}
-                            {% if not campos_descricao.largura_alisar %}
-                                {% set campos_descricao.largura_alisar = true %}
-                            {% endif %}
-                        {% endif %}
-                        {% endfor %}
-                    {% endfor %}
-                </tbody>
+    <tr>
+        <th>Produto</th>
+        <th>Material</th>
+        <th>Qtd</th>
+        <th>Comp.</th>
+        <th>Larg.</th>
+        
+        <!-- Colunas que serão mostradas baseadas no tipo do produto ATUAL -->
+        <!-- IMPORTANTE: Usamos a variável campos_descricao que já foi calculada -->
+        {% if campos_descricao.saia %}
+        <th>Saia</th>
+        {% endif %}
+        
+        {% if campos_descricao.fronte %}
+        <th>Fronte</th>
+        {% endif %}
+        
+        {% if campos_descricao.cuba %}
+        <th>Cuba</th>
+        {% endif %}
+        
+        {% if campos_descricao.cooktop %}
+        <th>Cooktop</th>
+        {% endif %}
+        
+        <!-- Campos específicos de Nicho - SÓ aparecem se HOUVER nicho na descrição -->
+        {% if campos_descricao.profundidade %}
+        <th>Profundidade</th>
+        {% endif %}
+        
+        {% if campos_descricao.fundo %}
+        <th>Fundo</th>
+        {% endif %}
+        
+        {% if campos_descricao.alisar %}
+        <th>Alisar</th>
+        {% endif %}
+        
+        {% if campos_descricao.largura_alisar %}
+        <th>Larg. do Alisar</th>
+        {% endif %}
+        
+        <th>Instalação</th>
+        <th>Valor</th>
+    </tr>
+</thead>
+<tbody>
+    {% for tipo_produto, produtos in tipos_produtos.items() %}
+        {% for produto in produtos %}
+        <tr>
+            <td>
+                <div class="excluir-container">
+                    <div class="produto-nome-container">
+                        {{ produto.produto.nome if produto.produto else tipo_produto }}
+                    </div>
+                    {% if not pdf and request.endpoint != 'detalhes_orcamento' %}
+                    <button class="btn-excluir" 
+                            onclick="excluirItem('{{ produto.id }}', '{{ ambiente_nome }}', '{{ descricao_nome }}', '{{ tipo_produto }}')"
+                            title="Remover apenas deste orçamento salvo (não exclui do sistema)">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    {% endif %}
+                </div>
+            </td>
+            <td>{{ produto.material.nome }}</td>                            
+            <td>{{ produto.quantidade }}</td>
+            <td>{{ produto.comprimento }} cm</td>
+            <td>{{ produto.largura }} cm</td>
+            
+            <!-- SAIA - Só mostra se o campo estiver ativo na descrição -->
+            {% if campos_descricao.saia %}
+            <td>
+                {% if tipo_produto in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
+                    {{ produto.comprimento_saia }} x {{ produto.largura_saia }} cm
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            {% endif %}
+            
+            <!-- FRONTE - Só mostra se o campo estiver ativo na descrição -->
+            {% if campos_descricao.fronte %}
+            <td>
+                {% if tipo_produto in ["Bancada", "Lavatorio"] %}
+                    {{ produto.comprimento_fronte }} x {{ produto.largura_fronte }} cm
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            {% endif %}
+            
+            <!-- CUBA - Só mostra se o campo estiver ativo na descrição -->
+            {% if campos_descricao.cuba %}
+            <td>
+                {% if tipo_produto in ["Bancada", "Lavatorio"] %}
+                    {% if produto.tipo_cuba == "Esculpida" %}
+                        Esculpida ({{ produto.quantidade_cubas }}) - {{ produto.comprimento_cuba }} x {{ produto.largura_cuba }} x {{ produto.profundidade_cuba }} cm
+                    {% elif produto.tipo_cuba %}
+                        {{ produto.tipo_cuba }} ({{ produto.quantidade_cubas }})
+                    {% else %}
+                        -
+                    {% endif %}
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            {% endif %}
+            
+            <!-- COOKTOP - Só mostra se o campo estiver ativo na descrição -->
+            {% if campos_descricao.cooktop %}
+            <td>
+                {% if tipo_produto == "Bancada" %}
+                    {% if produto.tem_cooktop == "Sim" %}Sim{% else %}-{% endif %}
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            {% endif %}
+            
+            <!-- PROFUNDIDADE - Só mostra se o campo estiver ativo na descrição -->
+            {% if campos_descricao.profundidade %}
+            <td>
+                {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] %}
+                    {{ produto.profundidade_nicho }} cm
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            {% endif %}
+            
+            <!-- FUNDO - Só mostra se o campo estiver ativo na descrição -->
+            {% if campos_descricao.fundo %}
+            <td>
+                {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] %}
+                    {% if produto.tem_fundo == "Sim" %}Sim{% else %}Não{% endif %}
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            {% endif %}
+            
+            <!-- ALISAR - Só mostra se o campo estiver ativo na descrição -->
+            {% if campos_descricao.alisar %}
+            <td>
+                {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] %}
+                    {% if produto.tem_alisar == "Sim" %}Sim{% else %}Não{% endif %}
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            {% endif %}
+            
+            <!-- LARGURA DO ALISAR - Só mostra se o campo estiver ativo na descrição -->
+            {% if campos_descricao.largura_alisar %}
+            <td>
+                {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] and produto.tem_alisar == "Sim" %}
+                    {{ produto.largura_alisar }} cm
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            {% endif %}
+            
+            <td>{{ produto.instalacao }}</td>
+            <td>R$ {{ "{:,.2f}".format(produto.valor_total).replace(",", "X").replace(".", ",").replace("X", ".") }}</td>
+        </tr>
+        {% endfor %}
+    {% endfor %}
+</tbody>
             </table>
         </div>
 
