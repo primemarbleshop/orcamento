@@ -44,6 +44,118 @@
         font-size: 13px;
     }
 
+    /* Estilos para células clicáveis */
+    .clickable-cell {
+        cursor: pointer;
+        transition: background-color 0.2s;
+        position: relative;
+    }
+    
+    .material-cell {
+        background-color: transparent;
+    }
+    
+    .material-cell:hover {
+        background-color: #d4edda !important;
+    }
+    
+    .instalacao-cell {
+        background-color: transparent;
+    }
+    
+    .instalacao-cell:hover {
+        background-color: #cce5ff !important;
+    }
+    
+    .valor-cell {
+        background-color: transparent;
+        cursor: pointer;
+        font-weight: 500;
+    }
+    
+    .valor-cell:hover {
+        background-color: #fff3cd !important;
+    }
+    
+    /* Estilo para o dropdown suspenso */
+    .info-dropdown {
+        position: absolute;
+        background-color: white;
+        border: 2px solid #FFD700;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        padding: 12px;
+        z-index: 10000;
+        min-width: 250px;
+        max-width: 350px;
+        font-size: 13px;
+        animation: slideDown 0.2s ease-out;
+        pointer-events: none;
+    }
+    
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .info-dropdown .dropdown-title {
+        font-weight: bold;
+        font-size: 14px;
+        color: #000;
+        margin-bottom: 8px;
+        padding-bottom: 5px;
+        border-bottom: 1px solid #FFD700;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .info-dropdown .dropdown-title i {
+        color: #FFD700;
+    }
+    
+    .info-dropdown .dropdown-content {
+        line-height: 1.6;
+    }
+    
+    .info-dropdown .info-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 5px;
+        padding: 3px 0;
+    }
+    
+    .info-dropdown .info-label {
+        font-weight: bold;
+        color: #555;
+    }
+    
+    .info-dropdown .info-value {
+        color: #000;
+        font-weight: 500;
+    }
+    
+    .info-dropdown .info-value.highlight {
+        color: #28a745;
+        font-weight: bold;
+        font-size: 14px;
+    }
+    
+    .info-dropdown .close-hint {
+        text-align: right;
+        font-size: 10px;
+        color: #999;
+        margin-top: 8px;
+        padding-top: 5px;
+        border-top: 1px dashed #ddd;
+    }
+    
     .cliente-header {
         font-size: 15px;
         font-weight: bold;
@@ -708,6 +820,23 @@
         .ambiente-completo {
             margin-bottom: 20px !important;
         }
+        
+        /* Esconder elementos interativos na impressão */
+        .clickable-cell {
+            cursor: default !important;
+        }
+        
+        .clickable-cell:hover {
+            background-color: transparent !important;
+        }
+        
+        .info-dropdown {
+            display: none !important;
+        }
+        
+        .valor-cell::after {
+            display: none !important;
+        }
     }
 
     .header-container {
@@ -1131,7 +1260,7 @@
                     {% endif %}
                 </div>
             </td>
-            <td>{{ produto.material.nome }}</td>                            
+            <td class="clickable-cell material-cell" onclick="mostrarInfoMaterial(this, '{{ produto.material.nome }}', '{{ produto.valor_material }}')">{{ produto.material.nome }}</td>                            
             <td>{{ produto.quantidade }}</td>
             <td>{{ produto.comprimento }} cm</td>
             <td>{{ produto.largura }} cm</td>
@@ -1230,8 +1359,8 @@
             </td>
             {% endif %}
             
-            <td>{{ produto.instalacao }}</td>
-            <td>R$ {{ "{:,.2f}".format(produto.valor_total).replace(",", "X").replace(".", ",").replace("X", ".") }}</td>
+            <td class="clickable-cell instalacao-cell" onclick="mostrarInfoInstalacao(this, '{{ produto.instalacao }}', '{{ produto.valor_instalacao }}')">{{ produto.instalacao }}</td>
+            <td class="clickable-cell valor-cell" onclick="mostrarInfoRT(this, '{{ produto.valor_rt }}')">R$ {{ "{:,.2f}".format(produto.valor_total).replace(",", "X").replace(".", ",").replace("X", ".") }}</td>
         </tr>
         {% endfor %}
     {% endfor %}
@@ -1493,11 +1622,163 @@
 let valoresOriginais = {};
 const valorTotalFloat = {{ valor_total_float }};
 let hiddenPaymentOptions = [];
+let dropdownAtivo = null; // Controla o dropdown ativo
 
 // Inicializar as opções ocultas
 {% if exclude_payments %}
     hiddenPaymentOptions = {{ exclude_payments|tojson }};
 {% endif %}
+
+// Função para fechar todos os dropdowns
+function fecharTodosDropdowns() {
+    if (dropdownAtivo) {
+        dropdownAtivo.remove();
+        dropdownAtivo = null;
+    }
+}
+
+// Função para mostrar informações do Material
+function mostrarInfoMaterial(element, materialNome, valorMaterial) {
+    // Fecha qualquer dropdown aberto
+    fecharTodosDropdowns();
+    
+    // Formata o valor do material
+    const valorFormatado = parseFloat(valorMaterial).toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+    
+    // Cria o dropdown
+    const dropdown = document.createElement('div');
+    dropdown.className = 'info-dropdown';
+    dropdown.innerHTML = `
+        <div class="dropdown-title">
+            <i class="fas fa-cube"></i> Detalhes do Material
+        </div>
+        <div class="dropdown-content">
+            <div class="info-row">
+                <span class="info-label">Material:</span>
+                <span class="info-value">${materialNome}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Valor do Material:</span>
+                <span class="info-value highlight">R$ ${valorFormatado}</span>
+            </div>
+        </div>
+        <div class="close-hint">
+            <i class="fas fa-times"></i> Clique fora para fechar
+        </div>
+    `;
+    
+    // Posiciona o dropdown
+    posicionarDropdown(element, dropdown);
+    
+    // Adiciona ao corpo da página
+    document.body.appendChild(dropdown);
+    dropdownAtivo = dropdown;
+}
+
+// Função para mostrar informações da Instalação
+function mostrarInfoInstalacao(element, instalacaoNome, valorInstalacao) {
+    // Fecha qualquer dropdown aberto
+    fecharTodosDropdowns();
+    
+    // Formata o valor da instalação
+    const valorFormatado = parseFloat(valorInstalacao).toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+    
+    // Cria o dropdown
+    const dropdown = document.createElement('div');
+    dropdown.className = 'info-dropdown';
+    dropdown.innerHTML = `
+        <div class="dropdown-title">
+            <i class="fas fa-tools"></i> Detalhes da Instalação
+        </div>
+        <div class="dropdown-content">
+            <div class="info-row">
+                <span class="info-label">Tipo:</span>
+                <span class="info-value">${instalacaoNome}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Valor da Instalação:</span>
+                <span class="info-value highlight">R$ ${valorFormatado}</span>
+            </div>
+        </div>
+        <div class="close-hint">
+            <i class="fas fa-times"></i> Clique fora para fechar
+        </div>
+    `;
+    
+    // Posiciona o dropdown
+    posicionarDropdown(element, dropdown);
+    
+    // Adiciona ao corpo da página
+    document.body.appendChild(dropdown);
+    dropdownAtivo = dropdown;
+}
+
+// Função para mostrar informações da RT (Rodapé/Topo)
+function mostrarInfoRT(element, valorRT) {
+    // Fecha qualquer dropdown aberto
+    fecharTodosDropdowns();
+    
+    // Formata o valor da RT
+    const valorFormatado = parseFloat(valorRT).toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+    
+    // Cria o dropdown
+    const dropdown = document.createElement('div');
+    dropdown.className = 'info-dropdown';
+    dropdown.innerHTML = `
+        <div class="dropdown-title">
+            <i class="fas fa-ruler"></i> Detalhes da RT (Rodapé/Topo)
+        </div>
+        <div class="dropdown-content">
+            <div class="info-row">
+                <span class="info-label">Valor da RT:</span>
+                <span class="info-value highlight">R$ ${valorFormatado}</span>
+            </div>
+        </div>
+        <div class="close-hint">
+            <i class="fas fa-times"></i> Clique fora para fechar
+        </div>
+    `;
+    
+    // Posiciona o dropdown
+    posicionarDropdown(element, dropdown);
+    
+    // Adiciona ao corpo da página
+    document.body.appendChild(dropdown);
+    dropdownAtivo = dropdown;
+}
+
+// Função para posicionar o dropdown abaixo do elemento clicado
+function posicionarDropdown(element, dropdown) {
+    const rect = element.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+    
+    // Calcula a posição (abaixo da célula)
+    let top = rect.bottom + scrollTop + 5;
+    let left = rect.left + scrollLeft;
+    
+    // Ajusta se ultrapassar a borda direita da tela
+    if (left + dropdown.offsetWidth > window.innerWidth) {
+        left = window.innerWidth - dropdown.offsetWidth - 10;
+    }
+    
+    // Ajusta se ultrapassar a borda inferior da tela
+    if (top + dropdown.offsetHeight > window.innerHeight + scrollTop) {
+        top = rect.top + scrollTop - dropdown.offsetHeight - 5;
+    }
+    
+    dropdown.style.top = top + 'px';
+    dropdown.style.left = left + 'px';
+}
 
 // FUNÇÃO ADICIONADA: Formatar data de UTC para Horário de Brasília
 function formatarDataBrasil(dataString) {
@@ -1590,9 +1871,7 @@ function carregarItensExcluidosModal() {
             if (data.success) {
                 if (data.itens && data.itens.length > 0) {
                     // Construir HTML com os itens
-                    let html = `
-                        
-                    `;
+                    let html = ``;
                     
                     data.itens.forEach(item => {
                         // Usar a função de formatação de data ajustada
@@ -1796,6 +2075,9 @@ function atualizarParcelamento() {
 
 // Função para alternar entre modo de visualização e edição
 function toggleEdit(field) {
+    // Fecha qualquer dropdown aberto
+    fecharTodosDropdowns();
+    
     if (field === 'maxParcelas') {
         // Para o campo de parcelas, o display está dentro de um elemento pai
         const displayParent = document.getElementById('maxParcelasDisplay').parentNode;
@@ -1989,6 +2271,13 @@ function carregarContadorItensExcluidos() {
             console.error('Erro ao carregar contador:', error);
         });
 }
+
+// Event listener para fechar dropdown ao clicar fora
+document.addEventListener('click', function(event) {
+    if (dropdownAtivo && !event.target.classList.contains('clickable-cell') && !dropdownAtivo.contains(event.target)) {
+        fecharTodosDropdowns();
+    }
+});
 
 // Event listener para o botão Salvar Alterações do Rodapé
 document.getElementById('btnSalvarRodape').addEventListener('click', function() {
