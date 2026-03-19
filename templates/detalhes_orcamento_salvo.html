@@ -147,15 +147,6 @@
         font-size: 14px;
     }
     
-    .info-dropdown .close-hint {
-        text-align: right;
-        font-size: 10px;
-        color: #999;
-        margin-top: 8px;
-        padding-top: 5px;
-        border-top: 1px dashed #ddd;
-    }
-    
     .cliente-header {
         font-size: 15px;
         font-weight: bold;
@@ -1665,9 +1656,6 @@ function mostrarInfoMaterial(element, materialNome, valorMaterial) {
                 <span class="info-value highlight">R$ ${valorFormatado}</span>
             </div>
         </div>
-        <div class="close-hint">
-            <i class="fas fa-times"></i> Clique fora para fechar
-        </div>
     `;
     
     // Posiciona o dropdown
@@ -1683,33 +1671,42 @@ function mostrarInfoInstalacao(element, instalacaoNome, valorInstalacao) {
     // Fecha qualquer dropdown aberto
     fecharTodosDropdowns();
     
-    // Formata o valor da instalação
-    const valorFormatado = parseFloat(valorInstalacao).toLocaleString('pt-BR', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-    });
-    
     // Cria o dropdown
     const dropdown = document.createElement('div');
     dropdown.className = 'info-dropdown';
-    dropdown.innerHTML = `
+    
+    // Verifica se a instalação é "Sim" ou "Não"
+    const instalacaoValor = instalacaoNome === 'Sim' ? 'Sim' : 'Não';
+    
+    // Monta o HTML do dropdown
+    let htmlConteudo = `
         <div class="dropdown-title">
             <i class="fas fa-tools"></i> Detalhes da Instalação
         </div>
         <div class="dropdown-content">
             <div class="info-row">
-                <span class="info-label">Tipo:</span>
-                <span class="info-value">${instalacaoNome}</span>
+                <span class="info-label">Instalação:</span>
+                <span class="info-value">${instalacaoValor}</span>
             </div>
+    `;
+    
+    // Só mostra o valor se instalação for "Sim"
+    if (instalacaoNome === 'Sim') {
+        const valorFormatado = parseFloat(valorInstalacao).toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        
+        htmlConteudo += `
             <div class="info-row">
                 <span class="info-label">Valor da Instalação:</span>
                 <span class="info-value highlight">R$ ${valorFormatado}</span>
             </div>
-        </div>
-        <div class="close-hint">
-            <i class="fas fa-times"></i> Clique fora para fechar
-        </div>
-    `;
+        `;
+    }
+    
+    htmlConteudo += `</div>`;
+    dropdown.innerHTML = htmlConteudo;
     
     // Posiciona o dropdown
     posicionarDropdown(element, dropdown);
@@ -1742,9 +1739,6 @@ function mostrarInfoRT(element, valorRT) {
                 <span class="info-label">Valor da RT:</span>
                 <span class="info-value highlight">R$ ${valorFormatado}</span>
             </div>
-        </div>
-        <div class="close-hint">
-            <i class="fas fa-times"></i> Clique fora para fechar
         </div>
     `;
     
