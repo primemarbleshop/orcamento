@@ -44,11 +44,16 @@
         font-size: 13px;
     }
 
-    /* Estilos para células clicáveis */
+    /* Estilos para células clicáveis - CORRIGIDO */
     .clickable-cell {
-        cursor: pointer;
+        cursor: pointer !important;
         transition: background-color 0.2s;
         position: relative;
+    }
+    
+    /* Garantir que todo o conteúdo da célula seja clicável */
+    .clickable-cell * {
+        cursor: pointer !important;
     }
     
     .material-cell {
@@ -69,7 +74,6 @@
     
     .valor-cell {
         background-color: transparent;
-        cursor: pointer;
         font-weight: 500;
     }
     
@@ -1351,7 +1355,7 @@
             {% endif %}
             
             <td class="clickable-cell instalacao-cell" onclick="mostrarInfoInstalacao(this, '{{ produto.instalacao }}', '{{ produto.valor_instalacao }}')">{{ produto.instalacao }}</td>
-            <td class="clickable-cell valor-cell" onclick="mostrarInfoRT(this, '{{ produto.valor_rt }}')">R$ {{ "{:,.2f}".format(produto.valor_total).replace(",", "X").replace(".", ",").replace("X", ".") }}</td>
+            <td class="clickable-cell valor-cell" onclick="mostrarInfoRT(this, '{{ produto.porcentagem_rt if produto.porcentagem_rt else 0 }}')">R$ {{ "{:,.2f}".format(produto.valor_total).replace(",", "X").replace(".", ",").replace("X", ".") }}</td>
         </tr>
         {% endfor %}
     {% endfor %}
@@ -1633,11 +1637,12 @@ function mostrarInfoMaterial(element, materialNome, valorMaterial) {
     // Fecha qualquer dropdown aberto
     fecharTodosDropdowns();
     
-    // Formata o valor do material
-    const valorFormatado = parseFloat(valorMaterial).toLocaleString('pt-BR', {
+    // Converte o valor para número e verifica se é válido
+    const valorNum = parseFloat(valorMaterial);
+    const valorFormatado = !isNaN(valorNum) ? valorNum.toLocaleString('pt-BR', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
-    });
+    }) : '0,00';
     
     // Cria o dropdown
     const dropdown = document.createElement('div');
@@ -1692,10 +1697,11 @@ function mostrarInfoInstalacao(element, instalacaoNome, valorInstalacao) {
     
     // Só mostra o valor se instalação for "Sim"
     if (instalacaoNome === 'Sim') {
-        const valorFormatado = parseFloat(valorInstalacao).toLocaleString('pt-BR', {
+        const valorNum = parseFloat(valorInstalacao);
+        const valorFormatado = !isNaN(valorNum) ? valorNum.toLocaleString('pt-BR', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
-        });
+        }) : '0,00';
         
         htmlConteudo += `
             <div class="info-row">
@@ -1716,28 +1722,29 @@ function mostrarInfoInstalacao(element, instalacaoNome, valorInstalacao) {
     dropdownAtivo = dropdown;
 }
 
-// Função para mostrar informações da RT (Rodapé/Topo)
+// Função para mostrar informações da RT (porcentagem)
 function mostrarInfoRT(element, valorRT) {
     // Fecha qualquer dropdown aberto
     fecharTodosDropdowns();
     
-    // Formata o valor da RT
-    const valorFormatado = parseFloat(valorRT).toLocaleString('pt-BR', {
+    // Converte o valor para número e verifica se é válido
+    const valorNum = parseFloat(valorRT);
+    const valorFormatado = !isNaN(valorNum) ? valorNum.toLocaleString('pt-BR', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
-    });
+    }) : '0,00';
     
-    // Cria o dropdown
+    // Cria o dropdown com título simplificado "RT"
     const dropdown = document.createElement('div');
     dropdown.className = 'info-dropdown';
     dropdown.innerHTML = `
         <div class="dropdown-title">
-            <i class="fas fa-ruler"></i> Detalhes da RT (Rodapé/Topo)
+            <i class="fas fa-ruler"></i> RT
         </div>
         <div class="dropdown-content">
             <div class="info-row">
-                <span class="info-label">Valor da RT:</span>
-                <span class="info-value highlight">R$ ${valorFormatado}</span>
+                <span class="info-label">Porcentagem RT:</span>
+                <span class="info-value highlight">${valorFormatado}%</span>
             </div>
         </div>
     `;
