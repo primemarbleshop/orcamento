@@ -490,8 +490,77 @@
         </div>
         {% endif %}
 
-        <!-- Modais (mantidos iguais) -->
-        <!-- ... seus modais existentes permanecem iguais ... -->
+        <!-- Modal para adicionar ambiente -->
+        <div class="modal fade" id="addAmbienteModal" tabindex="-1" aria-labelledby="addAmbienteModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addAmbienteModalLabel">Adicionar Novo Ambiente</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addAmbienteForm">
+                            <div class="mb-3">
+                                <label for="novo_ambiente_nome" class="form-label">Nome do Ambiente:</label>
+                                <input type="text" class="form-control" id="novo_ambiente_nome" required>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-custom-primary" id="saveAmbienteBtn">Salvar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal para adicionar descrição -->
+        <div class="modal fade" id="addDescricaoModal" tabindex="-1" aria-labelledby="addDescricaoModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addDescricaoModalLabel">Adicionar Nova Descrição</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addDescricaoForm">
+                            <div class="mb-3">
+                                <label for="nova_descricao_nome" class="form-label">Nome da Descrição:</label>
+                                <input type="text" class="form-control" id="nova_descricao_nome" required>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-custom-primary" id="saveDescricaoBtn">Salvar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal para adicionar produto -->
+        <div class="modal fade" id="addProdutoModal" tabindex="-1" aria-labelledby="addProdutoModalLabel" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="addProdutoModalLabel">Adicionar Novo Produto</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="addProdutoForm">
+                            <div class="mb-3">
+                                <label for="novo_produto_nome" class="form-label">Nome do Produto:</label>
+                                <input type="text" class="form-control" id="novo_produto_nome" required>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="button" class="btn btn-custom-primary" id="saveProdutoBtn">Salvar</button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
         <!-- Card da lista de orçamentos -->
         <div class="card card-custom">
@@ -586,6 +655,7 @@
                         {{ orcamento.tipo_produto }}
                     {% endif %}
                 </td>
+                <!-- MATERIAL: Passar o valor CADASTRADO do material -->
                 <td class="clickable-cell material-cell" 
                     onclick="mostrarInfoMaterial(this, 
                              '{{ orcamento.material.nome }}', 
@@ -595,12 +665,14 @@
                 <td>{{ orcamento.quantidade }}</td>
                 <td>{{ orcamento.comprimento }}</td>
                 <td>{{ orcamento.largura }}</td>
+                <!-- INSTALAÇÃO: Passar o valor da instalação -->
                 <td class="clickable-cell instalacao-cell" 
                     onclick="mostrarInfoInstalacao(this, 
                              '{{ orcamento.instalacao }}', 
                              '{{ orcamento.instalacao_valor }}')">
                     {{ orcamento.instalacao }}
                 </td>
+                <!-- VALOR: Passar a porcentagem da RT -->
                 <td class="clickable-cell valor-cell valor-total" 
                     onclick="mostrarInfoRT(this, '{{ orcamento.rt_percentual }}')">
                     {{ "R$ {:,.2f}".format(orcamento.valor_total).replace(",", "X").replace(".", ",").replace("X", ".") }}
@@ -678,14 +750,17 @@
         let valorStr = valor.toString().trim();
         if (valorStr === '') return 0;
         
+        // Remove "R$" se houver
         valorStr = valorStr.replace(/[R$\s]/g, '');
+        
+        // Substitui vírgula por ponto
         valorStr = valorStr.replace(',', '.');
         
         const numero = parseFloat(valorStr);
         return isNaN(numero) ? 0 : numero;
     }
 
-    // Função para mostrar informações do Material
+    // Função para mostrar informações do Material (valor CADASTRADO)
     function mostrarInfoMaterial(element, materialNome, valorMaterial) {
         fecharTodosDropdowns();
         
@@ -830,7 +905,6 @@
 
     let timeoutFiltro = null;
 
-    // Função para aplicar filtros SEM recarregar a página (COM AJAX)
     function aplicarFiltrosClientSide() {
         const filtroCliente = document.getElementById('filtro_cliente').value;
         const filtroDataInicio = document.getElementById('filtro_data_inicio').value;
@@ -853,7 +927,6 @@
         atualizarUrlSemRecarregar();
     }
 
-    // Função para buscar dados do servidor via AJAX
     function buscarDadosOrcamentos() {
         const params = new URLSearchParams();
         
@@ -889,7 +962,6 @@
         });
     }
 
-    // Função para atualizar tabela com dados do AJAX
     function atualizarTabelaComDados(orcamentos) {
         const tabelaBody = document.getElementById('orcamento_table');
         const isAdmin = {{ 'true' if is_admin else 'false' }};
@@ -1037,6 +1109,8 @@
             atualizarUrlSemRecarregar();
         }, 100);
     }
+
+    
 
     function toggleFields() {
         const tipoProduto = document.getElementById('tipo_produto').value;
