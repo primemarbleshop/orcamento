@@ -1632,17 +1632,34 @@ function fecharTodosDropdowns() {
     }
 }
 
+// Função para converter string para número (aceita formato brasileiro)
+function converterParaNumero(valor) {
+    if (typeof valor === 'number') return valor;
+    if (!valor) return 0;
+    
+    // Remove "R$" e espaços
+    let valorLimpo = valor.toString().replace(/[R$\s]/g, '');
+    
+    // Substitui vírgula por ponto
+    valorLimpo = valorLimpo.replace(',', '.');
+    
+    // Converte para float
+    const numero = parseFloat(valorLimpo);
+    
+    return isNaN(numero) ? 0 : numero;
+}
+
 // Função para mostrar informações do Material
 function mostrarInfoMaterial(element, materialNome, valorMaterial) {
     // Fecha qualquer dropdown aberto
     fecharTodosDropdowns();
     
-    // Converte o valor para número e verifica se é válido
-    const valorNum = parseFloat(valorMaterial);
-    const valorFormatado = !isNaN(valorNum) ? valorNum.toLocaleString('pt-BR', {
+    // Converte o valor para número
+    const valorNum = converterParaNumero(valorMaterial);
+    const valorFormatado = valorNum.toLocaleString('pt-BR', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
-    }) : '0,00';
+    });
     
     // Cria o dropdown
     const dropdown = document.createElement('div');
@@ -1697,11 +1714,11 @@ function mostrarInfoInstalacao(element, instalacaoNome, valorInstalacao) {
     
     // Só mostra o valor se instalação for "Sim"
     if (instalacaoNome === 'Sim') {
-        const valorNum = parseFloat(valorInstalacao);
-        const valorFormatado = !isNaN(valorNum) ? valorNum.toLocaleString('pt-BR', {
+        const valorNum = converterParaNumero(valorInstalacao);
+        const valorFormatado = valorNum.toLocaleString('pt-BR', {
             minimumFractionDigits: 2,
             maximumFractionDigits: 2
-        }) : '0,00';
+        });
         
         htmlConteudo += `
             <div class="info-row">
@@ -1727,12 +1744,12 @@ function mostrarInfoRT(element, valorRT) {
     // Fecha qualquer dropdown aberto
     fecharTodosDropdowns();
     
-    // Converte o valor para número e verifica se é válido
-    const valorNum = parseFloat(valorRT);
-    const valorFormatado = !isNaN(valorNum) ? valorNum.toLocaleString('pt-BR', {
+    // Converte o valor para número
+    const valorNum = converterParaNumero(valorRT);
+    const valorFormatado = valorNum.toLocaleString('pt-BR', {
         minimumFractionDigits: 2,
         maximumFractionDigits: 2
-    }) : '0,00';
+    });
     
     // Cria o dropdown com título simplificado "RT"
     const dropdown = document.createElement('div');
