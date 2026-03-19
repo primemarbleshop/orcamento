@@ -42,6 +42,113 @@
         font-size: 13px;
     }
 
+    /* Estilos para células clicáveis */
+    .clickable-cell {
+        cursor: pointer !important;
+        transition: background-color 0.2s;
+        position: relative;
+    }
+    
+    /* Garantir que todo o conteúdo da célula seja clicável */
+    .clickable-cell * {
+        cursor: pointer !important;
+    }
+    
+    .material-cell {
+        background-color: transparent;
+    }
+    
+    .material-cell:hover {
+        background-color: #d4edda !important;
+    }
+    
+    .instalacao-cell {
+        background-color: transparent;
+    }
+    
+    .instalacao-cell:hover {
+        background-color: #cce5ff !important;
+    }
+    
+    .valor-cell {
+        background-color: transparent;
+        font-weight: 500;
+    }
+    
+    .valor-cell:hover {
+        background-color: #fff3cd !important;
+    }
+    
+    /* Estilo para o dropdown suspenso */
+    .info-dropdown {
+        position: absolute;
+        background-color: white;
+        border: 2px solid #FFD700;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        padding: 12px;
+        z-index: 10000;
+        min-width: 250px;
+        max-width: 350px;
+        font-size: 13px;
+        animation: slideDown 0.2s ease-out;
+        pointer-events: none;
+    }
+    
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .info-dropdown .dropdown-title {
+        font-weight: bold;
+        font-size: 14px;
+        color: #000;
+        margin-bottom: 8px;
+        padding-bottom: 5px;
+        border-bottom: 1px solid #FFD700;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .info-dropdown .dropdown-title i {
+        color: #FFD700;
+    }
+    
+    .info-dropdown .dropdown-content {
+        line-height: 1.6;
+    }
+    
+    .info-dropdown .info-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 5px;
+        padding: 3px 0;
+    }
+    
+    .info-dropdown .info-label {
+        font-weight: bold;
+        color: #555;
+    }
+    
+    .info-dropdown .info-value {
+        color: #000;
+        font-weight: 500;
+    }
+    
+    .info-dropdown .info-value.highlight {
+        color: #28a745;
+        font-weight: bold;
+        font-size: 14px;
+    }
+
     .cliente-header {
         font-size: 15px;
         font-weight: bold;
@@ -387,6 +494,19 @@
             margin: 10px 0 !important;
         }
         
+        /* Esconder elementos interativos na impressão */
+        .clickable-cell {
+            cursor: default !important;
+        }
+        
+        .clickable-cell:hover {
+            background-color: transparent !important;
+        }
+        
+        .info-dropdown {
+            display: none !important;
+        }
+        
         /* ESTILOS DE IMPRESSÃO MELHORADOS */
         .ambiente-header {
             font-size: 16px !important;
@@ -678,16 +798,17 @@
                     <div class="produto-nome-container">
                         {{ produto.produto.nome if produto.produto else tipo_produto }}
                     </div>
-                    {% if not pdf and request.endpoint != 'detalhes_orcamento' %}
-                    <button class="btn-excluir" 
-                            onclick="excluirItem('{{ produto.id }}', '{{ ambiente_nome }}', '{{ descricao_nome }}', '{{ tipo_produto }}')"
-                            title="Remover apenas deste orçamento salvo (não exclui do sistema)">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                    {% endif %}
                 </div>
             </td>
-            <td>{{ produto.material.nome }}</td>                            
+            
+            <!-- MATERIAL: Célula clicável com valor cadastrado -->
+            <td class="clickable-cell material-cell" 
+                onclick="mostrarInfoMaterial(this, 
+                         '{{ produto.material.nome }}', 
+                         '{{ produto.material.valor }}')">
+                {{ produto.material.nome }}
+            </td>                            
+            
             <td>{{ produto.quantidade }}</td>
             <td>{{ produto.comprimento }} cm</td>
             <td>{{ produto.largura }} cm</td>
@@ -786,8 +907,19 @@
             </td>
             {% endif %}
             
-            <td>{{ produto.instalacao }}</td>
-            <td>R$ {{ "{:,.2f}".format(produto.valor_total).replace(",", "X").replace(".", ",").replace("X", ".") }}</td>
+            <!-- INSTALAÇÃO: Célula clicável com valor -->
+            <td class="clickable-cell instalacao-cell" 
+                onclick="mostrarInfoInstalacao(this, 
+                         '{{ produto.instalacao }}', 
+                         '{{ produto.instalacao_valor }}')">
+                {{ produto.instalacao }}
+            </td>
+            
+            <!-- VALOR: Célula clicável com porcentagem RT -->
+            <td class="clickable-cell valor-cell" 
+                onclick="mostrarInfoRT(this, '{{ produto.rt_percentual }}')">
+                R$ {{ "{:,.2f}".format(produto.valor_total).replace(",", "X").replace(".", ",").replace("X", ".") }}
+            </td>
         </tr>
         {% endfor %}
     {% endfor %}
@@ -801,7 +933,7 @@
     {% endfor %} <!-- FECHAMENTO DO LOOP DAS DESCRIÇÕES -->
     
 </div> <!-- FECHAMENTO DA DIV .ambiente-completo -->
-{% endfor %} <!-- FECHAMENTO DO LOOP DOS AMBIENTES}
+{% endfor %} <!-- FECHAMENTO DO LOOP DOS AMBIENTES -->
 
 
     <div class="botao-container">
@@ -813,78 +945,260 @@
 </div>
 
 <script>
-    document.addEventListener("DOMContentLoaded", function() {
-        // Formatar o valor total final
-        let valorTotal = document.getElementById("valorTotal");
-        let numeroTotal = parseFloat(valorTotal.innerText.replace(",", "."));
+// Variáveis globais
+let dropdownAtivo = null;
+
+// Função para fechar todos os dropdowns
+function fecharTodosDropdowns() {
+    if (dropdownAtivo) {
+        dropdownAtivo.remove();
+        dropdownAtivo = null;
+    }
+}
+
+// Função para converter string para número (aceita formato brasileiro)
+function converterParaNumero(valor) {
+    if (valor === undefined || valor === null) return 0;
+    if (typeof valor === 'number') return valor;
+    
+    // Converte para string e remove espaços
+    let valorStr = valor.toString().trim();
+    
+    // Se estiver vazio, retorna 0
+    if (valorStr === '') return 0;
+    
+    // Remove "R$" se houver
+    valorStr = valorStr.replace(/[R$\s]/g, '');
+    
+    // Substitui vírgula por ponto (formato brasileiro -> internacional)
+    valorStr = valorStr.replace(',', '.');
+    
+    // Converte para float
+    const numero = parseFloat(valorStr);
+    
+    // Retorna 0 se não for número válido
+    return isNaN(numero) ? 0 : numero;
+}
+
+// Função para mostrar informações do Material (valor CADASTRADO)
+function mostrarInfoMaterial(element, materialNome, valorMaterial) {
+    // Fecha qualquer dropdown aberto
+    fecharTodosDropdowns();
+    
+    // Converte o valor para número
+    const valorNum = converterParaNumero(valorMaterial);
+    const valorFormatado = valorNum.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+    
+    // Cria o dropdown
+    const dropdown = document.createElement('div');
+    dropdown.className = 'info-dropdown';
+    dropdown.innerHTML = `
+        <div class="dropdown-title">
+            <i class="fas fa-cube"></i> Detalhes do Material
+        </div>
+        <div class="dropdown-content">
+            <div class="info-row">
+                <span class="info-label">Material:</span>
+                <span class="info-value">${materialNome}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Valor do Material (m²):</span>
+                <span class="info-value highlight">R$ ${valorFormatado}</span>
+            </div>
+        </div>
+    `;
+    
+    // Posiciona o dropdown
+    posicionarDropdown(element, dropdown);
+    
+    // Adiciona ao corpo da página
+    document.body.appendChild(dropdown);
+    dropdownAtivo = dropdown;
+}
+
+// Função para mostrar informações da Instalação
+function mostrarInfoInstalacao(element, instalacaoNome, valorInstalacao) {
+    // Fecha qualquer dropdown aberto
+    fecharTodosDropdowns();
+    
+    // Cria o dropdown
+    const dropdown = document.createElement('div');
+    dropdown.className = 'info-dropdown';
+    
+    // Verifica se a instalação é "Sim" ou "Não"
+    const instalacaoValor = instalacaoNome === 'Sim' ? 'Sim' : 'Não';
+    
+    // Monta o HTML do dropdown
+    let htmlConteudo = `
+        <div class="dropdown-title">
+            <i class="fas fa-tools"></i> Detalhes da Instalação
+        </div>
+        <div class="dropdown-content">
+            <div class="info-row">
+                <span class="info-label">Instalação:</span>
+                <span class="info-value">${instalacaoValor}</span>
+            </div>
+    `;
+    
+    // Só mostra o valor se instalação for "Sim"
+    if (instalacaoNome === 'Sim') {
+        const valorNum = converterParaNumero(valorInstalacao);
+        const valorFormatado = valorNum.toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
         
-        if (!isNaN(numeroTotal)) {
-            valorTotal.innerText = "R$ " + numeroTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        }
+        htmlConteudo += `
+            <div class="info-row">
+                <span class="info-label">Valor da Instalação:</span>
+                <span class="info-value highlight">R$ ${valorFormatado}</span>
+            </div>
+        `;
+    }
+    
+    htmlConteudo += `</div>`;
+    dropdown.innerHTML = htmlConteudo;
+    
+    // Posiciona o dropdown
+    posicionarDropdown(element, dropdown);
+    
+    // Adiciona ao corpo da página
+    document.body.appendChild(dropdown);
+    dropdownAtivo = dropdown;
+}
 
-        // Formatar todos os valores dentro da tabela
-        let valoresTabela = document.querySelectorAll(".valor-tabela");
-        valoresTabela.forEach(function(td) {
-            let numero = parseFloat(td.innerText.replace(",", "."));
-            if (!isNaN(numero)) {
-                td.innerText = "R$ " + numero.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-            }
-        });
-
-        // Formatar telefone
-        let telefoneElement = document.querySelector(".cliente-header p:nth-child(3) .info-normal");
-        if (telefoneElement) {
-            let telefone = telefoneElement.innerText.replace(/\D/g, ""); // Remove tudo que não for número
-
-            if (telefone.length === 11) {
-                // Formatar como (XX) XXXXX-XXXX
-                telefoneElement.innerText = `(${telefone.substring(0,2)}) ${telefone.substring(2,7)}-${telefone.substring(7)}`;
-            } else if (telefone.length === 10) {
-                // Formatar como (XX) XXXX-XXXX (caso seja telefone fixo)
-                telefoneElement.innerText = `(${telefone.substring(0,2)}) ${telefone.substring(2,6)}-${telefone.substring(6)}`;
-            }
-        }
+// Função para mostrar informações da RT (porcentagem)
+function mostrarInfoRT(element, valorRT) {
+    // Fecha qualquer dropdown aberto
+    fecharTodosDropdowns();
+    
+    // Converte o valor para número
+    const valorNum = converterParaNumero(valorRT);
+    const valorFormatado = valorNum.toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
     });
+    
+    // Cria o dropdown com título simplificado "RT"
+    const dropdown = document.createElement('div');
+    dropdown.className = 'info-dropdown';
+    dropdown.innerHTML = `
+        <div class="dropdown-title">
+            <i class="fas fa-ruler"></i> RT
+        </div>
+        <div class="dropdown-content">
+            <div class="info-row">
+                <span class="info-label">Porcentagem RT:</span>
+                <span class="info-value highlight">${valorFormatado}%</span>
+            </div>
+        </div>
+    `;
+    
+    // Posiciona o dropdown
+    posicionarDropdown(element, dropdown);
+    
+    // Adiciona ao corpo da página
+    document.body.appendChild(dropdown);
+    dropdownAtivo = dropdown;
+}
 
-    document.addEventListener("DOMContentLoaded", function() {
-        let botaoSalvar = document.getElementById("salvarOrcamento");
-        let ids = botaoSalvar.getAttribute("data-ids").trim();
+// Função para posicionar o dropdown abaixo do elemento clicado
+function posicionarDropdown(element, dropdown) {
+    const rect = element.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+    
+    // Calcula a posição (abaixo da célula)
+    let top = rect.bottom + scrollTop + 5;
+    let left = rect.left + scrollLeft;
+    
+    // Ajusta se ultrapassar a borda direita da tela
+    if (left + dropdown.offsetWidth > window.innerWidth) {
+        left = window.innerWidth - dropdown.offsetWidth - 10;
+    }
+    
+    // Ajusta se ultrapassar a borda inferior da tela
+    if (top + dropdown.offsetHeight > window.innerHeight + scrollTop) {
+        top = rect.top + scrollTop - dropdown.offsetHeight - 5;
+    }
+    
+    dropdown.style.top = top + 'px';
+    dropdown.style.left = left + 'px';
+}
 
-        // Se IDs forem válidos, habilita o botão
-        if (ids !== "") {
-            botaoSalvar.removeAttribute("disabled");
+// Event listener para fechar dropdown ao clicar fora
+document.addEventListener('click', function(event) {
+    if (dropdownAtivo && !event.target.classList.contains('clickable-cell') && !dropdownAtivo.contains(event.target)) {
+        fecharTodosDropdowns();
+    }
+});
+
+document.addEventListener("DOMContentLoaded", function() {
+    // Formatar o valor total final
+    let valorTotal = document.getElementById("valorTotal");
+    let numeroTotal = parseFloat(valorTotal.innerText.replace(",", "."));
+    
+    if (!isNaN(numeroTotal)) {
+        valorTotal.innerText = "R$ " + numeroTotal.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+
+    // Formatar telefone
+    let telefoneElement = document.querySelector(".cliente-header p:nth-child(3) .info-normal");
+    if (telefoneElement) {
+        let telefone = telefoneElement.innerText.replace(/\D/g, ""); // Remove tudo que não for número
+
+        if (telefone.length === 11) {
+            // Formatar como (XX) XXXXX-XXXX
+            telefoneElement.innerText = `(${telefone.substring(0,2)}) ${telefone.substring(2,7)}-${telefone.substring(7)}`;
+        } else if (telefone.length === 10) {
+            // Formatar como (XX) XXXX-XXXX (caso seja telefone fixo)
+            telefoneElement.innerText = `(${telefone.substring(0,2)}) ${telefone.substring(2,6)}-${telefone.substring(6)}`;
+        }
+    }
+});
+
+document.addEventListener("DOMContentLoaded", function() {
+    let botaoSalvar = document.getElementById("salvarOrcamento");
+    let ids = botaoSalvar.getAttribute("data-ids").trim();
+
+    // Se IDs forem válidos, habilita o botão
+    if (ids !== "") {
+        botaoSalvar.removeAttribute("disabled");
+    }
+
+    botaoSalvar.addEventListener("click", function() {
+        if (!ids) {
+            alert("❌ Erro: Nenhum orçamento selecionado!");
+            return;
         }
 
-        botaoSalvar.addEventListener("click", function() {
-            if (!ids) {
-                alert("❌ Erro: Nenhum orçamento selecionado!");
-                return;
+        console.log("📡 Enviando requisição para salvar orçamento com IDs:", ids);
+
+        fetch("/salvar_orcamento", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ids: ids })
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log("📦 Resposta do servidor:", data);
+
+            if (data.success) {
+                alert("✅ Orçamento salvo com sucesso! Código: " + data.codigo);
+                window.location.href = "/orcamentos_salvos"; // Redireciona
+            } else {
+                alert("❌ Erro ao salvar orçamento: " + data.error);
             }
-
-            console.log("📡 Enviando requisição para salvar orçamento com IDs:", ids);
-
-            fetch("/salvar_orcamento", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ ids: ids })
-            })
-            .then(response => response.json())
-            .then(data => {
-                console.log("📦 Resposta do servidor:", data);
-
-                if (data.success) {
-                    alert("✅ Orçamento salvo com sucesso! Código: " + data.codigo);
-                    window.location.href = "/orcamentos_salvos"; // Redireciona
-                } else {
-                    alert("❌ Erro ao salvar orçamento: " + data.error);
-                }
-            })
-            .catch(error => {
-                console.error("⚠️ Erro ao enviar requisição:", error);
-                alert("❌ Erro ao salvar orçamento!");
-            });
+        })
+        .catch(error => {
+            console.error("⚠️ Erro ao enviar requisição:", error);
+            alert("❌ Erro ao salvar orçamento!");
         });
     });
+});
 </script>
 </body>
 </html>
