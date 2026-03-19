@@ -44,7 +44,7 @@
         font-size: 13px;
     }
 
-    /* Estilos para células clicáveis - CORRIGIDO */
+    /* Estilos para células clicáveis */
     .clickable-cell {
         cursor: pointer !important;
         transition: background-color 0.2s;
@@ -1255,7 +1255,15 @@
                     {% endif %}
                 </div>
             </td>
-            <td class="clickable-cell material-cell" onclick="mostrarInfoMaterial(this, '{{ produto.material.nome }}', '{{ produto.valor_material }}')">{{ produto.material.nome }}</td>                            
+            
+            <!-- MATERIAL: Passar o valor CADASTRADO do material (da tabela Material) -->
+            <td class="clickable-cell material-cell" 
+                onclick="mostrarInfoMaterial(this, 
+                         '{{ produto.material.nome }}', 
+                         '{{ produto.material.valor }}')">
+                {{ produto.material.nome }}
+            </td>                            
+            
             <td>{{ produto.quantidade }}</td>
             <td>{{ produto.comprimento }} cm</td>
             <td>{{ produto.largura }} cm</td>
@@ -1354,8 +1362,19 @@
             </td>
             {% endif %}
             
-            <td class="clickable-cell instalacao-cell" onclick="mostrarInfoInstalacao(this, '{{ produto.instalacao }}', '{{ produto.valor_instalacao }}')">{{ produto.instalacao }}</td>
-            <td class="clickable-cell valor-cell" onclick="mostrarInfoRT(this, '{{ produto.porcentagem_rt if produto.porcentagem_rt else 0 }}')">R$ {{ "{:,.2f}".format(produto.valor_total).replace(",", "X").replace(".", ",").replace("X", ".") }}</td>
+            <!-- INSTALAÇÃO: Passar o valor da instalação (campo instalacao_valor) -->
+            <td class="clickable-cell instalacao-cell" 
+                onclick="mostrarInfoInstalacao(this, 
+                         '{{ produto.instalacao }}', 
+                         '{{ produto.instalacao_valor }}')">
+                {{ produto.instalacao }}
+            </td>
+            
+            <!-- VALOR: Passar a porcentagem da RT (campo rt_percentual) -->
+            <td class="clickable-cell valor-cell" 
+                onclick="mostrarInfoRT(this, '{{ produto.rt_percentual }}')">
+                R$ {{ "{:,.2f}".format(produto.valor_total).replace(",", "X").replace(".", ",").replace("X", ".") }}
+            </td>
         </tr>
         {% endfor %}
     {% endfor %}
@@ -1632,24 +1651,31 @@ function fecharTodosDropdowns() {
     }
 }
 
-// Função para converter string para número (aceita formato brasileiro)
+// Função melhorada para converter string para número (aceita formato brasileiro)
 function converterParaNumero(valor) {
+    if (valor === undefined || valor === null) return 0;
     if (typeof valor === 'number') return valor;
-    if (!valor) return 0;
     
-    // Remove "R$" e espaços
-    let valorLimpo = valor.toString().replace(/[R$\s]/g, '');
+    // Converte para string e remove espaços
+    let valorStr = valor.toString().trim();
     
-    // Substitui vírgula por ponto
-    valorLimpo = valorLimpo.replace(',', '.');
+    // Se estiver vazio, retorna 0
+    if (valorStr === '') return 0;
+    
+    // Remove "R$" se houver
+    valorStr = valorStr.replace(/[R$\s]/g, '');
+    
+    // Substitui vírgula por ponto (formato brasileiro -> internacional)
+    valorStr = valorStr.replace(',', '.');
     
     // Converte para float
-    const numero = parseFloat(valorLimpo);
+    const numero = parseFloat(valorStr);
     
+    // Retorna 0 se não for número válido
     return isNaN(numero) ? 0 : numero;
 }
 
-// Função para mostrar informações do Material
+// Função para mostrar informações do Material (valor CADASTRADO)
 function mostrarInfoMaterial(element, materialNome, valorMaterial) {
     // Fecha qualquer dropdown aberto
     fecharTodosDropdowns();
@@ -1674,7 +1700,7 @@ function mostrarInfoMaterial(element, materialNome, valorMaterial) {
                 <span class="info-value">${materialNome}</span>
             </div>
             <div class="info-row">
-                <span class="info-label">Valor do Material:</span>
+                <span class="info-label">Valor do Material (m²):</span>
                 <span class="info-value highlight">R$ ${valorFormatado}</span>
             </div>
         </div>
