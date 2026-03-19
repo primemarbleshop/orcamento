@@ -2232,7 +2232,8 @@ def orcamentos_json():
             Ambiente.nome.label('ambiente_nome'),
             Descricao.nome.label('descricao_nome'),
             Produto.nome.label('produto_nome'),
-            Material.nome.label('material_nome')
+            Material.nome.label('material_nome'),
+            Material.valor.label('valor_material')  # 🔥 ADICIONADO: valor do material
         ).join(Usuario, Orcamento.dono == Usuario.cpf)\
          .join(Cliente, Orcamento.cliente_id == Cliente.id)\
          .join(Material, Orcamento.material_id == Material.id)\
@@ -2284,10 +2285,13 @@ def orcamentos_json():
                 'produto_nome': row.produto_nome if hasattr(row, 'produto_nome') and row.produto_nome else 'Não definido',
                 'tipo_produto': orcamento.tipo_produto,
                 'material_nome': row.material_nome if hasattr(row, 'material_nome') else '',
+                'valor_material': row.valor_material if hasattr(row, 'valor_material') else 0,  # 🔥 NOVO
                 'quantidade': orcamento.quantidade,
                 'comprimento': orcamento.comprimento,
                 'largura': orcamento.largura,
                 'instalacao': orcamento.instalacao,
+                'instalacao_valor': orcamento.instalacao_valor,  # 🔥 NOVO
+                'rt_percentual': orcamento.rt_percentual,  # 🔥 NOVO
                 'valor_total': orcamento.valor_total,
                 'data': orcamento.data.strftime('%d-%m-%y') if orcamento.data else '',
                 'nome_usuario': row.nome_usuario if hasattr(row, 'nome_usuario') else '',
@@ -2303,7 +2307,7 @@ def orcamentos_json():
     except Exception as e:
         import traceback
         print(f"❌ Erro em /orcamentos/json: {str(e)}")
-        print(traceback.format_exc())  # Para debug mais detalhado
+        print(traceback.format_exc())
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/ordens_servico')
