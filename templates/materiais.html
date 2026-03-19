@@ -3,370 +3,2364 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerenciar Materiais</title>
-    
-    <!-- Bootstrap CSS -->
+    <title>Detalhes dos Orçamentos</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Select2 -->
-    <link href="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/css/select2.min.css" rel="stylesheet" />
-    
+    <!-- SweetAlert2 CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
     <style>
-        :root {
-            --primary: #4e73df;
-            --secondary: #6c757d;
-            --success: #1cc88a;
-            --danger: #e74a3b;
-            --warning: #f6c23e;
-            --light: #f8f9fc;
-            --dark: #5a5c69;
+    /* Estilos mantidos conforme o código original */
+    .main-container {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 15px;
+        box-sizing: border-box;
+    }
+    
+    body {
+        font-size: 15px;
+        font-family: Arial, sans-serif;
+        line-height: 1.3;
+        background-color: #f8f9fa;
+        padding: 20px 0;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+
+    th, td {
+        border: 1px solid black;
+        padding: 3px;
+        text-align: left;
+    }
+
+    th {
+        background-color: #f2f2f2;
+        font-size: 13px;
+    }
+
+    /* Estilos para células clicáveis */
+    .clickable-cell {
+        cursor: pointer;
+        transition: background-color 0.2s;
+        position: relative;
+    }
+    
+    .material-cell {
+        background-color: transparent;
+    }
+    
+    .material-cell:hover {
+        background-color: #d4edda !important;
+    }
+    
+    .instalacao-cell {
+        background-color: transparent;
+    }
+    
+    .instalacao-cell:hover {
+        background-color: #cce5ff !important;
+    }
+    
+    .valor-cell {
+        background-color: transparent;
+        cursor: pointer;
+        font-weight: 500;
+    }
+    
+    .valor-cell:hover {
+        background-color: #fff3cd !important;
+    }
+    
+    /* Estilo para o dropdown suspenso */
+    .info-dropdown {
+        position: absolute;
+        background-color: white;
+        border: 2px solid #FFD700;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        padding: 12px;
+        z-index: 10000;
+        min-width: 250px;
+        max-width: 350px;
+        font-size: 13px;
+        animation: slideDown 0.2s ease-out;
+        pointer-events: none;
+    }
+    
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .info-dropdown .dropdown-title {
+        font-weight: bold;
+        font-size: 14px;
+        color: #000;
+        margin-bottom: 8px;
+        padding-bottom: 5px;
+        border-bottom: 1px solid #FFD700;
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+    
+    .info-dropdown .dropdown-title i {
+        color: #FFD700;
+    }
+    
+    .info-dropdown .dropdown-content {
+        line-height: 1.6;
+    }
+    
+    .info-dropdown .info-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 5px;
+        padding: 3px 0;
+    }
+    
+    .info-dropdown .info-label {
+        font-weight: bold;
+        color: #555;
+    }
+    
+    .info-dropdown .info-value {
+        color: #000;
+        font-weight: 500;
+    }
+    
+    .info-dropdown .info-value.highlight {
+        color: #28a745;
+        font-weight: bold;
+        font-size: 14px;
+    }
+    
+    .cliente-header {
+        font-size: 15px;
+        font-weight: bold;
+        margin-top: 10px;
+        margin-bottom: 5px;
+    }
+
+    .cliente-info {
+        font-size: 13px;
+        color: #555;
+        font-weight: normal;
+    }
+
+    .header-container {
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        position: relative;
+        width: 100%;
+    }
+
+    .logo-empresa {
+        position: absolute;
+        right: -70px;
+        top: 10px;
+        height: 120px;
+        width: 280px;
+        max-width: 280px;
+        object-fit: contain;
+    }
+    
+    .total-box {
+        display: inline-block;
+        background-color: #f8f9fa;
+        border: 2px solid #000;
+        padding: 6px 10px;
+        font-size: 15px;
+        font-weight: bold;
+        border-radius: 5px;
+        box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+        text-align: center;
+        margin-bottom: 20px;
+        float: right;
+        clear: both;
+    } 
+           
+    .cliente-header h2,
+    .cliente-header p {
+        display: block !important;
+        margin: 2px 0 !important;
+    }
+
+    .cliente-header strong {
+        display: inline !important;
+        white-space: nowrap !important;
+    }
+
+    .wrap-text {
+        display: inline-block !important;
+        max-width: 60% !important;
+        word-wrap: break-word !important;
+        vertical-align: top !important;
+    }
+
+    .orcamento-footer {
+        margin-top: 15px;
+        padding: 8px;
+        border-top: 2px solid #FFD700;
+        background-color: transparent;
+        page-break-inside: avoid;
+        font-size: 13px;
+    }
+
+    .footer-section {
+        margin-bottom: 8px;
+    }
+
+    .footer-title {
+        font-weight: bold;
+        margin-bottom: 3px;
+        font-size: 13px;
+    }
+
+    .footer-content {
+        font-size: 13px;
+    }
+
+    .edit-mode {
+        background-color: #fffde7;
+        padding: 8px;
+        border: 1px dashed #ccc;
+        margin-top: 5px;
+    }
+
+    .edit-field {
+        width: 60px;
+        margin: 0 5px;
+        padding: 2px;
+        font-size: 12px;
+    }
+
+    .payment-option {
+        margin-bottom: 15px;
+        flex: 1;
+        min-width: 0;
+        padding: 0 8px;
+        position: relative;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+
+    .payment-option:not(:last-child) {
+        border-right: 1px solid #ddd;
+    }
+
+    .payment-option.oculto-pdf {
+        border: 2px solid #ff6b6b;
+        background-color: #fff5f5;
+        padding: 8px;
+        border-radius: 5px;
+    }
+
+    .payment-option.oculto-pdf::before {
+        content: "⛔ OCULTO NO PDF";
+        position: absolute;
+        top: -10px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #ff6b6b;
+        color: white;
+        padding: 2px 8px;
+        border-radius: 10px;
+        font-size: 10px;
+        font-weight: bold;
+        z-index: 10;
+    }
+
+    .installment-calc {
+        margin-top: 3px;
+        font-size: 13px;
+        color: #333;
+        font-weight: bold;
+    }
+
+    .btn-edit {
+        background-color: #4CAF50;
+        color: white;
+        border: none;
+        padding: 4px 8px;
+        cursor: pointer;
+        margin-top: 5px;
+        font-size: 11px;
+        border-radius: 3px;
+    }
+
+    .btn-save {
+        background-color: #2196F3;
+        color: white;
+        border: none;
+        padding: 4px 8px;
+        cursor: pointer;
+        margin-right: 5px;
+        font-size: 11px;
+        border-radius: 3px;
+    }
+
+    .btn-cancel {
+        background-color: #f44336;
+        color: white;
+        border: none;
+        padding: 4px 8px;
+        cursor: pointer;
+        font-size: 11px;
+        border-radius: 3px;
+    }
+
+    .payment-options-container {
+        display: flex;
+        justify-content: space-between;
+        flex-wrap: wrap;
+        margin-top: 5px;
+    }
+
+    .payment-option h4 {
+        margin: 0 0 3px 0;
+        font-size: 13px;
+        color: #000;
+    }
+
+    .payment-detail {
+        font-size: 13px;
+        margin: 2px 0;
+    }
+
+    .payment-highlight {
+        font-weight: bold;
+        color: #000;
+        padding: 2px;
+        border-radius: 2px;
+    }
+
+    .parcelamento-simplificado {
+        font-weight: bold;
+        padding: 3px 5px;
+        border-radius: 3px;
+        margin-top: 3px;
+        display: inline-block;
+        font-size: 13px;
+        background-color: #f0f8ff;
+    }
+
+    .cartao-info {
+        font-weight: bold;
+        margin: 3px 0;
+        font-size: 13px;
+    }
+
+    .btn-custom-primary {
+        background-color: #4e73df;
+        border-color: #4e73df;
+        color: white;
+    }
+    
+    .btn-custom-primary:hover {
+        background-color: #2e59d9;
+        border-color: #2e59d9;
+        color: white;
+    }
+    
+    .btn-custom-success {
+        background-color: #1cc88a;
+        border-color: #1cc88a;
+        color: white;
+    }
+    
+    .btn-custom-success:hover {
+        background-color: #17a673;
+        border-color: #17a673;
+        color: white;
+    }
+    
+    .btn-container {
+        margin: 10px 0;
+        text-align: left;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+        padding-left: 0;
+    }
+    
+    .top-buttons-container {
+        position: absolute;
+        top: 10px;
+        right: 15px;
+        display: flex;
+        gap: 10px;
+        z-index: 10;
+    }
+    
+    .btn-save-rodape {
+        background-color: #36b9cc;
+        border-color: #36b9cc;
+        color: white;
+        padding: 6px 12px;
+        font-size: 14px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-top: 15px;
+    }
+    
+    .btn-save-rodape:hover {
+        background-color: #2c9faf;
+        border-color: #2c9faf;
+        color: white;
+    }
+
+    .prazo-entrega-container {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        flex-wrap: nowrap;
+    }
+    
+    .prazo-entrega-text {
+        white-space: nowrap;
+    }
+    
+    .prazo-entrega-container .btn-edit {
+        margin-top: 0;
+        white-space: nowrap;
+    }
+
+    .parcelas-detalhes {
+        font-size: 12px;
+        margin-top: 5px;
+        line-height: 1.2;
+    }
+
+    .discount-percentage {
+        display: none;
+    }
+    
+    .btn-toggle-pdf {
+        position: relative;
+        margin-top: 8px;
+        background-color: #6c757d;
+        color: white;
+        border: none;
+        padding: 4px 8px;
+        font-size: 11px;
+        border-radius: 3px;
+        cursor: pointer;
+        display: block;
+        width: 100%;
+    }
+    
+    .btn-toggle-pdf:hover {
+        background-color: #5a6268;
+    }
+
+    .separator-line {
+        border-top: 2px solid #FFD700;
+        margin: 15px 0;
+        width: 100%;
+        clear: both;
+    }
+
+    .total-container {
+        width: 100%;
+        display: block;
+        overflow: hidden;
+        margin-bottom: 15px;
+    }
+
+    .ambiente-total {
+        font-weight: bold;
+        color: #333;
+        margin-left: 10px;
+        font-size: 16px;
+        display: inline-block;
+    }
+
+    /* SOLUÇÃO MELHORADA para o cabeçalho do ambiente */
+    .ambiente-header {
+        font-size: 18px;
+        font-weight: bold;
+        margin-top: 30px;
+        margin-bottom: 15px;
+        color: #000;
+        background-color: transparent;
+        padding: 12px 20px;
+        
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        position: relative;
+        page-break-after: avoid;
+        break-after: avoid;
+    }
+    
+    /* Linha amarela como pseudo-elemento para melhor controle */
+    .ambiente-header::before {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background-color: #FFD700;
+        z-index: 1;
+    }
+
+    .produto-header {
+        font-size: 16px;
+        font-weight: bold;
+        margin-top: 20px;
+        margin-bottom: 10px;
+        color: #000;
+        padding-left: 10px;
+        background-color: transparent;
+        padding: 8px 15px;
+        border-radius: 4px;
+        page-break-after: avoid;
+        break-after: avoid;
+    }
+
+    /* Container para tipo de produto com proteção contra quebra */
+    .tipo-produto-container {
+        page-break-inside: avoid;
+        break-inside: avoid;
+        overflow: hidden;
+    }
+
+    /* Container para ambiente completo */
+    .ambiente-completo {
+        margin-bottom: 30px;
+    }
+
+    /* ESTILOS PARA TABELAS RESPONSIVAS NO MOBILE */
+    .table-responsive {
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        margin-bottom: 15px;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+        margin-bottom: 10px;
+        min-width: 600px; /* Largura mínima para manter a legibilidade */
+    }
+
+    /* Media query para mobile */
+    @media screen and (max-width: 768px) {
+        .table-responsive {
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        
+        table {
+            margin-bottom: 0;
+        }
+        
+        .main-container {
+            padding: 0 10px;
+        }
+        
+        .ambiente-header {
+            font-size: 16px;
+            padding: 10px 15px;
+        }
+        
+        .produto-header {
+            font-size: 14px;
+            padding: 8px 12px;
+        }
+    }
+
+    /* Estilos para indicar que a tabela é rolável no mobile */
+    @media screen and (max-width: 768px) {
+        .table-responsive {
+            position: relative;
+        }
+        
+        .table-responsive::after {
+            display: block;
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            padding: 5px;
+            background-color: #f8f9fa;
+            border-top: 1px solid #ddd;
+        }
+    }
+
+    @media print {
+        .main-container {
+            padding: 0;
+            margin: 0;
+            max-width: none;
         }
         
         body {
-            background-color: #f8f9fc;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-        
-        .card-custom {
-            border-radius: 10px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            border: none;
-        }
-        
-        .card-header-custom {
-            background: linear-gradient(135deg, var(--primary) 0%, #2a3d8f 100%);
-            color: white;
-            border-radius: 10px 10px 0 0 !important;
-            padding: 15px 20px;
-        }
-        
-        .btn-custom-primary {
-            background-color: var(--primary);
-            border-color: var(--primary);
-            color: white;
-        }
-        
-        .btn-custom-primary:hover {
-            background-color: #2e59d9;
-            border-color: #2e59d9;
-            color: white;
-        }
-        
-        .btn-custom-danger {
-            background-color: var(--danger);
-            border-color: var(--danger);
-            color: white;
-        }
-        
-        .btn-custom-danger:hover {
-            background-color: #be2617;
-            border-color: #be2617;
-            color: white;
-        }
-        
-        .btn-custom-success {
-            background-color: var(--success);
-            border-color: var(--success);
-            color: white;
-        }
-        
-        .btn-custom-success:hover {
-            background-color: #17a673;
-            border-color: #17a673;
-            color: white;
-        }
-        
-        .table th {
-            background: linear-gradient(135deg, var(--primary) 0%, #2a3d8f 100%);
-            color: white;
-            vertical-align: middle;
-        }
-        
-        .filtro-section {
             background-color: white;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            padding: 0;
         }
-        
-        .form-section {
-            margin-bottom: 15px;
+    
+        @page {
+           margin: 5mm;
         }
-        
-        .action-buttons {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
+
+        .logo-empresa {
+            position: absolute;
+            top: 5mm;
+            right: 10mm;
+            height: 100px !important;
+            width: auto !important;
+            max-width: none !important;
         }
-        
-        .valor-total {
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-size: 12px;
+        }
+
+        .produto-header, .cliente-header {
+            page-break-after: avoid;
             font-weight: bold;
-            color: #000000;
+            font-size: 13px;
+        }
+
+        table {
+            page-break-inside: auto !important;
+            width: 100%;
+            font-size: 12px;
+        }
+
+        th, td {
+            border: 1px solid black;
+            padding: 3px;
+            text-align: left;
+            font-size: 11px;
+        }
+
+        .total-box {
+            font-size: 13px !important;
+            padding: 5px !important;
+            page-break-before: avoid;
+            page-break-after: avoid;
+            float: right !important;
+        }
+
+        .cliente-header {
+            page-break-after: avoid;
+            font-weight: bold;
+            font-size: 13px;
+        }
+
+        .print-button, .btn-voltar, .btn-edit, .btn-save, .btn-cancel, .btn-container, .top-buttons-container, .btn-toggle-pdf {
+            display: none !important;
         }
         
-        .page-header {
-            border-bottom: 1px solid #e3e6f0;
-            padding-bottom: 15px;
-            margin-bottom: 25px;
+        .edit-mode {
+            background-color: transparent;
+            border: none;
+            padding: 0;
         }
         
-        .checkbox-cell {
-            width: 40px;
-            text-align: center;
+        input, select {
+            border: none;
+            background: transparent;
+            appearance: none;
+            -webkit-appearance: none;
         }
         
-        .actions-cell {
-            width: 120px;
+        .payment-options-container {
+            display: flex;
+            justify-content: space-between;
         }
         
-        @media (max-width: 768px) {
-            .action-buttons {
-                flex-direction: column;
-            }
-            
-            .btn-action {
-                width: 100%;
-                margin-bottom: 5px;
-            }
+        .payment-option {
+            flex: 1;
+            min-width: 0;
+            padding: 0 8px;
         }
+        
+        .payment-option:not(:last-child) {
+            border-right: 1px solid #ddd;
+        }
+        
+        .hidden-in-pdf {
+            display: none !important;
+        }
+
+        .payment-option.oculto-pdf {
+            border: none;
+            background-color: transparent;
+            padding: 0 8px;
+        }
+        
+        .payment-option.oculto-pdf::before {
+            display: none !important;
+        }
+
+        .orcamento-footer {
+            font-size: 12px !important;
+            margin-top: 10px !important;
+            padding: 5px !important;
+            border-top: 2px solid #FFD700 !important;
+        }
+        
+        .footer-title {
+            font-size: 12px !important;
+        }
+        
+        .footer-content {
+            font-size: 12px !important;
+        }
+        
+        .payment-option h4 {
+            font-size: 12px !important;
+        }
+        
+        .payment-detail, .installment-calc {
+            font-size: 12px !important;
+        }
+        
+        .parcelamento-simplificado {
+            font-size: 12px !important;
+        }
+        
+        .footer-section {
+            margin-bottom: 5px !important;
+        }
+        
+        .cartao-info {
+            font-size: 12px !important;
+        }
+        
+        .parcelas-detalhes {
+            font-size: 11px !important;
+        }
+        
+        .prazo-entrega-container {
+            display: block !important;
+        }
+        
+        .discount-percentage {
+            display: none !important;
+        }
+        
+        .ambiente-total {
+            font-size: 14px !important;
+        }
+        
+        .separator-line {
+            border-top: 2px solid #FFD700 !important;
+            margin: 10px 0 !important;
+        }
+        
+        /* ESTILOS DE IMPRESSÃO MELHORADOS */
+        .ambiente-header {
+            font-size: 16px !important;
+            background-color: transparent !important;
+            box-shadow: none !important;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
+            margin-top: 20px !important;
+            margin-bottom: 10px !important;
+            padding: 5px 10px !important;
+            display: flex !important;
+            justify-content: space-between !important;
+        }
+        
+        .ambiente-header::before {
+            height: 2px !important;
+            background-color: #FFD700 !important;
+        }
+        
+        .produto-header {
+            font-size: 14px !important;
+            background-color: transparent !important;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
+            margin-top: 15px !important;
+            margin-bottom: 8px !important;
+            padding: 5px 10px !important;
+        }
+
+        /* Container para tipo de produto em impressão com proteção reforçada */
+        .tipo-produto-container {
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            overflow: visible !important;
+        }
+
+        .ambiente-completo {
+            margin-bottom: 20px !important;
+        }
+        
+        /* Esconder elementos interativos na impressão */
+        .clickable-cell {
+            cursor: default !important;
+        }
+        
+        .clickable-cell:hover {
+            background-color: transparent !important;
+        }
+        
+        .info-dropdown {
+            display: none !important;
+        }
+        
+        .valor-cell::after {
+            display: none !important;
+        }
+    }
+
+    .header-container {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0;
+    }
+
+    h1, h2, h3, p {
+        margin: 0;
+        padding: 0;
+        line-height: 1.2;
+    }
+
+    .empresa-header, .cliente-header {
+        margin-bottom: 3px;
+    }
+
+    .empresa-header h1, .cliente-header h2 {
+        font-size: 16px;
+        margin-bottom: 2px;
+        font-weight: bold;
+    }
+
+    p strong {
+        font-weight: bold;
+    }
+
+    .info-normal {
+        font-weight: normal;
+    }
+
+    .detalhes-orcamento {
+        margin-top: 3px;
+    }
+
+    /* NOVOS ESTILOS PARA BOTÃO DE EXCLUIR */
+    .btn-excluir {
+        background-color: #dc3545;
+        color: white;
+        border: none;
+        padding: 2px 6px;
+        cursor: pointer;
+        font-size: 10px;
+        border-radius: 3px;
+        margin-left: 5px;
+        transition: background-color 0.2s;
+    }
+    
+    .btn-excluir:hover {
+        background-color: #c82333;
+    }
+    
+    .excluir-container {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+    }
+    
+    .produto-nome-container {
+        flex: 1;
+        min-width: 0;
+        padding-right: 5px;
+    }
+    
+    .btn-excluir i {
+        font-size: 9px;
+    }
+    
+    /* Estilos para botão de ver itens excluídos (MODAL) */
+    .btn-itens-excluidos {
+        background-color: #ffc107;
+        border-color: #ffc107;
+        color: black;
+        padding: 5px 10px;
+        font-size: 12px;
+        border-radius: 4px;
+        cursor: pointer;
+        margin-top: 5px;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        border: 1px solid transparent;
+        transition: all 0.2s;
+    }
+    
+    .btn-itens-excluidos:hover {
+        background-color: #e0a800;
+        border-color: #e0a800;
+        color: black;
+    }
+    
+    .badge-excluidos {
+        background-color: #dc3545;
+        color: white;
+        border-radius: 10px;
+        padding: 1px 6px;
+        font-size: 10px;
+        margin-left: 5px;
+        display: none;
+    }
+    
+    /* Estilos para o modal de itens excluídos */
+    .item-card-modal {
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        padding: 10px;
+        margin-bottom: 10px;
+        background-color: #f8f9fa;
+    }
+    
+    .item-header-modal {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 8px;
+    }
+    
+    .item-details-modal {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: 8px;
+        font-size: 13px;
+    }
+    
+    .detail-item-modal {
+        margin-bottom: 3px;
+    }
+    
+    .detail-label-modal {
+        font-weight: bold;
+        color: #555;
+        font-size: 12px;
+    }
+    
+    .btn-restaurar-modal {
+        background-color: #28a745;
+        color: white;
+        border: none;
+        padding: 4px 8px;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 11px;
+        transition: background-color 0.2s;
+    }
+    
+    .btn-restaurar-modal:hover {
+        background-color: #218838;
+    }
+    
+    .badge-status-modal {
+        background-color: #dc3545;
+        color: white;
+        padding: 2px 6px;
+        border-radius: 10px;
+        font-size: 11px;
+        display: inline-block;
+        margin-bottom: 5px;
+    }
+    
+    .empty-state-modal {
+        color: #6c757d;
+        text-align: center;
+        padding: 20px;
+    }
+    
+    /* Para impressão, ocultar botões de exclusão */
+    @media print {
+        .btn-excluir {
+            display: none !important;
+        }
+        
+        .excluir-container {
+            display: block;
+        }
+        
+        .produto-nome-container {
+            padding-right: 0;
+        }
+        
+        .btn-itens-excluidos {
+            display: none !important;
+        }
+    }
     </style>
 </head>
 <body>
-    <div class="container-fluid py-4">
-        <!-- Cabeçalho -->
-        <div class="page-header">
-            <div class="row align-items-center">
-                <div class="col">
-                    <h1 class="h3 text-gray-800"><i class="fas fa-boxes me-2"></i>Gerenciar Materiais</h1>
+<div class="main-container">
+    {% if not pdf %}
+    <div class="top-buttons-container">
+        <a href="/orcamentos_salvos" class="btn btn-custom-primary">
+            <i class="fas fa-arrow-left me-1"></i> Voltar 
+        </a>
+        
+        <!-- Botão para ver itens excluídos (MODAL) -->
+        <button class="btn btn-itens-excluidos" id="btnItensExcluidos" onclick="abrirModalItensExcluidos()">
+            <i class="fas fa-history"></i> Itens Removidos
+            <span class="badge-excluidos" id="contadorItensExcluidos">0</span>
+        </button>
+    </div>
+    {% endif %}
+
+    <div class="header-container">
+        <img src="{{ logo_url }}" alt="Logo da Empresa" class="logo-empresa">
+    </div>
+
+    <div class="empresa-header">
+        <h1>Prime Marble Shop</h1>
+        <p><strong>Endereço:</strong> Estrada do Engenho, 1800 - Bangu</p>
+        <p><strong>CNPJ:</strong> 39.903.780/0001-15</p>
+        <p><strong>Telefone:</strong> <span class="info-normal">{{ telefone_usuario }}</span></p>
+    </div>
+
+    <div class="cliente-header">
+        <h2>
+            <strong>Cliente:</strong>
+            <span class="wrap-text">{{ cliente_nome }}</span>
+        </h2>
+        <p>
+            <strong>Endereço:</strong>
+            <span class="wrap-text info-normal">{{ orcamentos[0].cliente.endereco }}</span>
+        </p>
+        <p>
+            <strong>Telefone:</strong>
+            <span class="info-normal">{{ orcamentos[0].cliente.telefone }}</span>
+        </p>
+    </div>
+
+    <h2>Detalhes do Orçamento</h2>
+    <p class="orcamento-info">
+        <strong>Orçamento:</strong> {{ codigo_orcamento }}<br>
+        <strong>Data:</strong> {{ data_salvo.strftime('%d/%m/%Y') }}
+    </p>
+    <div class="total-box">
+        Valor Total: <span id="valorTotal">{{ "{:,.2f}".format(valor_total_float).replace(",", "X").replace(".", ",").replace("X", ".") }}</span>
+    </div>
+
+    </br></br></br></br>
+
+{% for ambiente_nome, descricoes in ambientes_agrupados.items() %}
+{% set ambiente_total = namespace(value=0) %}
+
+<!-- Vamos primeiro coletar todos os tipos de produtos para determinar os campos necessários -->
+{% set tipos_produtos_na_descricao = [] %}
+{% set campos_necessarios = namespace(saia=false, fronte=false, cuba=false, cooktop=false, profundidade=false, fundo=false, alisar=false, largura_alisar=false) %}
+
+{% for descricao_nome, tipos_produtos in descricoes.items() %}
+    {% for tipo_produto, produtos in tipos_produtos.items() %}
+        {% if tipo_produto not in tipos_produtos_na_descricao %}
+            {% set tipos_produtos_na_descricao = tipos_produtos_na_descricao + [tipo_produto] %}
+        {% endif %}
+        
+        {% for produto in produtos %}
+            {% set ambiente_total.value = ambiente_total.value + produto.valor_total %}
+            
+            <!-- Analisar campos específicos baseados no tipo de produto -->
+            {% if tipo_produto in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
+                {% if not campos_necessarios.saia %}
+                    {% set campos_necessarios.saia = true %}
+                {% endif %}
+            {% endif %}
+            
+            {% if tipo_produto in ["Bancada", "Lavatorio"] %}
+                {% if not campos_necessarios.fronte %}
+                    {% set campos_necessarios.fronte = true %}
+                {% endif %}
+                {% if not campos_necessarios.cuba %}
+                    {% set campos_necessarios.cuba = true %}
+                {% endif %}
+            {% endif %}
+            
+            {% if tipo_produto == "Bancada" %}
+                {% if not campos_necessarios.cooktop %}
+                    {% set campos_necessarios.cooktop = true %}
+                {% endif %}
+            {% endif %}
+            
+            {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] %}
+                {% if not campos_necessarios.profundidade %}
+                    {% set campos_necessarios.profundidade = true %}
+                {% endif %}
+                {% if not campos_necessarios.fundo %}
+                    {% set campos_necessarios.fundo = true %}
+                {% endif %}
+                {% if not campos_necessarios.alisar %}
+                    {% set campos_necessarios.alisar = true %}
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+{% endfor %}
+
+<!-- Container para ambiente inteiro -->
+<div class="ambiente-completo">
+    <div class="ambiente-header">
+        <span>{{ ambiente_nome }}</span>
+        <span class="ambiente-total">R$ {{ "{:,.2f}".format(ambiente_total.value).replace(",", "X").replace(".", ",").replace("X", ".") }}</span>
+    </div>
+
+    {% for descricao_nome, tipos_produtos in descricoes.items() %}
+    {% set descricao_total = namespace(value=0) %}
+    
+    <!-- Reanalisar campos para esta descrição específica -->
+    {% set campos_descricao = namespace(saia=false, fronte=false, cuba=false, cooktop=false, profundidade=false, fundo=false, alisar=false, largura_alisar=false) %}
+    
+    {% for tipo_produto, produtos in tipos_produtos.items() %}
+        {% for produto in produtos %}
+            {% set descricao_total.value = descricao_total.value + produto.valor_total %}
+            
+            <!-- Analisar campos específicos baseados no tipo de produto nesta descrição -->
+            {% if tipo_produto in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
+                {% if not campos_descricao.saia %}
+                    {% set campos_descricao.saia = true %}
+                {% endif %}
+            {% endif %}
+            
+            {% if tipo_produto in ["Bancada", "Lavatorio"] %}
+                {% if not campos_descricao.fronte %}
+                    {% set campos_descricao.fronte = true %}
+                {% endif %}
+                {% if not campos_descricao.cuba %}
+                    {% set campos_descricao.cuba = true %}
+                {% endif %}
+            {% endif %}
+            
+            {% if tipo_produto == "Bancada" %}
+                {% if not campos_descricao.cooktop %}
+                    {% set campos_descricao.cooktop = true %}
+                {% endif %}
+            {% endif %}
+            
+            {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] %}
+                {% if not campos_descricao.profundidade %}
+                    {% set campos_descricao.profundidade = true %}
+                {% endif %}
+                {% if not campos_descricao.fundo %}
+                    {% set campos_descricao.fundo = true %}
+                {% endif %}
+                {% if not campos_descricao.alisar %}
+                    {% set campos_descricao.alisar = true %}
+                {% endif %}
+            {% endif %}
+        {% endfor %}
+    {% endfor %}
+
+    {% set descricao_lower = descricao_nome.lower() %}
+    {% if descricao_lower not in ['-', 'sem descrição'] %}
+    <div class="tipo-produto-container">
+        <div class="produto-header">
+            <span>{{ descricao_nome }}</span>
+            <span class="ambiente-total">R$ {{ "{:,.2f}".format(descricao_total.value).replace(",", "X").replace(".", ",").replace("X", ".") }}</span>
+        </div>
+    {% endif %}
+        
+        <div class="table-responsive">
+            <table>
+                <thead>
+    <tr>
+        <th>Produto</th>
+        <th>Material</th>
+        <th>Qtd</th>
+        <th>Comp.</th>
+        <th>Larg.</th>
+        
+        <!-- Colunas que serão mostradas baseadas no tipo do produto ATUAL -->
+        <!-- IMPORTANTE: Usamos a variável campos_descricao que já foi calculada -->
+        {% if campos_descricao.saia %}
+        <th>Saia</th>
+        {% endif %}
+        
+        {% if campos_descricao.fronte %}
+        <th>Fronte</th>
+        {% endif %}
+        
+        {% if campos_descricao.cuba %}
+        <th>Cuba</th>
+        {% endif %}
+        
+        {% if campos_descricao.cooktop %}
+        <th>Cooktop</th>
+        {% endif %}
+        
+        <!-- Campos específicos de Nicho - SÓ aparecem se HOUVER nicho na descrição -->
+        {% if campos_descricao.profundidade %}
+        <th>Profundidade</th>
+        {% endif %}
+        
+        {% if campos_descricao.fundo %}
+        <th>Fundo</th>
+        {% endif %}
+        
+        {% if campos_descricao.alisar %}
+        <th>Alisar</th>
+        {% endif %}
+        
+        {% if campos_descricao.largura_alisar %}
+        <th>Larg. do Alisar</th>
+        {% endif %}
+        
+        <th>Instalação</th>
+        <th>Valor</th>
+    </tr>
+</thead>
+<tbody>
+    {% for tipo_produto, produtos in tipos_produtos.items() %}
+        {% for produto in produtos %}
+        <tr>
+            <td>
+                <div class="excluir-container">
+                    <div class="produto-nome-container">
+                        {{ produto.produto.nome if produto.produto else tipo_produto }}
+                    </div>
+                    {% if not pdf and request.endpoint != 'detalhes_orcamento' %}
+                    <button class="btn-excluir" 
+                            onclick="excluirItem('{{ produto.id }}', '{{ ambiente_nome }}', '{{ descricao_nome }}', '{{ tipo_produto }}')"
+                            title="Remover apenas deste orçamento salvo (não exclui do sistema)">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                    {% endif %}
                 </div>
-                <div class="col-auto">
-                    <a href="/" class="btn btn-custom-primary">
-                        <i class="fas fa-home me-1"></i> Voltar para a Página Inicial
-                    </a>
-                </div>
-            </div>
+            </td>
+            <td class="clickable-cell material-cell" onclick="mostrarInfoMaterial(this, '{{ produto.material.nome }}', '{{ produto.valor_material }}')">{{ produto.material.nome }}</td>                            
+            <td>{{ produto.quantidade }}</td>
+            <td>{{ produto.comprimento }} cm</td>
+            <td>{{ produto.largura }} cm</td>
+            
+            <!-- SAIA - Só mostra se o campo estiver ativo na descrição -->
+            {% if campos_descricao.saia %}
+            <td>
+                {% if tipo_produto in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
+                    {{ produto.comprimento_saia }} x {{ produto.largura_saia }} cm
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            {% endif %}
+            
+            <!-- FRONTE - Só mostra se o campo estiver ativo na descrição -->
+            {% if campos_descricao.fronte %}
+            <td>
+                {% if tipo_produto in ["Bancada", "Lavatorio"] %}
+                    {{ produto.comprimento_fronte }} x {{ produto.largura_fronte }} cm
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            {% endif %}
+            
+            <!-- CUBA - Só mostra se o campo estiver ativo na descrição -->
+            {% if campos_descricao.cuba %}
+            <td>
+                {% if tipo_produto in ["Bancada", "Lavatorio"] %}
+                    {% if produto.tipo_cuba == "Esculpida" %}
+                        Esculpida ({{ produto.quantidade_cubas }}) - {{ produto.comprimento_cuba }} x {{ produto.largura_cuba }} x {{ produto.profundidade_cuba }} cm
+                    {% elif produto.tipo_cuba %}
+                        {{ produto.tipo_cuba }} ({{ produto.quantidade_cubas }})
+                    {% else %}
+                        -
+                    {% endif %}
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            {% endif %}
+            
+            <!-- COOKTOP - Só mostra se o campo estiver ativo na descrição -->
+            {% if campos_descricao.cooktop %}
+            <td>
+                {% if tipo_produto == "Bancada" %}
+                    {% if produto.tem_cooktop == "Sim" %}Sim{% else %}-{% endif %}
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            {% endif %}
+            
+            <!-- PROFUNDIDADE - Só mostra se o campo estiver ativo na descrição -->
+            {% if campos_descricao.profundidade %}
+            <td>
+                {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] %}
+                    {{ produto.profundidade_nicho }} cm
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            {% endif %}
+            
+            <!-- FUNDO - Só mostra se o campo estiver ativo na descrição -->
+            {% if campos_descricao.fundo %}
+            <td>
+                {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] %}
+                    {% if produto.tem_fundo == "Sim" %}Sim{% else %}Não{% endif %}
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            {% endif %}
+            
+            <!-- ALISAR - Só mostra se o campo estiver ativo na descrição -->
+            {% if campos_descricao.alisar %}
+            <td>
+                {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] %}
+                    {% if produto.tem_alisar == "Sim" %}Sim{% else %}Não{% endif %}
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            {% endif %}
+            
+            <!-- LARGURA DO ALISAR - Só mostra se o campo estiver ativo na descrição -->
+            {% if campos_descricao.largura_alisar %}
+            <td>
+                {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] and produto.tem_alisar == "Sim" %}
+                    {{ produto.largura_alisar }} cm
+                {% else %}
+                    -
+                {% endif %}
+            </td>
+            {% endif %}
+            
+            <td class="clickable-cell instalacao-cell" onclick="mostrarInfoInstalacao(this, '{{ produto.instalacao }}', '{{ produto.valor_instalacao }}')">{{ produto.instalacao }}</td>
+            <td class="clickable-cell valor-cell" onclick="mostrarInfoRT(this, '{{ produto.valor_rt }}')">R$ {{ "{:,.2f}".format(produto.valor_total).replace(",", "X").replace(".", ",").replace("X", ".") }}</td>
+        </tr>
+        {% endfor %}
+    {% endfor %}
+</tbody>
+            </table>
         </div>
 
-        <!-- Card do formulário de material -->
-        <div class="card card-custom mb-4">
-            <div class="card-header card-header-custom">
-                <h5 class="m-0 font-weight-bold"><i class="fas fa-plus-circle me-2"></i>Novo Material</h5>
-            </div>
-            <div class="card-body">
-                <form method="POST" id="materialForm">
-                    <div class="row">
-                        <div class="col-md-6 form-section">
-                            <label for="nome" class="form-label">Nome do Material:</label>
-                            <input type="text" id="nome" name="nome" class="form-control" required>
-                        </div>
+    {% if descricao_lower not in ['-', 'sem descrição'] %}
+    </div>
+    {% endif %}
+    {% endfor %} <!-- FECHAMENTO DO LOOP DAS DESCRIÇÕES -->
+    
+</div> <!-- FECHAMENTO DA DIV .ambiente-completo -->
+{% endfor %} <!-- FECHAMENTO DO LOOP DOS AMBIENTES -->
 
-                        <div class="col-md-6 form-section">
-                            <label for="valor" class="form-label">Valor (R$):</label>
-                            <input type="number" id="valor" name="valor" class="form-control" step="0.01" min="0" required>
-                        </div>
-                    </div>
-
-                    <div class="row mt-3">
-                        <div class="col-md-12 text-end">
-                            <button type="submit" class="btn btn-custom-success">
-                                <i class="fas fa-save me-1"></i> Adicionar Material
-                            </button>
-                        </div>
-                    </div>
-                </form>
+    <!-- Rodapé do orçamento -->
+    <div class="orcamento-footer">
+        <div class="footer-section">
+            <div class="footer-title">Prazo de Entrega:</div>
+            <div class="footer-content">
+                <div class="prazo-entrega-container">
+                    <span class="prazo-entrega-text">
+                        <span id="deliveryDaysDisplay">{{ prazo_entrega }}</span> dias úteis
+                    </span>
+                    {% if not pdf %}
+                    <button class="btn-edit" onclick="toggleEdit('deliveryDays')">Editar</button>
+                    {% endif %}
+                </div>
+                
+                {% if not pdf %}
+                <div id="deliveryDaysEdit" class="edit-mode" style="display: none;">
+                    <input type="number" id="deliveryDaysInput" class="edit-field" value="{{ prazo_entrega }}" min="1">
+                    dias úteis
+                    <button class="btn-save" onclick="saveValue('deliveryDays')">Salvar</button>
+                    <button class="btn-cancel" onclick="cancelEdit('deliveryDays')">Cancelar</button>
+                </div>
+                {% endif %}
             </div>
         </div>
-
-        <!-- Card da lista de materiais -->
-        <div class="card card-custom">
-            <div class="card-header card-header-custom d-flex justify-content-between align-items-center">
-                <h5 class="m-0 font-weight-bold"><i class="fas fa-list me-2"></i>Lista de Materiais</h5>
-                <div class="d-flex align-items-center">
-                    <span class="me-2">Total:</span>
-                    <span id="total-materiais" class="badge bg-primary fs-6">{{ materiais|length }}</span>
-                </div>
-            </div>
-            <div class="card-body">
-                <!-- Filtros -->
-                <div class="row filtro-section">
-                    <div class="col-md-6 mb-2">
-                        <label for="filtro_nome" class="form-label">Filtrar por Nome:</label>
-                        <input type="text" id="filtro_nome" class="form-control" placeholder="Digite para filtrar..." onkeyup="filterMateriais()">
-                    </div>
-
-                    <div class="col-md-3 mb-2">
-                        <label for="filtro_valor_min" class="form-label">Valor Mínimo:</label>
-                        <input type="number" id="filtro_valor_min" class="form-control" step="0.01" min="0" onchange="filterMateriais()">
-                    </div>
-
-                    <div class="col-md-3 mb-2">
-                        <label for="filtro_valor_max" class="form-label">Valor Máximo:</label>
-                        <input type="number" id="filtro_valor_max" class="form-control" step="0.01" min="0" onchange="filterMateriais()">
-                    </div>
-
-                    <div class="col-md-12 d-flex justify-content-end">
-                        <button type="button" class="btn btn-custom-primary" onclick="resetFilters()">
-                            <i class="fas fa-sync-alt me-1"></i> Limpar Filtros
+        
+        <div class="footer-section">
+            <div class="footer-title">Condições de Pagamento:</div>
+            <div class="footer-content">
+                <div class="payment-options-container" id="paymentOptionsContainer">
+                    <!-- Cartão de Crédito (com edição de parcelas) -->
+                    <div class="payment-option {% if '1' in exclude_payments %}hidden-in-pdf oculto-pdf{% endif %}" id="payment-option-1">
+                        <h4>Cartão de Crédito</h4>
+                        <div class="payment-detail">
+                           • Pagamento de 100% na aprovação do orçamento
+                        </div>
+                        <div class="installment-calc" id="parcelamentoSimplificado">
+                             R$ {{ "{:,.2f}".format(valor_total_float).replace(",", "X").replace(".", ",").replace("X", ".") }} em até 
+                             <span id="maxParcelasDisplay">
+                             {%- if max_parcelas is not none -%}
+                                 {{ max_parcelas }}
+                             {%- else -%}
+                                 {%- set max_parcelas_calculado = (valor_total_float / 100)|int -%}
+                                 {%- if max_parcelas_calculado < 1 -%}
+                                     {%- set max_parcelas_calculado = 1 -%}
+                                 {%- endif -%}
+                                 {%- if max_parcelas_calculado > 10 -%}
+                                     10
+                                 {%- else -%}
+                                     {{ max_parcelas_calculado }}
+                                 {%- endif -%}
+                             {%- endif -%}
+                             </span>x sem juros
+                             {% if not pdf %}
+                             <button class="btn-edit" onclick="toggleEdit('maxParcelas')">Editar</button>
+                             {% endif %}
+                        </div>
+                        
+                        {% if not pdf %}
+                        <div id="maxParcelasEdit" class="edit-mode" style="display: none;">
+                            <input type="number" id="maxParcelasInput" class="edit-field" value="
+                                {%- if max_parcelas is not none -%}
+                                    {{ max_parcelas }}
+                                {%- else -%}
+                                    {%- set max_parcelas_calculado = (valor_total_float / 100)|int -%}
+                                    {%- if max_parcelas_calculado < 1 -%}
+                                        1
+                                    {%- elif max_parcelas_calculado > 10 -%}
+                                        10
+                                    {%- else -%}
+                                        {{ max_parcelas_calculado }}
+                                    {%- endif -%}
+                                {%- endif -%}
+                            " min="1" max="12">
+                            <button class="btn-save" onclick="saveMaxParcelas()">Salvar</button>
+                            <button class="btn-cancel" onclick="cancelEdit('maxParcelas')">Cancelar</button>
+                        </div>
+                        
+                        <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-1')">
+                            {% if '1' in exclude_payments %}Mostrar{% else %}Ocultar{% endif %} no PDF
                         </button>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- À vista (Dinheiro/PIX) - Primeira opção -->
+                    <div class="payment-option {% if '2' in exclude_payments %}hidden-in-pdf oculto-pdf{% endif %}" id="payment-option-2">
+                        <h4>À vista (Dinheiro/PIX)</h4>
+                        <div class="payment-detail">
+                            <span class="discount-percentage" id="discount1Display">{{ desconto_avista }}</span>Com desconto
+                            {% if not pdf %}
+                            <button class="btn-edit" onclick="toggleEdit('discount1')">Editar</button>
+                            {% endif %}
+                        </div>
+                        <div class="payment-detail">• Sinal de 50% e 50% na entrega</div>
+                        <div class="installment-calc">
+                            Valor com desconto: R$ <span id="valorAvista">
+                                {% set valor_com_desconto_avista = valor_total_float * (1 - desconto_avista/100) %}
+                                {% set valor_arredondado_avista = (valor_com_desconto_avista / 10)|round(0, 'common') * 10 %}
+                                {% if valor_arredondado_avista > valor_total_float %}
+                                    {% set valor_arredondado_avista = valor_arredondado_avista - 5 %}
+                                {% endif %}
+                                {{ "{:,.2f}".format(valor_arredondado_avista).replace(",", "X").replace(".", ",").replace("X", ".") }}
+                            </span>
+                        </div>
+                        {% if not pdf %}
+                        <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-2')">
+                            {% if '2' in exclude_payments %}Mostrar{% else %}Ocultar{% endif %} no PDF
+                        </button>
+                        {% endif %}
+                        
+                        {% if not pdf %}
+                        <div id="discount1Edit" class="edit-mode" style="display: none;">
+                            <input type="number" id="discount1Input" class="edit-field" value="{{ desconto_avista }}" min="0" max="100">% de desconto
+                            <button class="btn-save" onclick="saveValue('discount1')">Salvar</button>
+                            <button class="btn-cancel" onclick="cancelEdit('discount1')">Cancelar</button>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- À vista (Dinheiro/PIX) - Segunda opção -->
+                    <div class="payment-option {% if '3' in exclude_payments %}hidden-in-pdf oculto-pdf{% endif %}" id="payment-option-3">
+                        <h4>À vista (Dinheiro/PIX)</h4>
+                        <div class="payment-detail">
+                            <span class="discount-percentage" id="discount2Display">{{ desconto_parcelado }}</span>Com desconto
+                            {% if not pdf %}
+                            <button class="btn-edit" onclick="toggleEdit('discount2')">Editar</button>
+                            {% endif %}
+                        </div>
+                        <div class="payment-detail">• Sinal de 80% e 20% na entrega</div>
+                        <div class="installment-calc">
+                            Valor com desconto: R$ <span id="valorParcelado">
+                                {% set valor_com_desconto_parcelado = valor_total_float * (1 - desconto_parcelado/100) %}
+                                {% set valor_arredondado_parcelado = (valor_com_desconto_parcelado / 10)|round(0, 'common') * 10 %}
+                                {% if valor_arredondado_parcelado > valor_total_float %}
+                                    {% set valor_arredondado_parcelado = valor_arredondado_parcelado - 5 %}
+                                {% endif %}
+                                {{ "{:,.2f}".format(valor_arredondado_parcelado).replace(",", "X").replace(".", ",").replace("X", ".") }}
+                        </span>
+                        </div>
+                        {% if not pdf %}
+                        <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-3')">
+                            {% if '3' in exclude_payments %}Mostrar{% else %}Ocultar{% endif %} no PDF
+                        </button>
+                        {% endif %}
+                        
+                        {% if not pdf %}
+                        <div id="discount2Edit" class="edit-mode" style="display: none;">
+                            <input type="number" id="discount2Input" class="edit-field" value="{{ desconto_parcelado }}" min="0" max="100">% de desconto
+                            <button class="btn-save" onclick="saveValue('discount2')">Salvar</button>
+                            <button class="btn-cancel" onclick="cancelEdit('discount2')">Cancelar</button>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
-
-                <!-- Tabela de materiais -->
-                <div class="table-responsive">
-                    <table class="table table-striped table-bordered table-hover">
-                        <thead>
-                            <tr>
-                                <th>Nome</th>
-                                <th>Valor (R$)</th>
-                                <th class="actions-cell">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="materiais_table">
-                            {% for material in materiais %}
-                            <tr data-id="{{ material.id }}" data-nome="{{ material.nome }}" data-valor="{{ material.valor }}">
-                                <td>{{ material.nome }}</td>
-                                <td class="valor-total">{{ "R$ {:,.2f}".format(material.valor).replace(",", "X").replace(".", ",").replace("X", ".") }}</td>
-                                <td>
-                                    <div class="action-buttons">
-                                        <a href="{{ url_for('editar_material', id=material.id) }}" class="btn btn-sm btn-custom-primary" title="Editar">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <form action="{{ url_for('deletar_material', id=material.id) }}" method="POST" class="d-inline" onsubmit="confirmarExclusao(event, this)">
-                                            <button type="submit" class="btn btn-sm btn-custom-danger" title="Excluir">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
+            </div>
+        </div>
+        
+        <div class="footer-section">
+            <div class="footer-title">Observações:</div>
+            <div class="footer-content">
+                <div id="observacoesDisplay" style="white-space: pre-line;">{{ observacoes }}</div>
+                {% if not pdf %}
+                <button class="btn-edit" onclick="toggleEdit('observacoes')">Editar</button>
+                
+                <div id="observacoesEdit" class="edit-mode" style="display: none;">
+                    <textarea id="observacoesInput" rows="2" style="width: 100%; font-size: 12px;">{{ observacoes }}</textarea>
+                    <button class="btn-save" onclick="saveValue('observacoes')">Salvar</button>
+                    <button class="btn-cancel" onclick="cancelEdit('observacoes')">Cancelar</button>
                 </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        <!-- Formulário para salvar as alterações do rodapé -->
+        {% if not pdf %}
+        <form action="{{ url_for('salvar_rodape_orcamento', codigo=codigo_orcamento) }}" method="POST" id="rodapeForm">
+            <input type="hidden" name="prazo_entrega" id="formPrazoEntrega" value="{{ prazo_entrega }}">
+            <input type="hidden" name="desconto_avista" id="formDescontoAvista" value="{{ desconto_avista }}">
+            <input type="hidden" name="desconto_parcelado" id="formDescontoParcelado" value="{{ desconto_parcelado }}">
+            <input type="hidden" name="observacoes" id="formObservacoes" value="{{ observacoes }}">
+            <input type="hidden" name="exclude_payments" id="formExcludePayments" value="{{ exclude_payments|join(',') }}">
+            <input type="hidden" name="max_parcelas" id="formMaxParcelas" value="{{ max_parcelas if max_parcelas is not none else '' }}">
+        </form>
+        {% endif %}
+    </div>
 
-                <!-- Mensagem quando não há resultados -->
-                <div id="no-results" class="alert alert-info mt-3" style="display: none;">
-                    <i class="fas fa-info-circle me-2"></i> Nenhum material encontrado com os filtros aplicados.
+    <br>
+
+    <!-- Botão Salvar Alterações do Rodapé -->
+    {% if not pdf %}
+    <div class="btn-container">
+        <button type="button" id="btnSalvarRodape" class="btn-save-rodape">
+            <i class="fas fa-save me-1"></i> Salvar Alterações do Rodapé
+        </button>
+        
+        <!-- Botão Gerar PDF com parâmetros de exclusão -->
+        <a href="/gerar_pdf_orcamento/{{ codigo_orcamento }}?exclude_payments={{ exclude_payments|join(',') }}" class="btn btn-custom-success btn-pdf" id="btnGerarPDF" title="Gerar PDF">
+            <i class="fas fa-file-pdf"></i> Gerar PDF
+        </a>
+    </div>
+    
+    <!-- Formulário para exclusão de item (escondido) -->
+    <form id="formExcluirItem" method="POST" action="{{ url_for('excluir_item_orcamento', codigo=codigo_orcamento) }}" style="display: none;">
+        <input type="hidden" id="itemIdExcluir" name="item_id">
+        <input type="hidden" id="ambienteExcluir" name="ambiente">
+        <input type="hidden" id="descricaoExcluir" name="descricao">
+        <input type="hidden" id="tipoProdutoExcluir" name="tipo_produto">
+    </form>
+    {% endif %}
+
+</div>
+
+<!-- MODAL PARA ITENS REMOVIDOS -->
+<div class="modal fade" id="modalItensExcluidos" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-history me-2"></i>
+                    Itens Removidos - Orçamento {{ codigo_orcamento }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalItensExcluidosBody">
+                <!-- Conteúdo será carregado via AJAX -->
+                <div class="text-center p-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Carregando...</span>
+                    </div>
+                    <p class="mt-3">Carregando itens removidos...</p>
                 </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
             </div>
         </div>
     </div>
+</div>
 
-    <!-- JavaScript Libraries -->
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<!-- SweetAlert2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+// Variáveis globais para armazenar os valores
+let valoresOriginais = {};
+const valorTotalFloat = {{ valor_total_float }};
+let hiddenPaymentOptions = [];
+let dropdownAtivo = null; // Controla o dropdown ativo
 
-    <script>
-        // Função para confirmar exclusão
-        function confirmarExclusao(event, form) {
-            event.preventDefault();
-            
-            Swal.fire({
-                title: "Tem certeza?",
-                text: "Essa ação não pode ser desfeita!",
-                icon: "warning",
-                showCancelButton: true,
-                confirmButtonColor: "#d33",
-                cancelButtonColor: "#3085d6",
-                confirmButtonText: "Sim, deletar!",
-                cancelButtonText: "Cancelar"
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    form.submit();
-                }
-            });
-        }
+// Inicializar as opções ocultas
+{% if exclude_payments %}
+    hiddenPaymentOptions = {{ exclude_payments|tojson }};
+{% endif %}
 
-        // Função para filtrar materiais
-        function filterMateriais() {
-            const filtroNome = document.getElementById('filtro_nome').value.toLowerCase();
-            const filtroValorMin = parseFloat(document.getElementById('filtro_valor_min').value) || 0;
-            const filtroValorMax = parseFloat(document.getElementById('filtro_valor_max').value) || Number.MAX_SAFE_INTEGER;
-            
-            const rows = document.querySelectorAll('#materiais_table tr');
-            let visibleCount = 0;
-            
-            rows.forEach(row => {
-                const nome = row.getAttribute('data-nome').toLowerCase();
-                const valor = parseFloat(row.getAttribute('data-valor'));
-                
-                let show = true;
-                
-                // Filtrar por nome
-                if (filtroNome && !nome.includes(filtroNome)) {
-                    show = false;
-                }
-                
-                // Filtrar por valor mínimo
-                if (valor < filtroValorMin) {
-                    show = false;
-                }
-                
-                // Filtrar por valor máximo
-                if (valor > filtroValorMax) {
-                    show = false;
-                }
-                
-                if (show) {
-                    row.style.display = '';
-                    visibleCount++;
-                } else {
-                    row.style.display = 'none';
-                }
-            });
-            
-            // Mostrar ou ocultar mensagem de nenhum resultado
-            const noResults = document.getElementById('no-results');
-            if (visibleCount === 0) {
-                noResults.style.display = 'block';
-            } else {
-                noResults.style.display = 'none';
-            }
-            
-            // Atualizar contador
-            document.getElementById('total-materiais').textContent = visibleCount;
-            
-            // Salvar filtros no localStorage
-            localStorage.setItem('filtroNomeMateriais', filtroNome);
-            localStorage.setItem('filtroValorMinMateriais', filtroValorMin);
-            localStorage.setItem('filtroValorMaxMateriais', filtroValorMax === Number.MAX_SAFE_INTEGER ? '' : filtroValorMax);
-        }
+// Função para fechar todos os dropdowns
+function fecharTodosDropdowns() {
+    if (dropdownAtivo) {
+        dropdownAtivo.remove();
+        dropdownAtivo = null;
+    }
+}
 
-        // Função para resetar os filtros
-        function resetFilters() {
-            document.getElementById('filtro_nome').value = '';
-            document.getElementById('filtro_valor_min').value = '';
-            document.getElementById('filtro_valor_max').value = '';
-            
-            // Limpar localStorage
-            localStorage.removeItem('filtroNomeMateriais');
-            localStorage.removeItem('filtroValorMinMateriais');
-            localStorage.removeItem('filtroValorMaxMateriais');
-            
-            filterMateriais();
-        }
+// Função para mostrar informações do Material
+function mostrarInfoMaterial(element, materialNome, valorMaterial) {
+    // Fecha qualquer dropdown aberto
+    fecharTodosDropdowns();
+    
+    // Formata o valor do material
+    const valorFormatado = parseFloat(valorMaterial).toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+    
+    // Cria o dropdown
+    const dropdown = document.createElement('div');
+    dropdown.className = 'info-dropdown';
+    dropdown.innerHTML = `
+        <div class="dropdown-title">
+            <i class="fas fa-cube"></i> Detalhes do Material
+        </div>
+        <div class="dropdown-content">
+            <div class="info-row">
+                <span class="info-label">Material:</span>
+                <span class="info-value">${materialNome}</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Valor do Material:</span>
+                <span class="info-value highlight">R$ ${valorFormatado}</span>
+            </div>
+        </div>
+    `;
+    
+    // Posiciona o dropdown
+    posicionarDropdown(element, dropdown);
+    
+    // Adiciona ao corpo da página
+    document.body.appendChild(dropdown);
+    dropdownAtivo = dropdown;
+}
 
-        // Carregar filtros salvos ao iniciar a página
-        document.addEventListener('DOMContentLoaded', function() {
-            // Carregar filtros do localStorage
-            if (localStorage.getItem('filtroNomeMateriais')) {
-                document.getElementById('filtro_nome').value = localStorage.getItem('filtroNomeMateriais');
-            }
-            if (localStorage.getItem('filtroValorMinMateriais')) {
-                document.getElementById('filtro_valor_min').value = localStorage.getItem('filtroValorMinMateriais');
-            }
-            if (localStorage.getItem('filtroValorMaxMateriais')) {
-                document.getElementById('filtro_valor_max').value = localStorage.getItem('filtroValorMaxMateriais');
-            }
-            
-            // Aplicar filtros ao carregar a página
-            filterMateriais();
+// Função para mostrar informações da Instalação
+function mostrarInfoInstalacao(element, instalacaoNome, valorInstalacao) {
+    // Fecha qualquer dropdown aberto
+    fecharTodosDropdowns();
+    
+    // Cria o dropdown
+    const dropdown = document.createElement('div');
+    dropdown.className = 'info-dropdown';
+    
+    // Verifica se a instalação é "Sim" ou "Não"
+    const instalacaoValor = instalacaoNome === 'Sim' ? 'Sim' : 'Não';
+    
+    // Monta o HTML do dropdown
+    let htmlConteudo = `
+        <div class="dropdown-title">
+            <i class="fas fa-tools"></i> Detalhes da Instalação
+        </div>
+        <div class="dropdown-content">
+            <div class="info-row">
+                <span class="info-label">Instalação:</span>
+                <span class="info-value">${instalacaoValor}</span>
+            </div>
+    `;
+    
+    // Só mostra o valor se instalação for "Sim"
+    if (instalacaoNome === 'Sim') {
+        const valorFormatado = parseFloat(valorInstalacao).toLocaleString('pt-BR', {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
         });
-    </script>
+        
+        htmlConteudo += `
+            <div class="info-row">
+                <span class="info-label">Valor da Instalação:</span>
+                <span class="info-value highlight">R$ ${valorFormatado}</span>
+            </div>
+        `;
+    }
+    
+    htmlConteudo += `</div>`;
+    dropdown.innerHTML = htmlConteudo;
+    
+    // Posiciona o dropdown
+    posicionarDropdown(element, dropdown);
+    
+    // Adiciona ao corpo da página
+    document.body.appendChild(dropdown);
+    dropdownAtivo = dropdown;
+}
+
+// Função para mostrar informações da RT (Rodapé/Topo)
+function mostrarInfoRT(element, valorRT) {
+    // Fecha qualquer dropdown aberto
+    fecharTodosDropdowns();
+    
+    // Formata o valor da RT
+    const valorFormatado = parseFloat(valorRT).toLocaleString('pt-BR', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+    
+    // Cria o dropdown
+    const dropdown = document.createElement('div');
+    dropdown.className = 'info-dropdown';
+    dropdown.innerHTML = `
+        <div class="dropdown-title">
+            <i class="fas fa-ruler"></i> Detalhes da RT (Rodapé/Topo)
+        </div>
+        <div class="dropdown-content">
+            <div class="info-row">
+                <span class="info-label">Valor da RT:</span>
+                <span class="info-value highlight">R$ ${valorFormatado}</span>
+            </div>
+        </div>
+    `;
+    
+    // Posiciona o dropdown
+    posicionarDropdown(element, dropdown);
+    
+    // Adiciona ao corpo da página
+    document.body.appendChild(dropdown);
+    dropdownAtivo = dropdown;
+}
+
+// Função para posicionar o dropdown abaixo do elemento clicado
+function posicionarDropdown(element, dropdown) {
+    const rect = element.getBoundingClientRect();
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+    
+    // Calcula a posição (abaixo da célula)
+    let top = rect.bottom + scrollTop + 5;
+    let left = rect.left + scrollLeft;
+    
+    // Ajusta se ultrapassar a borda direita da tela
+    if (left + dropdown.offsetWidth > window.innerWidth) {
+        left = window.innerWidth - dropdown.offsetWidth - 10;
+    }
+    
+    // Ajusta se ultrapassar a borda inferior da tela
+    if (top + dropdown.offsetHeight > window.innerHeight + scrollTop) {
+        top = rect.top + scrollTop - dropdown.offsetHeight - 5;
+    }
+    
+    dropdown.style.top = top + 'px';
+    dropdown.style.left = left + 'px';
+}
+
+// FUNÇÃO ADICIONADA: Formatar data de UTC para Horário de Brasília
+function formatarDataBrasil(dataString) {
+    if (!dataString) return 'Data não disponível';
+    
+    try {
+        // Cria a data a partir da string (assumindo que vem em UTC)
+        const dataUTC = new Date(dataString);
+        
+        // Verifica se a data é válida
+        if (isNaN(dataUTC.getTime())) {
+            return dataString;
+        }
+        
+        // Ajusta para o fuso horário de Brasília (UTC-3)
+        // Obtém o timestamp em UTC e adiciona 3 horas para converter para UTC-3
+        const timestampUTC = dataUTC.getTime();
+        const offsetBrasilia = -3 * 60 * 60 * 1000; // -3 horas em milissegundos
+        const dataBrasilia = new Date(timestampUTC + offsetBrasilia);
+        
+        // Formata a data no formato brasileiro
+        return dataBrasilia.toLocaleString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+    } catch (error) {
+        console.error('Erro ao formatar data:', error, dataString);
+        return dataString; // Retorna a string original se houver erro
+    }
+}
+
+// Função para excluir item do orçamento salvo (APENAS da lista) - COM SweetAlert2
+function excluirItem(itemId, ambiente, descricao, tipoProduto) {
+    Swal.fire({
+        title: 'Tem certeza?',
+        html: `Deseja remover este item do orçamento salvo?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Sim, remover!',
+        cancelButtonText: 'Cancelar',
+        width: '500px'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Preencher os campos do formulário de exclusão
+            document.getElementById('itemIdExcluir').value = itemId;
+            document.getElementById('ambienteExcluir').value = ambiente;
+            document.getElementById('descricaoExcluir').value = descricao;
+            document.getElementById('tipoProdutoExcluir').value = tipoProduto;
+            
+            // Submeter o formulário
+            document.getElementById('formExcluirItem').submit();
+        }
+    });
+}
+
+// Função para abrir modal de itens excluídos
+function abrirModalItensExcluidos() {
+    // Mostrar o modal
+    const modalElement = document.getElementById('modalItensExcluidos');
+    const modal = new bootstrap.Modal(modalElement);
+    modal.show();
+    
+    // Carregar conteúdo via AJAX
+    carregarItensExcluidosModal();
+}
+
+// Função para carregar itens excluídos no modal - ATUALIZADA COM FORMATAÇÃO DE DATA
+function carregarItensExcluidosModal() {
+    const modalBody = document.getElementById('modalItensExcluidosBody');
+    
+    // Mostrar spinner enquanto carrega
+    modalBody.innerHTML = `
+        <div class="text-center p-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Carregando...</span>
+            </div>
+            <p class="mt-3">Carregando itens removidos...</p>
+        </div>
+    `;
+    
+    fetch(`/api/itens_excluidos_modal/{{ codigo_orcamento }}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                if (data.itens && data.itens.length > 0) {
+                    // Construir HTML com os itens
+                    let html = ``;
+                    
+                    data.itens.forEach(item => {
+                        // Usar a função de formatação de data ajustada
+                        const dataFormatada = formatarDataBrasil(item.data_remocao);
+                        
+                        html += `
+                            <div class="item-card-modal">
+                                <div class="item-header-modal">
+                                    <div>
+                                        <h6 style="margin: 0; font-size: 14px;">
+                                            ${item.tipo_produto}
+                                            ${item.produto_nome ? ' - ' + item.produto_nome : ''}
+                                        </h6>
+                                        <small class="text-muted">Cliente: ${item.cliente_nome}</small>
+                                        <div class="mt-1">
+                                            <span class="badge-status-modal">Removido em: ${dataFormatada}</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <button class="btn-restaurar-modal ms-2" onclick="restaurarItemModal(${item.id})">
+                                            <i class="fas fa-undo me-1"></i> Restaurar
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <div class="item-details-modal">
+                                    <div class="detail-item-modal">
+                                        <span class="detail-label-modal">Material:</span>
+                                        ${item.material_nome}
+                                    </div>
+                                    <div class="detail-item-modal">
+                                        <span class="detail-label-modal">Dimensões:</span>
+                                        ${item.comprimento}cm x ${item.largura}cm
+                                    </div>
+                                    <div class="detail-item-modal">
+                                        <span class="detail-label-modal">Quantidade:</span>
+                                        ${item.quantidade}
+                                    </div>
+                                    <div class="detail-item-modal">
+                                        <span class="detail-label-modal">Valor:</span>
+                                        R$ ${formatarMoeda(item.valor_total)}
+                                    </div>
+                                    ${item.ambiente_nome ? `
+                                    <div class="detail-item-modal">
+                                        <span class="detail-label-modal">Ambiente:</span>
+                                        ${item.ambiente_nome}
+                                    </div>
+                                    ` : ''}
+                                    ${item.descricao_nome ? `
+                                    <div class="detail-item-modal">
+                                        <span class="detail-label-modal">Descrição:</span>
+                                        ${item.descricao_nome}
+                                    </div>
+                                    ` : ''}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    modalBody.innerHTML = html;
+                } else {
+                    modalBody.innerHTML = `
+                        <div class="empty-state-modal">
+                            <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                            <h5>Nenhum item removido</h5>
+                            <p class="text-muted">Nenhum item foi removido deste orçamento até o momento.</p>
+                        </div>
+                    `;
+                }
+            } else {
+                modalBody.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-circle me-2"></i>
+                        Erro ao carregar itens removidos: ${data.error || 'Erro desconhecido'}
+                    </div>
+                `;
+            }
+        })
+        .catch(error => {
+            console.error('Erro:', error);
+            modalBody.innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    Erro de conexão. Tente novamente.
+                </div>
+            `;
+        });
+}
+
+// Função para restaurar item direto do modal - COM SweetAlert2
+function restaurarItemModal(itemId) {
+    Swal.fire({
+        title: 'Restaurar Item',
+        text: 'Deseja restaurar este item ao orçamento?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sim, restaurar!',
+        cancelButtonText: 'Cancelar'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch(`/restaurar_item_orcamento/{{ codigo_orcamento }}/${itemId}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        title: 'Sucesso!',
+                        text: 'Item restaurado com sucesso!',
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    }).then(() => {
+                        // Atualizar contador
+                        carregarContadorItensExcluidos();
+                        // Fechar o modal
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('modalItensExcluidos'));
+                        if (modal) {
+                            modal.hide();
+                        }
+                        // Recarregar página principal
+                        setTimeout(() => {
+                            window.location.reload();
+                        }, 500);
+                    });
+                } else {
+                    Swal.fire('Erro!', 'Erro ao restaurar item: ' + data.error, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Erro:', error);
+                Swal.fire('Erro!', 'Erro ao restaurar item', 'error');
+            });
+        }
+    });
+}
+
+// Função para alternar visibilidade no PDF
+function togglePdfVisibility(paymentOptionId) {
+    const element = document.getElementById(paymentOptionId);
+    const button = element.querySelector('.btn-toggle-pdf');
+    const optionNumber = paymentOptionId.split('-').pop();
+    
+    if (hiddenPaymentOptions.includes(optionNumber)) {
+        // Remover da lista de opções ocultas
+        hiddenPaymentOptions = hiddenPaymentOptions.filter(opt => opt !== optionNumber);
+        element.classList.remove('hidden-in-pdf');
+        element.classList.remove('oculto-pdf');
+        button.textContent = 'Ocultar no PDF';
+    } else {
+        // Adicionar à lista de opções ocultas
+        hiddenPaymentOptions.push(optionNumber);
+        element.classList.add('hidden-in-pdf');
+        element.classList.add('oculto-pdf');
+        button.textContent = 'Mostrar no PDF';
+    }
+    
+    // Atualizar o formulário com as opções ocultas
+    document.getElementById('formExcludePayments').value = hiddenPaymentOptions.join(',');
+    
+    // Atualizar o link do botão PDF
+    updatePdfButtonLink();
+}
+
+// Função para atualizar o link do botão Gerar PDF
+function updatePdfButtonLink() {
+    const pdfButton = document.getElementById('btnGerarPDF');
+    if (pdfButton) {
+        pdfButton.href = '/gerar_pdf_orcamento/{{ codigo_orcamento }}?exclude_payments=' + hiddenPaymentOptions.join(',');
+    }
+}
+
+// Função para arredondar valores para múltiplos de 10
+function arredondarParaDez(valor) {
+    return Math.round(valor / 10) * 10;
+}
+
+// Função para formatar valores monetários (1.000,00)
+function formatarMoeda(valor) {
+    return valor.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+}
+
+// Calcular o número máximo de parcelas (máximo de 12x, mínimo de 1x)
+function calcularMaxParcelas(valorTotal) {
+    // Calcula com base no valor (mínimo R$ 100 por parcela)
+    let parcelas = Math.floor(valorTotal / 100);
+    if (parcelas > 10) parcelas = 10;
+    if (parcelas < 1) parcelas = 1;
+    return parcelas;
+}
+
+// Atualizar informações de parcelamento
+function atualizarParcelamento() {
+    const maxParcelas = calcularMaxParcelas(valorTotalFloat);
+    document.getElementById('maxParcelas').textContent = maxParcelas;
+}
+
+// Função para alternar entre modo de visualização e edição
+function toggleEdit(field) {
+    // Fecha qualquer dropdown aberto
+    fecharTodosDropdowns();
+    
+    if (field === 'maxParcelas') {
+        // Para o campo de parcelas, o display está dentro de um elemento pai
+        const displayParent = document.getElementById('maxParcelasDisplay').parentNode;
+        const editElement = document.getElementById('maxParcelasEdit');
+        
+        // Salvar valor original se ainda não foi salvo
+        if (!valoresOriginais['maxParcelas']) {
+            valoresOriginais['maxParcelas'] = document.getElementById('maxParcelasInput').value;
+        }
+        
+        // Alternar visibilidade
+        if (displayParent.style.display === 'none') {
+            displayParent.style.display = '';
+            editElement.style.display = 'none';
+        } else {
+            displayParent.style.display = 'none';
+            editElement.style.display = '';
+        }
+    } else {
+        // Lógica original para outros campos
+        const displayElement = document.getElementById(field + 'Display');
+        const editElement = document.getElementById(field + 'Edit');
+        
+        // Salvar valor original se ainda não foi salvo
+        if (!valoresOriginais[field]) {
+            if (field === 'observacoes') {
+                valoresOriginais[field] = displayElement.textContent;
+            } else {
+                valoresOriginais[field] = document.getElementById(field + 'Input').value;
+            }
+        }
+        
+        // Alternar visibilidade
+        if (displayElement.style.display === 'none') {
+            displayElement.style.display = '';
+            editElement.style.display = 'none';
+        } else {
+            displayElement.style.display = 'none';
+            editElement.style.display = '';
+        }
+    }
+}
+
+// Função específica para salvar o número de parcelas
+function saveMaxParcelas() {
+    const inputElement = document.getElementById('maxParcelasInput');
+    const displaySpan = document.getElementById('maxParcelasDisplay');
+    const formElement = document.getElementById('formMaxParcelas');
+    
+    let newValue = parseInt(inputElement.value);
+    
+    // Validação
+    if (isNaN(newValue) || newValue < 1) newValue = 1;
+    if (newValue > 12) newValue = 12; // Limite máximo
+    
+    // Atualizar display
+    displaySpan.textContent = newValue;
+    
+    // Atualizar campo do formulário
+    formElement.value = newValue;
+    
+    // Sair do modo de edição
+    // O display está dentro de um elemento pai, precisamos restaurar a visibilidade do pai
+    const displayParent = displaySpan.parentNode;
+    const editElement = document.getElementById('maxParcelasEdit');
+    displayParent.style.display = '';
+    editElement.style.display = 'none';
+    
+    // Limpar valor original
+    delete valoresOriginais['maxParcelas'];
+}
+
+// Função para salvar valores editados
+function saveValue(field) {
+    if (field === 'maxParcelas') {
+        saveMaxParcelas();
+        return;
+    }
+    
+    const inputElement = document.getElementById(field + 'Input');
+    const displayElement = document.getElementById(field + 'Display');
+    const formElement = document.getElementById('form' + field.charAt(0).toUpperCase() + field.slice(1));
+    
+    let newValue;
+    if (field === 'observacoes') {
+        newValue = inputElement.value;
+        displayElement.textContent = newValue;
+    } else {
+        newValue = parseFloat(inputElement.value);
+        displayElement.textContent = newValue;
+        
+        // Atualizar valores calculados se for desconto
+        if (field === 'discount1' || field === 'discount2') {
+            atualizarValorComDesconto(field, newValue);
+        }
+    }
+    
+    // Atualizar campo do formulário
+    if (formElement) {
+        formElement.value = newValue;
+    }
+    
+    // Sair do modo de edição
+    toggleEdit(field);
+}
+
+// Função para cancelar edição e restaurar valor original
+function cancelEdit(field) {
+    if (field === 'maxParcelas') {
+        const inputElement = document.getElementById('maxParcelasInput');
+        const displaySpan = document.getElementById('maxParcelasDisplay');
+        const displayParent = displaySpan.parentNode;
+        const editElement = document.getElementById('maxParcelasEdit');
+        
+        // Restaurar valor original no input
+        inputElement.value = valoresOriginais['maxParcelas'];
+        
+        // Restaurar visibilidade
+        displayParent.style.display = '';
+        editElement.style.display = 'none';
+        
+        // Limpar valor original
+        delete valoresOriginais['maxParcelas'];
+    } else {
+        const inputElement = document.getElementById(field + 'Input');
+        const displayElement = document.getElementById(field + 'Display');
+        
+        // Restaurar valor original
+        if (field === 'observacoes') {
+            inputElement.value = valoresOriginais[field];
+            displayElement.textContent = valoresOriginais[field];
+        } else {
+            inputElement.value = valoresOriginais[field];
+            displayElement.textContent = valoresOriginais[field];
+            
+            // Atualizar valores calculados se for desconto
+            if (field === 'discount1' || field === 'discount2') {
+                atualizarValorComDesconto(field, valoresOriginais[field]);
+            }
+        }
+        
+        // Sair do modo de edição
+        toggleEdit(field);
+        
+        // Limpar valor original
+        delete valoresOriginais[field];
+    }
+}
+
+// Função para atualizar o valor com desconto
+function atualizarValorComDesconto(field, desconto) {
+    const valorElement = document.getElementById(field === 'discount1' ? 'valorAvista' : 'valorParcelado');
+    const valorComDesconto = valorTotalFloat * (1 - desconto/100);
+    const valorArredondado = arredondarParaDez(valorComDesconto);
+    
+    // Garantir que o valor arredondado não seja maior que o original
+    const valorFinal = valorArredondado > valorTotalFloat ? valorArredondado - 5 : valorArredondado;
+    
+    valorElement.textContent = formatarMoeda(valorFinal);
+}
+
+// Função para atualizar todos os campos do formulário com os valores atuais
+function atualizarFormulario() {
+    document.getElementById('formPrazoEntrega').value = document.getElementById('deliveryDaysDisplay').textContent;
+    document.getElementById('formDescontoAvista').value = document.getElementById('discount1Display').textContent;
+    document.getElementById('formDescontoParcelado').value = document.getElementById('discount2Display').textContent;
+    document.getElementById('formObservacoes').value = document.getElementById('observacoesDisplay').textContent;
+    document.getElementById('formExcludePayments').value = hiddenPaymentOptions.join(',');
+    document.getElementById('formMaxParcelas').value = document.getElementById('maxParcelasDisplay').textContent;
+}
+
+// Função para carregar contador de itens excluídos
+function carregarContadorItensExcluidos() {
+    fetch(`/api/itens_excluidos_count/{{ codigo_orcamento }}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.count > 0) {
+                const contador = document.getElementById('contadorItensExcluidos');
+                if (contador) {
+                    contador.textContent = data.count;
+                    contador.style.display = 'inline-block';
+                }
+            } else {
+                const contador = document.getElementById('contadorItensExcluidos');
+                if (contador) {
+                    contador.style.display = 'none';
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Erro ao carregar contador:', error);
+        });
+}
+
+// Event listener para fechar dropdown ao clicar fora
+document.addEventListener('click', function(event) {
+    if (dropdownAtivo && !event.target.classList.contains('clickable-cell') && !dropdownAtivo.contains(event.target)) {
+        fecharTodosDropdowns();
+    }
+});
+
+// Event listener para o botão Salvar Alterações do Rodapé
+document.getElementById('btnSalvarRodape').addEventListener('click', function() {
+    // Garantir que todos os valores estejam atualizados no formulário
+    atualizarFormulario();
+    
+    document.getElementById('rodapeForm').submit();
+});
+
+// Verificar se há mensagens de sucesso ou erro na URL - CORRIGIDO
+document.addEventListener('DOMContentLoaded', function() {
+    atualizarParcelamento();
+    
+    // Verificar se há parâmetro de sucesso na URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasItemExcluido = urlParams.has('item_excluido');
+    const hasErro = urlParams.has('erro');
+    
+    // Usar sessionStorage para controlar se a mensagem já foi mostrada nesta sessão
+    const mensagemExcluidoMostrada = sessionStorage.getItem('mensagem_excluido_mostrada_' + window.location.pathname);
+    const mensagemErroMostrada = sessionStorage.getItem('mensagem_erro_mostrada_' + window.location.pathname);
+    
+    // Só mostrar a mensagem se:
+    // 1. Houver o parâmetro na URL
+    // 2. A mensagem ainda não foi mostrada nesta sessão para esta página
+    // 3. Não estamos em modo de recarregamento (F5)
+    if (hasItemExcluido && !mensagemExcluidoMostrada && performance.navigation.type === 0) {
+        Swal.fire({
+            title: 'Item Removido!',
+            text: '',
+            icon: 'success',
+            confirmButtonText: 'OK'
+        }).then(() => {
+            // Marcar que a mensagem foi mostrada
+            sessionStorage.setItem('mensagem_excluido_mostrada_' + window.location.pathname, 'true');
+            
+            // Remover o parâmetro da URL sem recarregar
+            urlParams.delete('item_excluido');
+            const novaUrl = window.location.pathname + 
+                (urlParams.toString() ? '?' + urlParams.toString() : '');
+            window.history.replaceState({}, '', novaUrl);
+        });
+        
+        // Atualizar contador
+        carregarContadorItensExcluidos();
+    }
+    
+    if (hasErro && !mensagemErroMostrada && performance.navigation.type === 0) {
+        Swal.fire({
+            title: 'Erro!',
+            text: 'Erro ao remover item. Tente novamente.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        }).then(() => {
+            // Marcar que a mensagem foi mostrada
+            sessionStorage.setItem('mensagem_erro_mostrada_' + window.location.pathname, 'true');
+            
+            // Remover o parâmetro da URL sem recarregar
+            urlParams.delete('erro');
+            const novaUrl = window.location.pathname + 
+                (urlParams.toString() ? '?' + urlParams.toString() : '');
+            window.history.replaceState({}, '', novaUrl);
+        });
+    }
+    
+    // Limpar as flags quando o usuário sair da página
+    window.addEventListener('beforeunload', function() {
+        sessionStorage.removeItem('mensagem_excluido_mostrada_' + window.location.pathname);
+        sessionStorage.removeItem('mensagem_erro_mostrada_' + window.location.pathname);
+    });
+    
+    // Inicializar botões de ocultar/mostrar no PDF
+    document.querySelectorAll('.btn-toggle-pdf').forEach(button => {
+        const paymentOptionId = button.closest('.payment-option').id;
+        const optionNumber = paymentOptionId.split('-').pop();
+        
+        if (hiddenPaymentOptions.includes(optionNumber)) {
+            button.textContent = 'Mostrar no PDF';
+        } else {
+            button.textContent = 'Ocultar no PDF';
+        }
+    });
+    
+    // Inicializar campos do formulário com valores atuais
+    atualizarFormulario();
+    
+    // Carregar contador de itens excluídos (sempre carregar, mesmo sem mensagem)
+    carregarContadorItensExcluidos();
+});
+</script>
 </body>
 </html>
