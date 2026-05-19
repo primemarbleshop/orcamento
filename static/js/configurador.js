@@ -11,7 +11,7 @@ function edgeName(type, side) {
     if (type === 'fronte') return '/// Fronte' + (side ? ' larg:'+fmt(CFG.bordaAlts[side]) : '');
     if (type === 'saia') return '// Saia' + (side ? ' larg:'+fmt(CFG.bordaSaiaLarg[side]) : '');
     if (type === 'ilharga') {
-        return '||| Ilharga' + (side ? ' alt:'+fmt(CFG.bordaAlts[side]) : '');
+        return 'Ilharga' + (side ? ' alt:'+fmt(CFG.bordaAlts[side]) : '');
     }
     if (type === 'parede') return 'Parede';
     return 'Livre';
@@ -979,7 +979,7 @@ function renderModelo(sb) {
                 <span class="hint">${m.desc}</span>
             </div>`).join('')}
         </div>
-        <div class="info"><b>Dica:</b> A parte da pia (molhada) fica mais baixa e tem borda para não escorrer água. A parte do fogão (seca) fica 2cm mais alta.</div>`;
+`;
 }
 
 function renderMedidas(sb) {
@@ -1072,19 +1072,19 @@ function renderBordas(sb) {
     const isViolao = CFG.produto === 'lavatorio' && CFG.lavModelo === 'violao';
     const isL = CFG.produto === 'bancada' && CFG.modelo && CFG.modelo.startsWith('l_');
     const sides = [
-        {key:'fundo', label:'Fundo (traseira)', desc:'Lado encostado na parede', lateral:false},
-        {key:'frente', label:'Frente', desc:'Lado do usuário', lateral:false},
+        {key:'fundo', label:'Fundo (traseira)', desc:'', lateral:false},
+        {key:'frente', label:'Frente', desc:'', lateral:false},
     ];
     if (!isL || CFG.modelo === 'l_seca_molhada') {
-        sides.push({key:'esquerda', label:'Esquerda', desc:'Lateral esquerda', lateral:true});
+        sides.push({key:'esquerda', label:'Esquerda', desc:'', lateral:true});
     }
-    sides.push({key:'direita', label: isViolao ? 'Direita (superior)' : 'Direita', desc: isViolao ? 'Parte acima do recorte' : 'Lateral direita', lateral:true});
+    sides.push({key:'direita', label: isViolao ? 'Direita (superior)' : 'Direita', desc:'', lateral:true});
     if (isViolao) {
         sides.push({key:'direita2', label:'Direita (recorte)', desc:'Parte lateral do recorte', lateral:true});
     }
     if (isL) {
-        sides.push({key:'l_esquerda', label:'L Esquerda', desc:'Base do braço L', lateral:true});
-        sides.push({key:'l_fundo', label:'L Fundo', desc:'Traseira do braço L', lateral:true});
+        sides.push({key:'l_esquerda', label:'L Esquerda', desc:'', lateral:true});
+        sides.push({key:'l_fundo', label:'L Fundo', desc:'', lateral:true});
     }
     const baseTypes = ['fronte','saia','parede','livre'];
 
@@ -1093,7 +1093,7 @@ function renderBordas(sb) {
 
     sides.forEach(s => {
         const types = s.lateral ? ['fronte','saia','parede','livre','ilharga'] : baseTypes;
-        html += `<div class="edge-row"><div><div class="edge-label">${s.label}</div><div style="font-size:.65rem;color:#666">${s.desc}</div></div><div class="edge-opts">`;
+        html += `<div class="edge-row"><div><div class="edge-label">${s.label}</div>${s.desc?'<div style="font-size:.65rem;color:#666">'+s.desc+'</div>':''}</div><div class="edge-opts">`;
         types.forEach(t => {
             html += `<button class="edge-opt t-${t} ${CFG.bordas[s.key]===t?'on':''}" onclick="setBorda('${s.key}','${t}')">${EDGE_NAMES[t]}</button>`;
         });
@@ -1120,11 +1120,6 @@ function renderBordas(sb) {
         }
     });
 
-    html += `<div class="info"><b>/// Fronte:</b> Pedra sobre a bancada (lado da parede).<br>
-        <b>// Saia:</b> Acabamento frontal.<br>
-        <b>||| Ilharga:</b> Peça lateral que vai da bancada até o chão.<br>
-        <b>Parede:</b> Encostado na parede.<br>
-        <b>Livre:</b> Borda exposta.</div>`;
     sb.innerHTML = html;
 }
 
