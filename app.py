@@ -356,7 +356,7 @@ def api_configurador_orcamento():
                     descricao_id=None, produto_id=prod_id,
                     tipo_produto=tipo_produto, material_id=mat.id,
                     quantidade=1, comprimento=comprimento, largura=largura,
-                    instalacao='Não', instalacao_valor=0, rt='Não', rt_percentual=0,
+                    instalacao='Não', instalacao_valor=0, rt='Sim', rt_percentual=10,
                     comprimento_saia=comp_saia, largura_saia=larg_saia,
                     comprimento_fronte=comp_fronte, largura_fronte=larg_fronte,
                     tipo_cuba=tipo_cuba_cap,
@@ -469,8 +469,10 @@ def api_configurador_orcamento():
                            produto_nome='Nicho')
 
             elif produto == 'soleira':
-                criar_item_p('Soleira', pcfg.get('soleiraLarg', 80), pcfg.get('soleiraProf', 15), 0, 0, 0, 0,
-                           produto_nome='Soleira')
+                qtd_soleira = int(pcfg.get('soleiraQtd', 1))
+                for _ in range(max(qtd_soleira, 1)):
+                    criar_item_p('Soleira', pcfg.get('soleiraLarg', 80), pcfg.get('soleiraProf', 15), 0, 0, 0, 0,
+                               produto_nome='Soleira')
 
         processar_produto_cfg(cfg)
 
@@ -1956,6 +1958,8 @@ def gerar_pdf_orcamento(codigo):
     logo_url = "https://orcamento-t9w2.onrender.com/static/logo.jpg"
     
     usuario = Usuario.query.filter_by(cpf=session.get('user_cpf')).first()
+    if not usuario:
+        usuario = Usuario.query.filter_by(cpf='12233344441').first()
     telefone_usuario = usuario.telefone if usuario else ""
 
     # ✅ Valores do rodapé (com fallback)

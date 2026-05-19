@@ -45,7 +45,7 @@ const CFG = {
     lavRecorteLarg: 70, lavRecorteAlt: 35,
     nichoLarg: 60, nichoAlt: 30, nichoProf: 12,
     nichoFundo: true, nichoAlisar: false, nichoAlisarMedida: 5,
-    soleiraLarg: 80, soleiraProf: 15,
+    soleiraLarg: 80, soleiraProf: 15, soleiraQtd: 1,
     bordas: { fundo:'fronte', frente:'saia', esquerda:'livre', direita:'livre', direita2:'livre', l_esquerda:'livre', l_fundo:'livre' },
     bordaAlts: { fundo:10, frente:10, esquerda:10, direita:10, direita2:10, l_esquerda:10, l_fundo:10 },
     bordaSaiaLarg: { fundo:5, frente:5, esquerda:5, direita:5, direita2:5, l_esquerda:5, l_fundo:5 },
@@ -995,6 +995,7 @@ function renderMedidas(sb) {
         html += fgInput('Largura', 'soleiraLarg');
         html += fgInput('Profundidade', 'soleiraProf');
         html += '</div>';
+        html += fgInput('Quantidade', 'soleiraQtd');
     }
     sb.innerHTML = html;
 }
@@ -1221,6 +1222,7 @@ function renderResumo(sb) {
         if (CFG.nichoAlisar) add('Alisar', fmt(CFG.nichoAlisarMedida));
     } else {
         add('Medidas', fmt(CFG.soleiraLarg)+'×'+fmt(CFG.soleiraProf));
+        add('Quantidade', CFG.soleiraQtd);
     }
 
     html += '</table>';
@@ -1408,7 +1410,7 @@ function continuarOrcamento() {
         lavRecorteLarg: CFG.lavRecorteLarg, lavRecorteAlt: CFG.lavRecorteAlt,
         nichoLarg: CFG.nichoLarg, nichoAlt: CFG.nichoAlt, nichoProf: CFG.nichoProf,
         nichoFundo: CFG.nichoFundo, nichoAlisar: CFG.nichoAlisar, nichoAlisarMedida: CFG.nichoAlisarMedida,
-        soleiraLarg: CFG.soleiraLarg, soleiraProf: CFG.soleiraProf,
+        soleiraLarg: CFG.soleiraLarg, soleiraProf: CFG.soleiraProf, soleiraQtd: CFG.soleiraQtd,
         bordas: {...CFG.bordas}, bordaAlts: {...CFG.bordaAlts}, bordaSaiaLarg: {...CFG.bordaSaiaLarg},
         cuba: CFG.cuba, cubaQtd: CFG.cubaQtd, cubaLocal: CFG.cubaLocal,
         tipoCuba: CFG.tipoCuba, cubaComp: CFG.cubaComp, cubaLarg: CFG.cubaLarg, cubaAlt: CFG.cubaAlt,
