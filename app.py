@@ -45,8 +45,8 @@ def enviar_whatsapp_orcamento(telefone_cliente, codigo_orcamento, nome_cliente='
                 {
                     'type': 'body',
                     'parameters': [
-                        {'type': 'text', 'text': nome_cliente or 'Cliente'},
-                        {'type': 'text', 'text': codigo_orcamento}
+                        {'type': 'text', 'parameter_name': 'customer_name', 'text': nome_cliente or 'Cliente'},
+                        {'type': 'text', 'parameter_name': 'order_id', 'text': codigo_orcamento}
                     ]
                 }
             ]
