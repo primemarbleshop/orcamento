@@ -333,9 +333,9 @@ function drawBancadaDims(sections, sc, ox, oy, b) {
         const x1 = ox + sec.x * sc, x2 = x1 + sec.w * sc;
         drawHDim(x1, x2, dy, fmt(sec.w));
     });
-    if (main.length > 1) {
+    if (main.length > 1 || lArm) {
         dy += 26;
-        const totalW = Math.max(...main.map(s => s.x + s.w));
+        const totalW = Math.max(...sections.map(s => s.x + s.w));
         drawHDim(ox, ox + totalW * sc, dy, fmt(totalW));
     }
     const depths = [...new Set(main.map(s => s.h))];
