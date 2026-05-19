@@ -438,10 +438,23 @@ def api_configurador_orcamento():
                         return pcfg.get('tipoCuba2', ''), 1, pcfg.get('cubaComp2', 0), pcfg.get('cubaLarg2', 0), pcfg.get('cubaAlt2', 0)
                     return '', 0, 0, 0, 0
 
+                prof_m_val = pcfg.get('profMolhada', 60)
+                prof_s_val = pcfg.get('profSeca', 60)
+                mainD = max(prof_m_val, prof_s_val)
+
                 if has_molhada:
                     comp_m = pcfg.get('compMolhada', 120)
-                    prof_m = pcfg.get('profMolhada', 60)
-                    cs, ls, cf, lf = calc_saia_fronte([('fundo', comp_m), ('frente', comp_m)], bordas, borda_alts, borda_saia_larg)
+                    prof_m = prof_m_val
+                    sides_m = [('fundo', comp_m)]
+                    frente_m = comp_m
+                    if is_l and modelo == 'l_seca_molhada':
+                        frente_m = comp_m - pcfg.get('profL', 60)
+                    sides_m.append(('frente', frente_m))
+                    if modelo not in ['molhada_centro_seca_lat', 'l_seca_molhada_seca']:
+                        sides_m.append(('esquerda', prof_m))
+                    if not has_seca:
+                        sides_m.append(('direita', prof_m))
+                    cs, ls, cf, lf = calc_saia_fronte(sides_m, bordas, borda_alts, borda_saia_larg)
                     tc, qc, cc, lc, pc = cubas_na_secao('molhada')
                     criar_item_p('Bancada', comp_m, prof_m, cs, ls, cf, lf,
                               tipo_cuba=tc, qtd_cubas=qc,
@@ -450,8 +463,13 @@ def api_configurador_orcamento():
 
                 if has_seca:
                     comp_s = pcfg.get('compSeca', 120)
-                    prof_s = pcfg.get('profSeca', 60)
-                    cs, ls, cf, lf = calc_saia_fronte([('fundo', comp_s), ('frente', comp_s)], bordas, borda_alts, borda_saia_larg)
+                    prof_s = prof_s_val
+                    sides_s = [('fundo', comp_s), ('frente', comp_s)]
+                    if modelo not in ['seca_centro_molhada_lat', 'molhada_centro_seca_lat']:
+                        sides_s.append(('direita', prof_s))
+                    if not has_molhada:
+                        sides_s.append(('esquerda', prof_s))
+                    cs, ls, cf, lf = calc_saia_fronte(sides_s, bordas, borda_alts, borda_saia_larg)
                     tc, qc, cc, lc, pc = cubas_na_secao('seca')
                     cook = 'Sim' if pcfg.get('cooktop') else 'Não'
                     criar_item_p('Bancada', comp_s, prof_s, cs, ls, cf, lf,
@@ -462,24 +480,35 @@ def api_configurador_orcamento():
 
                 if modelo == 'molhada_centro_seca_lat':
                     comp_sl = pcfg.get('compSecaLat', 60)
-                    prof_s = pcfg.get('profSeca', 60)
+                    prof_s = prof_s_val
+                    laterais = ['esquerda', 'direita']
                     for i in range(2):
-                        cs, ls, cf, lf = calc_saia_fronte([('fundo', comp_sl), ('frente', comp_sl)], bordas, borda_alts, borda_saia_larg)
+                        sides_sl = [('fundo', comp_sl), ('frente', comp_sl), (laterais[i], prof_s)]
+                        cs, ls, cf, lf = calc_saia_fronte(sides_sl, bordas, borda_alts, borda_saia_larg)
                         criar_item_p('Bancada', comp_sl, prof_s, cs, ls, cf, lf,
                                   produto_nome=f'Bancada Seca Lateral')
 
                 if modelo == 'seca_centro_molhada_lat':
                     comp_ml = pcfg.get('compMolhadaLat', 60)
-                    prof_m = pcfg.get('profMolhada', 60)
+                    prof_m = prof_m_val
+                    laterais = ['esquerda', 'direita']
                     for i in range(2):
-                        cs, ls, cf, lf = calc_saia_fronte([('fundo', comp_ml), ('frente', comp_ml)], bordas, borda_alts, borda_saia_larg)
+                        sides_ml = [('fundo', comp_ml), ('frente', comp_ml), (laterais[i], prof_m)]
+                        cs, ls, cf, lf = calc_saia_fronte(sides_ml, bordas, borda_alts, borda_saia_larg)
                         criar_item_p('Bancada', comp_ml, prof_m, cs, ls, cf, lf,
                                   produto_nome=f'Bancada Molhada Lateral')
 
                 if is_l:
                     comp_l = pcfg.get('compL', 120)
                     prof_l = pcfg.get('profL', 60)
-                    cs, ls, cf, lf = calc_saia_fronte([('l_esquerda', prof_l), ('l_fundo', comp_l)], bordas, borda_alts, borda_saia_larg)
+                    sides_l = [('l_esquerda', prof_l), ('l_fundo', comp_l)]
+                    if modelo == 'l_seca_molhada':
+                        inner_h = mainD + comp_l - prof_m_val
+                    else:
+                        inner_h = comp_l - mainD
+                    if inner_h > 0:
+                        sides_l.append(('frente', inner_h))
+                    cs, ls, cf, lf = calc_saia_fronte(sides_l, bordas, borda_alts, borda_saia_larg)
                     criar_item_p('Bancada', comp_l, prof_l, cs, ls, cf, lf,
                               produto_nome='Bancada em L')
 
