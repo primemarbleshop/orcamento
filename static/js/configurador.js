@@ -152,9 +152,7 @@ function getSections() {
             break;
         }
         case 'l_seca_molhada_seca': {
-            const mainD = Math.max(dm, ds);
-            const totalH = mainD + CFG.compL;
-            secs.push({type:'seca', x:0, y:0, w:CFG.profL, h:totalH, isL:true, labelH:CFG.compL});
+            secs.push({type:'seca', x:0, y:0, w:CFG.profL, h:CFG.compL, isL:true});
             secs.push({type:'molhada', x:CFG.profL, y:0, w:wm, h:dm});
             secs.push({type:'seca', x:CFG.profL+wm, y:0, w:ws, h:ds});
             break;
