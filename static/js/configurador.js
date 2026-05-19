@@ -527,20 +527,22 @@ function drawBancadaEdges(sections, sc, ox, oy, b) {
         });
         pixSegs.forEach(s => totalLen += s.len);
         let target = totalLen / 2, acc = 0;
-        let lx, ly, ds;
+        let lx, ly;
         for (const s of pixSegs) {
             if (acc + s.len >= target) {
                 const t = (target - acc) / s.len;
                 lx = s.px1 + (s.px2 - s.px1) * t;
                 ly = s.py1 + (s.py2 - s.py1) * t;
-                ds = segDrawSide(
-                    sideSegs[0].x1, sideSegs[0].y1,
-                    sideSegs[0].x2, sideSegs[0].y2
-                );
                 break;
             }
             acc += s.len;
         }
+        const longest = sideSegs.reduce((a, b) => {
+            const la = Math.abs(b.x2-b.x1) + Math.abs(b.y2-b.y1);
+            const lb = Math.abs(a.x2-a.x1) + Math.abs(a.y2-a.y1);
+            return la > lb ? b : a;
+        });
+        const ds = segDrawSide(longest.x1, longest.y1, longest.x2, longest.y2);
         if (lx == null) return;
         const type = CFG.bordas[side];
         const color = EDGE_COLORS[type];
