@@ -427,7 +427,11 @@ function getContourSegments(sections) {
         segs.push({x1:totalW, y1:curY, x2:lArmLeft, y2:curY, side:'l_esquerda'});
         curX = lArmLeft;
         const secAtX = main.find(s => s.x <= curX && s.x + s.w >= curX);
-        curY = secAtX ? secAtX.h : rH;
+        const mainH = secAtX ? secAtX.h : rH;
+        if (Math.abs(curY - mainH) > 0.1) {
+            segs.push({x1:curX, y1:curY, x2:curX, y2:mainH, side:'frente'});
+        }
+        curY = mainH;
     } else {
         curY = rH;
     }
