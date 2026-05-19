@@ -578,6 +578,21 @@ def api_configurador_orcamento():
         db.session.rollback()
         return jsonify({'success': False, 'error': str(e)}), 500
 
+WHATSAPP_VERIFY_TOKEN = os.getenv('WHATSAPP_VERIFY_TOKEN', 'primemarble2026')
+
+@app.route('/webhook/whatsapp', methods=['GET'])
+def whatsapp_webhook_verify():
+    mode = request.args.get('hub.mode')
+    token = request.args.get('hub.verify_token')
+    challenge = request.args.get('hub.challenge')
+    if mode == 'subscribe' and token == WHATSAPP_VERIFY_TOKEN:
+        return challenge, 200
+    return 'Forbidden', 403
+
+@app.route('/webhook/whatsapp', methods=['POST'])
+def whatsapp_webhook_receive():
+    return jsonify({'status': 'ok'}), 200
+
 @app.route('/ver_desenho/<codigo>')
 def ver_desenho(codigo):
     desenho = DesenhoOrdemServico.query.filter_by(
