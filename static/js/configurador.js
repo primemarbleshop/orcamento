@@ -988,7 +988,7 @@ function renderMedidas(sb) {
     const hasMolhada = md !== 'toda_seca';
     const isL = md.startsWith('l_');
 
-    let html = '<div class="step-title">Medidas</div><div class="step-desc">Informe as dimensões em centímetros. Aceita valores decimais (ex: 105,5).</div>';
+    let html = '<div class="step-title">Medidas</div><div class="step-desc">Informe as dimensões em centímetros.</div>';
 
     if (CFG.produto === 'bancada') {
         if (hasSeca) {
