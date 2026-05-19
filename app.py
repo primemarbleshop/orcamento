@@ -414,6 +414,22 @@ def api_configurador_orcamento():
                               tem_cooktop=cook,
                               produto_nome='Bancada Seca')
 
+                if modelo == 'molhada_centro_seca_lat':
+                    comp_sl = pcfg.get('compSecaLat', 60)
+                    prof_s = pcfg.get('profSeca', 60)
+                    for i in range(2):
+                        cs, ls, cf, lf = calc_saia_fronte([('fundo', comp_sl), ('frente', comp_sl)], bordas, borda_alts, borda_saia_larg)
+                        criar_item_p('Bancada', comp_sl, prof_s, cs, ls, cf, lf,
+                                  produto_nome=f'Bancada Seca Lateral')
+
+                if modelo == 'seca_centro_molhada_lat':
+                    comp_ml = pcfg.get('compMolhadaLat', 60)
+                    prof_m = pcfg.get('profMolhada', 60)
+                    for i in range(2):
+                        cs, ls, cf, lf = calc_saia_fronte([('fundo', comp_ml), ('frente', comp_ml)], bordas, borda_alts, borda_saia_larg)
+                        criar_item_p('Bancada', comp_ml, prof_m, cs, ls, cf, lf,
+                                  produto_nome=f'Bancada Molhada Lateral')
+
                 if is_l:
                     comp_l = pcfg.get('compL', 120)
                     prof_l = pcfg.get('profL', 60)
@@ -421,7 +437,7 @@ def api_configurador_orcamento():
                     criar_item_p('Bancada', comp_l, prof_l, cs, ls, cf, lf,
                               produto_nome='Bancada em L')
 
-                for side_key in ['esquerda', 'direita']:
+                for side_key in ['esquerda', 'direita', 'l_esquerda', 'l_fundo']:
                     if bordas.get(side_key) == 'ilharga':
                         alt = borda_alts.get(side_key, 92)
                         prof_ilh = pcfg.get('profMolhada', 60) if has_molhada else pcfg.get('profSeca', 60)

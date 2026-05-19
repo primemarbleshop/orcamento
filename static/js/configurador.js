@@ -38,8 +38,8 @@ const MODELOS = [
 const CFG = {
     produto: 'bancada',
     modelo: 'molhada_esq_seca_dir',
-    compSeca: 120, profSeca: 60,
-    compMolhada: 120, profMolhada: 60,
+    compSeca: 120, profSeca: 60, compSecaLat: 60,
+    compMolhada: 120, profMolhada: 60, compMolhadaLat: 60,
     compL: 120, profL: 60,
     compGen: 120, profGen: 55, lavModelo: 'retangular',
     lavRecorteLarg: 70, lavRecorteAlt: 35,
@@ -133,16 +133,16 @@ function getSections() {
             secs.push({type:'molhada', x:0, y:0, w:wm, h:dm});
             secs.push({type:'seca', x:wm, y:0, w:ws, h:ds}); break;
         case 'molhada_centro_seca_lat': {
-            const hs = ws / 2;
-            secs.push({type:'seca', x:0, y:0, w:hs, h:ds});
-            secs.push({type:'molhada', x:hs, y:0, w:wm, h:dm});
-            secs.push({type:'seca', x:hs+wm, y:0, w:hs, h:ds}); break;
+            const sl = CFG.compSecaLat;
+            secs.push({type:'seca', x:0, y:0, w:sl, h:ds});
+            secs.push({type:'molhada', x:sl, y:0, w:wm, h:dm});
+            secs.push({type:'seca', x:sl+wm, y:0, w:sl, h:ds}); break;
         }
         case 'seca_centro_molhada_lat': {
-            const hm = wm / 2;
-            secs.push({type:'molhada', x:0, y:0, w:hm, h:dm});
-            secs.push({type:'seca', x:hm, y:0, w:ws, h:ds});
-            secs.push({type:'molhada', x:hm+ws, y:0, w:hm, h:dm}); break;
+            const ml = CFG.compMolhadaLat;
+            secs.push({type:'molhada', x:0, y:0, w:ml, h:dm});
+            secs.push({type:'seca', x:ml, y:0, w:ws, h:ds});
+            secs.push({type:'molhada', x:ml+ws, y:0, w:ml, h:dm}); break;
         }
         case 'l_seca_molhada': {
             secs.push({type:'molhada', x:0, y:0, w:wm, h:dm});
@@ -946,14 +946,28 @@ function renderMedidas(sb) {
 
     if (CFG.produto === 'bancada') {
         if (hasSeca) {
-            html += '<div style="color:#9ca3af;font-size:.75rem;font-weight:600;margin:10px 0 6px">⬜ Seca</div><div class="row2">';
+            const secaLabel = md === 'molhada_centro_seca_lat' ? '⬜ Seca (centro)' : '⬜ Seca';
+            html += `<div style="color:#9ca3af;font-size:.75rem;font-weight:600;margin:10px 0 6px">${secaLabel}</div><div class="row2">`;
             html += fgInput('Comprimento', 'compSeca');
             html += fgInput('Largura', 'profSeca');
             html += '</div>';
         }
+        if (md === 'molhada_centro_seca_lat') {
+            html += '<div style="color:#9ca3af;font-size:.75rem;font-weight:600;margin:10px 0 6px">⬜ Seca (laterais)</div><div class="row2">';
+            html += fgInput('Comprimento', 'compSecaLat');
+            html += fgInput('Largura', 'profSeca');
+            html += '</div>';
+        }
         if (hasMolhada) {
-            html += '<div style="color:#60a5fa;font-size:.75rem;font-weight:600;margin:10px 0 6px">🟦 Molhada</div><div class="row2">';
+            const molhadaLabel = md === 'seca_centro_molhada_lat' ? '🟦 Molhada (centro)' : '🟦 Molhada';
+            html += `<div style="color:#60a5fa;font-size:.75rem;font-weight:600;margin:10px 0 6px">${molhadaLabel}</div><div class="row2">`;
             html += fgInput('Comprimento', 'compMolhada');
+            html += fgInput('Largura', 'profMolhada');
+            html += '</div>';
+        }
+        if (md === 'seca_centro_molhada_lat') {
+            html += '<div style="color:#60a5fa;font-size:.75rem;font-weight:600;margin:10px 0 6px">🟦 Molhada (laterais)</div><div class="row2">';
+            html += fgInput('Comprimento', 'compMolhadaLat');
             html += fgInput('Largura', 'profMolhada');
             html += '</div>';
         }
@@ -1015,7 +1029,7 @@ function renderBordas(sb) {
         {key:'fundo', label:'Fundo (traseira)', desc:'Lado encostado na parede', lateral:false},
         {key:'frente', label:'Frente', desc:'Lado do usuário', lateral:false},
     ];
-    if (!isL) {
+    if (!isL || CFG.modelo === 'l_seca_molhada') {
         sides.push({key:'esquerda', label:'Esquerda', desc:'Lateral esquerda', lateral:true});
     }
     sides.push({key:'direita', label: isViolao ? 'Direita (superior)' : 'Direita', desc: isViolao ? 'Parte acima do recorte' : 'Lateral direita', lateral:true});
@@ -1404,8 +1418,9 @@ function continuarOrcamento() {
         modelo: CFG.modelo,
         lavModelo: CFG.lavModelo,
         compMolhada: CFG.compMolhada, profMolhada: CFG.profMolhada,
-        compSeca: CFG.compSeca, profSeca: CFG.profSeca,
+        compSeca: CFG.compSeca, profSeca: CFG.profSeca, compSecaLat: CFG.compSecaLat,
         compL: CFG.compL, profL: CFG.profL,
+        compMolhadaLat: CFG.compMolhadaLat,
         compGen: CFG.compGen, profGen: CFG.profGen,
         lavRecorteLarg: CFG.lavRecorteLarg, lavRecorteAlt: CFG.lavRecorteAlt,
         nichoLarg: CFG.nichoLarg, nichoAlt: CFG.nichoAlt, nichoProf: CFG.nichoProf,
