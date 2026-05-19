@@ -1151,7 +1151,7 @@ function cubaFormHtml(num, isBancada, hasSeca, hasMolhada) {
     const furoKey = num === 1 ? 'furoTorneira' : 'furoTorneira2';
     const tipo = CFG[tipoKey];
     let h = '';
-    if (CFG.cubaQtd >= 2) h += `<div style="color:#f43f5e;font-size:.78rem;font-weight:600;margin:8px 0 4px">Cuba ${num}</div>`;
+    if (CFG.cubaQtd >= 2) h += `<div style="color:#d4a017;font-size:.78rem;font-weight:600;margin:8px 0 4px">Cuba ${num}</div>`;
     if (isBancada && hasSeca && hasMolhada) {
         h += `<div class="fgroup"><label>Posição</label><select onchange="updVal('${localKey}',this.value)">`;
         h += `<option value="molhada" ${CFG[localKey]==='molhada'?'selected':''}>Na Molhada</option>`;
@@ -1330,7 +1330,7 @@ function renderMaterial(sb) {
         fetch('/api/materiais').then(r=>r.json()).then(data=>{
             materiaisCache = data;
             renderMaterial(sb);
-        }).catch(()=>{ sb.innerHTML += '<div style="color:#f43f5e">Erro ao carregar materiais.</div>'; });
+        }).catch(()=>{ sb.innerHTML += '<div style="color:#d4a017">Erro ao carregar materiais.</div>'; });
         return;
     }
     const matSel = materiaisCache.find(m => m.id === CFG.materialId);
@@ -1384,7 +1384,7 @@ function finalizarOrcamento() {
                 <div style="text-align:center;padding:30px 10px">
                     <div style="font-size:2rem;margin-bottom:16px">&#10003;</div>
                     <div class="step-title" style="color:#22c55e">Orcamento Enviado!</div>
-                    <div class="step-desc" style="margin-top:8px">Codigo: <b style="color:#f43f5e">${data.codigo}</b></div>
+                    <div class="step-desc" style="margin-top:8px">Codigo: <b style="color:#d4a017">${data.codigo}</b></div>
                     <div class="step-desc">Entraremos em contato pelo telefone informado.</div>
                     <div style="margin-top:20px">
                         <a class="btn btn-next" href="/gerar_pdf_orcamento/${data.codigo}" target="_blank" style="max-width:240px;margin:0 auto;display:block;text-decoration:none">Baixar PDF</a>
@@ -1397,13 +1397,13 @@ function finalizarOrcamento() {
             document.getElementById('btnContinuar').classList.add('hidden');
             btnNext.classList.add('hidden');
         } else {
-            alert('Erro: ' + (data.error || 'Tente novamente.'));
+            mostrarAviso('Erro: ' + (data.error || 'Tente novamente.'));
             btnNext.textContent = 'Finalizar';
             btnNext.disabled = false;
         }
     })
     .catch(() => {
-        alert('Erro de conexao. Tente novamente.');
+        mostrarAviso('Erro de conexao. Tente novamente.');
         btnNext.textContent = 'Finalizar';
         btnNext.disabled = false;
     });
@@ -1454,12 +1454,12 @@ function goNext() {
     const steps = getSteps();
     if (steps[step] === 'cliente') {
         if (!CFG.clienteNome.trim() || !CFG.clienteTelefone.trim()) {
-            alert('Preencha nome e telefone para continuar.');
+            mostrarAviso('Preencha nome e telefone para continuar.');
             return;
         }
     }
     if (steps[step] === 'material' && !CFG.materialId) {
-        alert('Selecione um material para continuar.');
+        mostrarAviso('Selecione um material para continuar.');
         return;
     }
     if (step < steps.length - 1) { step++; renderStep(); }
