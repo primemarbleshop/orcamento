@@ -433,21 +433,26 @@ def api_configurador_orcamento():
                 if is_l:
                     comp_l = pcfg.get('compL', 120)
                     prof_l = pcfg.get('profL', 60)
-                    cs, ls, cf, lf = calc_saia_fronte([('fundo', comp_l), ('frente', comp_l), ('l_esquerda', prof_l), ('l_fundo', comp_l)], bordas, borda_alts, borda_saia_larg)
+                    cs, ls, cf, lf = calc_saia_fronte([('frente', prof_l)], bordas, borda_alts, borda_saia_larg)
                     criar_item_p('Bancada', comp_l, prof_l, cs, ls, cf, lf,
                               produto_nome='Bancada em L')
 
                 for side_key in ['esquerda', 'direita', 'l_esquerda', 'l_fundo']:
                     if bordas.get(side_key) == 'ilharga':
                         alt = borda_alts.get(side_key, 92)
-                        prof_ilh = pcfg.get('profMolhada', 60) if has_molhada else pcfg.get('profSeca', 60)
-                        saia_frente = borda_saia_larg.get('frente', 10) if bordas.get('frente') in ['saia'] else 0
-                        saia_fundo = borda_saia_larg.get('fundo', 10) if bordas.get('fundo') in ['saia'] else 0
-                        n_saias = (1 if saia_frente > 0 else 0) + (1 if saia_fundo > 0 else 0)
-                        cs_ilh = alt * n_saias
-                        ls_ilh = max(saia_frente, saia_fundo) if cs_ilh > 0 else 0
-                        criar_item_p('Ilharga', alt, prof_ilh, cs_ilh, ls_ilh, 0, 0,
-                                  produto_nome='Ilharga')
+                        if side_key == 'l_fundo':
+                            comp_l = pcfg.get('compL', 120)
+                            criar_item_p('Ilharga', comp_l, pcfg.get('profL', 60), 0, 0, 0, 0,
+                                      produto_nome='Ilharga')
+                        else:
+                            prof_ilh = pcfg.get('profMolhada', 60) if has_molhada else pcfg.get('profSeca', 60)
+                            saia_frente = borda_saia_larg.get('frente', 10) if bordas.get('frente') in ['saia'] else 0
+                            saia_fundo = borda_saia_larg.get('fundo', 10) if bordas.get('fundo') in ['saia'] else 0
+                            n_saias = (1 if saia_frente > 0 else 0) + (1 if saia_fundo > 0 else 0)
+                            cs_ilh = alt * n_saias
+                            ls_ilh = max(saia_frente, saia_fundo) if cs_ilh > 0 else 0
+                            criar_item_p('Ilharga', alt, prof_ilh, cs_ilh, ls_ilh, 0, 0,
+                                      produto_nome='Ilharga')
 
             elif produto == 'lavatorio':
                 comp = pcfg.get('compGen', 120)
