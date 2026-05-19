@@ -1062,7 +1062,7 @@ function renderBordas(sb) {
 
     html += `<div class="info"><b>/// Fronte:</b> Pedra sobre a bancada (lado da parede).<br>
         <b>// Saia:</b> Acabamento frontal.<br>
-        <b>||| Ilharga:</b> Peça lateral que acompanha o acabamento da frente/fundo.<br>
+        <b>||| Ilharga:</b> Peça lateral que vai da bancada até o chão.<br>
         <b>Parede:</b> Encostado na parede.<br>
         <b>Livre:</b> Borda exposta.</div>`;
     sb.innerHTML = html;
