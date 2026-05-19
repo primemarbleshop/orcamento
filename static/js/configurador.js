@@ -311,13 +311,28 @@ function drawAccessories(sections, sc, ox, oy) {
                 rh = freeH;
             }
 
-            const cw = Math.min(60*sc, rw*0.55), ch = Math.min(35*sc, rh*0.45);
+            let cw, ch;
+            if (sec.isL) {
+                cw = Math.min(35*sc, rw*0.45);
+                ch = Math.min(60*sc, rh*0.55);
+            } else {
+                cw = Math.min(60*sc, rw*0.55);
+                ch = Math.min(35*sc, rh*0.45);
+            }
             const cx = rx + rw/2 - cw/2, cy = ry + rh/2 - ch/2;
             ctx.strokeStyle = '#6b7280'; ctx.lineWidth = 1.5;
             ctx.strokeRect(cx, cy, cw, ch);
             ctx.fillStyle = '#9ca3af'; ctx.font = '9px Inter,sans-serif';
             ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-            ctx.fillText('Cooktop', cx+cw/2, cy+ch/2);
+            if (sec.isL) {
+                ctx.save();
+                ctx.translate(cx+cw/2, cy+ch/2);
+                ctx.rotate(-Math.PI/2);
+                ctx.fillText('Cooktop', 0, 0);
+                ctx.restore();
+            } else {
+                ctx.fillText('Cooktop', cx+cw/2, cy+ch/2);
+            }
         }
     }
 }
