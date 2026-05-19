@@ -20,7 +20,7 @@ async function compartilharOrcamento(codigo) {
             a.download = 'orcamento_' + codigo + '.pdf';
             a.click();
             URL.revokeObjectURL(url);
-            alert('PDF baixado! Envie pelo WhatsApp para (21) 99154-5775');
+            alert('PDF baixado! Envie pelo WhatsApp para (21) 99381-1591');
         }
     } catch(e) {
         if (e.name !== 'AbortError') {
