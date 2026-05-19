@@ -433,7 +433,7 @@ def api_configurador_orcamento():
                 if is_l:
                     comp_l = pcfg.get('compL', 120)
                     prof_l = pcfg.get('profL', 60)
-                    cs, ls, cf, lf = calc_saia_fronte([('frente', prof_l)], bordas, borda_alts, borda_saia_larg)
+                    cs, ls, cf, lf = calc_saia_fronte([('fundo', prof_l), ('frente', prof_l)], bordas, borda_alts, borda_saia_larg)
                     criar_item_p('Bancada', comp_l, prof_l, cs, ls, cf, lf,
                               produto_nome='Bancada em L')
 
