@@ -151,13 +151,12 @@ class OrcamentoSalvo(db.Model):
         return primeiro_orcamento.cliente.nome if primeiro_orcamento else "Não definido"
 
     def gerar_codigo(self):
-        ultimo = db.session.query(db.func.max(OrcamentoSalvo.id)).scalar()
-        if not ultimo:
-            novo_id = 100
+        ultimo_codigo = db.session.query(db.func.max(OrcamentoSalvo.codigo)).scalar()
+        if not ultimo_codigo:
+            novo_num = 100
         else:
-            novo_id = ultimo + 1
-
-        self.codigo = f"O{novo_id:06d}"
+            novo_num = int(ultimo_codigo[1:]) + 1
+        self.codigo = f"O{novo_num:06d}"
 
 class Orcamento(db.Model):
     id = db.Column(db.Integer, primary_key=True)
