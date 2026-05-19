@@ -957,20 +957,21 @@ function renderModeloLav(sb) {
     sb.innerHTML = `
         <div class="step-title">Modelo do Lavatório</div>
         <div class="step-desc">Escolha o formato da bancada do banheiro.</div>
+        ${togHtml('espelhar', 'Espelhar desenho', 'Inverte o lado esquerdo/direito')}
         <div class="cards">${modelos.map(m => `
             <div class="card ${CFG.lavModelo===m.id?'on':''}" onclick="pick('lavModelo','${m.id}')">
                 <span class="ico">${lavIcon(m.id)}</span>
                 <span class="name">${m.nome}</span>
                 <span class="hint">${m.desc}</span>
             </div>`).join('')}
-        </div>
-        ${togHtml('espelhar', 'Espelhar desenho', 'Inverte o lado esquerdo/direito')}`;
+        </div>`;
 }
 
 function renderModelo(sb) {
     sb.innerHTML = `
         <div class="step-title">Qual o formato?</div>
         <div class="step-desc">Selecione como será distribuída sua bancada.</div>
+        ${togHtml('espelhar', 'Espelhar desenho', 'Inverte o lado esquerdo/direito da bancada')}
         <div class="cards">${MODELOS.map(m => `
             <div class="card ${CFG.modelo===m.id?'on':''}" onclick="pick('modelo','${m.id}')">
                 ${m.mp}
@@ -978,7 +979,6 @@ function renderModelo(sb) {
                 <span class="hint">${m.desc}</span>
             </div>`).join('')}
         </div>
-        ${togHtml('espelhar', 'Espelhar desenho', 'Inverte o lado esquerdo/direito da bancada')}
         <div class="info"><b>Dica:</b> A parte da pia (molhada) fica mais baixa e tem borda para não escorrer água. A parte do fogão (seca) fica 2cm mais alta.</div>`;
 }
 
