@@ -2137,6 +2137,46 @@ def atualizar_status_tipo_cliente():
 
 
 
+@app.route('/orcamento/<codigo>')
+def orcamento_preview(codigo):
+    orc = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
+    if not orc:
+        return "Orçamento não encontrado", 404
+    valor = "R$ {:,.2f}".format(orc.valor_total).replace(",", "X").replace(".", ",").replace("X", ".")
+    return f'''<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta property="og:title" content="Orçamento {codigo} - Prime Marble Shop">
+<meta property="og:description" content="Orçamento em mármore e granito - Valor: {valor}">
+<meta property="og:image" content="https://orcamento-t9w2.onrender.com/static/logo.jpg">
+<meta property="og:url" content="https://orcamento-t9w2.onrender.com/orcamento/{codigo}">
+<meta property="og:type" content="website">
+<title>Orçamento {codigo} - Prime Marble Shop</title>
+<meta http-equiv="refresh" content="2;url=/gerar_pdf_orcamento/{codigo}">
+<style>
+body{{font-family:Arial,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#1a1a2e;color:#fff}}
+.card{{text-align:center;background:#16213e;padding:40px;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.3)}}
+img{{width:120px;border-radius:50%;margin-bottom:20px}}
+h2{{color:#d4a017;margin:0 0 10px}}
+p{{color:#ccc;margin:5px 0}}
+.valor{{font-size:1.4rem;color:#22c55e;font-weight:bold;margin:15px 0}}
+a{{color:#d4a017;text-decoration:none;display:inline-block;margin-top:15px;padding:12px 30px;border:2px solid #d4a017;border-radius:8px}}
+a:hover{{background:#d4a017;color:#1a1a2e}}
+</style>
+</head>
+<body>
+<div class="card">
+<img src="/static/logo.jpg" alt="Prime Marble Shop">
+<h2>Orçamento {codigo}</h2>
+<p>Prime Marble Shop</p>
+<div class="valor">{valor}</div>
+<p style="font-size:.85rem;color:#888">Redirecionando para o PDF...</p>
+<a href="/gerar_pdf_orcamento/{codigo}">Baixar PDF</a>
+</div>
+</body>
+</html>'''
+
 @app.route('/gerar_pdf_orcamento/<codigo>')
 def gerar_pdf_orcamento(codigo):
     orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()

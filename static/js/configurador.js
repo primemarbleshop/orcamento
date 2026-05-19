@@ -2,33 +2,6 @@
 // CONFIGURADOR TÉCNICO 2D - Prime Marble Shop
 // ============================================================
 
-async function compartilharOrcamento(codigo) {
-    try {
-        const resp = await fetch('/gerar_pdf_orcamento/' + codigo);
-        const blob = await resp.blob();
-        const file = new File([blob], 'orcamento_' + codigo + '.pdf', {type: 'application/pdf'});
-        if (navigator.canShare && navigator.canShare({files: [file]})) {
-            await navigator.share({
-                files: [file],
-                title: 'Orçamento ' + codigo,
-                text: 'Olá, segue o orçamento ' + codigo + '. Gostaria de mais informações.'
-            });
-        } else {
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = 'orcamento_' + codigo + '.pdf';
-            a.click();
-            URL.revokeObjectURL(url);
-            alert('PDF baixado! Envie pelo WhatsApp para (21) 99381-1591');
-        }
-    } catch(e) {
-        if (e.name !== 'AbortError') {
-            window.open('https://orcamento-t9w2.onrender.com/gerar_pdf_orcamento/' + codigo, '_blank');
-        }
-    }
-}
-
 const ESP = 2;
 const CONTENCAO = 2;
 
@@ -1414,7 +1387,7 @@ function finalizarOrcamento() {
                     <div class="step-desc" style="margin-top:8px">Codigo: <b style="color:#d4a017">${data.codigo}</b></div>
                     <div class="step-desc">Clique abaixo para enviar o orcamento para a loja!</div>
                     <div style="margin-top:20px">
-                        <button class="btn btn-next" onclick="compartilharOrcamento('${data.codigo}')" style="max-width:240px;margin:0 auto;display:block">Enviar Orcamento</button>
+                        <a class="btn btn-next" href="https://wa.me/5521993811591?text=${encodeURIComponent('Olá, segue meu orçamento: https://orcamento-t9w2.onrender.com/orcamento/' + data.codigo)}" target="_blank" style="max-width:240px;margin:0 auto;display:block;text-decoration:none">Enviar Orcamento</a>
                     </div>
                     <div style="margin-top:10px">
                         <button class="btn btn-back" onclick="location.reload()" style="max-width:200px;margin:0 auto">Novo Orcamento</button>
