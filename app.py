@@ -18,6 +18,52 @@ from models import db, Orcamento, OrcamentoSalvo, Usuario  # Modelos do SQLAlche
 # 📌 Importa Configuração Externa
 from config import Config
 
+WHATSAPP_PHONE_ID = os.getenv('WHATSAPP_PHONE_ID', '')
+WHATSAPP_TOKEN = os.getenv('WHATSAPP_TOKEN', '')
+WHATSAPP_TEMPLATE_NAME = os.getenv('WHATSAPP_TEMPLATE_NAME', 'envio_orcamento')
+
+def enviar_whatsapp_orcamento(telefone_cliente, codigo_orcamento, nome_cliente=''):
+    if not WHATSAPP_PHONE_ID or not WHATSAPP_TOKEN:
+        print('[WhatsApp] Token ou Phone ID não configurado, pulando envio.')
+        return False
+    telefone = telefone_cliente.replace(' ', '').replace('-', '').replace('(', '').replace(')', '')
+    if not telefone.startswith('55'):
+        telefone = '55' + telefone
+    url = f'https://graph.facebook.com/v21.0/{WHATSAPP_PHONE_ID}/messages'
+    headers = {
+        'Authorization': f'Bearer {WHATSAPP_TOKEN}',
+        'Content-Type': 'application/json'
+    }
+    payload = {
+        'messaging_product': 'whatsapp',
+        'to': telefone,
+        'type': 'template',
+        'template': {
+            'name': WHATSAPP_TEMPLATE_NAME,
+            'language': {'code': 'pt_BR'},
+            'components': [
+                {
+                    'type': 'body',
+                    'parameters': [
+                        {'type': 'text', 'text': nome_cliente or 'Cliente'},
+                        {'type': 'text', 'text': codigo_orcamento}
+                    ]
+                }
+            ]
+        }
+    }
+    try:
+        resp = requests.post(url, json=payload, headers=headers, timeout=10)
+        if resp.status_code == 200:
+            print(f'[WhatsApp] Mensagem enviada para {telefone}')
+            return True
+        else:
+            print(f'[WhatsApp] Erro {resp.status_code}: {resp.text}')
+            return False
+    except Exception as e:
+        print(f'[WhatsApp] Erro ao enviar: {e}')
+        return False
+
 # 📌 Inicializa o Flask
 app = Flask(__name__)
 app.config.from_object(Config)  # Aplica configurações do config.py
@@ -433,7 +479,7 @@ def api_configurador_orcamento():
                 if is_l:
                     comp_l = pcfg.get('compL', 120)
                     prof_l = pcfg.get('profL', 60)
-                    cs, ls, cf, lf = calc_saia_fronte([('fundo', prof_l), ('frente', prof_l)], bordas, borda_alts, borda_saia_larg)
+                    cs, ls, cf, lf = calc_saia_fronte([('l_esquerda', prof_l), ('l_fundo', comp_l)], bordas, borda_alts, borda_saia_larg)
                     criar_item_p('Bancada', comp_l, prof_l, cs, ls, cf, lf,
                               produto_nome='Bancada em L')
 
@@ -523,6 +569,8 @@ def api_configurador_orcamento():
             db.session.add(desenho)
 
         db.session.commit()
+
+        enviar_whatsapp_orcamento(telefone, orc_salvo.codigo, nome)
 
         return jsonify({'success': True, 'codigo': orc_salvo.codigo})
 
