@@ -427,7 +427,8 @@ def api_configurador_orcamento():
                         prof_ilh = pcfg.get('profMolhada', 60) if has_molhada else pcfg.get('profSeca', 60)
                         saia_frente = borda_saia_larg.get('frente', 10) if bordas.get('frente') in ['saia'] else 0
                         saia_fundo = borda_saia_larg.get('fundo', 10) if bordas.get('fundo') in ['saia'] else 0
-                        cs_ilh = alt if (saia_frente > 0 or saia_fundo > 0) else 0
+                        n_saias = (1 if saia_frente > 0 else 0) + (1 if saia_fundo > 0 else 0)
+                        cs_ilh = alt * n_saias
                         ls_ilh = max(saia_frente, saia_fundo) if cs_ilh > 0 else 0
                         criar_item_p('Ilharga', alt, prof_ilh, cs_ilh, ls_ilh, 0, 0,
                                   produto_nome='Ilharga')
@@ -453,7 +454,8 @@ def api_configurador_orcamento():
                         alt = borda_alts.get(side_key, 92)
                         saia_frente = borda_saia_larg.get('frente', 10) if bordas.get('frente') == 'saia' else 0
                         saia_fundo = borda_saia_larg.get('fundo', 10) if bordas.get('fundo') == 'saia' else 0
-                        cs_ilh = alt if (saia_frente > 0 or saia_fundo > 0) else 0
+                        n_saias = (1 if saia_frente > 0 else 0) + (1 if saia_fundo > 0 else 0)
+                        cs_ilh = alt * n_saias
                         ls_ilh = max(saia_frente, saia_fundo) if cs_ilh > 0 else 0
                         criar_item_p('Ilharga', alt, prof, cs_ilh, ls_ilh, 0, 0,
                                   produto_nome='Ilharga')
