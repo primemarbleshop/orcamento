@@ -211,11 +211,319 @@ def criar_banco():
     with app.app_context():
         db.create_all()
 
+@app.route('/orcamento')
+def configurador_3d():
+    logado = 'user_cpf' in session
+    return render_template('configurador_3d.html', logado=logado)
+
+@app.route('/api/materiais')
+def api_materiais():
+    materiais = Material.query.order_by(Material.nome).all()
+    return jsonify([{'id': m.id, 'nome': m.nome, 'valor': m.valor} for m in materiais])
+
+@app.route('/api/configurador-orcamento', methods=['POST'])
+def api_configurador_orcamento():
+    try:
+        cfg = request.get_json()
+        if not cfg:
+            return jsonify({'success': False, 'error': 'Dados inválidos'}), 400
+
+        nome = (cfg.get('clienteNome') or '').strip()
+        telefone = (cfg.get('clienteTelefone') or '').strip()
+        endereco = (cfg.get('clienteEndereco') or '').strip()
+        material_id = cfg.get('materialId')
+
+        if not nome or not telefone or not material_id:
+            return jsonify({'success': False, 'error': 'Nome, telefone e material são obrigatórios'}), 400
+
+        material = Material.query.get(material_id)
+        if not material:
+            return jsonify({'success': False, 'error': 'Material não encontrado'}), 400
+
+        dono_cpf = session.get('user_cpf', '12233344441')
+
+        cliente = Cliente.query.filter_by(telefone=telefone, dono=dono_cpf).first()
+        if not cliente:
+            cliente = Cliente(nome=nome, telefone=telefone, endereco=endereco, dono=dono_cpf)
+            db.session.add(cliente)
+            db.session.flush()
+
+        cuba_valores = {
+            'Embutida': 225, 'Sobreposta': 125, 'Esculpida': 175,
+            'Tradicional Inox': 225, 'Tanque Inox': 500,
+            'Apoio Cliente': 125, 'Embutida Cliente': 125,
+            'Gourmet Cliente': 225, 'Sobrepor Cliente': 125,
+            'Tanque Inox Cliente': 225
+        }
+
+        orcamento_ids = []
+
+        def get_or_create_produto(nome_prod):
+            prod = Produto.query.filter_by(nome=nome_prod, dono=dono_cpf).first()
+            if not prod:
+                prod = Produto(nome=nome_prod, dono=dono_cpf)
+                db.session.add(prod)
+                db.session.flush()
+            return prod.id
+
+        def calc_saia_fronte(sides_dims, bordas_cfg, alts, saia_largs):
+            comp_saia = 0
+            larg_saia = 0
+            comp_fronte = 0
+            larg_fronte = 0
+            for side, dim in sides_dims:
+                bt = bordas_cfg.get(side, 'livre')
+                if bt == 'saia':
+                    comp_saia += dim
+                    larg_saia = max(larg_saia, saia_largs.get(side, 10))
+                elif bt == 'fronte':
+                    comp_fronte += dim
+                    larg_fronte = max(larg_fronte, alts.get(side, 10))
+                elif bt == 'ilharga':
+                    comp_saia += alts.get(side, 92)
+                    larg_saia = max(larg_saia, saia_largs.get(side, 10))
+            return comp_saia, larg_saia, comp_fronte, larg_fronte
+
+        def processar_produto_cfg(pcfg):
+            produto = pcfg.get('produto', 'bancada')
+            bordas = pcfg.get('bordas', {})
+            borda_alts = pcfg.get('bordaAlts', {})
+            borda_saia_larg = pcfg.get('bordaSaiaLarg', {})
+
+            mat_id = pcfg.get('materialId', material.id)
+            mat = Material.query.get(mat_id) or material
+
+            def criar_item_p(tipo_produto, comprimento, largura, comp_saia, larg_saia, comp_fronte, larg_fronte,
+                           tipo_cuba='', qtd_cubas=0, comp_cuba=0, larg_cuba=0, prof_cuba=0,
+                           tem_cooktop='Não', prof_nicho=0, tem_fundo='Sim', tem_alisar='Não', larg_alisar=0,
+                           produto_nome=''):
+                comprimento_cal = max(comprimento, 10)
+                largura_cal = max(largura, 10)
+                valor_base = mat.valor * (comprimento_cal * largura_cal / 10000)
+
+                if tipo_produto in ['Bancada', 'Lavatorio']:
+                    if mat.valor < 1000:
+                        valor_base *= 1.3
+                    elif mat.valor < 2000:
+                        valor_base *= 1.15
+                    elif mat.valor < 1000000:
+                        valor_base *= 1.1
+
+                if tipo_produto == 'Ilharga Bipolida' and valor_base < 1000000:
+                    valor_base *= 1.15
+
+                valor_total = valor_base
+
+                if tipo_produto == 'Nicho':
+                    comp_cal = max(comprimento, 10)
+                    larg_cal = max(largura, 10)
+                    prof_nicho_cal = max(prof_nicho, 10) if prof_nicho > 0 else 0
+                    if tem_fundo == 'Sim':
+                        area = ((comp_cal+4)*(larg_cal+4))+(((comp_cal+4)*prof_nicho_cal)*2)+(((larg_cal+4)*prof_nicho_cal)*2)
+                    else:
+                        area = ((comp_cal+4)+(larg_cal+4))*prof_nicho_cal*2
+                    if tem_alisar == 'Sim' and larg_alisar > 0:
+                        la = max(larg_alisar, 10)
+                        area += ((comp_cal+(la*2))*la*2)+((larg_cal+(la*2))*la*2)
+                    valor_total = (area/10000)*mat.valor + 150
+
+                if comp_saia > 0 and larg_saia > 0:
+                    cs_cal = max(comp_saia, 10)
+                    ls_cal = max(larg_saia, 10)
+                    valor_total += cs_cal * ls_cal * mat.valor / 10000
+
+                if comp_fronte > 0 and larg_fronte > 0:
+                    cf_cal = max(comp_fronte, 10)
+                    lf_cal = max(larg_fronte, 10)
+                    valor_total += cf_cal * lf_cal * mat.valor / 10000
+
+                tipo_cuba_cap = tipo_cuba.capitalize() if tipo_cuba else ''
+                if tipo_cuba_cap:
+                    vc = cuba_valores.get(tipo_cuba_cap, 0)
+                    valor_total += vc * max(qtd_cubas, 1)
+                    if tipo_cuba_cap == 'Esculpida' and comp_cuba > 0:
+                        m2_cuba = ((comp_cuba*larg_cuba*2)+(comp_cuba*2+larg_cuba*2)*prof_cuba)/10000
+                        valor_total += m2_cuba * mat.valor * max(qtd_cubas, 1)
+
+                if tem_cooktop == 'Sim':
+                    valor_total += 50
+
+                valor_total = round(valor_total, 2)
+
+                prod_id = get_or_create_produto(produto_nome) if produto_nome else None
+
+                orc = Orcamento(
+                    cliente_id=cliente.id, ambiente_id=None,
+                    descricao_id=None, produto_id=prod_id,
+                    tipo_produto=tipo_produto, material_id=mat.id,
+                    quantidade=1, comprimento=comprimento, largura=largura,
+                    instalacao='Não', instalacao_valor=0, rt='Não', rt_percentual=0,
+                    comprimento_saia=comp_saia, largura_saia=larg_saia,
+                    comprimento_fronte=comp_fronte, largura_fronte=larg_fronte,
+                    tipo_cuba=tipo_cuba_cap,
+                    quantidade_cubas=qtd_cubas,
+                    comprimento_cuba=comp_cuba, largura_cuba=larg_cuba, profundidade_cuba=prof_cuba,
+                    modelo_cuba='Normal',
+                    tem_cooktop=tem_cooktop,
+                    profundidade_nicho=prof_nicho,
+                    tem_fundo=tem_fundo, tem_alisar=tem_alisar, largura_alisar=larg_alisar,
+                    valor_total=valor_total, dono=dono_cpf
+                )
+                db.session.add(orc)
+                db.session.flush()
+                orcamento_ids.append(str(orc.id))
+
+            if produto == 'bancada':
+                modelo = pcfg.get('modelo', '')
+                has_molhada = modelo != 'toda_seca'
+                has_seca = modelo != 'toda_molhada'
+                is_l = modelo.startswith('l_')
+
+                def cubas_na_secao(secao):
+                    if not pcfg.get('cuba'):
+                        return '', 0, 0, 0, 0
+                    qtd = pcfg.get('cubaQtd', 1)
+                    c1_here = pcfg.get('cubaLocal') == secao
+                    c2_here = qtd >= 2 and pcfg.get('cuba2Local') == secao
+                    if c1_here and c2_here:
+                        return pcfg.get('tipoCuba', ''), 2, pcfg.get('cubaComp', 0), pcfg.get('cubaLarg', 0), pcfg.get('cubaAlt', 0)
+                    if c1_here:
+                        return pcfg.get('tipoCuba', ''), 1, pcfg.get('cubaComp', 0), pcfg.get('cubaLarg', 0), pcfg.get('cubaAlt', 0)
+                    if c2_here:
+                        return pcfg.get('tipoCuba2', ''), 1, pcfg.get('cubaComp2', 0), pcfg.get('cubaLarg2', 0), pcfg.get('cubaAlt2', 0)
+                    return '', 0, 0, 0, 0
+
+                if has_molhada:
+                    comp_m = pcfg.get('compMolhada', 120)
+                    prof_m = pcfg.get('profMolhada', 60)
+                    cs, ls, cf, lf = calc_saia_fronte([('fundo', comp_m), ('frente', comp_m)], bordas, borda_alts, borda_saia_larg)
+                    tc, qc, cc, lc, pc = cubas_na_secao('molhada')
+                    criar_item_p('Bancada', comp_m, prof_m, cs, ls, cf, lf,
+                              tipo_cuba=tc, qtd_cubas=qc,
+                              comp_cuba=cc, larg_cuba=lc, prof_cuba=pc,
+                              produto_nome='Bancada Molhada')
+
+                if has_seca:
+                    comp_s = pcfg.get('compSeca', 120)
+                    prof_s = pcfg.get('profSeca', 60)
+                    cs, ls, cf, lf = calc_saia_fronte([('fundo', comp_s), ('frente', comp_s)], bordas, borda_alts, borda_saia_larg)
+                    tc, qc, cc, lc, pc = cubas_na_secao('seca')
+                    cook = 'Sim' if pcfg.get('cooktop') else 'Não'
+                    criar_item_p('Bancada', comp_s, prof_s, cs, ls, cf, lf,
+                              tipo_cuba=tc, qtd_cubas=qc,
+                              comp_cuba=cc, larg_cuba=lc, prof_cuba=pc,
+                              tem_cooktop=cook,
+                              produto_nome='Bancada Seca')
+
+                if is_l:
+                    comp_l = pcfg.get('compL', 120)
+                    prof_l = pcfg.get('profL', 60)
+                    cs, ls, cf, lf = calc_saia_fronte([('fundo', comp_l), ('frente', comp_l), ('l_esquerda', prof_l), ('l_fundo', comp_l)], bordas, borda_alts, borda_saia_larg)
+                    criar_item_p('Bancada', comp_l, prof_l, cs, ls, cf, lf,
+                              produto_nome='Bancada em L')
+
+                for side_key in ['esquerda', 'direita']:
+                    if bordas.get(side_key) == 'ilharga':
+                        alt = borda_alts.get(side_key, 92)
+                        prof_ilh = pcfg.get('profMolhada', 60) if has_molhada else pcfg.get('profSeca', 60)
+                        saia_frente = borda_saia_larg.get('frente', 10) if bordas.get('frente') in ['saia'] else 0
+                        saia_fundo = borda_saia_larg.get('fundo', 10) if bordas.get('fundo') in ['saia'] else 0
+                        cs_ilh = alt if (saia_frente > 0 or saia_fundo > 0) else 0
+                        ls_ilh = max(saia_frente, saia_fundo) if cs_ilh > 0 else 0
+                        criar_item_p('Ilharga', alt, prof_ilh, cs_ilh, ls_ilh, 0, 0,
+                                  produto_nome='Ilharga')
+
+            elif produto == 'lavatorio':
+                comp = pcfg.get('compGen', 120)
+                prof = pcfg.get('profGen', 55)
+                lav_sides = [('fundo', comp), ('frente', comp), ('esquerda', prof), ('direita', prof)]
+                if pcfg.get('lavModelo') == 'violao':
+                    lav_sides.append(('direita2', prof))
+                cs, ls, cf, lf = calc_saia_fronte(lav_sides, bordas, borda_alts, borda_saia_larg)
+                tc = pcfg.get('tipoCuba', '') if pcfg.get('cuba') else ''
+                qc = pcfg.get('cubaQtd', 1) if tc else 0
+                lav_modelo = pcfg.get('lavModelo', 'retangular')
+                lav_nome = 'Lavatorio Violao' if lav_modelo == 'violao' else 'Lavatorio Retangular'
+                criar_item_p('Lavatorio', comp, prof, cs, ls, cf, lf,
+                          tipo_cuba=tc, qtd_cubas=qc,
+                          comp_cuba=pcfg.get('cubaComp',0), larg_cuba=pcfg.get('cubaLarg',0), prof_cuba=pcfg.get('cubaAlt',0),
+                          produto_nome=lav_nome)
+
+                for side_key in ['esquerda', 'direita', 'direita2']:
+                    if bordas.get(side_key) == 'ilharga':
+                        alt = borda_alts.get(side_key, 92)
+                        saia_frente = borda_saia_larg.get('frente', 10) if bordas.get('frente') == 'saia' else 0
+                        saia_fundo = borda_saia_larg.get('fundo', 10) if bordas.get('fundo') == 'saia' else 0
+                        cs_ilh = alt if (saia_frente > 0 or saia_fundo > 0) else 0
+                        ls_ilh = max(saia_frente, saia_fundo) if cs_ilh > 0 else 0
+                        criar_item_p('Ilharga', alt, prof, cs_ilh, ls_ilh, 0, 0,
+                                  produto_nome='Ilharga')
+
+            elif produto == 'nicho':
+                criar_item_p('Nicho', pcfg.get('nichoLarg', 60), pcfg.get('nichoAlt', 30), 0, 0, 0, 0,
+                           prof_nicho=pcfg.get('nichoProf', 12),
+                           tem_fundo='Sim' if pcfg.get('nichoFundo', True) else 'Não',
+                           tem_alisar='Sim' if pcfg.get('nichoAlisar', False) else 'Não',
+                           larg_alisar=pcfg.get('nichoAlisarMedida', 0),
+                           produto_nome='Nicho')
+
+            elif produto == 'soleira':
+                criar_item_p('Soleira', pcfg.get('soleiraLarg', 80), pcfg.get('soleiraProf', 15), 0, 0, 0, 0,
+                           produto_nome='Soleira')
+
+        processar_produto_cfg(cfg)
+
+        for extra in cfg.get('produtosExtras', []):
+            if extra.get('produto'):
+                processar_produto_cfg(extra)
+
+        if not orcamento_ids:
+            return jsonify({'success': False, 'error': 'Nenhum item gerado'}), 400
+
+        orc_salvo = OrcamentoSalvo(
+            orcamentos_ids=','.join(orcamento_ids),
+            valor_total=sum(Orcamento.query.get(int(i)).valor_total for i in orcamento_ids),
+            criado_por='Configurador Online',
+            tipo_cliente='Cliente Online'
+        )
+        orc_salvo.gerar_codigo()
+        db.session.add(orc_salvo)
+        db.session.flush()
+
+        desenho_data = cfg.get('desenho', '')
+        if desenho_data:
+            desenho = DesenhoOrdemServico(
+                orcamento_salvo_codigo=orc_salvo.codigo,
+                desenho_data=desenho_data
+            )
+            db.session.add(desenho)
+
+        db.session.commit()
+
+        return jsonify({'success': True, 'codigo': orc_salvo.codigo})
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/ver_desenho/<codigo>')
+def ver_desenho(codigo):
+    desenho = DesenhoOrdemServico.query.filter_by(
+        orcamento_salvo_codigo=codigo
+    ).order_by(DesenhoOrdemServico.data_criacao.desc()).first()
+    if not desenho:
+        return 'Desenho nao encontrado', 404
+    return f'''<!DOCTYPE html>
+<html><head><title>Desenho - {codigo}</title>
+<style>body{{margin:0;background:#1a1a2e;display:flex;justify-content:center;align-items:center;min-height:100vh}}
+img{{max-width:95vw;max-height:95vh;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.5)}}</style></head>
+<body><img src="{desenho.desenho_data}" alt="Desenho {codigo}"></body></html>'''
+
 @app.route('/')
 def index():
     if 'user_cpf' not in session:
         return redirect(url_for('login'))
-    
+
     return render_template('index.html')
 
 @app.route('/orcamentos', methods=['GET', 'POST'])
@@ -1295,10 +1603,17 @@ def listar_orcamentos_salvos():
 
     usuarios = Usuario.query.all()
 
+    codigos_com_desenho = set(
+        d.orcamento_salvo_codigo for d in DesenhoOrdemServico.query.with_entities(
+            DesenhoOrdemServico.orcamento_salvo_codigo
+        ).all()
+    )
+
     return render_template("orcamentos_salvos.html",
                            clientes=clientes,
                            usuarios=usuarios,
-                           orcamentos=resultado)
+                           orcamentos=resultado,
+                           codigos_com_desenho=codigos_com_desenho)
 
 
 
@@ -1324,9 +1639,14 @@ def detalhes_orcamento_salvo(codigo):
     is_admin = session.get('admin')
     
     # Admin pode ver tudo, usuário comum só vê seus próprios orçamentos
-    if not is_admin and orcamento_salvo.criado_por != usuario.nome:
-        flash("Você não tem permissão para acessar este orçamento!", "error")
-        return redirect(url_for('listar_orcamentos_salvos'))
+    if not is_admin:
+        ids_check = [int(i) for i in orcamento_salvo.orcamentos_ids.split(",") if i.strip()]
+        tem_permissao = db.session.query(Orcamento).join(Cliente, Cliente.id == Orcamento.cliente_id).filter(
+            Orcamento.id.in_(ids_check), Cliente.dono == usuario.cpf
+        ).first()
+        if not tem_permissao:
+            flash("Você não tem permissão para acessar este orçamento!", "error")
+            return redirect(url_for('listar_orcamentos_salvos'))
     
     # Buscar os orçamentos vinculados
     ids = [int(id) for id in orcamento_salvo.orcamentos_ids.split(",") if id.strip()]
@@ -1531,7 +1851,13 @@ def orcamentos_salvos():
         OrcamentoSalvo.id, Cliente.nome, Cliente.dono
     ).all()
 
-    return render_template('orcamentos_salvos.html', orcamentos=orcamentos)
+    codigos_com_desenho = set(
+        d.orcamento_salvo_codigo for d in DesenhoOrdemServico.query.with_entities(
+            DesenhoOrdemServico.orcamento_salvo_codigo
+        ).all()
+    )
+
+    return render_template('orcamentos_salvos.html', orcamentos=orcamentos, codigos_com_desenho=codigos_com_desenho)
 
 
 

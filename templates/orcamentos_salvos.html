@@ -323,6 +323,11 @@
                                         <button class="btn btn-sm btn-custom-success btn-pdf" data-codigo="{{ orcamento.codigo }}" title="Gerar PDF">
                                             <i class="fas fa-file-pdf"></i>
                                         </button>
+                                        {% if orcamento.codigo in (codigos_com_desenho or []) %}
+                                        <button class="btn btn-sm btn-custom-primary btn-desenho" data-codigo="{{ orcamento.codigo }}" title="Ver Desenho">
+                                            <i class="fas fa-drafting-compass"></i>
+                                        </button>
+                                        {% endif %}
                                         <button class="btn btn-sm btn-custom-danger btn-deletar" data-id="{{ orcamento.id }}" title="Deletar">
                                             <i class="fas fa-trash"></i>
                                         </button>
@@ -487,6 +492,17 @@
                 window.open(`/gerar_pdf_orcamento/${codigo}`, '_blank');
             } else {
                 Swal.fire("Erro!", "Código do orçamento não encontrado.", "error");
+            }
+        });
+    });
+
+    // Ação para o botão "Ver Desenho"
+    document.querySelectorAll(".btn-desenho").forEach(button => {
+        button.addEventListener("click", function(e) {
+            e.stopPropagation();
+            let codigo = this.getAttribute("data-codigo");
+            if (codigo) {
+                window.open(`/ver_desenho/${codigo}`, '_blank');
             }
         });
     });
