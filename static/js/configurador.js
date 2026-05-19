@@ -1086,14 +1086,17 @@ function fgInput(label, key) {
 function renderBordas(sb) {
     const isViolao = CFG.produto === 'lavatorio' && CFG.lavModelo === 'violao';
     const isL = CFG.produto === 'bancada' && CFG.modelo && CFG.modelo.startsWith('l_');
+    const esp = CFG.espelhar;
+    const lblEsq = esp ? 'Direita' : 'Esquerda';
+    const lblDir = esp ? 'Esquerda' : 'Direita';
     const sides = [
         {key:'fundo', label:'Fundo (traseira)', desc:'', lateral:false},
         {key:'frente', label:'Frente', desc:'', lateral:false},
     ];
     if (!isL || CFG.modelo === 'l_seca_molhada') {
-        sides.push({key:'esquerda', label:'Esquerda', desc:'', lateral:true});
+        sides.push({key:'esquerda', label:lblEsq, desc:'', lateral:true});
     }
-    sides.push({key:'direita', label: isViolao ? 'Direita (superior)' : 'Direita', desc:'', lateral:true});
+    sides.push({key:'direita', label: isViolao ? lblDir+' (superior)' : lblDir, desc:'', lateral:true});
     if (isViolao) {
         sides.push({key:'direita2', label:'Direita (recorte)', desc:'Parte lateral do recorte', lateral:true});
     }
