@@ -1148,7 +1148,7 @@ function renderResumo(sb) {
     add('Telefone', CFG.clienteTelefone);
     if (CFG.clienteEndereco) add('Endereço', CFG.clienteEndereco);
     const matSel = materiaisCache.find(m => m.id === CFG.materialId);
-    if (matSel) add('Material', matSel.nome + ' (R$ '+matSel.valor.toFixed(2)+'/m²)');
+    if (matSel) add('Material', matSel.nome);
     const prodNomes = {bancada:'Bancada', lavatorio:'Lavatório', nicho:'Nicho', soleira:'Soleira/Peitoril'};
     add('Produto', prodNomes[CFG.produto]);
 
@@ -1248,7 +1248,7 @@ function renderCliente(sb) {
 }
 
 function renderMaterial(sb) {
-    let html = '<div class="step-title">Material</div><div class="step-desc">Selecione o tipo de pedra desejado.</div>';
+    let html = '<div class="step-title">Material</div><div class="step-desc">Digite o nome da pedra desejada (mínimo 3 letras).</div>';
     if (materiaisCache.length === 0) {
         html += '<div style="color:#999;font-size:.8rem;padding:20px;text-align:center">Carregando materiais...</div>';
         sb.innerHTML = html;
@@ -1258,15 +1258,36 @@ function renderMaterial(sb) {
         }).catch(()=>{ sb.innerHTML += '<div style="color:#f43f5e">Erro ao carregar materiais.</div>'; });
         return;
     }
-    html += '<div class="cards cols1">';
-    materiaisCache.forEach(m => {
-        html += `<div class="card ${CFG.materialId==m.id?'on':''}" onclick="CFG.materialId=${m.id};renderStep()">
-            <span class="name">${m.nome}</span>
-            <span class="hint">R$ ${m.valor.toFixed(2)} /m²</span>
-        </div>`;
-    });
-    html += '</div>';
+    const matSel = materiaisCache.find(m => m.id === CFG.materialId);
+    const matNome = matSel ? matSel.nome : (CFG._materialBusca || '');
+    html += `<div class="fgroup"><label>Nome do material <span>*</span></label>
+        <input type="text" id="matBusca" value="${matNome}" placeholder="Ex: Branco Siena, Preto São Gabriel..."
+         style="width:100%;padding:10px 12px;border:1px solid #2a2a40;border-radius:8px;background:#1a1a2e;color:#e8e8e8;font-size:0.85rem"></div>`;
+    html += '<div id="matResultados"></div>';
+    if (matSel) {
+        html += `<div style="margin-top:10px;padding:10px 14px;background:#22c55e18;border:1px solid #22c55e44;border-radius:8px;font-size:0.82rem;color:#4ade80">
+            ✓ Selecionado: <b>${matSel.nome}</b></div>`;
+    }
     sb.innerHTML = html;
+    const inp = document.getElementById('matBusca');
+    inp.addEventListener('input', function() {
+        CFG._materialBusca = this.value;
+        const q = this.value.trim().toLowerCase();
+        const box = document.getElementById('matResultados');
+        if (q.length < 3) { box.innerHTML = ''; CFG.materialId = ''; return; }
+        const matches = materiaisCache.filter(m => m.nome.toLowerCase().includes(q));
+        if (matches.length === 0) {
+            box.innerHTML = '<div style="color:#999;font-size:.78rem;padding:8px">Nenhum material encontrado.</div>';
+            CFG.materialId = '';
+            return;
+        }
+        box.innerHTML = '<div class="cards cols1">' + matches.map(m =>
+            `<div class="card ${CFG.materialId==m.id?'on':''}" onclick="CFG.materialId=${m.id};CFG._materialBusca='${m.nome.replace(/'/g,"\\'")}';renderStep()">
+                <span class="name">${m.nome}</span>
+            </div>`
+        ).join('') + '</div>';
+    });
+    if (matNome.length >= 3 && !matSel) inp.dispatchEvent(new Event('input'));
 }
 
 function finalizarOrcamento() {

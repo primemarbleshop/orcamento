@@ -219,7 +219,7 @@ def configurador_3d():
 @app.route('/api/materiais')
 def api_materiais():
     materiais = Material.query.order_by(Material.nome).all()
-    return jsonify([{'id': m.id, 'nome': m.nome, 'valor': m.valor} for m in materiais])
+    return jsonify([{'id': m.id, 'nome': m.nome} for m in materiais])
 
 @app.route('/api/configurador-orcamento', methods=['POST'])
 def api_configurador_orcamento():
