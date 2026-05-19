@@ -22,13 +22,29 @@ WHATSAPP_PHONE_ID = os.getenv('WHATSAPP_PHONE_ID', '')
 WHATSAPP_TOKEN = os.getenv('WHATSAPP_TOKEN', '')
 WHATSAPP_TEMPLATE_NAME = os.getenv('WHATSAPP_TEMPLATE_NAME', 'envio_orcamento')
 
-def enviar_whatsapp_orcamento(telefone_cliente, codigo_orcamento, nome_cliente=''):
-    if not WHATSAPP_PHONE_ID or not WHATSAPP_TOKEN:
-        print('[WhatsApp] Token ou Phone ID não configurado, pulando envio.')
-        return False
+def _formatar_telefone(telefone_cliente):
     telefone = telefone_cliente.replace(' ', '').replace('-', '').replace('(', '').replace(')', '')
     if not telefone.startswith('55'):
         telefone = '55' + telefone
+    return telefone
+
+def _upload_media_whatsapp(pdf_bytes, filename):
+    url = f'https://graph.facebook.com/v21.0/{WHATSAPP_PHONE_ID}/media'
+    headers = {'Authorization': f'Bearer {WHATSAPP_TOKEN}'}
+    files = {
+        'file': (filename, pdf_bytes, 'application/pdf'),
+        'messaging_product': (None, 'whatsapp'),
+        'type': (None, 'application/pdf')
+    }
+    resp = requests.post(url, headers=headers, files=files, timeout=30)
+    if resp.status_code == 200:
+        media_id = resp.json().get('id')
+        print(f'[WhatsApp] Media uploaded: {media_id}')
+        return media_id
+    print(f'[WhatsApp] Erro upload media {resp.status_code}: {resp.text}')
+    return None
+
+def _enviar_documento_whatsapp(telefone, media_id, filename, caption):
     url = f'https://graph.facebook.com/v21.0/{WHATSAPP_PHONE_ID}/messages'
     headers = {
         'Authorization': f'Bearer {WHATSAPP_TOKEN}',
@@ -37,29 +53,49 @@ def enviar_whatsapp_orcamento(telefone_cliente, codigo_orcamento, nome_cliente='
     payload = {
         'messaging_product': 'whatsapp',
         'to': telefone,
-        'type': 'template',
-        'template': {
-            'name': WHATSAPP_TEMPLATE_NAME,
-            'language': {'code': 'pt_BR'},
-            'components': [
-                {
-                    'type': 'body',
-                    'parameters': [
-                        {'type': 'text', 'parameter_name': 'customer_name', 'text': nome_cliente or 'Cliente'},
-                        {'type': 'text', 'parameter_name': 'order_id', 'text': codigo_orcamento}
-                    ]
-                }
-            ]
+        'type': 'document',
+        'document': {
+            'id': media_id,
+            'filename': filename,
+            'caption': caption
         }
+    }
+    resp = requests.post(url, json=payload, headers=headers, timeout=10)
+    if resp.status_code == 200:
+        print(f'[WhatsApp] Documento enviado para {telefone}')
+        return True
+    print(f'[WhatsApp] Erro envio documento {resp.status_code}: {resp.text}')
+    return False
+
+def enviar_whatsapp_orcamento(telefone_cliente, codigo_orcamento, nome_cliente='', pdf_bytes=None):
+    if not WHATSAPP_PHONE_ID or not WHATSAPP_TOKEN:
+        print('[WhatsApp] Token ou Phone ID não configurado, pulando envio.')
+        return False
+    telefone = _formatar_telefone(telefone_cliente)
+    caption = f'Olá {nome_cliente or "Cliente"}, aqui está o seu orçamento {codigo_orcamento}. No que mais posso te ajudar?'
+    if pdf_bytes:
+        filename = f'orcamento_{codigo_orcamento}.pdf'
+        media_id = _upload_media_whatsapp(pdf_bytes, filename)
+        if media_id:
+            return _enviar_documento_whatsapp(telefone, media_id, filename, caption)
+    url = f'https://graph.facebook.com/v21.0/{WHATSAPP_PHONE_ID}/messages'
+    headers = {
+        'Authorization': f'Bearer {WHATSAPP_TOKEN}',
+        'Content-Type': 'application/json'
+    }
+    payload = {
+        'messaging_product': 'whatsapp',
+        'to': telefone,
+        'type': 'text',
+        'text': {'body': caption}
     }
     try:
         resp = requests.post(url, json=payload, headers=headers, timeout=10)
         if resp.status_code == 200:
             print(f'[WhatsApp] Mensagem enviada para {telefone}')
             return True
-        else:
-            print(f'[WhatsApp] Erro {resp.status_code}: {resp.text}')
-            return False
+        print(f'[WhatsApp] Erro {resp.status_code}: {resp.text}')
+        return False
     except Exception as e:
         print(f'[WhatsApp] Erro ao enviar: {e}')
         return False
@@ -265,6 +301,72 @@ def configurador_3d():
 def api_materiais():
     materiais = Material.query.order_by(Material.nome).all()
     return jsonify([{'id': m.id, 'nome': m.nome} for m in materiais])
+
+def _gerar_pdf_bytes(codigo):
+    import tempfile
+    import fitz
+    orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
+    if not orcamento_salvo:
+        return None
+    ids = [int(id) for id in orcamento_salvo.orcamentos_ids.split(",")]
+    orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
+    ambientes_agrupados = {}
+    for orcamento in orcamentos:
+        ambiente_nome = orcamento.ambiente.nome if orcamento.ambiente else 'Sem Ambiente'
+        if ambiente_nome not in ambientes_agrupados:
+            ambientes_agrupados[ambiente_nome] = {}
+        descricao_nome = orcamento.descricao.nome if orcamento.descricao else 'Sem Descrição'
+        if descricao_nome not in ambientes_agrupados[ambiente_nome]:
+            ambientes_agrupados[ambiente_nome][descricao_nome] = {}
+        tipo_produto = orcamento.tipo_produto
+        if tipo_produto not in ambientes_agrupados[ambiente_nome][descricao_nome]:
+            ambientes_agrupados[ambiente_nome][descricao_nome][tipo_produto] = []
+        ambientes_agrupados[ambiente_nome][descricao_nome][tipo_produto].append(orcamento)
+    valor_total_final = sum(o.valor_total for o in orcamentos)
+    prazo_entrega = orcamento_salvo.prazo_entrega if orcamento_salvo.prazo_entrega is not None else 15
+    desconto_avista = orcamento_salvo.desconto_avista if orcamento_salvo.desconto_avista is not None else 5
+    desconto_parcelado = orcamento_salvo.desconto_parcelado if orcamento_salvo.desconto_parcelado is not None else 10
+    observacoes = orcamento_salvo.observacoes if orcamento_salvo.observacoes is not None else "Medidas sujeitas a confirmação no local. Valores válidos por 7 dias."
+    max_parcelas = orcamento_salvo.max_parcelas
+    exclude_payments = orcamento_salvo.exclude_payments.split(',') if orcamento_salvo.exclude_payments else []
+    rendered_html = render_template(
+        "detalhes_orcamento_salvo.html",
+        logo_url="https://orcamento-t9w2.onrender.com/static/logo.jpg",
+        codigo_orcamento=orcamento_salvo.codigo,
+        data_salvo=orcamento_salvo.data_salvo,
+        cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
+        orcamentos=orcamentos,
+        ambientes_agrupados=ambientes_agrupados,
+        valor_total_final="R$ {:,.2f}".format(valor_total_final).replace(",", "X").replace(".", ",").replace("X", "."),
+        valor_total_float=valor_total_final,
+        telefone_usuario="",
+        prazo_entrega=prazo_entrega,
+        desconto_avista=desconto_avista,
+        desconto_parcelado=desconto_parcelado,
+        observacoes=observacoes,
+        pdf=True,
+        exclude_payments=exclude_payments,
+        max_parcelas=max_parcelas
+    )
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_pdf:
+        temp_pdf_path = temp_pdf.name
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as final_pdf:
+        final_pdf_path = final_pdf.name
+    HTML(string=rendered_html, base_url="https://orcamento-t9w2.onrender.com").write_pdf(temp_pdf_path)
+    logo_path = "static/logo.jpg"
+    doc = fitz.open(temp_pdf_path)
+    if os.path.exists(logo_path):
+        page = doc[0]
+        logo_width, logo_height = 210, 105
+        rect = fitz.Rect(page.rect.width - logo_width + 20, 20, page.rect.width + 20, 20 + logo_height)
+        page.insert_image(rect, filename=logo_path)
+    doc.save(final_pdf_path)
+    doc.close()
+    with open(final_pdf_path, "rb") as f:
+        pdf_bytes = f.read()
+    os.unlink(temp_pdf_path)
+    os.unlink(final_pdf_path)
+    return pdf_bytes
 
 @app.route('/api/configurador-orcamento', methods=['POST'])
 def api_configurador_orcamento():
@@ -599,7 +701,13 @@ def api_configurador_orcamento():
 
         db.session.commit()
 
-        enviar_whatsapp_orcamento(telefone, orc_salvo.codigo, nome)
+        pdf_bytes = None
+        try:
+            pdf_bytes = _gerar_pdf_bytes(orc_salvo.codigo)
+        except Exception as e:
+            print(f'[PDF] Erro ao gerar PDF para WhatsApp: {e}')
+
+        enviar_whatsapp_orcamento(telefone, orc_salvo.codigo, nome, pdf_bytes=pdf_bytes)
 
         return jsonify({'success': True, 'codigo': orc_salvo.codigo})
 
