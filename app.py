@@ -701,14 +701,6 @@ def api_configurador_orcamento():
 
         db.session.commit()
 
-        pdf_bytes = None
-        try:
-            pdf_bytes = _gerar_pdf_bytes(orc_salvo.codigo)
-        except Exception as e:
-            print(f'[PDF] Erro ao gerar PDF para WhatsApp: {e}')
-
-        enviar_whatsapp_orcamento(telefone, orc_salvo.codigo, nome, pdf_bytes=pdf_bytes)
-
         return jsonify({'success': True, 'codigo': orc_salvo.codigo})
 
     except Exception as e:

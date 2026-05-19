@@ -1385,9 +1385,9 @@ function finalizarOrcamento() {
                     <div style="font-size:2rem;margin-bottom:16px">&#10003;</div>
                     <div class="step-title" style="color:#22c55e">Orcamento Enviado!</div>
                     <div class="step-desc" style="margin-top:8px">Codigo: <b style="color:#d4a017">${data.codigo}</b></div>
-                    <div class="step-desc">Enviamos o orcamento para o seu WhatsApp!</div>
+                    <div class="step-desc">Clique abaixo para enviar o orcamento para a loja!</div>
                     <div style="margin-top:20px">
-                        <a class="btn btn-next" href="https://wa.me/5521991545775?text=${encodeURIComponent('Olá, acabei de gerar o orçamento ' + data.codigo + '. Gostaria de mais informações.')}" target="_blank" style="max-width:240px;margin:0 auto;display:block;text-decoration:none">Visualizar Orcamento</a>
+                        <a class="btn btn-next" href="https://wa.me/5521991545775?text=${encodeURIComponent('Olá, acabei de gerar o orçamento ' + data.codigo + '. Segue o link: https://orcamento-t9w2.onrender.com/gerar_pdf_orcamento/' + data.codigo)}" target="_blank" style="max-width:240px;margin:0 auto;display:block;text-decoration:none">Enviar Orcamento</a>
                     </div>
                     <div style="margin-top:10px">
                         <button class="btn btn-back" onclick="location.reload()" style="max-width:200px;margin:0 auto">Novo Orcamento</button>
