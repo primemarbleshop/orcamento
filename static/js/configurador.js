@@ -389,21 +389,48 @@ function drawVDim(x, y1, y2, text) {
 
 /* ---------- CONTORNO EXTERNO + BORDAS ---------- */
 function getContourSegments(sections) {
+    const esp = CFG.espelhar;
     const main = sections.filter(s => !s.isL).sort((a,b) => a.x - b.x);
     const lArm = sections.find(s => s.isL);
-    const totalW = Math.max(...main.map(s => s.x + s.w));
+    const totalW = Math.max(...sections.map(s => s.x + s.w));
     const segs = [];
+
+    const sideEsq = esp ? 'direita' : 'esquerda';
+    const sideDir = esp ? 'esquerda' : 'direita';
 
     // FUNDO
     segs.push({x1:0, y1:0, x2:totalW, y2:0, side:'fundo'});
 
-    // DIREITA
-    const rH = main[main.length-1].h;
-    segs.push({x1:totalW, y1:0, x2:totalW, y2:rH, side:'direita'});
+    // LADO DIREITO (no desenho)
+    const lastMain = main[main.length-1];
+    const rH = lastMain.h;
+
+    if (lArm && lArm.x + lArm.w > lastMain.x + lastMain.w - 0.1) {
+        const lArmB = lArm.y + lArm.h;
+        if (lArm.y < 0.1) {
+            segs.push({x1:totalW, y1:0, x2:totalW, y2:lArmB, side:'l_fundo'});
+        } else {
+            segs.push({x1:totalW, y1:0, x2:totalW, y2:lArm.y, side:sideDir});
+            segs.push({x1:totalW, y1:lArm.y, x2:totalW, y2:lArmB, side:'l_fundo'});
+        }
+    } else {
+        segs.push({x1:totalW, y1:0, x2:totalW, y2:rH, side:sideDir});
+    }
 
     // FRENTE (direita pra esquerda, seguindo contorno)
-    const stopX = lArm ? lArm.x + lArm.w : 0;
-    let curX = totalW, curY = rH;
+    const lArmLeft = lArm ? lArm.x : -1;
+    const lArmRight = lArm ? lArm.x + lArm.w : -1;
+    let curX = totalW, curY;
+
+    if (lArm && lArm.x + lArm.w > lastMain.x + lastMain.w - 0.1) {
+        curY = lArm.y + lArm.h;
+        segs.push({x1:totalW, y1:curY, x2:lArmLeft, y2:curY, side:'l_esquerda'});
+        curX = lArmLeft;
+        const secAtX = main.find(s => s.x <= curX && s.x + s.w >= curX);
+        curY = secAtX ? secAtX.h : rH;
+    } else {
+        curY = rH;
+    }
 
     for (let i = main.length-1; i >= 0; i--) {
         const sec = main[i];
@@ -411,18 +438,20 @@ function getContourSegments(sections) {
         const secL = sec.x;
         const secB = sec.h;
 
-        if (Math.abs(curY - secB) > 0.1 && curX <= secR) {
+        if (Math.abs(curY - secB) > 0.1 && curX <= secR + 0.1) {
             segs.push({x1:curX, y1:curY, x2:curX, y2:secB, side:'frente'});
             curY = secB;
         }
 
+        const lArmBelow = lArm && lArm.y > 0.1 && lArm.x >= secL - 0.1 && lArm.x <= secR + 0.1;
+        const stopX = lArmBelow ? lArm.x + lArm.w : secL;
         const endX = Math.max(secL, stopX);
-        if (curX > endX) {
+        if (curX > endX + 0.1) {
             segs.push({x1:curX, y1:curY, x2:endX, y2:curY, side:'frente'});
             curX = endX;
         }
 
-        if (i > 0 && curX > stopX) {
+        if (i > 0 && curX > 0.1) {
             const prevB = main[i-1].h;
             if (Math.abs(curY - prevB) > 0.1) {
                 segs.push({x1:curX, y1:curY, x2:curX, y2:prevB, side:'frente'});
@@ -431,17 +460,30 @@ function getContourSegments(sections) {
         }
     }
 
-    if (lArm) {
+    // BRAÇO L no lado esquerdo (do desenho)
+    if (lArm && lArm.x < main[0].x + 0.1) {
         const lArmB = lArm.y + lArm.h;
-        const lArmT = lArm.y;
-        segs.push({x1:stopX, y1:curY, x2:stopX, y2:lArmB, side:'frente'});
-        segs.push({x1:stopX, y1:lArmB, x2:0, y2:lArmB, side:'l_esquerda'});
-        segs.push({x1:0, y1:lArmB, x2:0, y2:lArmT, side:'l_fundo'});
-        if (lArmT > 0.1) {
-            segs.push({x1:0, y1:lArmT, x2:0, y2:0, side:'esquerda'});
+        const lArmR = lArm.x + lArm.w;
+        if (curX > lArmR - 0.1 && curX > 0.1) {
+            segs.push({x1:curX, y1:curY, x2:lArmR, y2:curY, side:'frente'});
+            curX = lArmR;
         }
+        segs.push({x1:curX, y1:curY, x2:curX, y2:lArmB, side:'frente'});
+        segs.push({x1:curX, y1:lArmB, x2:0, y2:lArmB, side:'l_esquerda'});
+        segs.push({x1:0, y1:lArmB, x2:0, y2:lArm.y, side:'l_fundo'});
+        if (lArm.y > 0.1) {
+            segs.push({x1:0, y1:lArm.y, x2:0, y2:0, side:sideEsq});
+        }
+    } else if (!lArm) {
+        if (curX > 0.1) {
+            segs.push({x1:curX, y1:curY, x2:0, y2:curY, side:'frente'});
+        }
+        segs.push({x1:0, y1:main[0].h, x2:0, y2:0, side:sideEsq});
     } else {
-        segs.push({x1:0, y1:main[0].h, x2:0, y2:0, side:'esquerda'});
+        if (curX > 0.1) {
+            segs.push({x1:curX, y1:curY, x2:0, y2:curY, side:'frente'});
+        }
+        segs.push({x1:0, y1:main[0].h, x2:0, y2:0, side:sideEsq});
     }
 
     return segs;
