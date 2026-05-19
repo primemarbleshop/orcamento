@@ -442,7 +442,7 @@ def api_configurador_orcamento():
                         alt = borda_alts.get(side_key, 92)
                         if side_key == 'l_fundo':
                             comp_l = pcfg.get('compL', 120)
-                            criar_item_p('Ilharga', comp_l, pcfg.get('profL', 60), 0, 0, 0, 0,
+                            criar_item_p('Ilharga', comp_l, alt, 0, 0, 0, 0,
                                       produto_nome='Ilharga')
                         else:
                             prof_ilh = pcfg.get('profMolhada', 60) if has_molhada else pcfg.get('profSeca', 60)
