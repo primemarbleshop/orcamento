@@ -824,11 +824,44 @@ def ver_desenho(codigo):
     ).order_by(DesenhoOrdemServico.data_criacao.desc()).first()
     if not desenho:
         return 'Desenho nao encontrado', 404
+
+    orc_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
+    header_html = ''
+    if orc_salvo:
+        from markupsafe import escape
+        cliente = escape(orc_salvo.cliente_nome or 'Não definido')
+        status = escape(orc_salvo.status or '')
+        tipo = escape(orc_salvo.tipo_cliente or '')
+        data = orc_salvo.data_salvo.strftime('%d/%m/%Y %H:%M') if orc_salvo.data_salvo else ''
+        valor = f'R$ {orc_salvo.valor_total:,.2f}'.replace(',', 'X').replace('.', ',').replace('X', '.') if orc_salvo.valor_total else ''
+
+        telefone = ''
+        endereco = ''
+        if orc_salvo.orcamentos_ids:
+            pid = orc_salvo.orcamentos_ids.split(",")[0].strip()
+            if pid.isdigit():
+                po = Orcamento.query.get(int(pid))
+                if po and po.cliente:
+                    telefone = escape(po.cliente.telefone or '')
+                    endereco = escape(po.cliente.endereco or '')
+
+        header_html = f'''<div style="background:#12122a;padding:16px 24px;border-bottom:1px solid #2a2a4a;font-family:Arial,sans-serif;color:#ccc;display:flex;flex-wrap:wrap;gap:8px 24px;align-items:center">
+  <span style="color:#fede27;font-weight:700;font-size:18px">{codigo}</span>
+  <span>Cliente: <b style="color:#fff">{cliente}</b></span>
+  {'<span>Tel: '+str(telefone)+'</span>' if telefone else ''}
+  {'<span>End: '+str(endereco)+'</span>' if endereco else ''}
+  <span>Tipo: {tipo}</span>
+  <span>Data: {data}</span>
+  <span>Valor: <b style="color:#fede27">{valor}</b></span>
+  <span style="background:#2a2a4a;padding:2px 10px;border-radius:4px">{status}</span>
+</div>'''
+
     return f'''<!DOCTYPE html>
 <html><head><title>Desenho - {codigo}</title>
-<style>body{{margin:0;background:#1a1a2e;display:flex;justify-content:center;align-items:center;min-height:100vh}}
-img{{max-width:95vw;max-height:95vh;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.5)}}</style></head>
-<body><img src="{desenho.desenho_data}" alt="Desenho {codigo}"></body></html>'''
+<style>body{{margin:0;background:#1a1a2e;display:flex;flex-direction:column;min-height:100vh}}
+.img-wrap{{flex:1;display:flex;justify-content:center;align-items:center}}
+img{{max-width:95vw;max-height:calc(95vh - 60px);border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.5)}}</style></head>
+<body>{header_html}<div class="img-wrap"><img src="{desenho.desenho_data}" alt="Desenho {codigo}"></div></body></html>'''
 
 @app.route('/')
 def index():
