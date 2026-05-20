@@ -8,13 +8,21 @@ const CONTENCAO = 2;
 const EDGE_COLORS = { fronte:'#e63946', saia:'#2a9d8f', parede:'#6c757d', livre:'#bbb', ilharga:'#d97706' };
 const EDGE_NAMES = { fronte:'Parede com fronte', saia:'Acabamento com saia', parede:'Parede sem fronte', livre:'Acabamento sem saia', ilharga:'Ilharga' };
 function edgeName(type, side) {
-    if (type === 'fronte') return '/// Parede com fronte' + (side ? ' larg:'+fmt(CFG.bordaAlts[side]) : '');
-    if (type === 'saia') return '// Acabamento com saia' + (side ? ' larg:'+fmt(CFG.bordaSaiaLarg[side]) : '');
-    if (type === 'ilharga') {
-        return 'Ilharga' + (side ? ' alt:'+fmt(CFG.bordaAlts[side]) : '');
+    if (type === 'fronte') return ['/// Parede', 'com fronte' + (side ? ' larg:'+fmt(CFG.bordaAlts[side]) : '')];
+    if (type === 'saia') return ['// Acabamento', 'com saia' + (side ? ' larg:'+fmt(CFG.bordaSaiaLarg[side]) : '')];
+    if (type === 'ilharga') return ['Ilharga', side ? 'alt:'+fmt(CFG.bordaAlts[side]) : ''];
+    if (type === 'parede') return ['Parede', 'sem fronte'];
+    return ['Acabamento', 'sem saia'];
+}
+function drawEdgeLabel(lines, x, y, isVert) {
+    const filtered = lines.filter(l => l);
+    if (isVert) {
+        ctx.save(); ctx.translate(x, y); ctx.rotate(-Math.PI/2);
+        filtered.forEach((l, i) => ctx.fillText(l, 0, i * 12));
+        ctx.restore();
+    } else {
+        filtered.forEach((l, i) => ctx.fillText(l, x, y + i * 12));
     }
-    if (type === 'parede') return 'Parede sem fronte';
-    return 'Acabamento sem saia';
 }
 
 const MODELOS = [
@@ -577,15 +585,7 @@ function drawBancadaEdges(sections, sc, ox, oy, b) {
         const labelY = ly + ny*22;
         ctx.fillStyle = color; ctx.font = 'bold 10px Inter,sans-serif';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        if (isVert) {
-            ctx.save();
-            ctx.translate(labelX, labelY);
-            ctx.rotate(-Math.PI/2);
-            ctx.fillText(edgeName(type, side), 0, 0);
-            ctx.restore();
-        } else {
-            ctx.fillText(edgeName(type, side), labelX, labelY);
-        }
+        drawEdgeLabel(edgeName(type, side), labelX, labelY, isVert);
     });
 }
 
@@ -656,15 +656,7 @@ function drawEdgeMark(x1, y1, x2, y2, type, side, showLabel, bordaSide) {
         const ly = (my1+my2)/2 + ny*18;
         ctx.fillStyle = color; ctx.font = 'bold 10px Inter,sans-serif';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        if (isVert) {
-            ctx.save();
-            ctx.translate(lx, ly);
-            ctx.rotate(-Math.PI/2);
-            ctx.fillText(edgeName(type, bordaSide), 0, 0);
-            ctx.restore();
-        } else {
-            ctx.fillText(edgeName(type, bordaSide), lx, ly);
-        }
+        drawEdgeLabel(edgeName(type, bordaSide), lx, ly, isVert);
     }
 }
 
@@ -825,12 +817,7 @@ function drawLavViolao(W, H) {
         const isVert = (seg.ds==='left'||seg.ds==='right');
         ctx.fillStyle = color; ctx.font = 'bold 10px Inter,sans-serif';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        if (isVert) {
-            ctx.save(); ctx.translate(mx+nx*22, my+ny*22); ctx.rotate(-Math.PI/2);
-            ctx.fillText(edgeName(type, seg.side), 0, 0); ctx.restore();
-        } else {
-            ctx.fillText(edgeName(type, seg.side), mx+nx*22, my+ny*22);
-        }
+        drawEdgeLabel(edgeName(type, seg.side), mx+nx*22, my+ny*22, isVert);
     });
 
     // cubas na área sem recorte
