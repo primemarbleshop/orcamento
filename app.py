@@ -390,6 +390,18 @@ def _gerar_pdf_bytes(codigo):
     os.unlink(final_pdf_path)
     return pdf_bytes
 
+@app.route('/api/verificar-telefone', methods=['POST'])
+def api_verificar_telefone():
+    data = request.get_json()
+    telefone = (data.get('telefone') or '').strip()
+    if not telefone:
+        return jsonify({'exists': False})
+    dono_cpf = session.get('user_cpf', '12233344441')
+    cliente = Cliente.query.filter_by(telefone=telefone, dono=dono_cpf).first()
+    if cliente:
+        return jsonify({'exists': True, 'nome': cliente.nome, 'endereco': cliente.endereco or '', 'telefone': cliente.telefone})
+    return jsonify({'exists': False})
+
 @app.route('/api/configurador-orcamento', methods=['POST'])
 def api_configurador_orcamento():
     try:
