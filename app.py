@@ -12,6 +12,7 @@ import fitz  # PyMuPDF
 import requests
 import base64
 import os
+from itsdangerous import URLSafeSerializer
 
 from models import db, Orcamento, OrcamentoSalvo, Usuario  # Modelos do SQLAlchemy
 
@@ -107,6 +108,17 @@ app.config.from_object(Config)  # Aplica configurações do config.py
 # 📌 Inicializa o Banco de Dados
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
+
+_url_serializer = URLSafeSerializer(app.config['SECRET_KEY'], salt='orcamento-link')
+
+def gerar_token_orcamento(codigo):
+    return _url_serializer.dumps(codigo)
+
+def decodificar_token_orcamento(token):
+    try:
+        return _url_serializer.loads(token)
+    except Exception:
+        return None
 
 def atualizar_valor_orcamento_salvo(orcamento_salvo_id):
     """Recalcula o valor total de um orçamento salvo."""
@@ -701,7 +713,8 @@ def api_configurador_orcamento():
 
         db.session.commit()
 
-        return jsonify({'success': True, 'codigo': orc_salvo.codigo})
+        token = gerar_token_orcamento(orc_salvo.codigo)
+        return jsonify({'success': True, 'codigo': orc_salvo.codigo, 'token': token})
 
     except Exception as e:
         db.session.rollback()
@@ -2137,8 +2150,11 @@ def atualizar_status_tipo_cliente():
 
 
 
-@app.route('/orcamento/<codigo>')
-def orcamento_preview(codigo):
+@app.route('/orcamento/<token>')
+def orcamento_preview(token):
+    codigo = decodificar_token_orcamento(token)
+    if not codigo:
+        return "Orçamento não encontrado", 404
     orc = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
     if not orc:
         return "Orçamento não encontrado", 404
@@ -2147,13 +2163,13 @@ def orcamento_preview(codigo):
 <html>
 <head>
 <meta charset="utf-8">
-<meta property="og:title" content="Orçamento {codigo} - Prime Marble Shop">
+<meta property="og:title" content="Orçamento - Prime Marble Shop">
 <meta property="og:description" content="Orçamento em mármore e granito - Valor: {valor}">
-<meta property="og:image" content="https://prime-marble-lp.onrender.com/static/logo.jpg">
-<meta property="og:url" content="https://prime-marble-lp.onrender.com/orcamento/{codigo}">
+<meta property="og:image" content="https://orcamento-t9w2.onrender.com/static/logo.jpg">
+<meta property="og:url" content="https://prime-marble-lp.onrender.com/orcamento/{token}">
 <meta property="og:type" content="website">
-<title>Orçamento {codigo} - Prime Marble Shop</title>
-<meta http-equiv="refresh" content="2;url=/gerar_pdf_orcamento/{codigo}">
+<title>Orçamento - Prime Marble Shop</title>
+<meta http-equiv="refresh" content="2;url=/gerar_pdf_orcamento/{token}">
 <style>
 body{{font-family:Arial,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#1a1a2e;color:#fff}}
 .card{{text-align:center;background:#16213e;padding:50px 40px;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.3);max-width:400px;width:90%}}
@@ -2174,17 +2190,21 @@ a:hover{{background:#d4a017;color:#1a1a2e}}
 <p class="brand">Prime Marble Shop</p>
 <p class="sub">Mármores &amp; Granitos</p>
 <div class="divider"></div>
-<h2>Orçamento <b style="color:#d4a017">{codigo}</b></h2>
+<h2>Orçamento</h2>
 <div class="valor">{valor}</div>
-<a href="/gerar_pdf_orcamento/{codigo}">&#128196; Baixar PDF</a>
+<a href="/gerar_pdf_orcamento/{token}">&#128196; Baixar PDF</a>
 <p class="redirect">Redirecionando para o PDF...</p>
 </div>
 </body>
 </html>'''
 
-@app.route('/gerar_pdf_orcamento/<codigo>')
-def gerar_pdf_orcamento(codigo):
-    orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
+@app.route('/gerar_pdf_orcamento/<codigo_ou_token>')
+def gerar_pdf_orcamento(codigo_ou_token):
+    orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo_ou_token).first()
+    if not orcamento_salvo:
+        codigo_real = decodificar_token_orcamento(codigo_ou_token)
+        if codigo_real:
+            orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo_real).first()
     if not orcamento_salvo:
         flash("Orçamento salvo não encontrado!", "danger")
         return redirect(url_for('listar_orcamentos_salvos'))
