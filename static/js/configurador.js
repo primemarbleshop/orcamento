@@ -1204,6 +1204,21 @@ function renderAcessorios(sb) {
     const hasMolhada = md !== 'toda_seca';
     const isBancada = CFG.produto === 'bancada';
 
+    if (md === 'seca_centro_molhada_lat') {
+        ['cubaLocal','cuba2Local'].forEach(k => {
+            if (CFG[k] === 'molhada') CFG[k] = 'molhada_esq';
+        });
+    } else if (md === 'molhada_centro_seca_lat') {
+        ['cubaLocal','cuba2Local'].forEach(k => {
+            if (CFG[k] === 'seca') CFG[k] = 'seca_esq';
+        });
+    } else {
+        ['cubaLocal','cuba2Local'].forEach(k => {
+            if (CFG[k] === 'molhada_esq' || CFG[k] === 'molhada_dir') CFG[k] = 'molhada';
+            if (CFG[k] === 'seca_esq' || CFG[k] === 'seca_dir') CFG[k] = 'seca';
+        });
+    }
+
     let html = '<div class="step-title">Acessórios</div><div class="step-desc">Adicione recortes e furos na sua peça.</div>';
 
     html += togHtml('cuba', 'Cuba', 'Recorte para a pia');
@@ -1468,6 +1483,8 @@ function pick(key, val) {
         CFG.bordaAlts = { fundo:10, frente:10, esquerda:10, direita:10, direita2:10, l_esquerda:10, l_fundo:10 };
         CFG.bordaSaiaLarg = { fundo:5, frente:5, esquerda:5, direita:5, direita2:5, l_esquerda:5, l_fundo:5 };
         CFG.cuba = false; CFG.cubaQtd = 1;
+        CFG.cubaLocal = val === 'seca_centro_molhada_lat' ? 'molhada_esq' : 'molhada';
+        CFG.cuba2Local = val === 'seca_centro_molhada_lat' ? 'molhada_dir' : 'seca';
         CFG.cooktop = false; CFG.cooktopLocal = 0;
         CFG.espelhar = false;
     }
