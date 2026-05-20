@@ -455,7 +455,7 @@ def api_configurador_orcamento():
             def criar_item_p(tipo_produto, comprimento, largura, comp_saia, larg_saia, comp_fronte, larg_fronte,
                            tipo_cuba='', qtd_cubas=0, comp_cuba=0, larg_cuba=0, prof_cuba=0,
                            tem_cooktop='Não', prof_nicho=0, tem_fundo='Sim', tem_alisar='Não', larg_alisar=0,
-                           produto_nome=''):
+                           produto_nome='', quantidade=1):
                 comprimento_cal = max(comprimento, 10)
                 largura_cal = max(largura, 10)
                 valor_base = mat.valor * (comprimento_cal * largura_cal / 10000)
@@ -515,7 +515,7 @@ def api_configurador_orcamento():
                     cliente_id=cliente.id, ambiente_id=None,
                     descricao_id=None, produto_id=prod_id,
                     tipo_produto=tipo_produto, material_id=mat.id,
-                    quantidade=1, comprimento=comprimento, largura=largura,
+                    quantidade=max(quantidade, 1), comprimento=comprimento, largura=largura,
                     instalacao='Não', instalacao_valor=0, rt='Sim', rt_percentual=10,
                     comprimento_saia=comp_saia, largura_saia=larg_saia,
                     comprimento_fronte=comp_fronte, largura_fronte=larg_fronte,
@@ -757,14 +757,12 @@ def api_configurador_orcamento():
                 if soleiras_list and isinstance(soleiras_list, list):
                     for s in soleiras_list:
                         qtd = int(s.get('qtd', 1))
-                        for _ in range(max(qtd, 1)):
-                            criar_item_p('Soleira', s.get('larg', 80), s.get('prof', 15), 0, 0, 0, 0,
-                                       produto_nome='Soleira')
+                        criar_item_p('Soleira', s.get('larg', 80), s.get('prof', 15), 0, 0, 0, 0,
+                                   produto_nome='Soleira', quantidade=qtd)
                 else:
                     qtd_soleira = int(pcfg.get('soleiraQtd', 1))
-                    for _ in range(max(qtd_soleira, 1)):
-                        criar_item_p('Soleira', pcfg.get('soleiraLarg', 80), pcfg.get('soleiraProf', 15), 0, 0, 0, 0,
-                                   produto_nome='Soleira')
+                    criar_item_p('Soleira', pcfg.get('soleiraLarg', 80), pcfg.get('soleiraProf', 15), 0, 0, 0, 0,
+                               produto_nome='Soleira', quantidade=qtd_soleira)
 
         processar_produto_cfg(cfg)
 
