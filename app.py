@@ -343,7 +343,7 @@ def _gerar_pdf_bytes(codigo):
     exclude_payments = orcamento_salvo.exclude_payments.split(',') if orcamento_salvo.exclude_payments else []
     rendered_html = render_template(
         "detalhes_orcamento_salvo.html",
-        logo_url="https://prime-marble-lp.onrender.com/static/logo.jpg",
+        logo_url="https://primemarbleshop.com.br/static/logo.jpg",
         codigo_orcamento=orcamento_salvo.codigo,
         data_salvo=orcamento_salvo.data_salvo,
         cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
@@ -364,7 +364,7 @@ def _gerar_pdf_bytes(codigo):
         temp_pdf_path = temp_pdf.name
     with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as final_pdf:
         final_pdf_path = final_pdf.name
-    HTML(string=rendered_html, base_url="https://prime-marble-lp.onrender.com").write_pdf(temp_pdf_path)
+    HTML(string=rendered_html, base_url="https://primemarbleshop.com.br").write_pdf(temp_pdf_path)
     logo_path = "static/logo.jpg"
     doc = fitz.open(temp_pdf_path)
     if os.path.exists(logo_path):
@@ -2040,7 +2040,7 @@ def detalhes_orcamento_salvo(codigo):
     valor_total_float = valor_total_final
     
     # Configurar logo URL
-    logo_url = "https://prime-marble-lp.onrender.com/static/logo.jpg"
+    logo_url = "https://primemarbleshop.com.br/static/logo.jpg"
     
     # Obter informações do usuário
     usuario = Usuario.query.filter_by(cpf=session.get('user_cpf')).first()
@@ -2293,7 +2293,7 @@ def orcamento_preview(token):
 <meta property="og:title" content="Orçamento - Prime Marble Shop">
 <meta property="og:description" content="Orçamento em mármore e granito - Valor: {valor}">
 <meta property="og:image" content="https://orcamento-t9w2.onrender.com/static/logo.jpg">
-<meta property="og:url" content="https://prime-marble-lp.onrender.com/orcamento/{token}">
+<meta property="og:url" content="https://primemarbleshop.com.br/orcamento/{token}">
 <meta property="og:type" content="website">
 <title>Orçamento - Prime Marble Shop</title>
 <meta http-equiv="refresh" content="2;url=/gerar_pdf_orcamento/{token}">
@@ -2359,7 +2359,7 @@ def gerar_pdf_orcamento(codigo_ou_token):
     valor_total_final = sum(o.valor_total for o in orcamentos)
     valor_total_float = valor_total_final
 
-    logo_url = "https://prime-marble-lp.onrender.com/static/logo.jpg"
+    logo_url = "https://primemarbleshop.com.br/static/logo.jpg"
     
     usuario = Usuario.query.filter_by(cpf=session.get('user_cpf')).first()
     if not usuario:
@@ -2410,7 +2410,7 @@ def gerar_pdf_orcamento(codigo_ou_token):
     with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as final_pdf:
         final_pdf_path = final_pdf.name
 
-    HTML(string=rendered_html, base_url="https://prime-marble-lp.onrender.com").write_pdf(temp_pdf_path)
+    HTML(string=rendered_html, base_url="https://primemarbleshop.com.br").write_pdf(temp_pdf_path)
 
     # Adicionar logo (se existir)
     import fitz  # PyMuPDF
@@ -3187,7 +3187,7 @@ def detalhes_ordem_servico(codigo):
         
         materiais_agrupados[material_nome].append(orcamento)
 
-    logo_url = "https://prime-marble-lp.onrender.com/static/logo.jpg"
+    logo_url = "https://primemarbleshop.com.br/static/logo.jpg"
     
     usuario = Usuario.query.filter_by(cpf=user_cpf).first()
     telefone_usuario = usuario.telefone if usuario else ""
