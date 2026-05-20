@@ -1437,6 +1437,21 @@ function togHtml(key, label, hint) {
 function pick(key, val) {
     CFG[key] = val;
     if (key === 'produto' || key === 'modelo') { zoomLevel = 1; panX = 0; panY = 0; }
+    if (key === 'modelo') {
+        CFG.compSeca = 120; CFG.profSeca = 60;
+        CFG.compMolhada = 120; CFG.profMolhada = 60;
+        CFG.compSecaLat = 60; CFG.compSecaEsq = 60; CFG.profSecaEsq = 60;
+        CFG.compSecaDir = 60; CFG.profSecaDir = 60;
+        CFG.compMolhadaLat = 60; CFG.compMolhadaEsq = 60; CFG.profMolhadaEsq = 60;
+        CFG.compMolhadaDir = 60; CFG.profMolhadaDir = 60;
+        CFG.compL = 120; CFG.profL = 60;
+        CFG.bordas = { fundo:'fronte', frente:'saia', esquerda:'livre', direita:'livre', direita2:'livre', l_esquerda:'livre', l_fundo:'livre' };
+        CFG.bordaAlts = { fundo:10, frente:10, esquerda:10, direita:10, direita2:10, l_esquerda:10, l_fundo:10 };
+        CFG.bordaSaiaLarg = { fundo:5, frente:5, esquerda:5, direita:5, direita2:5, l_esquerda:5, l_fundo:5 };
+        CFG.cuba = false; CFG.cubaQtd = 1;
+        CFG.cooktop = false; CFG.cooktopLocal = 0;
+        CFG.espelhar = false;
+    }
     renderStep();
 }
 
