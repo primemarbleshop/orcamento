@@ -1121,7 +1121,7 @@ function renderBordas(sb) {
     }
     if (isL) {
         sides.push({key:'l_esquerda', label:'L Frente', desc:'', lateral:true});
-        sides.push({key:'l_fundo', label:'L Fundo', desc:'', lateral:true});
+        sides.push({key:'l_fundo', label: esp ? 'L Direita' : 'L Esquerda', desc:'', lateral:true});
     }
     const baseTypes = ['fronte','saia','parede','livre'];
 
