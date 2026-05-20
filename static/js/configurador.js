@@ -280,7 +280,12 @@ function drawAccessories(sections, sc, ox, oy) {
         const bySection = {};
         cubas.forEach((c, i) => { (bySection[c.local] = bySection[c.local] || []).push({...c, idx: i}); });
         Object.entries(bySection).forEach(([local, list]) => {
-            const sec = sections.find(s => s.type === local && !s.isL);
+            let sec;
+            if (local === 'molhada_esq') sec = sections.find(s => s.type === 'molhada' && s.label && s.label.includes('ESQ'));
+            else if (local === 'molhada_dir') sec = sections.find(s => s.type === 'molhada' && s.label && s.label.includes('DIR'));
+            else if (local === 'seca_esq') sec = sections.find(s => s.type === 'seca' && s.label && s.label.includes('ESQ'));
+            else if (local === 'seca_dir') sec = sections.find(s => s.type === 'seca' && s.label && s.label.includes('DIR'));
+            else sec = sections.find(s => s.type === local && !s.isL);
             if (!sec) return;
             const rx = ox + sec.x * sc, ry = oy + sec.y * sc;
             const rw = sec.w * sc, rh = sec.h * sc;
@@ -1161,9 +1166,20 @@ function cubaFormHtml(num, isBancada, hasSeca, hasMolhada) {
     let h = '';
     if (CFG.cubaQtd >= 2) h += `<div style="color:#d4a017;font-size:.78rem;font-weight:600;margin:8px 0 4px">Cuba ${num}</div>`;
     if (isBancada && hasSeca && hasMolhada) {
+        const md = CFG.modelo;
         h += `<div class="fgroup"><label>Posição</label><select onchange="updVal('${localKey}',this.value)">`;
-        h += `<option value="molhada" ${CFG[localKey]==='molhada'?'selected':''}>Na Molhada</option>`;
-        h += `<option value="seca" ${CFG[localKey]==='seca'?'selected':''}>Na Seca</option>`;
+        if (md === 'seca_centro_molhada_lat') {
+            h += `<option value="molhada_esq" ${CFG[localKey]==='molhada_esq'?'selected':''}>Molhada Esquerda</option>`;
+            h += `<option value="molhada_dir" ${CFG[localKey]==='molhada_dir'?'selected':''}>Molhada Direita</option>`;
+            h += `<option value="seca" ${CFG[localKey]==='seca'?'selected':''}>Na Seca</option>`;
+        } else if (md === 'molhada_centro_seca_lat') {
+            h += `<option value="molhada" ${CFG[localKey]==='molhada'?'selected':''}>Na Molhada</option>`;
+            h += `<option value="seca_esq" ${CFG[localKey]==='seca_esq'?'selected':''}>Seca Esquerda</option>`;
+            h += `<option value="seca_dir" ${CFG[localKey]==='seca_dir'?'selected':''}>Seca Direita</option>`;
+        } else {
+            h += `<option value="molhada" ${CFG[localKey]==='molhada'?'selected':''}>Na Molhada</option>`;
+            h += `<option value="seca" ${CFG[localKey]==='seca'?'selected':''}>Na Seca</option>`;
+        }
         h += '</select></div>';
     }
     h += `<div class="fgroup"><label>Tipo</label><select onchange="updVal('${tipoKey}',this.value)">`;
@@ -1211,7 +1227,10 @@ function renderAcessorios(sb) {
             if (secas.length > 1) {
                 html += '<div class="tog-extra" style="display:block"><div class="fgroup"><label>Posição do cooktop</label><select onchange="updVal(\'cooktopLocal\',parseInt(this.value))">';
                 secas.forEach((s, i) => {
-                    const nome = s.isL ? 'Seca (L)' : 'Seca' + (secas.filter(x=>!x.isL).length>1 ? ' ('+(i+1)+')' : '');
+                    let nome;
+                    if (s.isL) nome = 'Seca (L)';
+                    else if (s.label) nome = s.label.charAt(0) + s.label.slice(1).toLowerCase();
+                    else nome = 'Seca' + (secas.filter(x=>!x.isL).length>1 ? ' ('+(i+1)+')' : '');
                     html += `<option value="${i}" ${CFG.cooktopLocal===i?'selected':''}>${nome}</option>`;
                 });
                 html += '</select></div></div>';

@@ -538,12 +538,12 @@ def api_configurador_orcamento():
                 has_seca = modelo != 'toda_molhada'
                 is_l = modelo.startswith('l_')
 
-                def cubas_na_secao(secao):
+                def cubas_na_secao(*secoes):
                     if not pcfg.get('cuba'):
                         return '', 0, 0, 0, 0
                     qtd = pcfg.get('cubaQtd', 1)
-                    c1_here = pcfg.get('cubaLocal') == secao
-                    c2_here = qtd >= 2 and pcfg.get('cuba2Local') == secao
+                    c1_here = pcfg.get('cubaLocal') in secoes
+                    c2_here = qtd >= 2 and pcfg.get('cuba2Local') in secoes
                     if c1_here and c2_here:
                         return pcfg.get('tipoCuba', ''), 2, pcfg.get('cubaComp', 0), pcfg.get('cubaLarg', 0), pcfg.get('cubaAlt', 0)
                     if c1_here:
@@ -593,27 +593,36 @@ def api_configurador_orcamento():
                               produto_nome='Bancada Seca')
 
                 if modelo == 'molhada_centro_seca_lat':
-                    for side_key, comp_key, prof_key, nome in [
-                        ('esquerda', 'compSecaEsq', 'profSecaEsq', 'Bancada Seca Esquerda'),
-                        ('direita', 'compSecaDir', 'profSecaDir', 'Bancada Seca Direita'),
-                    ]:
+                    cooktop_idx = pcfg.get('cooktopLocal', 0)
+                    for idx, (side_key, comp_key, prof_key, nome, cuba_local) in enumerate([
+                        ('esquerda', 'compSecaEsq', 'profSecaEsq', 'Bancada Seca Esquerda', 'seca_esq'),
+                        ('direita', 'compSecaDir', 'profSecaDir', 'Bancada Seca Direita', 'seca_dir'),
+                    ]):
                         comp_sl = pcfg.get(comp_key, pcfg.get('compSecaLat', 60))
                         prof_sl = pcfg.get(prof_key, prof_s_val)
                         sides_sl = [('fundo', comp_sl), ('frente', comp_sl), (side_key, prof_sl)]
                         cs, ls, cf, lf, _ilh = calc_saia_fronte(sides_sl, bordas, borda_alts, borda_saia_larg)
+                        tc, qc, cc, lc, pc = cubas_na_secao(cuba_local)
+                        cook = 'Sim' if pcfg.get('cooktop') and cooktop_idx == idx else 'Não'
                         criar_item_p('Bancada', comp_sl, prof_sl, cs, ls, cf, lf,
+                                  tipo_cuba=tc, qtd_cubas=qc,
+                                  comp_cuba=cc, larg_cuba=lc, prof_cuba=pc,
+                                  tem_cooktop=cook,
                                   produto_nome=nome)
 
                 if modelo == 'seca_centro_molhada_lat':
-                    for side_key, comp_key, prof_key, nome in [
-                        ('esquerda', 'compMolhadaEsq', 'profMolhadaEsq', 'Bancada Molhada Esquerda'),
-                        ('direita', 'compMolhadaDir', 'profMolhadaDir', 'Bancada Molhada Direita'),
+                    for side_key, comp_key, prof_key, nome, cuba_local in [
+                        ('esquerda', 'compMolhadaEsq', 'profMolhadaEsq', 'Bancada Molhada Esquerda', 'molhada_esq'),
+                        ('direita', 'compMolhadaDir', 'profMolhadaDir', 'Bancada Molhada Direita', 'molhada_dir'),
                     ]:
                         comp_ml = pcfg.get(comp_key, pcfg.get('compMolhadaLat', 60))
                         prof_ml = pcfg.get(prof_key, prof_m_val)
                         sides_ml = [('fundo', comp_ml), ('frente', comp_ml), (side_key, prof_ml)]
                         cs, ls, cf, lf, _ilh = calc_saia_fronte(sides_ml, bordas, borda_alts, borda_saia_larg)
+                        tc, qc, cc, lc, pc = cubas_na_secao(cuba_local)
                         criar_item_p('Bancada', comp_ml, prof_ml, cs, ls, cf, lf,
+                                  tipo_cuba=tc, qtd_cubas=qc,
+                                  comp_cuba=cc, larg_cuba=lc, prof_cuba=pc,
                                   produto_nome=nome)
 
                 if is_l:
