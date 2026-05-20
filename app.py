@@ -556,7 +556,7 @@ def api_configurador_orcamento():
                 prof_s_val = pcfg.get('profSeca', 60)
                 mainD = max(prof_m_val, prof_s_val)
 
-                if has_molhada:
+                if has_molhada and modelo != 'seca_centro_molhada_lat':
                     comp_m = pcfg.get('compMolhada', 120)
                     prof_m = prof_m_val
                     sides_m = [('fundo', comp_m)]
@@ -575,7 +575,7 @@ def api_configurador_orcamento():
                               comp_cuba=cc, larg_cuba=lc, prof_cuba=pc,
                               produto_nome='Bancada Molhada')
 
-                if has_seca:
+                if has_seca and modelo != 'molhada_centro_seca_lat':
                     comp_s = pcfg.get('compSeca', 120)
                     prof_s = prof_s_val
                     sides_s = [('fundo', comp_s), ('frente', comp_s)]
