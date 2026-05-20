@@ -615,7 +615,7 @@ def api_configurador_orcamento():
                 if is_l:
                     comp_l = pcfg.get('compL', 120)
                     prof_l = pcfg.get('profL', 60)
-                    sides_l = [('l_esquerda', prof_l), ('l_fundo', comp_l)]
+                    sides_l = [('l_esquerda', prof_l), ('l_fundo', comp_l), ('fundo', prof_l)]
                     if modelo == 'l_seca_molhada':
                         inner_h = mainD + comp_l - prof_m_val
                     else:
