@@ -2157,7 +2157,7 @@ def orcamento_preview(codigo):
 <style>
 body{{font-family:Arial,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#1a1a2e;color:#fff}}
 .card{{text-align:center;background:#16213e;padding:50px 40px;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.3);max-width:400px;width:90%}}
-.logo{{width:180px;margin-bottom:10px}}
+.logo{{width:180px;margin-bottom:10px;mix-blend-mode:screen}}
 .brand{{font-size:1.6rem;font-weight:bold;color:#d4a017;margin:0 0 6px;letter-spacing:1px}}
 .sub{{color:#999;font-size:.85rem;margin:0 0 20px}}
 .divider{{width:60px;height:2px;background:#d4a017;margin:0 auto 20px}}
