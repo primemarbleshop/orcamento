@@ -2150,29 +2150,34 @@ def orcamento_preview(codigo):
 <meta property="og:title" content="Orçamento {codigo} - Prime Marble Shop">
 <meta property="og:description" content="Orçamento em mármore e granito - Valor: {valor}">
 <meta property="og:image" content="https://prime-marble-lp.onrender.com/static/logo.jpg">
-<meta property="og:url" content="https://orcamento-t9w2.onrender.com/orcamento/{codigo}">
+<meta property="og:url" content="https://prime-marble-lp.onrender.com/orcamento/{codigo}">
 <meta property="og:type" content="website">
 <title>Orçamento {codigo} - Prime Marble Shop</title>
 <meta http-equiv="refresh" content="2;url=/gerar_pdf_orcamento/{codigo}">
 <style>
 body{{font-family:Arial,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#1a1a2e;color:#fff}}
-.card{{text-align:center;background:#16213e;padding:40px;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.3)}}
-img{{width:120px;border-radius:50%;margin-bottom:20px}}
-h2{{color:#d4a017;margin:0 0 10px}}
-p{{color:#ccc;margin:5px 0}}
-.valor{{font-size:1.4rem;color:#22c55e;font-weight:bold;margin:15px 0}}
-a{{color:#d4a017;text-decoration:none;display:inline-block;margin-top:15px;padding:12px 30px;border:2px solid #d4a017;border-radius:8px}}
+.card{{text-align:center;background:#16213e;padding:50px 40px;border-radius:16px;box-shadow:0 4px 20px rgba(0,0,0,.3);max-width:400px;width:90%}}
+.logo{{width:180px;margin-bottom:10px}}
+.brand{{font-size:1.6rem;font-weight:bold;color:#d4a017;margin:0 0 6px;letter-spacing:1px}}
+.sub{{color:#999;font-size:.85rem;margin:0 0 20px}}
+.divider{{width:60px;height:2px;background:#d4a017;margin:0 auto 20px}}
+h2{{color:#fff;margin:0 0 8px;font-size:1.1rem;font-weight:normal}}
+.valor{{font-size:1.5rem;color:#22c55e;font-weight:bold;margin:12px 0 20px}}
+a{{color:#d4a017;text-decoration:none;display:inline-block;padding:12px 30px;border:2px solid #d4a017;border-radius:8px;font-weight:bold;transition:all .2s}}
 a:hover{{background:#d4a017;color:#1a1a2e}}
+.redirect{{font-size:.8rem;color:#666;margin-top:16px}}
 </style>
 </head>
 <body>
 <div class="card">
-<img src="/static/logo.jpg" alt="Prime Marble Shop">
-<h2>Orçamento {codigo}</h2>
-<p>Prime Marble Shop</p>
+<img class="logo" src="/static/logo.jpg" alt="Prime Marble Shop">
+<p class="brand">Prime Marble Shop</p>
+<p class="sub">Mármores &amp; Granitos</p>
+<div class="divider"></div>
+<h2>Orçamento <b style="color:#d4a017">{codigo}</b></h2>
 <div class="valor">{valor}</div>
-<p style="font-size:.85rem;color:#888">Redirecionando para o PDF...</p>
-<a href="/gerar_pdf_orcamento/{codigo}">Baixar PDF</a>
+<a href="/gerar_pdf_orcamento/{codigo}">&#128196; Baixar PDF</a>
+<p class="redirect">Redirecionando para o PDF...</p>
 </div>
 </body>
 </html>'''
