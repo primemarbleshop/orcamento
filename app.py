@@ -593,24 +593,28 @@ def api_configurador_orcamento():
                               produto_nome='Bancada Seca')
 
                 if modelo == 'molhada_centro_seca_lat':
-                    comp_sl = pcfg.get('compSecaLat', 60)
-                    prof_s = prof_s_val
-                    laterais = ['esquerda', 'direita']
-                    for i in range(2):
-                        sides_sl = [('fundo', comp_sl), ('frente', comp_sl), (laterais[i], prof_s)]
+                    for side_key, comp_key, prof_key, nome in [
+                        ('esquerda', 'compSecaEsq', 'profSecaEsq', 'Bancada Seca Esquerda'),
+                        ('direita', 'compSecaDir', 'profSecaDir', 'Bancada Seca Direita'),
+                    ]:
+                        comp_sl = pcfg.get(comp_key, pcfg.get('compSecaLat', 60))
+                        prof_sl = pcfg.get(prof_key, prof_s_val)
+                        sides_sl = [('fundo', comp_sl), ('frente', comp_sl), (side_key, prof_sl)]
                         cs, ls, cf, lf, _ilh = calc_saia_fronte(sides_sl, bordas, borda_alts, borda_saia_larg)
-                        criar_item_p('Bancada', comp_sl, prof_s, cs, ls, cf, lf,
-                                  produto_nome=f'Bancada Seca Lateral')
+                        criar_item_p('Bancada', comp_sl, prof_sl, cs, ls, cf, lf,
+                                  produto_nome=nome)
 
                 if modelo == 'seca_centro_molhada_lat':
-                    comp_ml = pcfg.get('compMolhadaLat', 60)
-                    prof_m = prof_m_val
-                    laterais = ['esquerda', 'direita']
-                    for i in range(2):
-                        sides_ml = [('fundo', comp_ml), ('frente', comp_ml), (laterais[i], prof_m)]
+                    for side_key, comp_key, prof_key, nome in [
+                        ('esquerda', 'compMolhadaEsq', 'profMolhadaEsq', 'Bancada Molhada Esquerda'),
+                        ('direita', 'compMolhadaDir', 'profMolhadaDir', 'Bancada Molhada Direita'),
+                    ]:
+                        comp_ml = pcfg.get(comp_key, pcfg.get('compMolhadaLat', 60))
+                        prof_ml = pcfg.get(prof_key, prof_m_val)
+                        sides_ml = [('fundo', comp_ml), ('frente', comp_ml), (side_key, prof_ml)]
                         cs, ls, cf, lf, _ilh = calc_saia_fronte(sides_ml, bordas, borda_alts, borda_saia_larg)
-                        criar_item_p('Bancada', comp_ml, prof_m, cs, ls, cf, lf,
-                                  produto_nome=f'Bancada Molhada Lateral')
+                        criar_item_p('Bancada', comp_ml, prof_ml, cs, ls, cf, lf,
+                                  produto_nome=nome)
 
                 if is_l:
                     comp_l = pcfg.get('compL', 120)

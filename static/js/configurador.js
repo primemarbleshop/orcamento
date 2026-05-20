@@ -38,8 +38,8 @@ const MODELOS = [
 const CFG = {
     produto: 'bancada',
     modelo: 'molhada_esq_seca_dir',
-    compSeca: 120, profSeca: 60, compSecaLat: 60,
-    compMolhada: 120, profMolhada: 60, compMolhadaLat: 60,
+    compSeca: 120, profSeca: 60, compSecaLat: 60, compSecaEsq: 60, profSecaEsq: 60, compSecaDir: 60, profSecaDir: 60,
+    compMolhada: 120, profMolhada: 60, compMolhadaLat: 60, compMolhadaEsq: 60, profMolhadaEsq: 60, compMolhadaDir: 60, profMolhadaDir: 60,
     compL: 120, profL: 60,
     compGen: 120, profGen: 55, lavModelo: 'retangular',
     lavRecorteLarg: 70, lavRecorteAlt: 35,
@@ -133,16 +133,18 @@ function getSections() {
             secs.push({type:'molhada', x:0, y:0, w:wm, h:dm});
             secs.push({type:'seca', x:wm, y:0, w:ws, h:ds}); break;
         case 'molhada_centro_seca_lat': {
-            const sl = CFG.compSecaLat;
-            secs.push({type:'seca', x:0, y:0, w:sl, h:ds});
-            secs.push({type:'molhada', x:sl, y:0, w:wm, h:dm});
-            secs.push({type:'seca', x:sl+wm, y:0, w:sl, h:ds}); break;
+            const sle = CFG.compSecaEsq, dle = CFG.profSecaEsq;
+            const sld = CFG.compSecaDir, dld = CFG.profSecaDir;
+            secs.push({type:'seca', x:0, y:0, w:sle, h:dle, label:'SECA ESQ'});
+            secs.push({type:'molhada', x:sle, y:0, w:wm, h:dm});
+            secs.push({type:'seca', x:sle+wm, y:0, w:sld, h:dld, label:'SECA DIR'}); break;
         }
         case 'seca_centro_molhada_lat': {
-            const ml = CFG.compMolhadaLat;
-            secs.push({type:'molhada', x:0, y:0, w:ml, h:dm});
-            secs.push({type:'seca', x:ml, y:0, w:ws, h:ds});
-            secs.push({type:'molhada', x:ml+ws, y:0, w:ml, h:dm}); break;
+            const mle = CFG.compMolhadaEsq, dme = CFG.profMolhadaEsq;
+            const mld = CFG.compMolhadaDir, dmd = CFG.profMolhadaDir;
+            secs.push({type:'molhada', x:0, y:0, w:mle, h:dme, label:'MOLHADA ESQ'});
+            secs.push({type:'seca', x:mle, y:0, w:ws, h:ds});
+            secs.push({type:'molhada', x:mle+ws, y:0, w:mld, h:dmd, label:'MOLHADA DIR'}); break;
         }
         case 'l_seca_molhada': {
             secs.push({type:'molhada', x:0, y:0, w:wm, h:dm});
@@ -237,7 +239,7 @@ function drawSection(sec, sc, ox, oy) {
     ctx.strokeRect(rx, ry, rw, rh);
 
     // label no canto superior esquerdo
-    const label = sec.type === 'molhada' ? 'MOLHADA' : 'SECA';
+    const label = sec.label || (sec.type === 'molhada' ? 'MOLHADA' : 'SECA');
     ctx.fillStyle = '#374151'; ctx.font = 'bold 11px Inter,sans-serif';
     ctx.textAlign = 'left'; ctx.textBaseline = 'top';
     ctx.fillText(label, rx + 6, ry + 5);
@@ -1006,30 +1008,36 @@ function renderMedidas(sb) {
     let html = '<div class="step-title">Medidas</div><div class="step-desc">Informe as dimensões em centímetros.</div>';
 
     if (CFG.produto === 'bancada') {
-        if (hasSeca) {
-            const secaLabel = md === 'molhada_centro_seca_lat' ? '⬜ Seca (centro)' : '⬜ Seca';
-            html += `<div style="color:#9ca3af;font-size:.75rem;font-weight:600;margin:10px 0 6px">${secaLabel}</div><div class="row2">`;
+        if (hasSeca && md !== 'molhada_centro_seca_lat') {
+            html += '<div style="color:#9ca3af;font-size:.75rem;font-weight:600;margin:10px 0 6px">⬜ Seca</div><div class="row2">';
             html += fgInput('Comprimento', 'compSeca');
             html += fgInput('Largura', 'profSeca');
             html += '</div>';
         }
         if (md === 'molhada_centro_seca_lat') {
-            html += '<div style="color:#9ca3af;font-size:.75rem;font-weight:600;margin:10px 0 6px">⬜ Seca (laterais)</div><div class="row2">';
-            html += fgInput('Comprimento', 'compSecaLat');
-            html += fgInput('Largura', 'profSeca');
+            html += '<div style="color:#9ca3af;font-size:.75rem;font-weight:600;margin:10px 0 6px">⬜ Seca (esquerda)</div><div class="row2">';
+            html += fgInput('Comprimento', 'compSecaEsq');
+            html += fgInput('Largura', 'profSecaEsq');
+            html += '</div>';
+            html += '<div style="color:#9ca3af;font-size:.75rem;font-weight:600;margin:10px 0 6px">⬜ Seca (direita)</div><div class="row2">';
+            html += fgInput('Comprimento', 'compSecaDir');
+            html += fgInput('Largura', 'profSecaDir');
             html += '</div>';
         }
-        if (hasMolhada) {
-            const molhadaLabel = md === 'seca_centro_molhada_lat' ? '🟦 Molhada (centro)' : '🟦 Molhada';
-            html += `<div style="color:#60a5fa;font-size:.75rem;font-weight:600;margin:10px 0 6px">${molhadaLabel}</div><div class="row2">`;
+        if (hasMolhada && md !== 'seca_centro_molhada_lat') {
+            html += '<div style="color:#60a5fa;font-size:.75rem;font-weight:600;margin:10px 0 6px">🟦 Molhada</div><div class="row2">';
             html += fgInput('Comprimento', 'compMolhada');
             html += fgInput('Largura', 'profMolhada');
             html += '</div>';
         }
         if (md === 'seca_centro_molhada_lat') {
-            html += '<div style="color:#60a5fa;font-size:.75rem;font-weight:600;margin:10px 0 6px">🟦 Molhada (laterais)</div><div class="row2">';
-            html += fgInput('Comprimento', 'compMolhadaLat');
-            html += fgInput('Largura', 'profMolhada');
+            html += '<div style="color:#60a5fa;font-size:.75rem;font-weight:600;margin:10px 0 6px">🟦 Molhada (esquerda)</div><div class="row2">';
+            html += fgInput('Comprimento', 'compMolhadaEsq');
+            html += fgInput('Largura', 'profMolhadaEsq');
+            html += '</div>';
+            html += '<div style="color:#60a5fa;font-size:.75rem;font-weight:600;margin:10px 0 6px">🟦 Molhada (direita)</div><div class="row2">';
+            html += fgInput('Comprimento', 'compMolhadaDir');
+            html += fgInput('Largura', 'profMolhadaDir');
             html += '</div>';
         }
         if (isL) {
@@ -1230,8 +1238,18 @@ function renderResumo(sb) {
         const modNome = MODELOS.find(m => m.id === CFG.modelo);
         add('Modelo', modNome ? modNome.nome : CFG.modelo);
         const md = CFG.modelo;
-        if (md !== 'toda_molhada') add('Seca', fmt(CFG.compSeca)+' × '+fmt(CFG.profSeca));
-        if (md !== 'toda_seca') add('Molhada', fmt(CFG.compMolhada)+' × '+fmt(CFG.profMolhada));
+        if (md === 'molhada_centro_seca_lat') {
+            add('Seca Esq', fmt(CFG.compSecaEsq)+' × '+fmt(CFG.profSecaEsq));
+            add('Seca Dir', fmt(CFG.compSecaDir)+' × '+fmt(CFG.profSecaDir));
+        } else if (md !== 'toda_molhada') {
+            add('Seca', fmt(CFG.compSeca)+' × '+fmt(CFG.profSeca));
+        }
+        if (md === 'seca_centro_molhada_lat') {
+            add('Molhada Esq', fmt(CFG.compMolhadaEsq)+' × '+fmt(CFG.profMolhadaEsq));
+            add('Molhada Dir', fmt(CFG.compMolhadaDir)+' × '+fmt(CFG.profMolhadaDir));
+        } else if (md !== 'toda_seca') {
+            add('Molhada', fmt(CFG.compMolhada)+' × '+fmt(CFG.profMolhada));
+        }
         if (md.startsWith('l_')) add('Bancada L', fmt(CFG.compL)+' × '+fmt(CFG.profL));
         add('Espessura', fmt(ESP));
         const bSides = md.startsWith('l_') ? ['fundo','frente','direita'] : ['fundo','frente','esquerda','direita'];
@@ -1478,8 +1496,12 @@ function continuarOrcamento() {
         lavModelo: CFG.lavModelo,
         compMolhada: CFG.compMolhada, profMolhada: CFG.profMolhada,
         compSeca: CFG.compSeca, profSeca: CFG.profSeca, compSecaLat: CFG.compSecaLat,
+        compSecaEsq: CFG.compSecaEsq, profSecaEsq: CFG.profSecaEsq,
+        compSecaDir: CFG.compSecaDir, profSecaDir: CFG.profSecaDir,
         compL: CFG.compL, profL: CFG.profL,
         compMolhadaLat: CFG.compMolhadaLat,
+        compMolhadaEsq: CFG.compMolhadaEsq, profMolhadaEsq: CFG.profMolhadaEsq,
+        compMolhadaDir: CFG.compMolhadaDir, profMolhadaDir: CFG.profMolhadaDir,
         compGen: CFG.compGen, profGen: CFG.profGen,
         lavRecorteLarg: CFG.lavRecorteLarg, lavRecorteAlt: CFG.lavRecorteAlt,
         nichoLarg: CFG.nichoLarg, nichoAlt: CFG.nichoAlt, nichoProf: CFG.nichoProf,
