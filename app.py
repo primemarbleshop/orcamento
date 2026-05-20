@@ -695,11 +695,18 @@ def api_configurador_orcamento():
                 if lav_modelo == 'violao':
                     rec_larg = pcfg.get('lavRecorteLarg', 70)
                     rec_alt = pcfg.get('lavRecorteAlt', 35)
+                    espelhar = pcfg.get('espelhar', False)
+                    if espelhar:
+                        esq_dim = prof - rec_alt
+                        dir_dim = prof
+                    else:
+                        esq_dim = prof
+                        dir_dim = prof - rec_alt
                     lav_sides = [
                         ('fundo', comp),
                         ('frente', comp),
-                        ('esquerda', prof),
-                        ('direita', prof - rec_alt),
+                        ('esquerda', esq_dim),
+                        ('direita', dir_dim),
                         ('direita2', rec_alt),
                     ]
                 else:
