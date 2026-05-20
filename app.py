@@ -1688,42 +1688,48 @@ def detalhes_orcamento():
     except Exception as e:
         return f"Erro ao carregar detalhes dos orçamentos: {str(e)}", 500
 
+@app.route('/setup', methods=['GET', 'POST'])
+def setup():
+    if Usuario.query.first():
+        return redirect(url_for('login'))
+    if request.method == 'POST':
+        nome = request.form.get('nome', '').strip()
+        cpf = request.form.get('cpf', '').strip()
+        senha = request.form.get('senha', '').strip()
+        if not nome or not cpf or not senha:
+            flash("Preencha todos os campos!", "error")
+            return render_template('setup.html')
+        admin = Usuario(nome=nome, cpf=cpf, is_admin=True)
+        admin.set_senha(senha)
+        db.session.add(admin)
+        db.session.commit()
+        flash("Administrador criado com sucesso! Faça login.", "success")
+        return redirect(url_for('login'))
+    return render_template('setup.html')
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    if not Usuario.query.first():
+        return redirect(url_for('setup'))
     if request.method == 'POST':
         cpf = request.form['cpf'].strip()
         senha = request.form['senha']
 
-        print(f"Tentando login com CPF: [{cpf}]")  # Debug
-
-        # 🔥 MÚLTIPLAS TENTATIVAS:
-        # 1. CPF exatamente como digitado
         usuario = Usuario.query.filter_by(cpf=cpf).first()
-        
-        # 2. CPF sem formatação
+
         if not usuario:
             cpf_limpo = re.sub(r'[\.\-]', '', cpf)
             usuario = Usuario.query.filter_by(cpf=cpf_limpo).first()
-            print(f"Tentando com CPF limpo: [{cpf_limpo}]")
-        
-        # 3. CPF com formatação padrão (se o usuário digitou sem formatação)
+
         if not usuario and len(cpf) == 11 and cpf.isdigit():
             cpf_formatado = f"{cpf[:3]}.{cpf[3:6]}.{cpf[6:9]}-{cpf[9:]}"
             usuario = Usuario.query.filter_by(cpf=cpf_formatado).first()
-            print(f"Tentando com CPF formatado: [{cpf_formatado}]")
 
         if usuario:
-            print(f"Usuário encontrado: {usuario.nome}, CPF: [{usuario.cpf}]")
-            
             if usuario.check_senha(senha):
                 session['user_cpf'] = usuario.cpf
                 session['admin'] = usuario.is_admin
-                print("✅ Login bem-sucedido!")
                 return redirect(url_for('index'))
-            else:
-                print("❌ Senha incorreta")
-        else:
-            print("❌ Usuário não encontrado")
 
         flash("Usuário ou senha incorretos!", "error")
         return render_template('login.html')
