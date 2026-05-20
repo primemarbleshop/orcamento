@@ -6,15 +6,15 @@ const ESP = 2;
 const CONTENCAO = 2;
 
 const EDGE_COLORS = { fronte:'#e63946', saia:'#2a9d8f', parede:'#6c757d', livre:'#bbb', ilharga:'#d97706' };
-const EDGE_NAMES = { fronte:'Fronte', saia:'Saia', parede:'Parede', livre:'Livre', ilharga:'Ilharga' };
+const EDGE_NAMES = { fronte:'Parede com fronte', saia:'Acabamento com saia', parede:'Parede sem fronte', livre:'Acabamento sem saia', ilharga:'Ilharga' };
 function edgeName(type, side) {
-    if (type === 'fronte') return '/// Fronte' + (side ? ' larg:'+fmt(CFG.bordaAlts[side]) : '');
-    if (type === 'saia') return '// Saia' + (side ? ' larg:'+fmt(CFG.bordaSaiaLarg[side]) : '');
+    if (type === 'fronte') return '/// Parede com fronte' + (side ? ' larg:'+fmt(CFG.bordaAlts[side]) : '');
+    if (type === 'saia') return '// Acabamento com saia' + (side ? ' larg:'+fmt(CFG.bordaSaiaLarg[side]) : '');
     if (type === 'ilharga') {
         return 'Ilharga' + (side ? ' alt:'+fmt(CFG.bordaAlts[side]) : '');
     }
-    if (type === 'parede') return 'Parede';
-    return 'Livre';
+    if (type === 'parede') return 'Parede sem fronte';
+    return 'Acabamento sem saia';
 }
 
 const MODELOS = [
