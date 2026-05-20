@@ -418,6 +418,7 @@ def api_configurador_orcamento():
             larg_saia = 0
             comp_fronte = 0
             larg_fronte = 0
+            ilhargas = []
             for side, dim in sides_dims:
                 bt = bordas_cfg.get(side, 'livre')
                 if bt == 'saia':
@@ -427,9 +428,8 @@ def api_configurador_orcamento():
                     comp_fronte += dim
                     larg_fronte = max(larg_fronte, alts.get(side, 10))
                 elif bt == 'ilharga':
-                    comp_saia += alts.get(side, 92)
-                    larg_saia = max(larg_saia, saia_largs.get(side, 10))
-            return comp_saia, larg_saia, comp_fronte, larg_fronte
+                    ilhargas.append((side, dim, alts.get(side, 92)))
+            return comp_saia, larg_saia, comp_fronte, larg_fronte, ilhargas
 
         def processar_produto_cfg(pcfg):
             produto = pcfg.get('produto', 'bancada')
@@ -556,7 +556,7 @@ def api_configurador_orcamento():
                         sides_m.append(('esquerda', prof_m))
                     if not has_seca:
                         sides_m.append(('direita', prof_m))
-                    cs, ls, cf, lf = calc_saia_fronte(sides_m, bordas, borda_alts, borda_saia_larg)
+                    cs, ls, cf, lf, _ilh = calc_saia_fronte(sides_m, bordas, borda_alts, borda_saia_larg)
                     tc, qc, cc, lc, pc = cubas_na_secao('molhada')
                     criar_item_p('Bancada', comp_m, prof_m, cs, ls, cf, lf,
                               tipo_cuba=tc, qtd_cubas=qc,
@@ -571,7 +571,7 @@ def api_configurador_orcamento():
                         sides_s.append(('direita', prof_s))
                     if not has_molhada:
                         sides_s.append(('esquerda', prof_s))
-                    cs, ls, cf, lf = calc_saia_fronte(sides_s, bordas, borda_alts, borda_saia_larg)
+                    cs, ls, cf, lf, _ilh = calc_saia_fronte(sides_s, bordas, borda_alts, borda_saia_larg)
                     tc, qc, cc, lc, pc = cubas_na_secao('seca')
                     cook = 'Sim' if pcfg.get('cooktop') else 'Não'
                     criar_item_p('Bancada', comp_s, prof_s, cs, ls, cf, lf,
@@ -586,7 +586,7 @@ def api_configurador_orcamento():
                     laterais = ['esquerda', 'direita']
                     for i in range(2):
                         sides_sl = [('fundo', comp_sl), ('frente', comp_sl), (laterais[i], prof_s)]
-                        cs, ls, cf, lf = calc_saia_fronte(sides_sl, bordas, borda_alts, borda_saia_larg)
+                        cs, ls, cf, lf, _ilh = calc_saia_fronte(sides_sl, bordas, borda_alts, borda_saia_larg)
                         criar_item_p('Bancada', comp_sl, prof_s, cs, ls, cf, lf,
                                   produto_nome=f'Bancada Seca Lateral')
 
@@ -596,7 +596,7 @@ def api_configurador_orcamento():
                     laterais = ['esquerda', 'direita']
                     for i in range(2):
                         sides_ml = [('fundo', comp_ml), ('frente', comp_ml), (laterais[i], prof_m)]
-                        cs, ls, cf, lf = calc_saia_fronte(sides_ml, bordas, borda_alts, borda_saia_larg)
+                        cs, ls, cf, lf, _ilh = calc_saia_fronte(sides_ml, bordas, borda_alts, borda_saia_larg)
                         criar_item_p('Bancada', comp_ml, prof_m, cs, ls, cf, lf,
                                   produto_nome=f'Bancada Molhada Lateral')
 
@@ -610,7 +610,7 @@ def api_configurador_orcamento():
                         inner_h = comp_l - mainD
                     if inner_h > 0:
                         sides_l.append(('frente', inner_h))
-                    cs, ls, cf, lf = calc_saia_fronte(sides_l, bordas, borda_alts, borda_saia_larg)
+                    cs, ls, cf, lf, _ilh = calc_saia_fronte(sides_l, bordas, borda_alts, borda_saia_larg)
                     criar_item_p('Bancada', comp_l, prof_l, cs, ls, cf, lf,
                               produto_nome='Bancada em L')
 
@@ -637,7 +637,7 @@ def api_configurador_orcamento():
                 lav_sides = [('fundo', comp), ('frente', comp), ('esquerda', prof), ('direita', prof)]
                 if pcfg.get('lavModelo') == 'violao':
                     lav_sides.append(('direita2', prof))
-                cs, ls, cf, lf = calc_saia_fronte(lav_sides, bordas, borda_alts, borda_saia_larg)
+                cs, ls, cf, lf, _ilh = calc_saia_fronte(lav_sides, bordas, borda_alts, borda_saia_larg)
                 tc = pcfg.get('tipoCuba', '') if pcfg.get('cuba') else ''
                 qc = pcfg.get('cubaQtd', 1) if tc else 0
                 lav_modelo = pcfg.get('lavModelo', 'retangular')
@@ -2150,7 +2150,7 @@ def orcamento_preview(codigo):
 <meta property="og:title" content="Orçamento {codigo} - Prime Marble Shop">
 <meta property="og:description" content="Orçamento em mármore e granito - Valor: {valor}">
 <meta property="og:image" content="https://prime-marble-lp.onrender.com/static/logo.jpg">
-<meta property="og:url" content="https://prime-marble-lp.onrender.com/orcamento/{codigo}">
+<meta property="og:url" content="https://orcamento-t9w2.onrender.com/orcamento/{codigo}">
 <meta property="og:type" content="website">
 <title>Orçamento {codigo} - Prime Marble Shop</title>
 <meta http-equiv="refresh" content="2;url=/gerar_pdf_orcamento/{codigo}">
