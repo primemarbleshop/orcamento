@@ -631,7 +631,12 @@ def api_configurador_orcamento():
                         alt = borda_alts.get(side_key, 92)
                         if side_key == 'l_fundo':
                             comp_l = pcfg.get('compL', 120)
-                            criar_item_p('Ilharga', comp_l, alt, 0, 0, 0, 0,
+                            saia_esq = borda_saia_larg.get('esquerda', 10) if bordas.get('esquerda') == 'saia' else 0
+                            saia_frente = borda_saia_larg.get('frente', 10) if bordas.get('frente') == 'saia' else 0
+                            n_saias = (1 if saia_esq > 0 else 0) + (1 if saia_frente > 0 else 0)
+                            cs_ilh = alt * n_saias
+                            ls_ilh = max(saia_esq, saia_frente) if cs_ilh > 0 else 0
+                            criar_item_p('Ilharga', comp_l, alt, cs_ilh, ls_ilh, 0, 0,
                                       produto_nome='Ilharga')
                         else:
                             prof_ilh = pcfg.get('profMolhada', 60) if has_molhada else pcfg.get('profSeca', 60)
