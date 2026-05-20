@@ -1130,31 +1130,30 @@ function renderBordas(sb) {
 
     sides.forEach(s => {
         const types = (s.lateral && !isViolao) ? ['fronte','saia','parede','livre','ilharga'] : baseTypes;
-        html += `<div class="edge-row"><div><div class="edge-label">${s.label}</div>${s.desc?'<div style="font-size:.65rem;color:#666">'+s.desc+'</div>':''}</div><div class="edge-opts">`;
+        const bt = CFG.bordas[s.key];
+        html += `<div class="edge-row"><div class="edge-label">${s.label}</div>${s.desc?'<div style="font-size:.65rem;color:#666">'+s.desc+'</div>':''}`;
+        html += '<div class="edge-opts">';
         types.forEach(t => {
             html += `<button class="edge-opt t-${t} ${CFG.bordas[s.key]===t?'on':''}" onclick="setBorda('${s.key}','${t}')">${EDGE_NAMES[t]}</button>`;
         });
-        html += '</div></div>';
-        const bt = CFG.bordas[s.key];
+        html += '</div>';
         if (bt === 'fronte') {
-            html += `<div style="padding:2px 12px 8px"><div class="row2">
-                <div class="fgroup" style="margin:0"><label>Largura do Fronte</label>
+            html += `<div class="edge-extra"><div class="fgroup" style="margin:0"><label>Largura do Fronte</label>
                 <input type="number" step="0.1" min="1" value="${CFG.bordaAlts[s.key]}"
                  onchange="CFG.bordaAlts['${s.key}']=parseFloat(this.value)||1;draw();renderStep()"
-                 placeholder="cm"></div></div></div>`;
+                 placeholder="cm"></div></div>`;
         } else if (bt === 'saia') {
-            html += `<div style="padding:2px 12px 8px"><div class="row2">
-                <div class="fgroup" style="margin:0"><label>Largura da Saia</label>
+            html += `<div class="edge-extra"><div class="fgroup" style="margin:0"><label>Largura da Saia</label>
                 <input type="number" step="0.1" min="1" value="${CFG.bordaSaiaLarg[s.key]}"
                  onchange="CFG.bordaSaiaLarg['${s.key}']=parseFloat(this.value)||1;draw();renderStep()"
-                 placeholder="cm"></div></div></div>`;
+                 placeholder="cm"></div></div>`;
         } else if (bt === 'ilharga') {
-            html += `<div style="padding:2px 12px 8px"><div class="row2">
-                <div class="fgroup" style="margin:0"><label>Altura da Ilharga</label>
+            html += `<div class="edge-extra"><div class="fgroup" style="margin:0"><label>Altura da Ilharga</label>
                 <input type="number" step="0.1" min="1" value="${CFG.bordaAlts[s.key]}"
                  onchange="CFG.bordaAlts['${s.key}']=parseFloat(this.value)||1;draw();renderStep()"
-                 placeholder="cm"></div></div></div>`;
+                 placeholder="cm"></div></div>`;
         }
+        html += '</div>';
     });
 
     sb.innerHTML = html;
