@@ -1485,7 +1485,7 @@ function togHtml(key, label, hint) {
 function pick(key, val) {
     CFG[key] = val;
     if (key === 'produto' || key === 'modelo') { zoomLevel = 1; panX = 0; panY = 0; }
-    if (key === 'modelo') {
+    if (key === 'modelo' || key === 'lavModelo') {
         CFG.compSeca = 120; CFG.profSeca = 60;
         CFG.compMolhada = 120; CFG.profMolhada = 60;
         CFG.compSecaLat = 60; CFG.compSecaEsq = 60; CFG.profSecaEsq = 60;
