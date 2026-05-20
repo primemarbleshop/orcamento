@@ -691,9 +691,19 @@ def api_configurador_orcamento():
             elif produto == 'lavatorio':
                 comp = pcfg.get('compGen', 120)
                 prof = pcfg.get('profGen', 55)
-                lav_sides = [('fundo', comp), ('frente', comp), ('esquerda', prof), ('direita', prof)]
-                if pcfg.get('lavModelo') == 'violao':
-                    lav_sides.append(('direita2', prof))
+                lav_modelo = pcfg.get('lavModelo', 'retangular')
+                if lav_modelo == 'violao':
+                    rec_larg = pcfg.get('lavRecorteLarg', 70)
+                    rec_alt = pcfg.get('lavRecorteAlt', 35)
+                    lav_sides = [
+                        ('fundo', comp),
+                        ('frente', comp),
+                        ('esquerda', prof),
+                        ('direita', prof - rec_alt),
+                        ('direita2', rec_alt),
+                    ]
+                else:
+                    lav_sides = [('fundo', comp), ('frente', comp), ('esquerda', prof), ('direita', prof)]
                 cs, ls, cf, lf, _ilh = calc_saia_fronte(lav_sides, bordas, borda_alts, borda_saia_larg)
                 tc = pcfg.get('tipoCuba', '') if pcfg.get('cuba') else ''
                 qc = pcfg.get('cubaQtd', 1) if tc else 0
@@ -707,12 +717,21 @@ def api_configurador_orcamento():
                 for side_key in ['esquerda', 'direita', 'direita2']:
                     if bordas.get(side_key) == 'ilharga':
                         alt = borda_alts.get(side_key, 92)
+                        if lav_modelo == 'violao':
+                            if side_key == 'direita':
+                                prof_ilh = prof - rec_alt
+                            elif side_key == 'direita2':
+                                prof_ilh = rec_alt
+                            else:
+                                prof_ilh = prof
+                        else:
+                            prof_ilh = prof
                         saia_frente = borda_saia_larg.get('frente', 10) if bordas.get('frente') == 'saia' else 0
                         saia_fundo = borda_saia_larg.get('fundo', 10) if bordas.get('fundo') == 'saia' else 0
                         n_saias = (1 if saia_frente > 0 else 0) + (1 if saia_fundo > 0 else 0)
                         cs_ilh = alt * n_saias
                         ls_ilh = max(saia_frente, saia_fundo) if cs_ilh > 0 else 0
-                        criar_item_p('Ilharga', alt, prof, cs_ilh, ls_ilh, 0, 0,
+                        criar_item_p('Ilharga', alt, prof_ilh, cs_ilh, ls_ilh, 0, 0,
                                   produto_nome='Ilharga')
 
                 for side_key in ['frente', 'fundo']:
