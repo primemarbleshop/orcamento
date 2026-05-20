@@ -46,6 +46,7 @@ const CFG = {
     nichoLarg: 60, nichoAlt: 30, nichoProf: 12,
     nichoFundo: true, nichoAlisar: false, nichoAlisarMedida: 5,
     soleiraLarg: 80, soleiraProf: 15, soleiraQtd: 1,
+    soleiras: [{larg: 80, prof: 15, qtd: 1}],
     bordas: { fundo:'fronte', frente:'saia', esquerda:'livre', direita:'livre', direita2:'livre', l_esquerda:'livre', l_fundo:'livre' },
     bordaAlts: { fundo:10, frente:10, esquerda:10, direita:10, direita2:10, l_esquerda:10, l_fundo:10 },
     bordaSaiaLarg: { fundo:5, frente:5, esquerda:5, direita:5, direita2:5, l_esquerda:5, l_fundo:5 },
@@ -1079,11 +1080,16 @@ function renderMedidas(sb) {
             html += '</div>';
         }
     } else if (CFG.produto === 'soleira') {
-        html += '<div class="row2">';
-        html += fgInput('Largura', 'soleiraLarg');
-        html += fgInput('Profundidade', 'soleiraProf');
-        html += '</div>';
-        html += fgInput('Quantidade', 'soleiraQtd');
+        if (!CFG.soleiras || CFG.soleiras.length === 0) CFG.soleiras = [{larg: 80, prof: 15, qtd: 1}];
+        CFG.soleiras.forEach((s, i) => {
+            html += `<div style="color:#9ca3af;font-size:.75rem;font-weight:600;margin:10px 0 6px">Peça ${i+1}${CFG.soleiras.length > 1 ? ' <span onclick="removeSoleira('+i+')" style="color:#ef4444;cursor:pointer;margin-left:8px">✕ Remover</span>' : ''}</div>`;
+            html += '<div class="row2">';
+            html += `<div class="fgroup"><label>Largura</label><input type="number" value="${s.larg}" onchange="updSoleira(${i},'larg',this.value)"></div>`;
+            html += `<div class="fgroup"><label>Profundidade</label><input type="number" value="${s.prof}" onchange="updSoleira(${i},'prof',this.value)"></div>`;
+            html += '</div>';
+            html += `<div class="fgroup"><label>Quantidade</label><input type="number" value="${s.qtd}" min="1" onchange="updSoleira(${i},'qtd',this.value)"></div>`;
+        });
+        html += `<div style="margin-top:10px"><button type="button" onclick="addSoleira()" style="background:#fede27;color:#1e1e1e;border:none;border-radius:6px;padding:8px 16px;font-weight:600;cursor:pointer;font-size:.8rem">+ Adicionar medida</button></div>`;
     }
     sb.innerHTML = html;
 }
@@ -1346,8 +1352,16 @@ function renderResumo(sb) {
         add('Fundo', CFG.nichoFundo ? 'Sim' : 'Não');
         if (CFG.nichoAlisar) add('Alisar', fmt(CFG.nichoAlisarMedida));
     } else {
-        add('Medidas', fmt(CFG.soleiraLarg)+'×'+fmt(CFG.soleiraProf));
-        add('Quantidade', CFG.soleiraQtd);
+        if (CFG.soleiras && CFG.soleiras.length > 0) {
+            CFG.soleiras.forEach((s, i) => {
+                const prefix = CFG.soleiras.length > 1 ? `Peça ${i+1}: ` : '';
+                add(prefix + 'Medidas', fmt(s.larg)+'×'+fmt(s.prof));
+                add(prefix + 'Quantidade', s.qtd);
+            });
+        } else {
+            add('Medidas', fmt(CFG.soleiraLarg)+'×'+fmt(CFG.soleiraProf));
+            add('Quantidade', CFG.soleiraQtd);
+        }
     }
 
     html += '</table>';
@@ -1491,6 +1505,19 @@ function pick(key, val) {
     renderStep();
 }
 
+function addSoleira() {
+    CFG.soleiras.push({larg: 80, prof: 15, qtd: 1});
+    renderStep();
+}
+function removeSoleira(i) {
+    CFG.soleiras.splice(i, 1);
+    renderStep();
+}
+function updSoleira(i, key, val) {
+    CFG.soleiras[i][key] = parseFloat(val) || 0;
+    draw(); renderStep();
+}
+
 function setBorda(side, type) {
     CFG.bordas[side] = type;
     if (type === 'ilharga') CFG.bordaAlts[side] = 92;
@@ -1558,6 +1585,7 @@ function continuarOrcamento() {
         nichoLarg: CFG.nichoLarg, nichoAlt: CFG.nichoAlt, nichoProf: CFG.nichoProf,
         nichoFundo: CFG.nichoFundo, nichoAlisar: CFG.nichoAlisar, nichoAlisarMedida: CFG.nichoAlisarMedida,
         soleiraLarg: CFG.soleiraLarg, soleiraProf: CFG.soleiraProf, soleiraQtd: CFG.soleiraQtd,
+        soleiras: CFG.soleiras ? JSON.parse(JSON.stringify(CFG.soleiras)) : null,
         bordas: {...CFG.bordas}, bordaAlts: {...CFG.bordaAlts}, bordaSaiaLarg: {...CFG.bordaSaiaLarg},
         cuba: CFG.cuba, cubaQtd: CFG.cubaQtd, cubaLocal: CFG.cubaLocal,
         tipoCuba: CFG.tipoCuba, cubaComp: CFG.cubaComp, cubaLarg: CFG.cubaLarg, cubaAlt: CFG.cubaAlt,

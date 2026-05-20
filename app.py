@@ -735,10 +735,18 @@ def api_configurador_orcamento():
                            produto_nome='Nicho')
 
             elif produto == 'soleira':
-                qtd_soleira = int(pcfg.get('soleiraQtd', 1))
-                for _ in range(max(qtd_soleira, 1)):
-                    criar_item_p('Soleira', pcfg.get('soleiraLarg', 80), pcfg.get('soleiraProf', 15), 0, 0, 0, 0,
-                               produto_nome='Soleira')
+                soleiras_list = pcfg.get('soleiras')
+                if soleiras_list and isinstance(soleiras_list, list):
+                    for s in soleiras_list:
+                        qtd = int(s.get('qtd', 1))
+                        for _ in range(max(qtd, 1)):
+                            criar_item_p('Soleira', s.get('larg', 80), s.get('prof', 15), 0, 0, 0, 0,
+                                       produto_nome='Soleira')
+                else:
+                    qtd_soleira = int(pcfg.get('soleiraQtd', 1))
+                    for _ in range(max(qtd_soleira, 1)):
+                        criar_item_p('Soleira', pcfg.get('soleiraLarg', 80), pcfg.get('soleiraProf', 15), 0, 0, 0, 0,
+                                   produto_nome='Soleira')
 
         processar_produto_cfg(cfg)
 
