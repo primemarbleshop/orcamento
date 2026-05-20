@@ -581,8 +581,8 @@ function drawBancadaEdges(sections, sc, ox, oy, b) {
         if (ds==='top') ny=-1; else if (ds==='bottom') ny=1;
         else if (ds==='left') nx=-1; else nx=1;
         const isVert = (ds === 'left' || ds === 'right');
-        const labelX = lx + nx*22;
-        const labelY = ly + ny*22;
+        const labelX = lx + nx*32;
+        const labelY = ly + ny*32;
         ctx.fillStyle = color; ctx.font = 'bold 10px Inter,sans-serif';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         drawEdgeLabel(edgeName(type, side), labelX, labelY, isVert);
@@ -652,8 +652,8 @@ function drawEdgeMark(x1, y1, x2, y2, type, side, showLabel, bordaSide) {
 
     if (showLabel !== false) {
         const isVert = (side === 'left' || side === 'right');
-        const lx = (mx1+mx2)/2 + nx*18;
-        const ly = (my1+my2)/2 + ny*18;
+        const lx = (mx1+mx2)/2 + nx*28;
+        const ly = (my1+my2)/2 + ny*28;
         ctx.fillStyle = color; ctx.font = 'bold 10px Inter,sans-serif';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         drawEdgeLabel(edgeName(type, bordaSide), lx, ly, isVert);
@@ -817,7 +817,7 @@ function drawLavViolao(W, H) {
         const isVert = (seg.ds==='left'||seg.ds==='right');
         ctx.fillStyle = color; ctx.font = 'bold 10px Inter,sans-serif';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        drawEdgeLabel(edgeName(type, seg.side), mx+nx*22, my+ny*22, isVert);
+        drawEdgeLabel(edgeName(type, seg.side), mx+nx*32, my+ny*32, isVert);
     });
 
     // cubas na área sem recorte
