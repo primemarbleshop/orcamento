@@ -1,5 +1,5 @@
 # 📌 Imports de Bibliotecas Externas
-from flask import Flask, render_template, make_response, request, redirect, url_for, jsonify, flash, session
+from flask import Flask, render_template, make_response, request, redirect, url_for, jsonify, flash, session, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -147,6 +147,16 @@ def upload_db():
         file.save(Config.DATABASE_PATH)
         return jsonify({"mensagem": "Banco de dados enviado com sucesso!"}), 200
     return jsonify({"erro": "Arquivo inválido!"}), 400
+
+@app.route("/download_db")
+def download_db():
+    if not session.get('admin'):
+        flash("Acesso restrito a administradores.", "error")
+        return redirect(url_for('login'))
+    import os
+    if os.path.exists(Config.DATABASE_PATH):
+        return send_file(Config.DATABASE_PATH, as_attachment=True, download_name='orcamentos.db')
+    return jsonify({"erro": "Banco de dados não encontrado!"}), 404
 
 br_tz = timezone('America/Sao_Paulo')
 
