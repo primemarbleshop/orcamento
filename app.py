@@ -2306,7 +2306,7 @@ def gerar_pdf_orcamento(codigo_ou_token):
 
     response = make_response(pdf_bytes)
     response.headers["Content-Type"] = "application/pdf"
-    response.headers["Content-Disposition"] = f"inline; filename=orcamento_{codigo}.pdf"
+    response.headers["Content-Disposition"] = f"inline; filename=orcamento_{orcamento_salvo.codigo}.pdf"
 
     # Limpar temporários
     os.unlink(temp_pdf_path)
