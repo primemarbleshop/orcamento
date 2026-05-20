@@ -1129,7 +1129,7 @@ function renderBordas(sb) {
     html += '<div class="step-desc">Defina o acabamento de cada lado. Clique no desenho para alterar rapidamente.</div>';
 
     sides.forEach(s => {
-        const types = s.lateral ? ['fronte','saia','parede','livre','ilharga'] : baseTypes;
+        const types = (s.lateral && !isViolao) ? ['fronte','saia','parede','livre','ilharga'] : baseTypes;
         html += `<div class="edge-row"><div><div class="edge-label">${s.label}</div>${s.desc?'<div style="font-size:.65rem;color:#666">'+s.desc+'</div>':''}</div><div class="edge-opts">`;
         types.forEach(t => {
             html += `<button class="edge-opt t-${t} ${CFG.bordas[s.key]===t?'on':''}" onclick="setBorda('${s.key}','${t}')">${EDGE_NAMES[t]}</button>`;
