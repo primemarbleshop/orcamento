@@ -2150,7 +2150,7 @@ def atualizar_status_tipo_cliente():
 
 
 
-@app.route('/orcamento/<token>')
+@app.route('/orcamento/<path:token>')
 def orcamento_preview(token):
     codigo = decodificar_token_orcamento(token)
     if not codigo:
@@ -2198,7 +2198,7 @@ a:hover{{background:#d4a017;color:#1a1a2e}}
 </body>
 </html>'''
 
-@app.route('/gerar_pdf_orcamento/<codigo_ou_token>')
+@app.route('/gerar_pdf_orcamento/<path:codigo_ou_token>')
 def gerar_pdf_orcamento(codigo_ou_token):
     orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo_ou_token).first()
     if not orcamento_salvo:
@@ -2206,8 +2206,7 @@ def gerar_pdf_orcamento(codigo_ou_token):
         if codigo_real:
             orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo_real).first()
     if not orcamento_salvo:
-        flash("Orçamento salvo não encontrado!", "danger")
-        return redirect(url_for('listar_orcamentos_salvos'))
+        return "Orçamento não encontrado", 404
 
     ids = [int(id) for id in orcamento_salvo.orcamentos_ids.split(",")]
     orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
