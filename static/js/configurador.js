@@ -1568,6 +1568,7 @@ function goBack() {
 
 function continuarOrcamento() {
     if (!produtosSalvos) produtosSalvos = [];
+    const desenhoSnap = canvas.toDataURL('image/png');
     produtosSalvos.push(JSON.parse(JSON.stringify({
         produto: CFG.produto,
         modelo: CFG.modelo,
@@ -1593,7 +1594,8 @@ function continuarOrcamento() {
         furoTorneira: CFG.furoTorneira, furoTorneira2: CFG.furoTorneira2,
         cooktop: CFG.cooktop, cooktopLocal: CFG.cooktopLocal,
         espelhar: CFG.espelhar,
-        materialId: CFG.materialId
+        materialId: CFG.materialId,
+        desenho: desenhoSnap
     })));
     CFG.produto = '';
     CFG.modelo = '';

@@ -783,11 +783,18 @@ def api_configurador_orcamento():
         db.session.add(orc_salvo)
         db.session.flush()
 
+        todos_desenhos = []
+        for extra in cfg.get('produtosExtras', []):
+            d = extra.get('desenho', '')
+            if d:
+                todos_desenhos.append(d)
         desenho_data = cfg.get('desenho', '')
         if desenho_data:
+            todos_desenhos.append(desenho_data)
+        for dd in todos_desenhos:
             desenho = DesenhoOrdemServico(
                 orcamento_salvo_codigo=orc_salvo.codigo,
-                desenho_data=desenho_data
+                desenho_data=dd
             )
             db.session.add(desenho)
 
@@ -817,10 +824,10 @@ def whatsapp_webhook_receive():
 
 @app.route('/ver_desenho/<codigo>')
 def ver_desenho(codigo):
-    desenho = DesenhoOrdemServico.query.filter_by(
+    desenhos = DesenhoOrdemServico.query.filter_by(
         orcamento_salvo_codigo=codigo
-    ).order_by(DesenhoOrdemServico.data_criacao.desc()).first()
-    if not desenho:
+    ).order_by(DesenhoOrdemServico.data_criacao.asc()).all()
+    if not desenhos:
         return 'Desenho nao encontrado', 404
 
     orc_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
@@ -854,12 +861,19 @@ def ver_desenho(codigo):
   <span style="background:#2a2a4a;padding:2px 10px;border-radius:4px">{status}</span>
 </div>'''
 
+    total = len(desenhos)
+    pages_html = ''
+    for i, d in enumerate(desenhos):
+        num = i + 1
+        label = f'<div style="color:#888;font-size:14px;text-align:center;padding:12px 0 4px;font-family:Arial,sans-serif">Plano {num} de {total}</div>' if total > 1 else ''
+        pages_html += f'{label}<div class="img-wrap"><img src="{d.desenho_data}" alt="Desenho {codigo} - {num}"></div>'
+
     return f'''<!DOCTYPE html>
 <html><head><title>Desenho - {codigo}</title>
 <style>body{{margin:0;background:#1a1a2e;display:flex;flex-direction:column;min-height:100vh}}
-.img-wrap{{flex:1;display:flex;justify-content:center;align-items:center}}
-img{{max-width:95vw;max-height:calc(95vh - 60px);border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.5)}}</style></head>
-<body>{header_html}<div class="img-wrap"><img src="{desenho.desenho_data}" alt="Desenho {codigo}"></div></body></html>'''
+.img-wrap{{display:flex;justify-content:center;align-items:center;min-height:calc(100vh - 80px);padding:16px 0}}
+img{{max-width:95vw;max-height:90vh;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,.5)}}</style></head>
+<body>{header_html}{pages_html}</body></html>'''
 
 @app.route('/')
 def index():
