@@ -645,7 +645,7 @@ def api_configurador_orcamento():
                             n_saias = (1 if saia_lfundo > 0 else 0) + (1 if saia_frente > 0 else 0)
                             cs_ilh = alt * n_saias
                             ls_ilh = max(saia_lfundo, saia_frente) if cs_ilh > 0 else 0
-                            criar_item_p('Ilharga', prof_l, alt, cs_ilh, ls_ilh, 0, 0,
+                            criar_item_p('Ilharga', alt, prof_l, cs_ilh, ls_ilh, 0, 0,
                                       produto_nome='Ilharga')
                         else:
                             prof_ilh = pcfg.get('profMolhada', 60) if has_molhada else pcfg.get('profSeca', 60)
