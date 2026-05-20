@@ -1381,7 +1381,7 @@ function renderCliente(sb) {
             <input type="tel" value="${CFG.clienteTelefone}" placeholder="(00) 00000-0000"
              oninput="CFG.clienteTelefone=this.value"
              style="width:100%;padding:8px 12px;border:1px solid #2a2a40;border-radius:8px;background:#1a1a2e;color:#e8e8e8;font-size:0.85rem"></div>
-        <div class="fgroup"><label>Endereço</label>
+        <div class="fgroup"><label>Endereço *</label>
             <input type="text" value="${CFG.clienteEndereco}" placeholder="Rua, número, bairro, cidade"
              oninput="CFG.clienteEndereco=this.value"
              style="width:100%;padding:8px 12px;border:1px solid #2a2a40;border-radius:8px;background:#1a1a2e;color:#e8e8e8;font-size:0.85rem"></div>
@@ -1549,8 +1549,8 @@ function updateInfo() {
 function goNext() {
     const steps = getSteps();
     if (steps[step] === 'cliente') {
-        if (!CFG.clienteNome.trim() || !CFG.clienteTelefone.trim()) {
-            mostrarAviso('Preencha nome e telefone para continuar.');
+        if (!CFG.clienteNome.trim() || !CFG.clienteTelefone.trim() || !CFG.clienteEndereco.trim()) {
+            mostrarAviso('Preencha nome, telefone e endereço para continuar.');
             return;
         }
     }
