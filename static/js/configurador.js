@@ -1362,55 +1362,22 @@ function renderResumo(sb) {
 }
 
 function renderCliente(sb) {
-    const inputStyle = 'width:100%;padding:8px 12px;border:1px solid #2a2a40;border-radius:8px;background:#1a1a2e;color:#e8e8e8;font-size:0.85rem';
     sb.innerHTML = `
         <div class="step-title">Seus Dados</div>
         <div class="step-desc">Preencha seus dados para gerar o orçamento.</div>
-        <div class="fgroup"><label>Telefone *</label>
-            <input type="tel" id="inputTelefone" value="${CFG.clienteTelefone}" placeholder="(00) 00000-0000"
-             style="${inputStyle}"></div>
-        <div id="clienteExiste" style="display:none"></div>
         <div class="fgroup"><label>Nome completo *</label>
-            <input type="text" id="inputNome" value="${CFG.clienteNome}" placeholder="Seu nome"
+            <input type="text" value="${CFG.clienteNome}" placeholder="Seu nome"
              oninput="CFG.clienteNome=this.value"
-             style="${inputStyle}"></div>
-        <div class="fgroup"><label>Endereço</label>
-            <input type="text" id="inputEndereco" value="${CFG.clienteEndereco}" placeholder="Rua, número, bairro, cidade"
+             style="width:100%;padding:8px 12px;border:1px solid #2a2a40;border-radius:8px;background:#1a1a2e;color:#e8e8e8;font-size:0.85rem"></div>
+        <div class="fgroup"><label>Telefone *</label>
+            <input type="tel" value="${CFG.clienteTelefone}" placeholder="(00) 00000-0000"
+             oninput="CFG.clienteTelefone=this.value"
+             style="width:100%;padding:8px 12px;border:1px solid #2a2a40;border-radius:8px;background:#1a1a2e;color:#e8e8e8;font-size:0.85rem"></div>
+        <div class="fgroup"><label>Endereço *</label>
+            <input type="text" value="${CFG.clienteEndereco}" placeholder="Rua, número, bairro, cidade"
              oninput="CFG.clienteEndereco=this.value"
-             style="${inputStyle}"></div>
+             style="width:100%;padding:8px 12px;border:1px solid #2a2a40;border-radius:8px;background:#1a1a2e;color:#e8e8e8;font-size:0.85rem"></div>
         <div class="info"><b>*</b> Campos obrigatórios para gerar seu orçamento.</div>`;
-    const telInput = document.getElementById('inputTelefone');
-    telInput.addEventListener('input', function() { CFG.clienteTelefone = this.value; });
-    telInput.addEventListener('blur', function() {
-        const tel = this.value.trim();
-        if (tel.length < 8) return;
-        fetch('/api/verificar-telefone', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({telefone: tel})
-        }).then(r => r.json()).then(data => {
-            const box = document.getElementById('clienteExiste');
-            if (data.exists) {
-                box.style.display = 'block';
-                box.innerHTML = '<div style="padding:10px 14px;background:#d4a01718;border:1px solid #d4a01744;border-radius:8px;font-size:0.82rem;color:#d4a017;margin-bottom:8px">'
-                    + '<b>Cliente já cadastrado:</b> ' + data.nome
-                    + '<br><span style="font-size:0.75rem;color:#999">Endereço: ' + (data.endereco || 'não informado') + '</span>'
-                    + '<div style="margin-top:8px;display:flex;gap:8px">'
-                    + '<button onclick="usarClienteExistente(\'' + data.nome.replace(/'/g,"\\'") + '\',\'' + (data.endereco||'').replace(/'/g,"\\'") + '\')" style="padding:6px 14px;background:#d4a017;color:#fff;border:none;border-radius:6px;cursor:pointer;font-size:0.78rem">Usar dados existentes</button>'
-                    + '<button onclick="document.getElementById(\'clienteExiste\').style.display=\'none\'" style="padding:6px 14px;background:#2a2a40;color:#ccc;border:none;border-radius:6px;cursor:pointer;font-size:0.78rem">Editar dados</button>'
-                    + '</div></div>';
-            } else {
-                box.style.display = 'none';
-            }
-        }).catch(() => {});
-    });
-}
-function usarClienteExistente(nome, endereco) {
-    CFG.clienteNome = nome;
-    CFG.clienteEndereco = endereco;
-    document.getElementById('inputNome').value = nome;
-    document.getElementById('inputEndereco').value = endereco;
-    document.getElementById('clienteExiste').style.display = 'none';
 }
 
 function renderMaterial(sb) {
