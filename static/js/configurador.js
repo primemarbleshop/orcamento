@@ -1117,7 +1117,7 @@ function renderBordas(sb) {
     }
     sides.push({key:'direita', label: isViolao ? lblDir+' (superior)' : lblDir, desc:'', lateral:true});
     if (isViolao) {
-        sides.push({key:'direita2', label:'Direita (recorte)', desc:'Parte lateral do recorte', lateral:true});
+        sides.push({key:'direita2', label:lblDir+' (recorte)', desc:'', lateral:true});
     }
     if (isL) {
         sides.push({key:'l_esquerda', label:'L Frente', desc:'', lateral:true});
