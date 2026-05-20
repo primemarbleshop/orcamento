@@ -643,6 +643,24 @@ def api_configurador_orcamento():
                             criar_item_p('Ilharga', alt, prof_ilh, cs_ilh, ls_ilh, 0, 0,
                                       produto_nome='Ilharga')
 
+                for side_key in ['frente', 'fundo']:
+                    if bordas.get(side_key) == 'ilharga':
+                        alt = borda_alts.get(side_key, 92)
+                        comp_total = 0
+                        if has_molhada:
+                            comp_total += pcfg.get('compMolhada', 120)
+                        if has_seca:
+                            comp_total += pcfg.get('compSeca', 120)
+                        if not comp_total:
+                            comp_total = 120
+                        saia_esq = borda_saia_larg.get('esquerda', 10) if bordas.get('esquerda') == 'saia' else 0
+                        saia_dir = borda_saia_larg.get('direita', 10) if bordas.get('direita') == 'saia' else 0
+                        n_saias = (1 if saia_esq > 0 else 0) + (1 if saia_dir > 0 else 0)
+                        cs_ilh = alt * n_saias
+                        ls_ilh = max(saia_esq, saia_dir) if cs_ilh > 0 else 0
+                        criar_item_p('Ilharga', comp_total, alt, cs_ilh, ls_ilh, 0, 0,
+                                  produto_nome='Ilharga')
+
             elif produto == 'lavatorio':
                 comp = pcfg.get('compGen', 120)
                 prof = pcfg.get('profGen', 55)
@@ -668,6 +686,17 @@ def api_configurador_orcamento():
                         cs_ilh = alt * n_saias
                         ls_ilh = max(saia_frente, saia_fundo) if cs_ilh > 0 else 0
                         criar_item_p('Ilharga', alt, prof, cs_ilh, ls_ilh, 0, 0,
+                                  produto_nome='Ilharga')
+
+                for side_key in ['frente', 'fundo']:
+                    if bordas.get(side_key) == 'ilharga':
+                        alt = borda_alts.get(side_key, 92)
+                        saia_esq = borda_saia_larg.get('esquerda', 10) if bordas.get('esquerda') == 'saia' else 0
+                        saia_dir = borda_saia_larg.get('direita', 10) if bordas.get('direita') == 'saia' else 0
+                        n_saias = (1 if saia_esq > 0 else 0) + (1 if saia_dir > 0 else 0)
+                        cs_ilh = alt * n_saias
+                        ls_ilh = max(saia_esq, saia_dir) if cs_ilh > 0 else 0
+                        criar_item_p('Ilharga', comp, alt, cs_ilh, ls_ilh, 0, 0,
                                   produto_nome='Ilharga')
 
             elif produto == 'nicho':
