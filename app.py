@@ -2170,7 +2170,7 @@ a:hover{{background:#d4a017;color:#1a1a2e}}
 </head>
 <body>
 <div class="card">
-<img class="logo" src="/static/logo.jpg" alt="Prime Marble Shop">
+<img class="logo" src="https://orcamento-t9w2.onrender.com/static/logo.jpg" alt="Prime Marble Shop">
 <p class="brand">Prime Marble Shop</p>
 <p class="sub">Mármores &amp; Granitos</p>
 <div class="divider"></div>
