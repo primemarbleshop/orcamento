@@ -647,10 +647,20 @@ function drawBancadaEdges(sections, sc, ox, oy, b) {
         let target = totalLen / 2, acc = 0;
         let lx, ly;
 
-        // Centralização explícita para labels que o usuário quer ver no meio do vão útil.
-        // Para a frente, centraliza pelo menor/maior X dos trechos horizontais da frente.
-        // Para o fundo externo do L, centraliza pelo menor/maior Y do trecho vertical do braço.
-        if (side === 'frente') {
+        // Centralização explícita dos labels principais.
+        // - fundo: deve permanecer centralizado na medida total do fundo da bancada,
+        //   mesmo quando existir um dente vertical acompanhando o mesmo acabamento;
+        // - frente: centraliza pelo vão horizontal útil da frente;
+        // - l_fundo: centraliza na lateral externa do braço do L.
+        if (side === 'fundo') {
+            const horiz = labelSegs.filter(seg => Math.abs(seg.x2 - seg.x1) >= Math.abs(seg.y2 - seg.y1));
+            const pool = horiz.length ? horiz : labelSegs;
+            const minX = Math.min(...pool.map(seg => Math.min(seg.x1, seg.x2)));
+            const maxX = Math.max(...pool.map(seg => Math.max(seg.x1, seg.x2)));
+            const yRef = pool.reduce((a, b) => ((a.y1 + a.y2) / 2) <= ((b.y1 + b.y2) / 2) ? a : b);
+            lx = ox + ((minX + maxX) / 2) * sc;
+            ly = oy + (((yRef.y1 + yRef.y2) / 2) * sc);
+        } else if (side === 'frente') {
             const horiz = labelSegs.filter(seg => Math.abs(seg.x2 - seg.x1) >= Math.abs(seg.y2 - seg.y1));
             const pool = horiz.length ? horiz : labelSegs;
             const minX = Math.min(...pool.map(seg => Math.min(seg.x1, seg.x2)));
