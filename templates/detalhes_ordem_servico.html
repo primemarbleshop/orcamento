@@ -248,6 +248,8 @@
             overflow: hidden;
             background: white;
             position: relative;
+            overscroll-behavior: contain;
+            touch-action: pan-y pinch-zoom;
         }
 
         #excalidraw-container .excalidraw {
@@ -349,10 +351,11 @@
                 border-left: none;
                 border-right: none;
             }
-            /* Quando nenhuma ferramenta ativa: toque passa pro browser (scroll/zoom da página) */
+            /* Quando nenhuma ferramenta ativa: o JS controla scroll em duas etapas.
+               Mantém eventos no container para impedir pan/zoom interno do Excalidraw. */
             #excalidraw-container.no-tool {
-                pointer-events: none;
-                touch-action: auto;
+                pointer-events: auto;
+                touch-action: pan-y pinch-zoom;
             }
         }
 
@@ -377,20 +380,18 @@
             display: none !important;
         }
 
-        /* Scroll/zoom: a página continua rolando; o JS decide quando repassar o scroll ao desenho. */
+        /* Touch: o scroll/zoom é coordenado pelo JS para evitar zoom interno do Excalidraw. */
         body.tool-active {
-            overflow-x: hidden !important;
-            overflow-y: auto !important;
-            touch-action: auto !important;
+            touch-action: pinch-zoom !important;
         }
         #excalidraw-container.has-tool,
         #excalidraw-container.lasso-active,
         #excalidraw-container.eraser-active,
         #excalidraw-container.edge-tool-active {
-            touch-action: pan-y pinch-zoom;
+            touch-action: pinch-zoom;
         }
         #lassoCanvas, #eraserCanvas {
-            touch-action: pan-y pinch-zoom;
+            touch-action: pinch-zoom;
         }
 
         @media print {
@@ -592,59 +593,6 @@
         A4.FIRST_PAGE_H = A4.HEIGHT - A4.EXTERNAL_HEADER_H;
         A4.FULL_PAGE_H = A4.HEIGHT - A4.EXTERNAL_HEADER_H; // todas as páginas têm cabeçalho
 
-        // Layout/scroll do desenho:
-        // - no celular o A4 é encaixado na largura da tela;
-        // - o zoom interno fica fixo, então a pinça continua sendo zoom da página;
-        // - o scroll vertical do Excalidraw é livre para baixo, não limitado pela altura calculada das peças.
-        let _drawingLogicalHeight = A4.FIRST_PAGE_H;
-        let _drawingFitZoom = 1;
-        let _layoutTimer = null;
-        const DRAWING_FREE_SCROLL_LIMIT = 100000;
-
-        function isMobileDrawingViewport() {
-            return window.matchMedia && window.matchMedia('(max-width: 820px)').matches;
-        }
-
-        function getDrawingFitZoom() {
-            const container = document.getElementById('excalidraw-container');
-            const availableWidth = Math.max(1, (container && container.clientWidth) || window.innerWidth || A4.WIDTH);
-            if (!isMobileDrawingViewport()) return 1;
-            return Math.min(1, Math.max(0.35, availableWidth / A4.WIDTH));
-        }
-
-        function applyDrawingResponsiveLayout(logicalHeight) {
-            const container = document.getElementById('excalidraw-container');
-            _drawingLogicalHeight = Math.max(1, logicalHeight || _drawingLogicalHeight || A4.FIRST_PAGE_H);
-            _drawingFitZoom = getDrawingFitZoom();
-            if (container) {
-                // A altura visual acompanha o zoom de encaixe. Assim o desenho não fica maior que a tela no celular.
-                const visualHeight = Math.max(360, Math.ceil(_drawingLogicalHeight * _drawingFitZoom));
-                container.style.height = visualHeight + 'px';
-                container.style.maxWidth = '100vw';
-                container.style.overflow = 'hidden';
-            }
-            return _drawingFitZoom;
-        }
-
-        function clampDrawingScrollY(scrollY) {
-            const value = Number.isFinite(scrollY) ? scrollY : 0;
-            // Topo travado em 0; para baixo é livre até um limite técnico alto para evitar valores infinitos.
-            return Math.max(-DRAWING_FREE_SCROLL_LIMIT, Math.min(0, value));
-        }
-
-        function syncDrawingViewport(api, resetScroll) {
-            if (!api) return;
-            const zoom = applyDrawingResponsiveLayout(_drawingLogicalHeight);
-            const appState = api.getAppState ? api.getAppState() : {};
-            api.updateScene({
-                appState: {
-                    scrollX: 0,
-                    scrollY: resetScroll ? 0 : clampDrawingScrollY(appState.scrollY || 0),
-                    zoom: { value: zoom }
-                }
-            });
-        }
-
         const CONFIG = {
             ESCALA: 1.875,
             MIN_CM: 10,
@@ -653,6 +601,120 @@
             GROUP_SPACING: 70,
             SIDE_MARGIN_CM: 1.5,
         };
+
+
+        // Margem real da área útil do desenho: 1,5 cm nas laterais e no topo.
+        // Conversão: A4.WIDTH = 790 unidades representa 21 cm de largura.
+        const DRAWING_SAFE_MARGIN = Math.round((CONFIG.SIDE_MARGIN_CM / 21) * A4.WIDTH);
+        const DRAWING_MIN_X = DRAWING_SAFE_MARGIN;
+        const DRAWING_MAX_X = A4.WIDTH - DRAWING_SAFE_MARGIN;
+        const DRAWING_MIN_Y = DRAWING_SAFE_MARGIN;
+
+        function getResponsiveZoomValue() {
+            const container = document.getElementById('excalidraw-container');
+            const w = container?.clientWidth || Math.min(window.innerWidth || A4.WIDTH, A4.WIDTH);
+            // No PC fica 1:1. No celular reduz para encaixar toda a largura do desenho.
+            return Math.min(1, Math.max(0.30, (w - 4) / A4.WIDTH));
+        }
+
+        function aplicarAlturaViewportEditor() {
+            const container = document.getElementById('excalidraw-container');
+            if (!container) return;
+            const vh = window.innerHeight || document.documentElement.clientHeight || 700;
+            const isMobile = window.innerWidth <= 820;
+            const h = isMobile
+                ? Math.max(430, Math.min(760, vh - 96))
+                : Math.max(560, Math.min(900, vh - 86));
+            container.style.height = h + 'px';
+        }
+
+        function getSceneElementBounds(el) {
+            if (!el || el.isDeleted) return null;
+            let points;
+
+            if ((el.type === 'line' || el.type === 'arrow') && Array.isArray(el.points) && el.points.length) {
+                points = el.points.map(p => ({ x: (el.x || 0) + (p[0] || 0), y: (el.y || 0) + (p[1] || 0) }));
+            } else {
+                const x = el.x || 0;
+                const y = el.y || 0;
+                const w = el.width || 0;
+                const h = el.height || 0;
+                points = [
+                    { x, y }, { x: x + w, y },
+                    { x: x + w, y: y + h }, { x, y: y + h }
+                ];
+            }
+
+            const angle = el.angle || 0;
+            if (Math.abs(angle) > 0.000001 && points.length > 1) {
+                const minX0 = Math.min(...points.map(p => p.x));
+                const maxX0 = Math.max(...points.map(p => p.x));
+                const minY0 = Math.min(...points.map(p => p.y));
+                const maxY0 = Math.max(...points.map(p => p.y));
+                const cx = (minX0 + maxX0) / 2;
+                const cy = (minY0 + maxY0) / 2;
+                const cos = Math.cos(angle);
+                const sin = Math.sin(angle);
+                points = points.map(p => {
+                    const dx = p.x - cx;
+                    const dy = p.y - cy;
+                    return { x: cx + dx * cos - dy * sin, y: cy + dx * sin + dy * cos };
+                });
+            }
+
+            return {
+                minX: Math.min(...points.map(p => p.x)),
+                maxX: Math.max(...points.map(p => p.x)),
+                minY: Math.min(...points.map(p => p.y)),
+                maxY: Math.max(...points.map(p => p.y)),
+            };
+        }
+
+        function limitarElementosMargem(elements) {
+            if (!Array.isArray(elements)) return { elements, changed: false };
+            const usefulW = DRAWING_MAX_X - DRAWING_MIN_X;
+            let changed = false;
+
+            const updated = elements.map(el => {
+                if (!el || el.isDeleted) return el;
+                // Linhas técnicas de quebra de página não fazem parte do desenho editável.
+                if (el.customData?.tipo === 'pageBreak') return el;
+
+                const b = getSceneElementBounds(el);
+                if (!b) return el;
+
+                const objW = b.maxX - b.minX;
+                let dx = 0;
+                let dy = 0;
+
+                if (objW > usefulW) {
+                    // Objeto maior que a área útil: mantém encostado na borda esquerda útil.
+                    dx = DRAWING_MIN_X - b.minX;
+                } else {
+                    if (b.minX < DRAWING_MIN_X) dx = DRAWING_MIN_X - b.minX;
+                    if (b.maxX + dx > DRAWING_MAX_X) dx = DRAWING_MAX_X - (b.maxX + dx);
+                }
+
+                if (b.minY < DRAWING_MIN_Y) {
+                    dy = DRAWING_MIN_Y - b.minY;
+                }
+
+                if (Math.abs(dx) > 0.01 || Math.abs(dy) > 0.01) {
+                    changed = true;
+                    return {
+                        ...el,
+                        x: (el.x || 0) + dx,
+                        y: (el.y || 0) + dy,
+                        version: (el.version || 1) + 1,
+                        versionNonce: Math.floor(Math.random() * 2147483647),
+                        updated: Date.now(),
+                    };
+                }
+                return el;
+            });
+
+            return { elements: updated, changed };
+        }
 
         // Legenda simplificada de símbolos de borda
         const LEGENDA_SIMPLIFICADA = [
@@ -1461,14 +1523,14 @@
 
         function criarElementosPecas(dadosPecas) {
             const elements = [];
-            // Margem lateral de 1.5cm em escala A4 (790 units = 21cm)
-            const sideMarginUnits = Math.round((CONFIG.SIDE_MARGIN_CM / 21) * A4.WIDTH);
+            // Margem de 1,5 cm em escala A4 (790 unidades = 21 cm)
+            const sideMarginUnits = DRAWING_SAFE_MARGIN;
             const pieceStartX = sideMarginUnits;
             const maxPieceX = A4.WIDTH - sideMarginUnits;
             const maxPieceW = maxPieceX - pieceStartX;
             const TITLE_SPACING = 70; // espaço do título até a primeira peça
 
-            let currentY = A4.MARGIN;
+            let currentY = DRAWING_SAFE_MARGIN;
             let pageBreaks = [];
             let firstPageBottom = A4.FIRST_PAGE_H;
 
@@ -1479,7 +1541,7 @@
 
             function checkPageBreak(neededH) {
                 const nextBreak = getNextPageBreak();
-                if (currentY + neededH > nextBreak - A4.MARGIN) {
+                if (currentY + neededH > nextBreak - DRAWING_SAFE_MARGIN) {
                     const breakY = nextBreak;
                     pageBreaks.push(breakY);
                     elements.push(criarLinha(0, breakY, [[0, 0], [A4.WIDTH, 0]], {
@@ -1487,7 +1549,7 @@
                         strokeWidth: 2, locked: true,
                         customData: { tipo: 'pageBreak' }
                     }));
-                    currentY = breakY + A4.MARGIN;
+                    currentY = breakY + DRAWING_SAFE_MARGIN;
                 }
             }
 
@@ -1615,7 +1677,7 @@
                 currentY += CONFIG.GROUP_SPACING;
             }
 
-            const totalContentH = currentY + A4.MARGIN;
+            const totalContentH = currentY + DRAWING_SAFE_MARGIN;
             const minH = A4.FIRST_PAGE_H;
             const containerH = Math.max(totalContentH, minH);
 
@@ -1634,7 +1696,7 @@
                     if (bottom > maxY) maxY = bottom;
                 }
             }
-            return Math.max(maxY + A4.MARGIN, A4.FIRST_PAGE_H);
+            return Math.max(maxY + DRAWING_SAFE_MARGIN, A4.FIRST_PAGE_H);
         }
 
         function obterDadosIniciais(dadosPecas, desenhoSalvo) {
@@ -1650,18 +1712,19 @@
                 objectsSnapModeEnabled: false,
                 scrollX: 0,
                 scrollY: 0,
-                zoom: { value: 1 },
+                zoom: { value: getResponsiveZoomValue() },
             };
 
             if (desenhoSalvo && desenhoSalvo !== 'None' && desenhoSalvo !== '') {
                 try {
                     const data = JSON.parse(desenhoSalvo);
                     if (data.elements && Array.isArray(data.elements)) {
-                        const h = calcularAlturaContainer(data.elements);
-                        applyDrawingResponsiveLayout(h);
+                        calcularAlturaContainer(data.elements); // mantém cálculo disponível para impressão, sem limitar scroll interno
+                        aplicarAlturaViewportEditor();
+                        const elementosLimitados = limitarElementosMargem(data.elements).elements;
                         return {
-                            elements: data.elements,
-                            appState: { ...baseAppState, ...(data.appState || {}) },
+                            elements: elementosLimitados,
+                            appState: { ...baseAppState, ...(data.appState || {}), scrollX: 0, scrollY: 0, zoom: { value: getResponsiveZoomValue() } },
                             files: data.files || undefined
                         };
                     }
@@ -1670,9 +1733,10 @@
                 }
             }
 
-            const elements = criarElementosPecas(dadosPecas);
-            const h = calcularAlturaContainer(elements);
-            applyDrawingResponsiveLayout(h);
+            let elements = criarElementosPecas(dadosPecas);
+            calcularAlturaContainer(elements); // não limita a altura navegável do Excalidraw
+            aplicarAlturaViewportEditor();
+            elements = limitarElementosMargem(elements).elements;
 
             return {
                 elements,
@@ -1699,18 +1763,15 @@
                 console.log('Excalidraw pronto!');
                 document.getElementById('loadingOverlay')?.remove();
 
-                setTimeout(() => {
-                    if (this.excalidrawAPI) syncDrawingViewport(this.excalidrawAPI, true);
-                }, 300);
+                aplicarAlturaViewportEditor();
 
-                const onResponsiveResize = () => {
-                    clearTimeout(_layoutTimer);
-                    _layoutTimer = setTimeout(() => {
-                        if (this.excalidrawAPI) syncDrawingViewport(this.excalidrawAPI, false);
-                    }, 120);
-                };
-                window.addEventListener('resize', onResponsiveResize, { passive: true });
-                window.addEventListener('orientationchange', onResponsiveResize, { passive: true });
+                setTimeout(() => {
+                    if (this.excalidrawAPI) {
+                        this.excalidrawAPI.updateScene({
+                            appState: { scrollX: 0, scrollY: 0, zoom: { value: getResponsiveZoomValue() } }
+                        });
+                    }
+                }, 300);
 
                 // Criar grid overlay visual (sem snap) - fora do React
                 setTimeout(() => {
@@ -1789,11 +1850,10 @@
 
                 const self = this;
 
-                // Prevenir scroll acidental fora do desenho quando ferramenta ativa no desktop.
-                // No celular o scroll precisa continuar disponível para a página e para o handoff do desenho.
+                // Prevenir scroll via touchmove no body quando ferramenta ativa
                 document.body.addEventListener('touchmove', (e) => {
                     if (document.body.classList.contains('tool-active')) {
-                        if (isMobileDrawingViewport()) return;
+                        // Permitir interação dentro do excalidraw-container
                         const container = document.getElementById('excalidraw-container');
                         if (container && container.contains(e.target)) return;
                         e.preventDefault();
@@ -2115,7 +2175,7 @@
                 if (!this.excalidrawAPI || this.salvando) return;
                 this.salvando = true;
 
-                const elements = this.excalidrawAPI.getSceneElements();
+                const elements = limitarElementosMargem(this.excalidrawAPI.getSceneElements()).elements;
                 const appState = this.excalidrawAPI.getAppState();
                 const files = this.excalidrawAPI.getFiles();
 
@@ -2401,8 +2461,8 @@
                 }).then((result) => {
                     if (result.isConfirmed) {
                         const elements = criarElementosPecas(this.dadosPecas);
-                        const h = calcularAlturaContainer(elements);
-                        applyDrawingResponsiveLayout(h);
+                        calcularAlturaContainer(elements);
+                        aplicarAlturaViewportEditor();
                         this.excalidrawAPI.updateScene({
                             elements,
                             appState: {
@@ -2412,7 +2472,7 @@
                                 currentItemFontSize: 16,
                                 scrollX: 0,
                                 scrollY: 0,
-                                zoom: { value: 1 },
+                                zoom: { value: getResponsiveZoomValue() },
                             }
                         });
                         Swal.fire({
@@ -2438,34 +2498,33 @@
             if (_clampingScroll || !apiRef.current) return;
 
             const zoom = appState.zoom?.value || 1;
-            const targetZoom = _drawingFitZoom || getDrawingFitZoom() || 1;
-
+            const targetZoom = getResponsiveZoomValue();
             let changed = false;
             let newAppState = {};
 
-            // Zoom interno fixo: desktop=1; celular=encaixe na largura. Pinça/zoom fica para a página.
+            // O zoom interno do Excalidraw fica travado no encaixe horizontal.
+            // Pinça/zoom devem atuar na página inteira, não no canvas interno.
             if (Math.abs(zoom - targetZoom) > 0.01) {
                 newAppState.zoom = { value: targetZoom };
                 changed = true;
             }
 
-            // Horizontal sempre travado para não esconder desenho à direita/esquerda.
+            // Trava lateral: nunca deixa o canvas esconder desenho à direita/esquerda.
             if (Math.abs(appState.scrollX || 0) > 0.5) {
                 newAppState.scrollX = 0;
                 changed = true;
             }
 
-            // Vertical é livre para baixo; só não deixa passar acima do topo inicial.
-            const clampedY = clampDrawingScrollY(appState.scrollY || 0);
-            if (Math.abs((appState.scrollY || 0) - clampedY) > 0.5) {
-                newAppState.scrollY = clampedY;
+            // Topo do Excalidraw é 0. Para descer no desenho, scrollY fica negativo.
+            // Não há limite inferior calculado: permite descer livre além da altura anterior.
+            if ((appState.scrollY || 0) > 0.5) {
+                newAppState.scrollY = 0;
                 changed = true;
             }
 
             if (changed) {
                 _clampingScroll = true;
                 if (newAppState.scrollX === undefined) newAppState.scrollX = 0;
-                if (newAppState.scrollY === undefined) newAppState.scrollY = clampedY;
                 apiRef.current.updateScene({ appState: newAppState });
                 requestAnimationFrame(() => { _clampingScroll = false; });
             }
@@ -2596,6 +2655,14 @@
             const handleChange = useCallback((elements, appState) => {
                 if (_clampingScroll || _updatingScene || _isSnapping) return;
 
+                const margemResult = limitarElementosMargem(elements);
+                if (margemResult.changed && apiRef.current) {
+                    _updatingScene = true;
+                    apiRef.current.updateScene({ elements: margemResult.elements });
+                    requestAnimationFrame(() => { _updatingScene = false; });
+                    return;
+                }
+
                 // Sincronizar grid overlay com scroll/zoom (apenas quando muda)
                 const z = appState.zoom?.value || 1;
                 const sx = appState.scrollX || 0;
@@ -2682,136 +2749,149 @@
         const root = createRoot(container);
         root.render(h(ExcalidrawApp));
 
+        // Scroll em duas etapas:
+        // 1) a página do site rola normalmente;
+        // 2) ao chegar no fim da página, a roda/toque passa a mover o Excalidraw;
+        // 3) ao subir, o Excalidraw volta ao topo antes da página subir.
         const excContainer = document.getElementById('excalidraw-container');
 
-        function getPageScrollInfo() {
-            const doc = document.documentElement;
-            const body = document.body;
-            const scrollTop = window.scrollY || doc.scrollTop || body.scrollTop || 0;
-            const viewportH = window.innerHeight || doc.clientHeight || 0;
-            const scrollH = Math.max(doc.scrollHeight || 0, body.scrollHeight || 0);
-            return {
-                top: scrollTop,
-                bottom: scrollTop + viewportH,
-                height: scrollH,
-                atBottom: (scrollTop + viewportH) >= (scrollH - 2),
-            };
+        function getPageScroller() {
+            return document.scrollingElement || document.documentElement;
         }
 
-        function getDrawingScrollInfo() {
-            const api = window.gerenciadorDesenho && window.gerenciadorDesenho.excalidrawAPI;
-            const appState = api && api.getAppState ? api.getAppState() : {};
-            const y = clampDrawingScrollY(appState.scrollY || 0);
-            return {
-                api,
-                y,
-                atTop: y >= -1,
-                atBottom: y <= (-DRAWING_FREE_SCROLL_LIMIT + 1),
-            };
+        function paginaPodeDescer() {
+            const scroller = getPageScroller();
+            return scroller.scrollTop < (scroller.scrollHeight - scroller.clientHeight - 2);
         }
 
-        function panDrawingByPixels(deltaY) {
-            const info = getDrawingScrollInfo();
-            if (!info.api) return false;
+        function excalidrawNoTopo() {
+            const api = window.gerenciadorDesenho?.excalidrawAPI;
+            if (!api) return true;
+            const sy = api.getAppState().scrollY || 0;
+            return sy >= -1;
+        }
 
-            const appState = info.api.getAppState();
-            const zoom = appState.zoom?.value || _drawingFitZoom || 1;
-            const currentY = appState.scrollY || 0;
-            const nextY = clampDrawingScrollY(currentY - (deltaY / zoom));
-
-            if (Math.abs(nextY - currentY) < 0.5) return false;
-
-            _clampingScroll = true;
-            info.api.updateScene({
+        function moverScrollExcalidraw(deltaY) {
+            const api = window.gerenciadorDesenho?.excalidrawAPI;
+            if (!api) return;
+            const appState = api.getAppState();
+            const zoom = appState.zoom?.value || getResponsiveZoomValue();
+            let nextY = (appState.scrollY || 0) - (deltaY / zoom);
+            if (nextY > 0) nextY = 0;
+            api.updateScene({
                 appState: {
                     scrollX: 0,
                     scrollY: nextY,
-                    zoom: { value: _drawingFitZoom || zoom }
+                    zoom: { value: getResponsiveZoomValue() }
                 }
             });
-            requestAnimationFrame(() => { _clampingScroll = false; });
-            return true;
         }
 
-        function shouldPanDrawing(deltaY) {
-            if (Math.abs(deltaY) < 0.5) return false;
-            const drawing = getDrawingScrollInfo();
-            if (!drawing.api) return false;
+        excContainer.addEventListener('wheel', (e) => {
+            // Ctrl/Meta + roda: deixa o browser aplicar zoom na página,
+            // mas impede o Excalidraw de receber zoom interno.
+            if (e.ctrlKey || e.metaKey) {
+                e.stopImmediatePropagation();
+                return;
+            }
+
+            const deltaY = e.deltaY || 0;
+            if (Math.abs(deltaY) < 0.01) return;
 
             if (deltaY > 0) {
-                // Descendo: a página do site rola primeiro. Só no final dela o Excalidraw começa a descer.
-                return getPageScrollInfo().atBottom && !drawing.atBottom;
-            }
-
-            // Subindo: primeiro sobe o Excalidraw. Ao chegar no topo dele, volta a subir a página do site.
-            return !drawing.atTop;
-        }
-
-        function isEditableTarget(target) {
-            return !!(target && target.closest && target.closest('input, textarea, select, [contenteditable="true"], .swal2-container'));
-        }
-
-        // PC: roda do mouse/trackpad com handoff entre página e desenho.
-        document.addEventListener('wheel', (e) => {
-            if (isEditableTarget(e.target)) return;
-
-            if (e.ctrlKey || e.metaKey) {
-                // Ctrl+wheel fica com o navegador/página, não com o zoom interno do Excalidraw.
-                if (excContainer.contains(e.target)) e.stopPropagation();
-                return;
-            }
-
-            if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
-
-            if (shouldPanDrawing(e.deltaY)) {
+                if (paginaPodeDescer()) {
+                    // Página ainda não chegou ao fim: browser rola a página.
+                    e.stopImmediatePropagation();
+                    return;
+                }
+                // Fim da página: roda passa a descer o Excalidraw, sem limite inferior calculado.
                 e.preventDefault();
-                e.stopPropagation();
-                panDrawingByPixels(e.deltaY);
-                return;
-            }
-
-            // Enquanto a página ainda consegue rolar, impede o Excalidraw de capturar o wheel.
-            // Não chama preventDefault, então o navegador continua rolando a página normalmente.
-            if (excContainer.contains(e.target)) {
-                e.stopPropagation();
+                e.stopImmediatePropagation();
+                moverScrollExcalidraw(deltaY);
+            } else {
+                if (!excalidrawNoTopo()) {
+                    // Primeiro sobe o Excalidraw.
+                    e.preventDefault();
+                    e.stopImmediatePropagation();
+                    moverScrollExcalidraw(deltaY);
+                } else {
+                    // Excalidraw no topo: browser volta a subir a página.
+                    e.stopImmediatePropagation();
+                }
             }
         }, { passive: false, capture: true });
 
-        // Celular: arraste vertical com a mesma regra; pinça continua sendo zoom da página.
-        (function installTouchScrollHandoff() {
+        (function configurarTouchScrollDuasEtapas() {
+            let lastY = null;
             let pinching = false;
-            let lastTouchY = null;
 
-            document.addEventListener('touchstart', (e) => {
-                pinching = e.touches.length >= 2;
-                lastTouchY = e.touches.length === 1 ? e.touches[0].clientY : null;
-            }, { passive: true, capture: true });
+            excContainer.addEventListener('touchstart', (e) => {
+                if (e.touches.length >= 2) {
+                    pinching = true;
+                    lastY = null;
+                    // Impede zoom interno do Excalidraw; não impede zoom da página.
+                    e.stopImmediatePropagation();
+                    return;
+                }
+                pinching = false;
+                if (!window._noToolMode) return;
+                lastY = e.touches[0].clientY;
+                e.stopImmediatePropagation();
+            }, { passive: false, capture: true });
 
-            document.addEventListener('touchmove', (e) => {
+            excContainer.addEventListener('touchmove', (e) => {
                 if (pinching || e.touches.length >= 2) {
-                    // Não dá preventDefault: deixa o navegador aplicar zoom na página inteira.
-                    if (excContainer.contains(e.target)) e.stopPropagation();
+                    e.stopImmediatePropagation();
+                    return;
+                }
+                if (!window._noToolMode) return;
+                if (lastY === null) {
+                    lastY = e.touches[0].clientY;
+                    e.stopImmediatePropagation();
                     return;
                 }
 
-                if (isEditableTarget(e.target) || e.touches.length !== 1 || lastTouchY === null) return;
-
                 const y = e.touches[0].clientY;
-                const deltaY = lastTouchY - y;
-                lastTouchY = y;
+                const deltaY = lastY - y; // dedo sobe = conteúdo desce
+                lastY = y;
 
-                if (shouldPanDrawing(deltaY)) {
+                if (Math.abs(deltaY) < 0.5) {
+                    e.stopImmediatePropagation();
+                    return;
+                }
+
+                if (deltaY > 0) {
+                    if (paginaPodeDescer()) {
+                        e.stopImmediatePropagation();
+                        return;
+                    }
                     e.preventDefault();
-                    e.stopPropagation();
-                    panDrawingByPixels(deltaY);
+                    e.stopImmediatePropagation();
+                    moverScrollExcalidraw(deltaY);
+                } else {
+                    if (!excalidrawNoTopo()) {
+                        e.preventDefault();
+                        e.stopImmediatePropagation();
+                        moverScrollExcalidraw(deltaY);
+                    } else {
+                        e.stopImmediatePropagation();
+                    }
                 }
             }, { passive: false, capture: true });
 
-            document.addEventListener('touchend', (e) => {
+            excContainer.addEventListener('touchend', (e) => {
                 if (e.touches.length < 2) pinching = false;
-                lastTouchY = e.touches.length === 1 ? e.touches[0].clientY : null;
+                if (e.touches.length === 0) lastY = null;
             }, { passive: true, capture: true });
         })();
+
+        window.addEventListener('resize', () => {
+            aplicarAlturaViewportEditor();
+            const api = window.gerenciadorDesenho?.excalidrawAPI;
+            if (api) {
+                api.updateScene({ appState: { scrollX: 0, zoom: { value: getResponsiveZoomValue() } } });
+            }
+        });
 
         // Bloquear menu de contexto (long-press / botão direito) no excalidraw
         excContainer.addEventListener('contextmenu', (e) => {
