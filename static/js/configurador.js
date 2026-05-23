@@ -14,19 +14,58 @@ function edgeName(type, side) {
     if (type === 'parede') return ['Parede', 'sem fronte'];
     return ['Acabamento', 'sem saia'];
 }
+let edgeLabelBoxes = [];
+
 function drawEdgeLabel(lines, x, y, isVert) {
     const filtered = lines.filter(l => l);
-    const lineH = 12;
-    const start = -((filtered.length - 1) * lineH) / 2;
     if (isVert) {
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(-Math.PI/2);
-        filtered.forEach((l, i) => ctx.fillText(l, 0, start + i * lineH));
+        ctx.save(); ctx.translate(x, y); ctx.rotate(-Math.PI/2);
+        filtered.forEach((l, i) => ctx.fillText(l, 0, i * 12));
         ctx.restore();
     } else {
-        filtered.forEach((l, i) => ctx.fillText(l, x, y + start + i * lineH));
+        filtered.forEach((l, i) => ctx.fillText(l, x, y + i * 12));
     }
+}
+
+function getEdgeLabelBox(lines, x, y, isVert) {
+    const filtered = lines.filter(l => l);
+    const lineH = 12;
+    const pad = 4;
+    const widths = filtered.map(l => ctx.measureText(l).width || 0);
+    const maxW = widths.length ? Math.max(...widths) : 0;
+    if (!isVert) {
+        const w = maxW + pad * 2;
+        const h = Math.max(1, filtered.length) * lineH + pad * 2;
+        return { left: x - w/2, top: y - lineH/2 - pad, right: x + w/2, bottom: y + ((filtered.length - 1) * lineH) + lineH/2 + pad };
+    }
+    const stack = Math.max(1, filtered.length) * lineH + pad * 2;
+    const h = maxW + pad * 2;
+    const cx = x - ((filtered.length - 1) * lineH) / 2;
+    return { left: cx - stack/2, top: y - h/2, right: cx + stack/2, bottom: y + h/2 };
+}
+
+function labelBoxesOverlap(a, b, gap = 6) {
+    return !(a.right + gap < b.left || a.left - gap > b.right || a.bottom + gap < b.top || a.top - gap > b.bottom);
+}
+
+function resolveEdgeLabelPosition(lines, x, y, isVert, nx, ny) {
+    let tx = x, ty = y;
+    let box = getEdgeLabelBox(lines, tx, ty, isVert);
+    const step = isVert ? 16 : 14;
+    let tries = 0;
+    while (edgeLabelBoxes.some(b => labelBoxesOverlap(box, b)) && tries < 12) {
+        tx += nx * step;
+        ty += ny * step;
+        box = getEdgeLabelBox(lines, tx, ty, isVert);
+        tries += 1;
+    }
+    edgeLabelBoxes.push(box);
+    return {x: tx, y: ty};
+}
+
+function drawEdgeLabelSmart(lines, x, y, isVert, nx, ny) {
+    const pos = resolveEdgeLabelPosition(lines, x, y, isVert, nx, ny);
+    drawEdgeLabel(lines, pos.x, pos.y, isVert);
 }
 
 const MODELOS = [
@@ -134,81 +173,42 @@ function getSections() {
     const ws = CFG.compSeca, ds = CFG.profSeca;
     const wm = CFG.compMolhada, dm = CFG.profMolhada;
     const secs = [];
-
-    // Regra de layout das bancadas:
-    // quando duas ou mais bancadas ficam lado a lado com larguras diferentes,
-    // a frente deve permanecer sempre na mesma linha. A diferença de largura
-    // deve aparecer para trás, formando o dente no fundo/parede, nunca na frente.
-    const alignFront = (row) => {
-        if (!row || row.length <= 1) return row;
-        const frontY = Math.max(...row.map(s => s.h));
-        row.forEach(s => { s.y = frontY - s.h; });
-        return row;
-    };
-
     switch(md) {
         case 'toda_molhada':
             secs.push({type:'molhada', x:0, y:0, w:wm, h:dm}); break;
         case 'toda_seca':
             secs.push({type:'seca', x:0, y:0, w:ws, h:ds}); break;
-        case 'molhada_esq_seca_dir': {
-            const row = [
-                {type:'molhada', x:0, y:0, w:wm, h:dm},
-                {type:'seca', x:wm, y:0, w:ws, h:ds}
-            ];
-            alignFront(row); secs.push(...row); break;
-        }
-        case 'molhada_dir_seca_esq': {
-            const row = [
-                {type:'molhada', x:0, y:0, w:wm, h:dm},
-                {type:'seca', x:wm, y:0, w:ws, h:ds}
-            ];
-            alignFront(row); secs.push(...row); break;
-        }
+        case 'molhada_esq_seca_dir':
+            secs.push({type:'molhada', x:0, y:0, w:wm, h:dm});
+            secs.push({type:'seca', x:wm, y:0, w:ws, h:ds}); break;
+        case 'molhada_dir_seca_esq':
+            secs.push({type:'molhada', x:0, y:0, w:wm, h:dm});
+            secs.push({type:'seca', x:wm, y:0, w:ws, h:ds}); break;
         case 'molhada_centro_seca_lat': {
             const sle = CFG.compSecaEsq, dle = CFG.profSecaEsq;
             const sld = CFG.compSecaDir, dld = CFG.profSecaDir;
-            const row = [
-                {type:'seca', x:0, y:0, w:sle, h:dle, label:'SECA ESQ'},
-                {type:'molhada', x:sle, y:0, w:wm, h:dm},
-                {type:'seca', x:sle+wm, y:0, w:sld, h:dld, label:'SECA DIR'}
-            ];
-            alignFront(row); secs.push(...row); break;
+            secs.push({type:'seca', x:0, y:0, w:sle, h:dle, label:'SECA ESQ'});
+            secs.push({type:'molhada', x:sle, y:0, w:wm, h:dm});
+            secs.push({type:'seca', x:sle+wm, y:0, w:sld, h:dld, label:'SECA DIR'}); break;
         }
         case 'seca_centro_molhada_lat': {
             const mle = CFG.compMolhadaEsq, dme = CFG.profMolhadaEsq;
             const mld = CFG.compMolhadaDir, dmd = CFG.profMolhadaDir;
-            const row = [
-                {type:'molhada', x:0, y:0, w:mle, h:dme, label:'MOLHADA ESQ'},
-                {type:'seca', x:mle, y:0, w:ws, h:ds},
-                {type:'molhada', x:mle+ws, y:0, w:mld, h:dmd, label:'MOLHADA DIR'}
-            ];
-            alignFront(row); secs.push(...row); break;
+            secs.push({type:'molhada', x:0, y:0, w:mle, h:dme, label:'MOLHADA ESQ'});
+            secs.push({type:'seca', x:mle, y:0, w:ws, h:ds});
+            secs.push({type:'molhada', x:mle+ws, y:0, w:mld, h:dmd, label:'MOLHADA DIR'}); break;
         }
         case 'l_seca_molhada': {
-            const row = [
-                {type:'molhada', x:0, y:0, w:wm, h:dm},
-                {type:'seca', x:wm, y:0, w:ws, h:ds}
-            ];
-            alignFront(row);
-            const frontY = Math.max(...row.map(s => s.y + s.h));
-            secs.push(...row);
-            // O braço do L deve encostar na frente alinhada da bancada superior.
-            secs.push({type:'seca', x:0, y:frontY, w:CFG.profL, h:CFG.compL, isL:true});
+            secs.push({type:'molhada', x:0, y:0, w:wm, h:dm});
+            secs.push({type:'seca', x:wm, y:0, w:ws, h:ds});
+            const mainD = Math.max(dm, ds);
+            secs.push({type:'seca', x:0, y:mainD, w:CFG.profL, h:CFG.compL, isL:true});
             break;
         }
         case 'l_seca_molhada_seca': {
-            const row = [
-                {type:'molhada', x:CFG.profL, y:0, w:wm, h:dm},
-                {type:'seca', x:CFG.profL+wm, y:0, w:ws, h:ds}
-            ];
-            alignFront(row);
-            const molhada = row.find(s => s.type === 'molhada');
-            // A peça lateral do L deve acompanhar a parte de trás da molhada,
-            // não a peça seca da direita. Isso elimina o degrau indevido ao lado da molhada.
-            const backY = molhada ? molhada.y : Math.min(...row.map(s => s.y));
-            secs.push({type:'seca', x:0, y:backY, w:CFG.profL, h:CFG.compL, isL:true});
-            secs.push(...row);
+            secs.push({type:'seca', x:0, y:0, w:CFG.profL, h:CFG.compL, isL:true});
+            secs.push({type:'molhada', x:CFG.profL, y:0, w:wm, h:dm});
+            secs.push({type:'seca', x:CFG.profL+wm, y:0, w:ws, h:ds});
             break;
         }
     }
@@ -225,6 +225,7 @@ function getBounds(secs) {
    DESENHO
    ============================================================ */
 function draw() {
+    edgeLabelBoxes = [];
     const W = canvas.clientWidth, H = canvas.clientHeight;
     ctx.clearRect(0, 0, W*2, H*2);
     ctx.fillStyle = '#ffffff';
@@ -485,105 +486,106 @@ function drawVDim(x, y1, y2, text) {
 
 /* ---------- CONTORNO EXTERNO + BORDAS ---------- */
 function getContourSegments(sections) {
-    // Contorno externo genérico por união de retângulos.
-    // Necessário porque agora bancadas lado a lado podem ter larguras diferentes
-    // alinhadas pela frente, criando dentes no fundo. A lógica antiga assumia
-    // todas as peças com y=0 e quebrava quando a frente ficava alinhada.
-    const eps = 0.001;
-    const xs = Array.from(new Set(sections.flatMap(s => [roundDim(s.x), roundDim(s.x + s.w)]))).sort((a,b) => a-b);
-    const ys = Array.from(new Set(sections.flatMap(s => [roundDim(s.y), roundDim(s.y + s.h)]))).sort((a,b) => a-b);
+    const esp = CFG.espelhar;
+    const main = sections.filter(s => !s.isL).sort((a,b) => a.x - b.x);
+    const lArm = sections.find(s => s.isL);
+    const totalW = Math.max(...sections.map(s => s.x + s.w));
     const segs = [];
-    if (xs.length < 2 || ys.length < 2) return segs;
 
-    const contains = (x, y) => sections.some(s =>
-        x > s.x + eps && x < s.x + s.w - eps &&
-        y > s.y + eps && y < s.y + s.h - eps
-    );
+    const sideEsq = esp ? 'direita' : 'esquerda';
+    const sideDir = esp ? 'esquerda' : 'direita';
 
-    const bounds = getBounds(sections);
-    const sideForVertical = (x, outsideRight, y1, y2) => {
-        const esp = !!CFG.espelhar;
-        const leftKey = esp ? 'direita' : 'esquerda';
-        const rightKey = esp ? 'esquerda' : 'direita';
-        const midY = (y1 + y2) / 2;
-        const lArm = sections.find(s => s.isL);
-        if (lArm) {
-            const isLLeft = Math.abs(x - lArm.x) < 0.01 && midY >= lArm.y - 0.01;
-            const isLRight = Math.abs(x - (lArm.x + lArm.w)) < 0.01 && midY >= lArm.y - 0.01;
-            // Em L espelhado, o acabamento lateral do braço também precisa espelhar.
-            // A chave l_fundo representa a lateral externa do braço: esquerda no desenho normal,
-            // direita quando espelhado. A frente/saia não pode ficar presa no lado externo errado.
-            if (!esp) {
-                if (isLLeft) return 'l_fundo';
-                if (isLRight) return 'frente';
-            } else {
-                if (isLRight) return 'l_fundo';
-                if (isLLeft) return 'frente';
+    // FUNDO
+    segs.push({x1:0, y1:0, x2:totalW, y2:0, side:'fundo'});
+
+    // LADO DIREITO (no desenho)
+    const lastMain = main[main.length-1];
+    const rH = lastMain.h;
+
+    if (lArm && lArm.x + lArm.w > lastMain.x + lastMain.w - 0.1) {
+        const lArmB = lArm.y + lArm.h;
+        if (lArm.y < 0.1) {
+            segs.push({x1:totalW, y1:0, x2:totalW, y2:lArmB, side:'l_fundo'});
+        } else {
+            segs.push({x1:totalW, y1:0, x2:totalW, y2:lArm.y, side:sideDir});
+            segs.push({x1:totalW, y1:lArm.y, x2:totalW, y2:lArmB, side:'l_fundo'});
+        }
+    } else {
+        segs.push({x1:totalW, y1:0, x2:totalW, y2:rH, side:sideDir});
+    }
+
+    // FRENTE (direita pra esquerda, seguindo contorno)
+    const lArmLeft = lArm ? lArm.x : -1;
+    const lArmRight = lArm ? lArm.x + lArm.w : -1;
+    let curX = totalW, curY;
+
+    if (lArm && lArm.x + lArm.w > lastMain.x + lastMain.w - 0.1) {
+        curY = lArm.y + lArm.h;
+        segs.push({x1:totalW, y1:curY, x2:lArmLeft, y2:curY, side:'l_esquerda'});
+        curX = lArmLeft;
+        const secAtX = main.find(s => s.x <= curX && s.x + s.w >= curX);
+        const mainH = secAtX ? secAtX.h : rH;
+        if (Math.abs(curY - mainH) > 0.1) {
+            segs.push({x1:curX, y1:curY, x2:curX, y2:mainH, side:'frente'});
+        }
+        curY = mainH;
+    } else {
+        curY = rH;
+    }
+
+    for (let i = main.length-1; i >= 0; i--) {
+        const sec = main[i];
+        const secR = sec.x + sec.w;
+        const secL = sec.x;
+        const secB = sec.h;
+
+        if (Math.abs(curY - secB) > 0.1 && curX <= secR + 0.1) {
+            segs.push({x1:curX, y1:curY, x2:curX, y2:secB, side:'frente'});
+            curY = secB;
+        }
+
+        const lArmBelow = lArm && lArm.y > 0.1 && lArm.x >= secL - 0.1 && lArm.x <= secR + 0.1;
+        const stopX = lArmBelow ? lArm.x + lArm.w : secL;
+        const endX = Math.max(secL, stopX);
+        if (curX > endX + 0.1) {
+            segs.push({x1:curX, y1:curY, x2:endX, y2:curY, side:'frente'});
+            curX = endX;
+        }
+
+        if (i > 0 && curX > 0.1) {
+            const prevB = main[i-1].h;
+            if (Math.abs(curY - prevB) > 0.1) {
+                segs.push({x1:curX, y1:curY, x2:curX, y2:prevB, side:'frente'});
+                curY = prevB;
             }
         }
-        // Dente no fundo entre bancadas adjacentes deve seguir o acabamento do fundo.
-        const leftNeighbors = sections.filter(s => Math.abs((s.x + s.w) - x) < 0.01);
-        const rightNeighbors = sections.filter(s => Math.abs(s.x - x) < 0.01);
-        if (leftNeighbors.length && rightNeighbors.length) {
-            const leftTops = leftNeighbors.map(s => s.y);
-            const rightTops = rightNeighbors.map(s => s.y);
-            const minTop = Math.min(...leftTops, ...rightTops);
-            const maxTop = Math.max(...leftTops, ...rightTops);
-            if (maxTop - minTop > 0.01 && midY >= minTop - 0.01 && midY <= maxTop + 0.01) {
-                return 'fundo';
-            }
-        }
-        if (Math.abs(x - bounds.x0) < 0.01) return leftKey;
-        if (Math.abs(x - bounds.x1) < 0.01) return rightKey;
-        return outsideRight ? rightKey : leftKey;
-    };
+    }
 
-    const sideForHorizontal = (y, outsideBelow, x1, x2) => {
-        const lArm = sections.find(s => s.isL);
-        if (lArm) {
-            const midX = (x1 + x2) / 2;
-            if (Math.abs(y - (lArm.y + lArm.h)) < 0.01 && midX >= lArm.x - 0.01 && midX <= lArm.x + lArm.w + 0.01) return 'l_esquerda';
+    // BRAÇO L no lado esquerdo (do desenho)
+    if (lArm && lArm.x < main[0].x + 0.1) {
+        const lArmB = lArm.y + lArm.h;
+        const lArmR = lArm.x + lArm.w;
+        if (curX > lArmR - 0.1 && curX > 0.1) {
+            segs.push({x1:curX, y1:curY, x2:lArmR, y2:curY, side:'frente'});
+            curX = lArmR;
         }
-        return outsideBelow ? 'frente' : 'fundo';
-    };
-
-    // Fronteiras verticais: ocupado de um lado e vazio do outro.
-    xs.forEach(x => {
-        for (let i = 0; i < ys.length - 1; i++) {
-            const y1 = ys[i], y2 = ys[i+1];
-            if (y2 - y1 < 0.01) continue;
-            const midY = (y1 + y2) / 2;
-            const leftOcc = contains(x - eps*10, midY);
-            const rightOcc = contains(x + eps*10, midY);
-            if (leftOcc === rightOcc) continue;
-            if (leftOcc && !rightOcc) {
-                // vazio à direita: desenha para baixo para o offset/label sair à direita
-                segs.push({x1:x, y1:y1, x2:x, y2:y2, side:sideForVertical(x, true, y1, y2)});
-            } else {
-                // vazio à esquerda: desenha para cima para o offset/label sair à esquerda
-                segs.push({x1:x, y1:y2, x2:x, y2:y1, side:sideForVertical(x, false, y1, y2)});
-            }
+        segs.push({x1:curX, y1:curY, x2:curX, y2:lArmB, side:'frente'});
+        segs.push({x1:curX, y1:lArmB, x2:0, y2:lArmB, side:'l_esquerda'});
+        segs.push({x1:0, y1:lArmB, x2:0, y2:lArm.y, side:'l_fundo'});
+        if (lArm.y > 0.1) {
+            segs.push({x1:0, y1:lArm.y, x2:0, y2:0, side:sideEsq});
         }
-    });
-
-    // Fronteiras horizontais: ocupado em cima/baixo e vazio no outro lado.
-    ys.forEach(y => {
-        for (let i = 0; i < xs.length - 1; i++) {
-            const x1 = xs[i], x2 = xs[i+1];
-            if (x2 - x1 < 0.01) continue;
-            const midX = (x1 + x2) / 2;
-            const aboveOcc = contains(midX, y - eps*10);
-            const belowOcc = contains(midX, y + eps*10);
-            if (aboveOcc === belowOcc) continue;
-            if (!aboveOcc && belowOcc) {
-                // vazio em cima: fundo/parede, desenha esquerda→direita
-                segs.push({x1:x1, y1:y, x2:x2, y2:y, side:sideForHorizontal(y, false, x1, x2)});
-            } else {
-                // vazio embaixo: frente, desenha direita→esquerda para offset sair para baixo
-                segs.push({x1:x2, y1:y, x2:x1, y2:y, side:sideForHorizontal(y, true, x1, x2)});
-            }
+    } else if (!lArm) {
+        if (curX > 0.1) {
+            segs.push({x1:curX, y1:curY, x2:0, y2:curY, side:'frente'});
         }
-    });
+        segs.push({x1:0, y1:main[0].h, x2:0, y2:0, side:sideEsq});
+    } else {
+        if (curX > 0.1) {
+            segs.push({x1:curX, y1:curY, x2:0, y2:curY, side:'frente'});
+        }
+        segs.push({x1:0, y1:main[0].h, x2:0, y2:0, side:sideEsq});
+    }
 
     return segs;
 }
@@ -613,81 +615,26 @@ function drawBancadaEdges(sections, sc, ox, oy, b) {
     sides.forEach(side => {
         const sideSegs = segs.filter(s => s.side === side);
         if (!sideSegs.length) return;
-        const preferHorizontal = ['fundo','frente','l_esquerda'].includes(side);
-        const preferredSegs = sideSegs.filter(seg => {
-            const isHoriz = Math.abs(seg.x2 - seg.x1) >= Math.abs(seg.y2 - seg.y1);
-            return preferHorizontal ? isHoriz : !isHoriz;
-        });
-        // Para as bancadas em L:
-        // - a frente deve usar o(s) trecho(s) horizontais verdes para centralizar o texto;
-        // - o fundo do L deve usar o trecho vertical externo da peça lateral;
-        // - o trecho horizontal inferior do L (l_esquerda) não deve duplicar o label
-        //   quando for o mesmo acabamento do fundo do L, para não aparecer um texto solto embaixo.
-        let labelSegs = preferredSegs.length ? preferredSegs : sideSegs;
-        const lArm = sections.find(s => s.isL);
-        if (lArm && side === 'frente') {
-            const horiz = sideSegs.filter(seg => Math.abs(seg.x2 - seg.x1) >= Math.abs(seg.y2 - seg.y1));
-            if (horiz.length) labelSegs = horiz;
-        }
-        if (lArm && side === 'l_fundo') {
-            const vert = sideSegs.filter(seg => Math.abs(seg.y2 - seg.y1) > Math.abs(seg.x2 - seg.x1));
-            if (vert.length) labelSegs = vert;
-        }
-        if (lArm && side === 'l_esquerda' && CFG.bordas.l_esquerda === CFG.bordas.l_fundo) {
-            return;
-        }
-        let totalLen = 0;
-        const pixSegs = labelSegs.map(seg => {
+        let totalLen = 0, midAcc = 0;
+        const pixSegs = sideSegs.map(seg => {
             const px1 = ox + seg.x1 * sc, py1 = oy + seg.y1 * sc;
             const px2 = ox + seg.x2 * sc, py2 = oy + seg.y2 * sc;
             const len = Math.sqrt((px2-px1)**2 + (py2-py1)**2);
-            return {px1,py1,px2,py2,len,seg};
+            return {px1,py1,px2,py2,len};
         });
         pixSegs.forEach(s => totalLen += s.len);
         let target = totalLen / 2, acc = 0;
         let lx, ly;
-
-        // Centralização explícita dos labels principais.
-        // - fundo: deve permanecer centralizado na medida total do fundo da bancada,
-        //   mesmo quando existir um dente vertical acompanhando o mesmo acabamento;
-        // - frente: centraliza pelo vão horizontal útil da frente;
-        // - l_fundo: centraliza na lateral externa do braço do L.
-        if (side === 'fundo') {
-            const horiz = labelSegs.filter(seg => Math.abs(seg.x2 - seg.x1) >= Math.abs(seg.y2 - seg.y1));
-            const pool = horiz.length ? horiz : labelSegs;
-            const minX = Math.min(...pool.map(seg => Math.min(seg.x1, seg.x2)));
-            const maxX = Math.max(...pool.map(seg => Math.max(seg.x1, seg.x2)));
-            const yRef = pool.reduce((a, b) => ((a.y1 + a.y2) / 2) <= ((b.y1 + b.y2) / 2) ? a : b);
-            lx = ox + ((minX + maxX) / 2) * sc;
-            ly = oy + (((yRef.y1 + yRef.y2) / 2) * sc);
-        } else if (side === 'frente') {
-            const horiz = labelSegs.filter(seg => Math.abs(seg.x2 - seg.x1) >= Math.abs(seg.y2 - seg.y1));
-            const pool = horiz.length ? horiz : labelSegs;
-            const minX = Math.min(...pool.map(seg => Math.min(seg.x1, seg.x2)));
-            const maxX = Math.max(...pool.map(seg => Math.max(seg.x1, seg.x2)));
-            const yRef = pool[0];
-            lx = ox + ((minX + maxX) / 2) * sc;
-            ly = oy + (((yRef.y1 + yRef.y2) / 2) * sc);
-        } else if (side === 'l_fundo') {
-            const vert = labelSegs.filter(seg => Math.abs(seg.y2 - seg.y1) > Math.abs(seg.x2 - seg.x1));
-            const pool = vert.length ? vert : labelSegs;
-            const minY = Math.min(...pool.map(seg => Math.min(seg.y1, seg.y2)));
-            const maxY = Math.max(...pool.map(seg => Math.max(seg.y1, seg.y2)));
-            const xRef = pool[0];
-            lx = ox + (((xRef.x1 + xRef.x2) / 2) * sc);
-            ly = oy + ((minY + maxY) / 2) * sc;
-        } else {
-            for (const s of pixSegs) {
-                if (acc + s.len >= target) {
-                    const t = (target - acc) / s.len;
-                    lx = s.px1 + (s.px2 - s.px1) * t;
-                    ly = s.py1 + (s.py2 - s.py1) * t;
-                    break;
-                }
-                acc += s.len;
+        for (const s of pixSegs) {
+            if (acc + s.len >= target) {
+                const t = (target - acc) / s.len;
+                lx = s.px1 + (s.px2 - s.px1) * t;
+                ly = s.py1 + (s.py2 - s.py1) * t;
+                break;
             }
+            acc += s.len;
         }
-        const longest = labelSegs.reduce((a, b) => {
+        const longest = sideSegs.reduce((a, b) => {
             const la = Math.abs(b.x2-b.x1) + Math.abs(b.y2-b.y1);
             const lb = Math.abs(a.x2-a.x1) + Math.abs(a.y2-a.y1);
             return la > lb ? b : a;
@@ -699,14 +646,14 @@ function drawBancadaEdges(sections, sc, ox, oy, b) {
         let nx=0, ny=0;
         if (ds==='top') ny=-1; else if (ds==='bottom') ny=1;
         else if (ds==='left') nx=-1; else nx=1;
-        const isVert = preferHorizontal ? false : (ds === 'left' || ds === 'right');
+        const isVert = (ds === 'left' || ds === 'right');
         const ofsX = nx < 0 ? 32 : 18;
         const ofsY = ny < 0 ? 32 : 18;
         const labelX = lx + nx*ofsX;
         const labelY = ly + ny*ofsY;
         ctx.fillStyle = color; ctx.font = 'bold 10px Inter,sans-serif';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        drawEdgeLabel(edgeName(type, side), labelX, labelY, isVert);
+        drawEdgeLabelSmart(edgeName(type, side), labelX, labelY, isVert, nx, ny);
     });
 }
 
@@ -779,7 +726,7 @@ function drawEdgeMark(x1, y1, x2, y2, type, side, showLabel, bordaSide) {
         const ly = (my1+my2)/2 + ny*ofsY;
         ctx.fillStyle = color; ctx.font = 'bold 10px Inter,sans-serif';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        drawEdgeLabel(edgeName(type, bordaSide), lx, ly, isVert);
+        drawEdgeLabelSmart(edgeName(type, bordaSide), lx, ly, isVert, nx, ny);
     }
 }
 
@@ -942,7 +889,7 @@ function drawLavViolao(W, H) {
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         const soX = nx < 0 ? 32 : 18;
         const soY = ny < 0 ? 32 : 18;
-        drawEdgeLabel(edgeName(type, seg.side), mx+nx*soX, my+ny*soY, isVert);
+        drawEdgeLabelSmart(edgeName(type, seg.side), mx+nx*soX, my+ny*soY, isVert, nx, ny);
     });
 
     // cubas na área sem recorte
