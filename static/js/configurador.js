@@ -607,19 +607,14 @@ function drawBancadaEdges(sections, sc, ox, oy, b) {
         // (ex.: 180 = seca + molhada), sem ser puxado pela lateral vertical do braço do L.
         // Já o label do lado externo do braço deve ficar centralizado na própria peça lateral.
         let labelSegs = preferredSegs.length ? preferredSegs : sideSegs;
-        if (sections.some(s => s.isL) && side === 'frente') {
+        const lArm = sections.find(s => s.isL);
+        if (lArm && side === 'frente') {
             const horiz = sideSegs.filter(seg => Math.abs(seg.x2 - seg.x1) >= Math.abs(seg.y2 - seg.y1));
-            if (horiz.length) {
-                const longestHoriz = horiz.reduce((a, b) => Math.abs(b.x2-b.x1) > Math.abs(a.x2-a.x1) ? b : a);
-                labelSegs = [longestHoriz];
-            }
+            if (horiz.length) labelSegs = horiz;
         }
-        if (sections.some(s => s.isL) && side === 'l_fundo') {
+        if (lArm && side === 'l_fundo') {
             const vert = sideSegs.filter(seg => Math.abs(seg.y2 - seg.y1) > Math.abs(seg.x2 - seg.x1));
-            if (vert.length) {
-                const longestVert = vert.reduce((a, b) => Math.abs(b.y2-b.y1) > Math.abs(a.y2-a.y1) ? b : a);
-                labelSegs = [longestVert];
-            }
+            if (vert.length) labelSegs = vert;
         }
         let totalLen = 0;
         const pixSegs = labelSegs.map(seg => {
@@ -633,9 +628,25 @@ function drawBancadaEdges(sections, sc, ox, oy, b) {
         let lx, ly;
 
         // Centralização explícita para labels que o usuário quer ver no meio do vão útil.
-        // Para a frente, centraliza pelo menor/maior X dos trechos horizontais da frente.
-        // Para o fundo externo do L, centraliza pelo menor/maior Y do trecho vertical do braço.
-        if (side === 'frente') {
+        // Em bancadas em L:
+        // - frente: centraliza pela soma das bancadas frontais (ex.: 60+120 = 180 no Modelo 1,
+        //   ou 120+120 = 240 no Modelo 2), usando a própria lógica das cotas;
+        // - l_fundo: centraliza na altura da peça lateral do L.
+        if (side === 'frente' && lArm) {
+            const horiz = labelSegs.filter(seg => Math.abs(seg.x2 - seg.x1) >= Math.abs(seg.y2 - seg.y1));
+            const pool = horiz.length ? horiz : labelSegs;
+            const totalFront = Math.max(0, totalW - lArm.w);
+            const centerX = lArm.w + totalFront / 2;
+            const yRef = pool[0];
+            lx = ox + centerX * sc;
+            ly = oy + (((yRef.y1 + yRef.y2) / 2) * sc);
+        } else if (side === 'l_fundo' && lArm) {
+            const vert = labelSegs.filter(seg => Math.abs(seg.y2 - seg.y1) > Math.abs(seg.x2 - seg.x1));
+            const pool = vert.length ? vert : labelSegs;
+            const xRef = pool[0];
+            lx = ox + (((xRef.x1 + xRef.x2) / 2) * sc);
+            ly = oy + (lArm.y + lArm.h / 2) * sc;
+        } else if (side === 'frente') {
             const horiz = labelSegs.filter(seg => Math.abs(seg.x2 - seg.x1) >= Math.abs(seg.y2 - seg.y1));
             const pool = horiz.length ? horiz : labelSegs;
             const minX = Math.min(...pool.map(seg => Math.min(seg.x1, seg.x2)));
