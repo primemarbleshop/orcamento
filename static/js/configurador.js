@@ -16,12 +16,16 @@ function edgeName(type, side) {
 }
 function drawEdgeLabel(lines, x, y, isVert) {
     const filtered = lines.filter(l => l);
+    const lineH = 12;
+    const start = -((filtered.length - 1) * lineH) / 2;
     if (isVert) {
-        ctx.save(); ctx.translate(x, y); ctx.rotate(-Math.PI/2);
-        filtered.forEach((l, i) => ctx.fillText(l, 0, i * 12));
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(-Math.PI/2);
+        filtered.forEach((l, i) => ctx.fillText(l, 0, start + i * lineH));
         ctx.restore();
     } else {
-        filtered.forEach((l, i) => ctx.fillText(l, x, y + i * 12));
+        filtered.forEach((l, i) => ctx.fillText(l, x, y + start + i * lineH));
     }
 }
 
@@ -599,9 +603,24 @@ function drawBancadaEdges(sections, sc, ox, oy, b) {
             const isHoriz = Math.abs(seg.x2 - seg.x1) >= Math.abs(seg.y2 - seg.y1);
             return preferHorizontal ? isHoriz : !isHoriz;
         });
-        // Para frente/saia do L, usa preferencialmente um trecho horizontal.
-        // Isso evita o texto "Acabamento com saia" ficar girado em 90° quando há uma perna vertical no L.
-        const labelSegs = preferredSegs.length ? preferredSegs : sideSegs;
+        // Para as bancadas em L, o label da frente/saia deve ficar centralizado no vão frontal útil
+        // (ex.: 180 = seca + molhada), sem ser puxado pela lateral vertical do braço do L.
+        // Já o label do lado externo do braço deve ficar centralizado na própria peça lateral.
+        let labelSegs = preferredSegs.length ? preferredSegs : sideSegs;
+        if (sections.some(s => s.isL) && side === 'frente') {
+            const horiz = sideSegs.filter(seg => Math.abs(seg.x2 - seg.x1) >= Math.abs(seg.y2 - seg.y1));
+            if (horiz.length) {
+                const longestHoriz = horiz.reduce((a, b) => Math.abs(b.x2-b.x1) > Math.abs(a.x2-a.x1) ? b : a);
+                labelSegs = [longestHoriz];
+            }
+        }
+        if (sections.some(s => s.isL) && side === 'l_fundo') {
+            const vert = sideSegs.filter(seg => Math.abs(seg.y2 - seg.y1) > Math.abs(seg.x2 - seg.x1));
+            if (vert.length) {
+                const longestVert = vert.reduce((a, b) => Math.abs(b.y2-b.y1) > Math.abs(a.y2-a.y1) ? b : a);
+                labelSegs = [longestVert];
+            }
+        }
         let totalLen = 0;
         const pixSegs = labelSegs.map(seg => {
             const px1 = ox + seg.x1 * sc, py1 = oy + seg.y1 * sc;
