@@ -323,122 +323,6 @@
             padding: 8px !important;
         }
 
-
-        /* Painel próprio de edição da OS: substitui a tentativa frágil de reabrir a UI interna do Excalidraw.
-           Ele fica fora do canvas, tem scroll próprio e bloqueia qualquer clique/toque no desenho por trás. */
-        #osPropsBackdrop {
-            display: none;
-            position: fixed;
-            inset: 0;
-            z-index: 2147483000;
-            background: rgba(0, 0, 0, 0.06);
-            pointer-events: auto;
-            touch-action: auto;
-        }
-        #osPropsBackdrop.open {
-            display: block;
-        }
-        #osPropsPanel {
-            position: fixed;
-            top: 72px;
-            left: 50%;
-            transform: translateX(-50%);
-            width: min(420px, calc(100vw - 20px));
-            max-height: min(620px, calc(100dvh - 96px));
-            overflow-y: auto;
-            overflow-x: hidden;
-            -webkit-overflow-scrolling: touch;
-            overscroll-behavior: contain;
-            background: #ffffff;
-            border: 1px solid #cfcfcf;
-            border-radius: 10px;
-            box-shadow: 0 12px 34px rgba(0,0,0,.28);
-            padding: 12px;
-            pointer-events: auto;
-            touch-action: pan-y;
-        }
-        #osPropsPanel, #osPropsPanel * {
-            box-sizing: border-box;
-        }
-        #osPropsPanel .os-props-title {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 8px;
-            margin-bottom: 10px;
-            font-weight: 700;
-            color: #222;
-        }
-        #osPropsPanel .os-props-close {
-            border: 1px solid #ccc;
-            background: #f8f9fa;
-            border-radius: 6px;
-            width: 30px;
-            height: 30px;
-            cursor: pointer;
-            font-size: 18px;
-            line-height: 1;
-        }
-        #osPropsPanel .os-props-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-        #osPropsPanel .os-props-field {
-            display: flex;
-            flex-direction: column;
-            gap: 4px;
-            min-width: 0;
-        }
-        #osPropsPanel .os-props-field.full {
-            grid-column: 1 / -1;
-        }
-        #osPropsPanel label {
-            font-size: 12px;
-            font-weight: 700;
-            color: #444;
-            margin: 0;
-        }
-        #osPropsPanel input,
-        #osPropsPanel select,
-        #osPropsPanel button.os-props-action {
-            min-height: 34px;
-            border: 1px solid #cfd4da;
-            border-radius: 6px;
-            padding: 5px 8px;
-            background: #fff;
-            font-size: 14px;
-        }
-        #osPropsPanel input[type="color"] {
-            padding: 2px;
-            cursor: pointer;
-        }
-        #osPropsPanel .os-props-actions {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-top: 12px;
-        }
-        #osPropsPanel button.os-props-action {
-            cursor: pointer;
-            background: #f8f9fa;
-        }
-        #osPropsPanel button.os-props-danger {
-            border-color: #e74a3b;
-            color: #b91c1c;
-        }
-        @media (max-width: 820px) {
-            #osPropsPanel {
-                top: 56px;
-                width: calc(100vw - 12px);
-                max-height: calc(100dvh - 68px);
-                padding: 10px;
-            }
-            #osPropsPanel .os-props-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
         .loading-overlay {
             display: flex;
             align-items: center;
@@ -670,6 +554,76 @@
                 display: block;
             }
         }
+
+        /* ===== FIX NATIVO: painel de propriedades do Excalidraw =====
+           Não cria painel paralelo. Apenas libera a própria aba nativa (.selected-shape-actions)
+           quando o botão de 3 linhas ativa props-open. Este bloco fica no fim do CSS para
+           vencer as regras antigas que escondem .Island, .ToolIcon e ancestrais do painel. */
+        #excalidraw-container.props-open #mobileNavShield {
+            display: none !important;
+            pointer-events: none !important;
+        }
+        #excalidraw-container.props-open .excalidraw,
+        #excalidraw-container.props-open .excalidraw * {
+            pointer-events: auto !important;
+        }
+        #excalidraw-container.props-open .selected-shape-actions,
+        #excalidraw-container.props-open .selected-shape-actions *,
+        #excalidraw-container.props-open .selected-shape-actions .Island,
+        #excalidraw-container.props-open .selected-shape-actions .ToolIcon,
+        #excalidraw-container.props-open .selected-shape-actions [class*="Island"],
+        #excalidraw-container.props-open .selected-shape-actions [class*="ToolIcon"] {
+            display: revert !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+        }
+        #excalidraw-container.props-open .layer-ui__wrapper:has(.selected-shape-actions),
+        #excalidraw-container.props-open .layer-ui__wrapper__top:has(.selected-shape-actions),
+        #excalidraw-container.props-open .layer-ui__wrapper__top-right:has(.selected-shape-actions),
+        #excalidraw-container.props-open .App-toolbar:has(.selected-shape-actions),
+        #excalidraw-container.props-open .App-toolbar-container:has(.selected-shape-actions),
+        #excalidraw-container.props-open .Island:has(.selected-shape-actions),
+        #excalidraw-container.props-open [class*="Island"]:has(.selected-shape-actions) {
+            display: revert !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+            overflow: visible !important;
+        }
+        #excalidraw-container.props-open .selected-shape-actions {
+            display: flex !important;
+            flex-wrap: wrap !important;
+            gap: 6px !important;
+            position: absolute !important;
+            top: 8px !important;
+            left: 8px !important;
+            right: auto !important;
+            z-index: 10000 !important;
+            max-width: min(760px, calc(100vw - 24px)) !important;
+            max-height: min(460px, calc(100vh - 110px)) !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            overscroll-behavior: contain !important;
+            -webkit-overflow-scrolling: touch !important;
+            touch-action: pan-y !important;
+            background: #ffffff !important;
+            border: 1px solid #d0d0d0 !important;
+            border-radius: 8px !important;
+            box-shadow: 0 8px 24px rgba(0,0,0,.18) !important;
+            padding: 8px !important;
+        }
+        @media (max-width: 820px) {
+            #excalidraw-container.props-open .selected-shape-actions {
+                top: 6px !important;
+                left: 6px !important;
+                max-width: calc(100vw - 12px) !important;
+                max-height: min(520px, calc(100vh - 90px)) !important;
+                overflow-y: auto !important;
+                touch-action: pan-y !important;
+            }
+        }
+
     </style>
 </head>
 <body>
@@ -1014,22 +968,16 @@
         // Função global para atualizar estado de ferramentas (acessível de qualquer scope)
         window._atualizarEstadoFerramentas = function() {
             const exc = document.getElementById('excalidraw-container');
-            const anyDrawingToolActive = !!document.querySelector('.tool-btn[data-tool].active, #btnLasso.active, #btnEdgeTool.active, #btnEraser.active');
             const propsOpen = !!(exc && exc.classList.contains('props-open'));
+            const anyActive = !!document.querySelector('.tool-btn.active:not(#btnToggleProps)');
 
-            // props-open NÃO é ferramenta de desenho, então não deve travar o body como laço/borracha.
-            // Mas também NÃO pode deixar o container em no-tool, porque no-tool desliga pointer-events
-            // dos filhos do Excalidraw e impede o menu de edição de abrir/clicar.
-            const excalidrawInteractive = anyDrawingToolActive || propsOpen;
-
-            window._noToolMode = !excalidrawInteractive;
-            document.body.classList.toggle('tool-active', anyDrawingToolActive);
+            // O painel de 3 linhas não é ferramenta de desenho, mas precisa manter eventos no Excalidraw
+            // para a aba nativa receber clique/toque/scroll. Portanto propsOpen nunca pode cair em no-tool.
+            window._noToolMode = !anyActive && !propsOpen;
+            document.body.classList.toggle('tool-active', anyActive);
             if (exc) {
-                exc.classList.toggle('no-tool', !excalidrawInteractive);
-                exc.classList.toggle('has-tool', anyDrawingToolActive);
-                exc.classList.toggle('props-mode', propsOpen);
-                if (typeof garantirMobileNavShield === 'function') garantirMobileNavShield();
-                if (excalidrawInteractive) exc.classList.remove('pinch-page-zoom');
+                exc.classList.toggle('no-tool', !anyActive && !propsOpen);
+                exc.classList.toggle('has-tool', anyActive || propsOpen);
             }
         };
 
@@ -2198,17 +2146,18 @@
                 function forcarPainelPropsVisivel() {
                     const actions = container.querySelector('.selected-shape-actions');
                     if (!actions) {
-                        console.warn('[OS desenho] Painel .selected-shape-actions não encontrado. Se não houver peça selecionada, o Excalidraw não monta esse painel.');
+                        console.warn('[OS desenho] Painel nativo .selected-shape-actions não encontrado. Se não houver objeto selecionado, o Excalidraw não monta esse painel.');
                         return false;
                     }
 
-                    // Remover a camada de navegação mobile enquanto o menu de propriedades está aberto.
+                    // Desliga a camada de navegação mobile enquanto a aba nativa de edição está aberta.
                     const shield = document.getElementById('mobileNavShield');
                     if (shield) {
                         shield.style.setProperty('display', 'none', 'important');
                         shield.style.setProperty('pointer-events', 'none', 'important');
                     }
 
+                    // Reabre somente a cadeia do próprio painel nativo do Excalidraw.
                     let el = actions;
                     while (el && el !== container) {
                         el.dataset.propsForcedVisible = '1';
@@ -2216,27 +2165,58 @@
                         el.style.setProperty('visibility', 'visible', 'important');
                         el.style.setProperty('opacity', '1', 'important');
                         el.style.setProperty('pointer-events', 'auto', 'important');
+                        el.style.setProperty('overflow', 'visible', 'important');
                         el = el.parentElement;
                     }
 
-                    actions.style.setProperty('display', 'block', 'important');
+                    actions.dataset.propsForcedVisible = '1';
+                    actions.style.setProperty('display', 'flex', 'important');
+                    actions.style.setProperty('flex-wrap', 'wrap', 'important');
+                    actions.style.setProperty('gap', '6px', 'important');
                     actions.style.setProperty('position', 'absolute', 'important');
                     actions.style.setProperty('top', '8px', 'important');
                     actions.style.setProperty('left', '8px', 'important');
-                    actions.style.setProperty('z-index', '5000', 'important');
-                    actions.style.setProperty('max-height', 'min(420px, 70vh)', 'important');
+                    actions.style.setProperty('right', 'auto', 'important');
+                    actions.style.setProperty('z-index', '10000', 'important');
+                    actions.style.setProperty('max-width', 'min(760px, calc(100vw - 24px))', 'important');
+                    actions.style.setProperty('max-height', 'min(460px, calc(100vh - 110px))', 'important');
                     actions.style.setProperty('overflow-y', 'auto', 'important');
                     actions.style.setProperty('overflow-x', 'hidden', 'important');
+                    actions.style.setProperty('overscroll-behavior', 'contain', 'important');
+                    actions.style.setProperty('-webkit-overflow-scrolling', 'touch');
+                    actions.style.setProperty('touch-action', 'pan-y', 'important');
                     actions.style.setProperty('background', '#ffffff', 'important');
                     actions.style.setProperty('border', '1px solid #d0d0d0', 'important');
                     actions.style.setProperty('border-radius', '8px', 'important');
                     actions.style.setProperty('box-shadow', '0 8px 24px rgba(0,0,0,.18)', 'important');
                     actions.style.setProperty('padding', '8px', 'important');
+
+                    // O CSS antigo escondia .ToolIcon e .Island globalmente. Se os filhos continuarem
+                    // com display:none, a aba aparece vazia ou sem botões.
                     actions.querySelectorAll('*').forEach(child => {
-                        child.style.setProperty('pointer-events', 'auto', 'important');
+                        child.dataset.propsForcedVisible = '1';
+                        child.style.setProperty('display', 'revert', 'important');
                         child.style.setProperty('visibility', 'visible', 'important');
                         child.style.setProperty('opacity', '1', 'important');
+                        child.style.setProperty('pointer-events', 'auto', 'important');
                     });
+
+                    // O menu precisa rolar nele mesmo e não pode deixar o gesto cair no desenho.
+                    if (!actions.dataset.propsScrollGuard) {
+                        actions.dataset.propsScrollGuard = '1';
+                        const pararNoPainel = (ev) => {
+                            ev.stopPropagation();
+                        };
+                        ['pointerdown', 'mousedown', 'mouseup', 'click', 'touchstart', 'touchend'].forEach(type => {
+                            actions.addEventListener(type, pararNoPainel, { capture: false, passive: true });
+                        });
+                        actions.addEventListener('touchmove', (ev) => {
+                            ev.stopPropagation();
+                        }, { passive: true });
+                        actions.addEventListener('wheel', (ev) => {
+                            ev.stopPropagation();
+                        }, { passive: true });
+                    }
                     return true;
                 }
 
@@ -3241,6 +3221,7 @@
                 return !!(el && e.target && el.contains(e.target));
             }
             function iniciarPinchPagina(e) {
+                if (eventoDentroPainelPropsNativo(e)) return;
                 if (!dentroEditor(e)) return;
                 const qtdTouches = e.touches ? e.touches.length : 0;
                 const ehGestureSafari = e.type === 'gesturestart' || e.type === 'gesturechange' || e.type === 'gestureend';
@@ -3256,6 +3237,7 @@
                 }
             }
             function finalizarPinchPagina(e) {
+                if (eventoDentroPainelPropsNativo(e)) return;
                 if (!dentroEditor(e)) return;
                 if (!e.touches || e.touches.length < 2) {
                     manterZoomInternoFixoPor(450);
@@ -3294,7 +3276,16 @@
         // 3) ao subir, o Excalidraw volta ao topo antes da página subir.
         const excContainer = document.getElementById('excalidraw-container');
 
+        function eventoDentroPainelPropsNativo(e) {
+            const target = e && e.target;
+            return !!(excContainer && target &&
+                excContainer.classList.contains('props-open') &&
+                typeof target.closest === 'function' &&
+                target.closest('.selected-shape-actions'));
+        }
+
         document.addEventListener('wheel', (e) => {
+            if (eventoDentroPainelPropsNativo(e)) return;
             if (!excContainer || !e.target || !excContainer.contains(e.target)) return;
             if (e.ctrlKey || e.metaKey) {
                 // Ctrl/Meta + wheel/trackpad pinch: browser zoom da página, sem zoom interno do Excalidraw.
@@ -3335,6 +3326,7 @@
         }
 
         excContainer.addEventListener('wheel', (e) => {
+            if (eventoDentroPainelPropsNativo(e)) return;
             if (e.ctrlKey || e.metaKey) {
                 e.stopImmediatePropagation();
                 return;
@@ -3372,6 +3364,7 @@
             }
 
             function reservarPinchParaPagina(e) {
+                if (eventoDentroPainelPropsNativo(e)) return;
                 if (!eventoNoEditor(e)) return;
                 if (e.touches && e.touches.length >= 2) {
                     marcarZoomPaginaAtivo(1100);
@@ -3386,6 +3379,7 @@
 
             document.addEventListener('touchstart', reservarPinchParaPagina, { passive: true, capture: true });
             document.addEventListener('touchmove', (e) => {
+                if (eventoDentroPainelPropsNativo(e)) return;
                 if (!eventoNoEditor(e)) return;
                 if (pinching || (e.touches && e.touches.length >= 2)) {
                     marcarZoomPaginaAtivo(1100);
@@ -3411,6 +3405,7 @@
             }, { passive: true, capture: true });
 
             excContainer.addEventListener('touchstart', (e) => {
+                if (eventoDentroPainelPropsNativo(e)) return;
                 if (e.touches.length >= 2) {
                     marcarZoomPaginaAtivo(1100);
                     pinching = true;
@@ -3426,6 +3421,7 @@
             }, { passive: false, capture: true });
 
             excContainer.addEventListener('touchmove', (e) => {
+                if (eventoDentroPainelPropsNativo(e)) return;
                 if (pinching || e.touches.length >= 2) {
                     marcarZoomPaginaAtivo(1100);
                     pinching = true;
@@ -3469,6 +3465,7 @@
             }, { passive: false, capture: true });
 
             excContainer.addEventListener('touchend', (e) => {
+                if (eventoDentroPainelPropsNativo(e)) return;
                 if (e.touches.length < 2) pinching = false;
                 if (e.touches.length === 0) lastY = null;
             }, { passive: true, capture: true });
@@ -3489,6 +3486,7 @@
                 return !!(excContainer && e.target && excContainer.contains(e.target));
             }
             document.addEventListener('touchstart', (e) => {
+                if (eventoDentroPainelPropsNativo(e)) return;
                 if (!ferramentaOverlayAtiva() || !dentroEditor(e)) return;
                 if (e.touches && e.touches.length >= 2) {
                     e.preventDefault();
@@ -3497,11 +3495,13 @@
                 }
             }, { passive: false, capture: true });
             document.addEventListener('touchmove', (e) => {
+                if (eventoDentroPainelPropsNativo(e)) return;
                 if (!ferramentaOverlayAtiva() || !dentroEditor(e)) return;
                 e.preventDefault();
                 e.stopImmediatePropagation();
             }, { passive: false, capture: true });
             document.addEventListener('wheel', (e) => {
+                if (eventoDentroPainelPropsNativo(e)) return;
                 if (!ferramentaOverlayAtiva() || !dentroEditor(e)) return;
                 if (e.ctrlKey || e.metaKey) return;
                 e.preventDefault();
@@ -3534,505 +3534,57 @@
 
 
 
-
-        // Painel próprio de edição dos objetos selecionados.
-        // Motivo: a UI nativa de propriedades do Excalidraw foi escondida por várias regras CSS
-        // (.Island, .ToolIcon, toolbar e ancestrais). Reativar esses pedaços causa clique vazando
-        // para o canvas e falta de scroll no celular. Este painel fica fora do canvas e bloqueia o fundo.
-        (function painelEdicaoObjetosOS() {
-            const excContainer = document.getElementById('excalidraw-container');
-            const btnProps = document.getElementById('btnToggleProps');
-            if (!excContainer || !btnProps) return;
-
-            let backdrop = null;
-            let panel = null;
-            let longPressTimer = null;
-            let longPressStart = null;
-            let idsPreservados = null;
-
-            function api() {
-                return window.gerenciadorDesenho?.excalidrawAPI || null;
+        // Proteção de multi-seleção: clique/segurar com botão direito dentro de uma seleção múltipla
+        // não deve virar um novo clique que seleciona apenas uma peça.
+        (function preservarMultiselecaoNoCliqueSecundario() {
+            let idsParaRestaurar = null;
+            function dentroEditor(e) {
+                return !!(excContainer && e.target && excContainer.contains(e.target));
             }
-
-            function selectedIds(a = api()) {
-                return _selectedElementIdsAtuais(a);
-            }
-
-            function selectedElements(a = api()) {
-                const ids = new Set(selectedIds(a));
-                if (!a || ids.size === 0) return [];
-                return (a.getSceneElements?.() || []).filter(el => !el.isDeleted && ids.has(el.id));
-            }
-
-            function scenePointFromClient(clientX, clientY) {
-                const a = api();
-                if (!a || !excContainer) return null;
-                const st = a.getAppState?.() || {};
-                const z = st.zoom?.value || 1;
-                const sx = st.scrollX || 0;
-                const sy = st.scrollY || 0;
+            function pontoCena(e) {
+                const api = window.gerenciadorDesenho?.excalidrawAPI;
+                if (!api || !excContainer) return null;
+                const appState = api.getAppState();
+                const z = appState.zoom?.value || 1;
+                const sx = appState.scrollX || 0;
+                const sy = appState.scrollY || 0;
                 const r = excContainer.getBoundingClientRect();
-                return { x: (clientX - r.left) / z - sx, y: (clientY - r.top) / z - sy };
+                return { x: (e.clientX - r.left) / z - sx, y: (e.clientY - r.top) / z - sy };
             }
-
-            function elementAtClient(clientX, clientY) {
-                const a = api();
-                const pt = scenePointFromClient(clientX, clientY);
-                if (!a || !pt) return null;
-                const elements = (a.getSceneElements?.() || []).filter(el => !el.isDeleted && !el.locked);
-                for (let i = elements.length - 1; i >= 0; i--) {
-                    if (_pointInsideElementBounds(pt, elements[i], 10)) return elements[i];
-                }
-                return null;
-            }
-
-            function pointInsideSelection(clientX, clientY) {
-                const a = api();
-                const pt = scenePointFromClient(clientX, clientY);
-                if (!a || !pt) return false;
-                const ids = selectedIds(a);
-                if (ids.length === 0) return false;
-                const idset = new Set(ids);
-                return (a.getSceneElements?.() || []).some(el => idset.has(el.id) && _pointInsideElementBounds(pt, el, 12));
-            }
-
-            function preserveSelection(ids) {
-                const a = api();
-                if (!a || !ids || ids.length === 0) return;
-                _restoreSelectedIds(a, ids);
-            }
-
-            function ensureDom() {
-                if (backdrop && panel) return;
-                backdrop = document.createElement('div');
-                backdrop.id = 'osPropsBackdrop';
-                panel = document.createElement('div');
-                panel.id = 'osPropsPanel';
-                panel.setAttribute('role', 'dialog');
-                panel.setAttribute('aria-label', 'Editar objetos selecionados');
-                backdrop.appendChild(panel);
-                document.body.appendChild(backdrop);
-
-                // O painel é uma camada modal real: nada do canvas recebe clique/toque por trás.
-                const bloquearBolha = (e) => {
-                    e.stopPropagation();
-                };
-                ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click', 'dblclick', 'contextmenu', 'touchstart', 'touchend', 'touchcancel', 'wheel'].forEach(evt => {
-                    panel.addEventListener(evt, bloquearBolha, { capture: true });
-                });
-                panel.addEventListener('touchmove', bloquearBolha, { capture: true, passive: true });
-                panel.addEventListener('keydown', bloquearBolha, { capture: true });
-
-                backdrop.addEventListener('click', (e) => {
-                    if (e.target === backdrop) closePanel();
-                });
-                backdrop.addEventListener('contextmenu', (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                });
-            }
-
-            function firstValue(els, key, fallback) {
-                for (const el of els) {
-                    if (el[key] !== undefined && el[key] !== null) return el[key];
-                }
-                return fallback;
-            }
-
-            function normalizeColor(value, fallback = '#000000') {
-                if (!value || value === 'transparent') return fallback;
-                if (/^#[0-9a-f]{6}$/i.test(value)) return value;
-                return fallback;
-            }
-
-            function bump(el, patch) {
-                return {
-                    ...el,
-                    ...patch,
-                    version: (el.version || 1) + 1,
-                    versionNonce: Math.floor(Math.random() * 2147483647),
-                    updated: Date.now(),
-                };
-            }
-
-            function recalcularTexto(el, patch) {
-                if (el.type !== 'text') return patch;
-                const fontSize = patch.fontSize || el.fontSize || 16;
-                const text = el.text || el.originalText || '';
-                const lines = String(text).split('\n');
-                const maxLen = Math.max(1, ...lines.map(l => l.length));
-                return {
-                    ...patch,
-                    width: Math.max(maxLen * fontSize * 0.58 + 8, 20),
-                    height: Math.max(lines.length * (fontSize * 1.35), fontSize + 4),
-                };
-            }
-
-            function applyToSelection(mutator) {
-                const a = api();
-                if (!a) return;
-                const ids = selectedIds(a);
-                if (ids.length === 0) return;
-                const idset = new Set(ids);
-                const elements = a.getSceneElements?.() || [];
-                const selectedMap = {};
-                ids.forEach(id => { selectedMap[id] = true; });
-                const updated = elements.map(el => {
-                    if (!idset.has(el.id) || el.isDeleted || el.locked) return el;
-                    const patch = mutator(el) || {};
-                    if (Object.keys(patch).length === 0) return el;
-                    return bump(el, recalcularTexto(el, patch));
-                });
-                if (window._setUpdatingScene) window._setUpdatingScene(true);
-                a.updateScene({ elements: updated, appState: { selectedElementIds: selectedMap } });
-                requestAnimationFrame(() => {
-                    if (window._setUpdatingScene) window._setUpdatingScene(false);
-                    renderPanel();
-                });
-            }
-
-            function deleteSelection() {
-                const a = api();
-                if (!a) return;
-                const ids = new Set(selectedIds(a));
-                if (ids.size === 0) return;
-                const updated = (a.getSceneElements?.() || []).map(el => ids.has(el.id) ? bump(el, { isDeleted: true }) : el);
-                if (window._setUpdatingScene) window._setUpdatingScene(true);
-                a.updateScene({ elements: updated, appState: { selectedElementIds: {} } });
-                requestAnimationFrame(() => { if (window._setUpdatingScene) window._setUpdatingScene(false); });
-                closePanel();
-            }
-
-            function duplicateSelection() {
-                const a = api();
-                if (!a) return;
-                const els = selectedElements(a);
-                if (els.length === 0) return;
-                const now = Date.now();
-                const newIds = {};
-                const copies = els.map(el => {
-                    const id = generateId();
-                    newIds[id] = true;
-                    return {
-                        ...el,
-                        id,
-                        x: (el.x || 0) + 18,
-                        y: (el.y || 0) + 18,
-                        seed: Math.floor(Math.random() * 2147483647),
-                        version: 1,
-                        versionNonce: Math.floor(Math.random() * 2147483647),
-                        updated: now,
-                        boundElements: null,
-                    };
-                });
-                if (window._setUpdatingScene) window._setUpdatingScene(true);
-                a.updateScene({ elements: [...(a.getSceneElements?.() || []), ...copies], appState: { selectedElementIds: newIds } });
-                requestAnimationFrame(() => { if (window._setUpdatingScene) window._setUpdatingScene(false); renderPanel(); });
-            }
-
-            function renderPanel() {
-                ensureDom();
-                const els = selectedElements();
-                const count = els.length;
-                const first = els[0] || {};
-                const strokeColor = normalizeColor(firstValue(els, 'strokeColor', '#000000'), '#000000');
-                const bgRaw = firstValue(els, 'backgroundColor', 'transparent');
-                const backgroundColor = normalizeColor(bgRaw, '#ffffff');
-                const strokeWidth = firstValue(els, 'strokeWidth', 1);
-                const strokeStyle = firstValue(els, 'strokeStyle', 'solid');
-                const fillStyle = firstValue(els, 'fillStyle', 'solid');
-                const opacity = firstValue(els, 'opacity', 100);
-                const roughness = firstValue(els, 'roughness', 0);
-                const fontSize = firstValue(els.filter(e => e.type === 'text'), 'fontSize', 16);
-                const fontFamily = firstValue(els.filter(e => e.type === 'text'), 'fontFamily', 2);
-                const textAlign = firstValue(els.filter(e => e.type === 'text'), 'textAlign', 'center');
-                const roundness = first.roundness ? 'round' : 'sharp';
-                const shapeType = ['rectangle', 'diamond', 'ellipse'].includes(first.type) ? first.type : '';
-
-                panel.innerHTML = `
-                    <div class="os-props-title">
-                        <span>Editar objetos selecionados <small style="font-weight:400;color:#666;">(${count})</small></span>
-                        <button type="button" class="os-props-close" data-action="close" aria-label="Fechar">×</button>
-                    </div>
-                    <div class="os-props-grid">
-                        <div class="os-props-field">
-                            <label>Cor da linha/texto</label>
-                            <input type="color" data-prop="strokeColor" value="${strokeColor}">
-                        </div>
-                        <div class="os-props-field">
-                            <label>Cor de fundo</label>
-                            <input type="color" data-prop="backgroundColor" value="${backgroundColor}">
-                        </div>
-                        <div class="os-props-field">
-                            <label>Espessura</label>
-                            <select data-prop="strokeWidth">
-                                ${[1,2,3,4,6,8,10].map(v => `<option value="${v}" ${Number(strokeWidth)===v?'selected':''}>${v}</option>`).join('')}
-                            </select>
-                        </div>
-                        <div class="os-props-field">
-                            <label>Tipo de linha</label>
-                            <select data-prop="strokeStyle">
-                                <option value="solid" ${strokeStyle==='solid'?'selected':''}>Contínua</option>
-                                <option value="dashed" ${strokeStyle==='dashed'?'selected':''}>Tracejada</option>
-                                <option value="dotted" ${strokeStyle==='dotted'?'selected':''}>Pontilhada</option>
-                            </select>
-                        </div>
-                        <div class="os-props-field">
-                            <label>Preenchimento</label>
-                            <select data-prop="fillStyle">
-                                <option value="solid" ${fillStyle==='solid'?'selected':''}>Sólido</option>
-                                <option value="hachure" ${fillStyle==='hachure'?'selected':''}>Hachurado</option>
-                                <option value="cross-hatch" ${fillStyle==='cross-hatch'?'selected':''}>Cruzado</option>
-                            </select>
-                        </div>
-                        <div class="os-props-field">
-                            <label>Forma</label>
-                            <select data-prop="shapeType">
-                                <option value="" ${shapeType===''?'selected':''}>Manter</option>
-                                <option value="rectangle" ${shapeType==='rectangle'?'selected':''}>Retângulo</option>
-                                <option value="diamond" ${shapeType==='diamond'?'selected':''}>Losango</option>
-                                <option value="ellipse" ${shapeType==='ellipse'?'selected':''}>Círculo/Elipse</option>
-                            </select>
-                        </div>
-                        <div class="os-props-field">
-                            <label>Borda da forma</label>
-                            <select data-prop="roundness">
-                                <option value="sharp" ${roundness==='sharp'?'selected':''}>Reta</option>
-                                <option value="round" ${roundness==='round'?'selected':''}>Arredondada</option>
-                            </select>
-                        </div>
-                        <div class="os-props-field">
-                            <label>Opacidade</label>
-                            <input type="range" data-prop="opacity" min="10" max="100" step="5" value="${Number(opacity)||100}">
-                        </div>
-                        <div class="os-props-field">
-                            <label>Rugosidade</label>
-                            <select data-prop="roughness">
-                                <option value="0" ${Number(roughness)===0?'selected':''}>Limpo</option>
-                                <option value="1" ${Number(roughness)===1?'selected':''}>Normal</option>
-                                <option value="2" ${Number(roughness)===2?'selected':''}>Rascunho</option>
-                            </select>
-                        </div>
-                        <div class="os-props-field">
-                            <label>Tamanho da fonte</label>
-                            <input type="number" data-prop="fontSize" min="6" max="96" step="1" value="${Number(fontSize)||16}">
-                        </div>
-                        <div class="os-props-field">
-                            <label>Tipo de fonte</label>
-                            <select data-prop="fontFamily">
-                                <option value="1" ${Number(fontFamily)===1?'selected':''}>Manual</option>
-                                <option value="2" ${Number(fontFamily)===2?'selected':''}>Normal</option>
-                                <option value="3" ${Number(fontFamily)===3?'selected':''}>Monoespaçada</option>
-                            </select>
-                        </div>
-                        <div class="os-props-field">
-                            <label>Alinhamento texto</label>
-                            <select data-prop="textAlign">
-                                <option value="left" ${textAlign==='left'?'selected':''}>Esquerda</option>
-                                <option value="center" ${textAlign==='center'?'selected':''}>Centro</option>
-                                <option value="right" ${textAlign==='right'?'selected':''}>Direita</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="os-props-actions">
-                        <button type="button" class="os-props-action" data-action="transparent-bg">Fundo transparente</button>
-                        <button type="button" class="os-props-action" data-action="duplicate">Duplicar</button>
-                        <button type="button" class="os-props-action os-props-danger" data-action="delete">Apagar</button>
-                    </div>
-                `;
-
-                panel.querySelector('[data-action="close"]').addEventListener('click', closePanel);
-                panel.querySelector('[data-action="transparent-bg"]').addEventListener('click', () => {
-                    applyToSelection(el => el.type === 'text' ? {} : { backgroundColor: 'transparent' });
-                });
-                panel.querySelector('[data-action="duplicate"]').addEventListener('click', duplicateSelection);
-                panel.querySelector('[data-action="delete"]').addEventListener('click', deleteSelection);
-
-                panel.querySelectorAll('[data-prop]').forEach(ctrl => {
-                    const evt = ctrl.type === 'range' || ctrl.type === 'color' ? 'input' : 'change';
-                    ctrl.addEventListener(evt, () => {
-                        const prop = ctrl.dataset.prop;
-                        const val = ctrl.value;
-                        applyToSelection(el => {
-                            if (prop === 'strokeColor') return { strokeColor: val };
-                            if (prop === 'backgroundColor') return el.type === 'text' ? {} : { backgroundColor: val };
-                            if (prop === 'strokeWidth') return { strokeWidth: Number(val) || 1 };
-                            if (prop === 'strokeStyle') return { strokeStyle: val };
-                            if (prop === 'fillStyle') return el.type === 'text' ? {} : { fillStyle: val };
-                            if (prop === 'opacity') return { opacity: Number(val) || 100 };
-                            if (prop === 'roughness') return { roughness: Number(val) || 0 };
-                            if (prop === 'fontSize') return el.type === 'text' ? { fontSize: Math.max(6, Math.min(96, Number(val) || 16)) } : {};
-                            if (prop === 'fontFamily') return el.type === 'text' ? { fontFamily: Number(val) || 2 } : {};
-                            if (prop === 'textAlign') return el.type === 'text' ? { textAlign: val } : {};
-                            if (prop === 'roundness') {
-                                if (!['rectangle','diamond','ellipse'].includes(el.type)) return {};
-                                return { roundness: val === 'round' ? { type: 3 } : null };
-                            }
-                            if (prop === 'shapeType') {
-                                if (!val || !['rectangle','diamond','ellipse'].includes(el.type)) return {};
-                                return { type: val };
-                            }
-                            return {};
-                        });
-                    });
-                });
-            }
-
-            function openPanel(originEvent = null, opts = {}) {
-                ensureDom();
-                const a = api();
-                if (!a) return;
-
-                let ids = opts.restoreIds || selectedIds(a);
-                if ((!ids || ids.length === 0) && originEvent && originEvent.clientX != null) {
-                    const hit = elementAtClient(originEvent.clientX, originEvent.clientY);
-                    if (hit) ids = [hit.id];
-                }
-                if (!ids || ids.length === 0) {
-                    if (window.Swal) {
-                        Swal.fire({ icon: 'info', title: 'Selecione um objeto', text: 'Selecione uma peça, texto ou desenho antes de abrir a edição.', timer: 1400, showConfirmButton: false });
-                    }
-                    return;
-                }
-
-                preserveSelection(ids);
-                excContainer.classList.remove('props-open');
-                btnProps.classList.add('active');
-                renderPanel();
-                backdrop.classList.add('open');
-                document.body.classList.add('os-props-open');
-
-                if (originEvent && originEvent.clientX != null) {
-                    const margin = 8;
-                    const vw = window.innerWidth || document.documentElement.clientWidth;
-                    const vh = window.innerHeight || document.documentElement.clientHeight;
-                    const rect = panel.getBoundingClientRect();
-                    let left = Math.min(Math.max(originEvent.clientX, margin + rect.width / 2), vw - margin - rect.width / 2);
-                    let top = Math.min(Math.max(originEvent.clientY, margin), vh - margin - Math.min(rect.height, vh - margin * 2));
-                    panel.style.left = left + 'px';
-                    panel.style.top = top + 'px';
-                    panel.style.transform = 'translateX(-50%)';
-                } else {
-                    panel.style.left = '50%';
-                    panel.style.top = (window.innerWidth <= 820 ? '56px' : '72px');
-                    panel.style.transform = 'translateX(-50%)';
-                }
-            }
-
-            function closePanel() {
-                ensureDom();
-                backdrop.classList.remove('open');
-                document.body.classList.remove('os-props-open');
-                btnProps.classList.remove('active');
-                excContainer.classList.remove('props-open');
-                if (typeof window._atualizarEstadoFerramentas === 'function') window._atualizarEstadoFerramentas();
-            }
-
-            window.abrirPainelEdicaoObjetosOS = openPanel;
-            window.fecharPainelEdicaoObjetosOS = closePanel;
-
-            // Botão das 3 linhas: capturar antes do handler antigo para não tentar abrir a UI interna escondida.
-            ['pointerdown', 'mousedown', 'touchstart'].forEach(evt => {
-                btnProps.addEventListener(evt, (e) => {
-                    e.preventDefault();
+            function prepararPreservarSelecao(e, bloquearPointer) {
+                if (!dentroEditor(e)) return false;
+                const api = window.gerenciadorDesenho?.excalidrawAPI;
+                if (!api) return false;
+                const ids = _selectedElementIdsAtuais(api);
+                if (ids.length < 2) return false;
+                const pt = pontoCena(e);
+                if (!pt || !_pointInsideSelectedBounds(pt, api, 12)) return false;
+                idsParaRestaurar = ids.slice();
+                if (bloquearPointer) {
+                    // Impede o Excalidraw de trocar seleção múltipla por seleção única no botão direito,
+                    // mas não usa preventDefault para não matar o contextmenu nativo.
                     e.stopImmediatePropagation();
-                }, { capture: true, passive: false });
-            });
-            btnProps.addEventListener('click', (e) => {
-                e.preventDefault();
-                e.stopImmediatePropagation();
-                openPanel(null);
-            }, { capture: true });
-
-            // Botão direito no PC: abre o mesmo painel sem desmarcar seleção múltipla e sem menu nativo.
+                }
+                requestAnimationFrame(() => _restoreSelectedIds(api, idsParaRestaurar));
+                setTimeout(() => _restoreSelectedIds(api, idsParaRestaurar), 80);
+                return true;
+            }
             document.addEventListener('pointerdown', (e) => {
-                if (!excContainer.contains(e.target) || e.button !== 2) return;
-                const a = api();
-                if (!a) return;
-                const ids = selectedIds(a);
-                if (ids.length > 0 && pointInsideSelection(e.clientX, e.clientY)) {
-                    idsPreservados = ids.slice();
-                    e.preventDefault();
-                    e.stopImmediatePropagation();
-                    preserveSelection(idsPreservados);
-                }
+                if (e.button === 2) prepararPreservarSelecao(e, true);
             }, { capture: true });
-
+            document.addEventListener('mousedown', (e) => {
+                if (e.button === 2) prepararPreservarSelecao(e, true);
+            }, { capture: true });
             document.addEventListener('contextmenu', (e) => {
-                if (!excContainer.contains(e.target)) return;
-                const a = api();
-                if (!a) return;
-                let ids = idsPreservados || selectedIds(a);
-                const insideSelected = pointInsideSelection(e.clientX, e.clientY);
-                const hit = elementAtClient(e.clientX, e.clientY);
-
-                e.preventDefault();
-                e.stopImmediatePropagation();
-
-                if (insideSelected && ids.length > 0) {
-                    openPanel(e, { restoreIds: ids });
-                } else if (hit) {
-                    openPanel(e, { restoreIds: [hit.id] });
-                }
-                idsPreservados = null;
+                // Permite o menu nativo do Excalidraw abrir. Apenas restaura a seleção múltipla.
+                prepararPreservarSelecao(e, false);
             }, { capture: true });
-
-            document.addEventListener('auxclick', (e) => {
-                if (!excContainer.contains(e.target)) return;
-                if (e.button === 1 || e.button === 2) {
-                    e.preventDefault();
-                    e.stopImmediatePropagation();
-                }
-            }, { capture: true });
-
-            // Toque longo no celular: abre o painel se o toque começar sobre a seleção ou sobre um objeto.
-            document.addEventListener('touchstart', (e) => {
-                if (!excContainer.contains(e.target) || e.touches.length !== 1) return;
-                const t = e.touches[0];
-                const a = api();
-                if (!a) return;
-                const ids = selectedIds(a);
-                const hit = elementAtClient(t.clientX, t.clientY);
-                const insideSelected = pointInsideSelection(t.clientX, t.clientY);
-                if (!hit && !insideSelected) return;
-
-                longPressStart = { x: t.clientX, y: t.clientY };
-                const restore = insideSelected && ids.length > 0 ? ids.slice() : (hit ? [hit.id] : []);
-                clearTimeout(longPressTimer);
-                longPressTimer = setTimeout(() => {
-                    preserveSelection(restore);
-                    openPanel({ clientX: t.clientX, clientY: t.clientY }, { restoreIds: restore });
-                }, 650);
-            }, { capture: true, passive: true });
-
-            document.addEventListener('touchmove', (e) => {
-                if (!longPressTimer || !longPressStart || e.touches.length !== 1) return;
-                const t = e.touches[0];
-                const dx = t.clientX - longPressStart.x;
-                const dy = t.clientY - longPressStart.y;
-                if (Math.hypot(dx, dy) > 12) {
-                    clearTimeout(longPressTimer);
-                    longPressTimer = null;
-                    longPressStart = null;
-                }
-            }, { capture: true, passive: true });
-
-            ['touchend', 'touchcancel', 'pointercancel'].forEach(evt => {
-                document.addEventListener(evt, () => {
-                    clearTimeout(longPressTimer);
-                    longPressTimer = null;
-                    longPressStart = null;
-                }, { capture: true, passive: true });
-            });
-
-            document.addEventListener('keydown', (e) => {
-                if (e.key === 'Escape' && backdrop?.classList.contains('open')) {
-                    e.preventDefault();
-                    closePanel();
-                }
+            document.addEventListener('pointerup', () => {
+                const api = window.gerenciadorDesenho?.excalidrawAPI;
+                if (idsParaRestaurar && api) _restoreSelectedIds(api, idsParaRestaurar);
+                idsParaRestaurar = null;
             }, { capture: true });
         })();
-
 
 
     </script>
