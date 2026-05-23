@@ -518,6 +518,7 @@ def api_configurador_orcamento():
                     valor_total += 50
 
                 valor_total = round(valor_total, 2)
+                valor_total = valor_total * max(quantidade, 1)
 
                 prod_id = get_or_create_produto(produto_nome) if produto_nome else None
 
