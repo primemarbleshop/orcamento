@@ -631,14 +631,36 @@ function drawBancadaEdges(sections, sc, ox, oy, b) {
         pixSegs.forEach(s => totalLen += s.len);
         let target = totalLen / 2, acc = 0;
         let lx, ly;
-        for (const s of pixSegs) {
-            if (acc + s.len >= target) {
-                const t = (target - acc) / s.len;
-                lx = s.px1 + (s.px2 - s.px1) * t;
-                ly = s.py1 + (s.py2 - s.py1) * t;
-                break;
+
+        // Centralização explícita para labels que o usuário quer ver no meio do vão útil.
+        // Para a frente, centraliza pelo menor/maior X dos trechos horizontais da frente.
+        // Para o fundo externo do L, centraliza pelo menor/maior Y do trecho vertical do braço.
+        if (side === 'frente') {
+            const horiz = labelSegs.filter(seg => Math.abs(seg.x2 - seg.x1) >= Math.abs(seg.y2 - seg.y1));
+            const pool = horiz.length ? horiz : labelSegs;
+            const minX = Math.min(...pool.map(seg => Math.min(seg.x1, seg.x2)));
+            const maxX = Math.max(...pool.map(seg => Math.max(seg.x1, seg.x2)));
+            const yRef = pool[0];
+            lx = ox + ((minX + maxX) / 2) * sc;
+            ly = oy + (((yRef.y1 + yRef.y2) / 2) * sc);
+        } else if (side === 'l_fundo') {
+            const vert = labelSegs.filter(seg => Math.abs(seg.y2 - seg.y1) > Math.abs(seg.x2 - seg.x1));
+            const pool = vert.length ? vert : labelSegs;
+            const minY = Math.min(...pool.map(seg => Math.min(seg.y1, seg.y2)));
+            const maxY = Math.max(...pool.map(seg => Math.max(seg.y1, seg.y2)));
+            const xRef = pool[0];
+            lx = ox + (((xRef.x1 + xRef.x2) / 2) * sc);
+            ly = oy + ((minY + maxY) / 2) * sc;
+        } else {
+            for (const s of pixSegs) {
+                if (acc + s.len >= target) {
+                    const t = (target - acc) / s.len;
+                    lx = s.px1 + (s.px2 - s.px1) * t;
+                    ly = s.py1 + (s.py2 - s.py1) * t;
+                    break;
+                }
+                acc += s.len;
             }
-            acc += s.len;
         }
         const longest = labelSegs.reduce((a, b) => {
             const la = Math.abs(b.x2-b.x1) + Math.abs(b.y2-b.y1);
