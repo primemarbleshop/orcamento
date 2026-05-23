@@ -413,6 +413,36 @@
             touch-action: pan-y pinch-zoom !important;
         }
 
+
+
+        /* Camada transparente de navegação mobile.
+           Em modo sem ferramenta, ela fica acima do Excalidraw para impedir que o canvas receba pinch.
+           O gesto de pinça continua livre para o navegador ampliar a página. */
+        #mobileNavShield {
+            display: none;
+            position: absolute;
+            inset: 0;
+            z-index: 60;
+            background: transparent;
+            pointer-events: none;
+            touch-action: pan-y pinch-zoom !important;
+            -webkit-touch-callout: none !important;
+            -webkit-user-select: none !important;
+            user-select: none !important;
+        }
+
+        @media (max-width: 820px) {
+            #excalidraw-container.no-tool #mobileNavShield,
+            #excalidraw-container.pinch-page-zoom #mobileNavShield {
+                display: block;
+                pointer-events: auto;
+            }
+            #excalidraw-container.has-tool:not(.pinch-page-zoom) #mobileNavShield {
+                display: none;
+                pointer-events: none;
+            }
+        }
+
         @media print {
             @page {
                 size: A4;
@@ -752,6 +782,8 @@
             if (exc) {
                 exc.classList.toggle('no-tool', !anyActive);
                 exc.classList.toggle('has-tool', anyActive);
+                if (typeof garantirMobileNavShield === 'function') garantirMobileNavShield();
+                if (anyActive) exc.classList.remove('pinch-page-zoom');
             }
         };
 
@@ -1772,6 +1804,8 @@
             onReady() {
                 console.log('Excalidraw pronto!');
                 document.getElementById('loadingOverlay')?.remove();
+                if (typeof garantirMobileNavShield === 'function') garantirMobileNavShield();
+                window._atualizarEstadoFerramentas?.();
                 aplicarAlturaViewportEditor();
 
                 setTimeout(() => {
@@ -2753,8 +2787,100 @@
         }
 
         const container = document.getElementById('excalidraw-container');
+
+        // Bloqueio rígido do zoom interno do Excalidraw no mobile.
+        // Registrado ANTES do render do React/Excalidraw para capturar pinch antes dos listeners internos.
+        let _zoomInternoLockAte = 0;
+        let _zoomInternoLockRodando = false;
+
+        function forcarZoomInternoFixo() {
+            const api = window.gerenciadorDesenho?.excalidrawAPI;
+            if (!api) return;
+            const appState = api.getAppState ? api.getAppState() : {};
+            const targetZoom = getResponsiveZoomValue();
+            const atual = appState.zoom?.value || targetZoom;
+            const precisaCorrigir = Math.abs(atual - targetZoom) > 0.001 || Math.abs(appState.scrollX || 0) > 0.5;
+            if (precisaCorrigir) {
+                api.updateScene({
+                    appState: {
+                        scrollX: 0,
+                        zoom: { value: targetZoom }
+                    }
+                });
+            }
+        }
+
+        function manterZoomInternoFixoPor(ms = 700) {
+            _zoomInternoLockAte = Math.max(_zoomInternoLockAte, Date.now() + ms);
+            if (_zoomInternoLockRodando) return;
+            _zoomInternoLockRodando = true;
+            const loop = () => {
+                forcarZoomInternoFixo();
+                if (Date.now() < _zoomInternoLockAte) {
+                    requestAnimationFrame(loop);
+                } else {
+                    _zoomInternoLockRodando = false;
+                    document.getElementById('excalidraw-container')?.classList.remove('pinch-page-zoom');
+                    forcarZoomInternoFixo();
+                }
+            };
+            requestAnimationFrame(loop);
+        }
+
+        (function instalarBloqueioAntecipadoDePinch() {
+            function editor() {
+                return document.getElementById('excalidraw-container');
+            }
+            function dentroEditor(e) {
+                const el = editor();
+                return !!(el && e.target && el.contains(e.target));
+            }
+            function iniciarPinchPagina(e) {
+                if (!dentroEditor(e)) return;
+                const qtdTouches = e.touches ? e.touches.length : 0;
+                const ehGestureSafari = e.type === 'gesturestart' || e.type === 'gesturechange' || e.type === 'gestureend';
+                const ehWheelZoom = e.type === 'wheel' && (e.ctrlKey || e.metaKey);
+                const ehPointerSecundario = e.type === 'pointerdown' && e.pointerType === 'touch' && e.isPrimary === false;
+                if (qtdTouches >= 2 || ehGestureSafari || ehWheelZoom || ehPointerSecundario) {
+                    const el = editor();
+                    if (el) el.classList.add('pinch-page-zoom');
+                    manterZoomInternoFixoPor(900);
+                    // Não usar preventDefault aqui: o navegador precisa receber o default para ampliar a página.
+                    e.stopImmediatePropagation();
+                }
+            }
+            function finalizarPinchPagina(e) {
+                if (!dentroEditor(e)) return;
+                if (!e.touches || e.touches.length < 2) {
+                    manterZoomInternoFixoPor(450);
+                }
+            }
+
+            window.addEventListener('touchstart', iniciarPinchPagina, { capture: true, passive: true });
+            window.addEventListener('touchmove', iniciarPinchPagina, { capture: true, passive: true });
+            window.addEventListener('touchend', finalizarPinchPagina, { capture: true, passive: true });
+            window.addEventListener('touchcancel', finalizarPinchPagina, { capture: true, passive: true });
+            window.addEventListener('gesturestart', iniciarPinchPagina, { capture: true, passive: true });
+            window.addEventListener('gesturechange', iniciarPinchPagina, { capture: true, passive: true });
+            window.addEventListener('gestureend', finalizarPinchPagina, { capture: true, passive: true });
+            window.addEventListener('pointerdown', iniciarPinchPagina, { capture: true, passive: true });
+            window.addEventListener('wheel', iniciarPinchPagina, { capture: true, passive: true });
+        })();
+
+        function garantirMobileNavShield() {
+            let shield = document.getElementById('mobileNavShield');
+            if (shield) return shield;
+            shield = document.createElement('div');
+            shield.id = 'mobileNavShield';
+            shield.setAttribute('aria-hidden', 'true');
+            const el = document.getElementById('excalidraw-container');
+            if (el) el.appendChild(shield);
+            return shield;
+        }
+
         const root = createRoot(container);
         root.render(h(ExcalidrawApp));
+        garantirMobileNavShield();
 
         // Scroll em duas etapas:
         // 1) a página rola normal;
