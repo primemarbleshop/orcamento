@@ -48,15 +48,23 @@ function labelBoxesOverlap(a, b, gap = 6) {
     return !(a.right + gap < b.left || a.left - gap > b.right || a.bottom + gap < b.top || a.top - gap > b.bottom);
 }
 
+function labelBoxesNearOnSameSide(a, b, gap = 18) {
+    if (!a.isVert || !b.isVert) return false;
+    if (a.nx !== b.nx) return false;
+    const verticalSeparation = Math.max(0, Math.max(a.top, b.top) - Math.min(a.bottom, b.bottom));
+    const horizontalSeparation = Math.max(0, Math.max(a.left, b.left) - Math.min(a.right, b.right));
+    return verticalSeparation <= gap && horizontalSeparation <= 28;
+}
+
 function resolveEdgeLabelPosition(lines, x, y, isVert, nx, ny) {
     let tx = x, ty = y;
-    let box = getEdgeLabelBox(lines, tx, ty, isVert);
-    const step = isVert ? 16 : 14;
+    let box = { ...getEdgeLabelBox(lines, tx, ty, isVert), isVert, nx, ny };
+    const step = isVert ? 18 : 14;
     let tries = 0;
-    while (edgeLabelBoxes.some(b => labelBoxesOverlap(box, b)) && tries < 12) {
+    while (edgeLabelBoxes.some(b => labelBoxesOverlap(box, b) || labelBoxesNearOnSameSide(box, b)) && tries < 12) {
         tx += nx * step;
-        ty += ny * step;
-        box = getEdgeLabelBox(lines, tx, ty, isVert);
+        if (!isVert) ty += ny * step;
+        box = { ...getEdgeLabelBox(lines, tx, ty, isVert), isVert, nx, ny };
         tries += 1;
     }
     edgeLabelBoxes.push(box);
