@@ -203,7 +203,10 @@ function getSections() {
                 {type:'seca', x:CFG.profL+wm, y:0, w:ws, h:ds}
             ];
             alignFront(row);
-            const backY = Math.min(...row.map(s => s.y));
+            const molhada = row.find(s => s.type === 'molhada');
+            // A peça lateral do L deve acompanhar a parte de trás da molhada,
+            // não a peça seca da direita. Isso elimina o degrau indevido ao lado da molhada.
+            const backY = molhada ? molhada.y : Math.min(...row.map(s => s.y));
             secs.push({type:'seca', x:0, y:backY, w:CFG.profL, h:CFG.compL, isL:true});
             secs.push(...row);
             break;
@@ -502,9 +505,9 @@ function getContourSegments(sections) {
         const esp = !!CFG.espelhar;
         const leftKey = esp ? 'direita' : 'esquerda';
         const rightKey = esp ? 'esquerda' : 'direita';
+        const midY = (y1 + y2) / 2;
         const lArm = sections.find(s => s.isL);
         if (lArm) {
-            const midY = (y1 + y2) / 2;
             const isLLeft = Math.abs(x - lArm.x) < 0.01 && midY >= lArm.y - 0.01;
             const isLRight = Math.abs(x - (lArm.x + lArm.w)) < 0.01 && midY >= lArm.y - 0.01;
             // Em L espelhado, o acabamento lateral do braço também precisa espelhar.
@@ -516,6 +519,18 @@ function getContourSegments(sections) {
             } else {
                 if (isLRight) return 'l_fundo';
                 if (isLLeft) return 'frente';
+            }
+        }
+        // Dente no fundo entre bancadas adjacentes deve seguir o acabamento do fundo.
+        const leftNeighbors = sections.filter(s => Math.abs((s.x + s.w) - x) < 0.01);
+        const rightNeighbors = sections.filter(s => Math.abs(s.x - x) < 0.01);
+        if (leftNeighbors.length && rightNeighbors.length) {
+            const leftTops = leftNeighbors.map(s => s.y);
+            const rightTops = rightNeighbors.map(s => s.y);
+            const minTop = Math.min(...leftTops, ...rightTops);
+            const maxTop = Math.max(...leftTops, ...rightTops);
+            if (maxTop - minTop > 0.01 && midY >= minTop - 0.01 && midY <= maxTop + 0.01) {
+                return 'fundo';
             }
         }
         if (Math.abs(x - bounds.x0) < 0.01) return leftKey;
