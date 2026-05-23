@@ -363,7 +363,7 @@
 
         <div class="print-header" id="printHeader">
             <div class="header-container" style="min-height:0;">
-                <img src="{{ logo_url }}" alt="Logo" class="logo-empresa" onerror="this.style.display='none'">
+                <img src="{{ logo_url }}" alt="Logo" class="logo-empresa" onerror="this.onerror=null; this.src='/static/logo.jpg';">
             </div>
             <div class="cliente-header">
                 <p style="font-size:16px;font-weight:bold;margin:0 0 3px 0;">Prime Marble Shop</p>
@@ -770,6 +770,11 @@
             let eraserPath = []; // posições da borracha em coords de cena
             let _eraserIdxCounter = 0;
 
+            // ── Undo stack para a borracha ──
+            const _eraserUndoStack = [];
+            const MAX_UNDO = 30;
+            let _eraserSnapshotTaken = false;
+
             function nextIdx() {
                 _eraserIdxCounter++;
                 return 'c' + _eraserIdxCounter.toString(36);
@@ -1078,6 +1083,14 @@
                     drawing = true;
                     lastPt = { x: pt.x, y: pt.y };
                     eraserPath = [{ x: pt.x, y: pt.y }];
+                    // Salvar snapshot para undo ANTES de começar a apagar
+                    const api = window.gerenciadorDesenho?.excalidrawAPI;
+                    if (api) {
+                        const snap = api.getSceneElements().map(el => ({ ...el }));
+                        _eraserUndoStack.push(snap);
+                        if (_eraserUndoStack.length > MAX_UNDO) _eraserUndoStack.shift();
+                        _eraserSnapshotTaken = true;
+                    }
                     // Manter flag true durante todo o drag
                     if (window._setUpdatingScene) window._setUpdatingScene(true);
                     try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
@@ -1116,6 +1129,31 @@
                     btn.classList.add('active');
                 });
             });
+
+            // ── Expor undo da borracha para o botão e Ctrl+Z ──
+            window._eraserUndo = function() {
+                if (_eraserUndoStack.length === 0) return false;
+                const snapshot = _eraserUndoStack.pop();
+                const api = window.gerenciadorDesenho?.excalidrawAPI;
+                if (!api) return false;
+                if (window._setUpdatingScene) window._setUpdatingScene(true);
+                api.updateScene({ elements: snapshot });
+                setTimeout(() => {
+                    if (window._setUpdatingScene) window._setUpdatingScene(false);
+                }, 500);
+                return true; // consumiu o undo
+            };
+
+            // Interceptar Ctrl+Z global para desfazer borracha primeiro
+            document.addEventListener('keydown', (e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) {
+                    if (_eraserUndoStack.length > 0) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        window._eraserUndo();
+                    }
+                }
+            }, true); // capture phase para pegar antes do Excalidraw
         })();
 
         function generateId() {
@@ -1476,7 +1514,9 @@
                 // Desfazer / Refazer
                 document.getElementById('btnUndo').addEventListener('click', () => {
                     if (this.excalidrawAPI) {
-                        // Simular Ctrl+Z dentro do Excalidraw
+                        // Verificar se tem undo da borracha pendente
+                        if (window._eraserUndo && window._eraserUndo()) return;
+                        // Senão, Ctrl+Z padrão do Excalidraw
                         const el = document.querySelector('#excalidraw-container .excalidraw');
                         if (el) {
                             el.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', ctrlKey: true, bubbles: true }));
