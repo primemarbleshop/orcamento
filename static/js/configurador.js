@@ -907,6 +907,8 @@ function renderStep() {
     const steps = getSteps();
     const sb = document.getElementById('sideBody');
     const name = steps[step];
+    const sideHeader = document.querySelector('.side-header');
+    if (sideHeader) sideHeader.classList.toggle('mobile-compact', step > 0);
     updateStepBar();
     const btnBack = document.getElementById('btnBack');
     const btnNext = document.getElementById('btnNext');
