@@ -282,6 +282,47 @@
             overflow-x: hidden;
         }
 
+        /* Correção real do botão das 3 linhas:
+           o modo no-tool e a camada mobileNavShield desligavam os eventos do Excalidraw.
+           Além disso, a UI interna escondia ancestrais do painel de propriedades.
+           Quando props-open estiver ativo, reabrimos apenas a cadeia que contém selected-shape-actions. */
+        #excalidraw-container.props-open #mobileNavShield {
+            display: none !important;
+            pointer-events: none !important;
+        }
+        #excalidraw-container.props-open .excalidraw,
+        #excalidraw-container.props-open .excalidraw * {
+            pointer-events: auto !important;
+        }
+        #excalidraw-container.props-open .layer-ui__wrapper:has(.selected-shape-actions),
+        #excalidraw-container.props-open .layer-ui__wrapper__top-right:has(.selected-shape-actions),
+        #excalidraw-container.props-open .App-toolbar:has(.selected-shape-actions),
+        #excalidraw-container.props-open .App-toolbar-container:has(.selected-shape-actions),
+        #excalidraw-container.props-open .Island:has(.selected-shape-actions),
+        #excalidraw-container.props-open [class*="Island"]:has(.selected-shape-actions),
+        #excalidraw-container.props-open .selected-shape-actions,
+        #excalidraw-container.props-open .selected-shape-actions * {
+            display: revert !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            pointer-events: auto !important;
+        }
+        #excalidraw-container.props-open .selected-shape-actions {
+            display: block !important;
+            position: absolute !important;
+            top: 8px !important;
+            left: 8px !important;
+            z-index: 5000 !important;
+            max-height: min(420px, 70vh) !important;
+            overflow-y: auto !important;
+            overflow-x: hidden !important;
+            background: #ffffff !important;
+            border: 1px solid #d0d0d0 !important;
+            border-radius: 8px !important;
+            box-shadow: 0 8px 24px rgba(0,0,0,.18) !important;
+            padding: 8px !important;
+        }
+
         .loading-overlay {
             display: flex;
             align-items: center;
@@ -856,15 +897,23 @@
 
         // Função global para atualizar estado de ferramentas (acessível de qualquer scope)
         window._atualizarEstadoFerramentas = function() {
-            const anyActive = !!document.querySelector('.tool-btn[data-tool].active, #btnLasso.active, #btnEdgeTool.active, #btnEraser.active');
-            window._noToolMode = !anyActive;
-            document.body.classList.toggle('tool-active', anyActive);
             const exc = document.getElementById('excalidraw-container');
+            const anyDrawingToolActive = !!document.querySelector('.tool-btn[data-tool].active, #btnLasso.active, #btnEdgeTool.active, #btnEraser.active');
+            const propsOpen = !!(exc && exc.classList.contains('props-open'));
+
+            // props-open NÃO é ferramenta de desenho, então não deve travar o body como laço/borracha.
+            // Mas também NÃO pode deixar o container em no-tool, porque no-tool desliga pointer-events
+            // dos filhos do Excalidraw e impede o menu de edição de abrir/clicar.
+            const excalidrawInteractive = anyDrawingToolActive || propsOpen;
+
+            window._noToolMode = !excalidrawInteractive;
+            document.body.classList.toggle('tool-active', anyDrawingToolActive);
             if (exc) {
-                exc.classList.toggle('no-tool', !anyActive);
-                exc.classList.toggle('has-tool', anyActive);
+                exc.classList.toggle('no-tool', !excalidrawInteractive);
+                exc.classList.toggle('has-tool', anyDrawingToolActive);
+                exc.classList.toggle('props-mode', propsOpen);
                 if (typeof garantirMobileNavShield === 'function') garantirMobileNavShield();
-                if (anyActive) exc.classList.remove('pinch-page-zoom');
+                if (excalidrawInteractive) exc.classList.remove('pinch-page-zoom');
             }
         };
 
@@ -2032,21 +2081,46 @@
 
                 function forcarPainelPropsVisivel() {
                     const actions = container.querySelector('.selected-shape-actions');
-                    if (!actions) return false;
+                    if (!actions) {
+                        console.warn('[OS desenho] Painel .selected-shape-actions não encontrado. Se não houver peça selecionada, o Excalidraw não monta esse painel.');
+                        return false;
+                    }
+
+                    // Remover a camada de navegação mobile enquanto o menu de propriedades está aberto.
+                    const shield = document.getElementById('mobileNavShield');
+                    if (shield) {
+                        shield.style.setProperty('display', 'none', 'important');
+                        shield.style.setProperty('pointer-events', 'none', 'important');
+                    }
 
                     let el = actions;
                     while (el && el !== container) {
                         el.dataset.propsForcedVisible = '1';
-                        el.style.setProperty('display', 'block', 'important');
+                        el.style.setProperty('display', 'revert', 'important');
                         el.style.setProperty('visibility', 'visible', 'important');
                         el.style.setProperty('opacity', '1', 'important');
                         el.style.setProperty('pointer-events', 'auto', 'important');
                         el = el.parentElement;
                     }
 
-                    actions.style.setProperty('max-height', '420px', 'important');
+                    actions.style.setProperty('display', 'block', 'important');
+                    actions.style.setProperty('position', 'absolute', 'important');
+                    actions.style.setProperty('top', '8px', 'important');
+                    actions.style.setProperty('left', '8px', 'important');
+                    actions.style.setProperty('z-index', '5000', 'important');
+                    actions.style.setProperty('max-height', 'min(420px, 70vh)', 'important');
                     actions.style.setProperty('overflow-y', 'auto', 'important');
                     actions.style.setProperty('overflow-x', 'hidden', 'important');
+                    actions.style.setProperty('background', '#ffffff', 'important');
+                    actions.style.setProperty('border', '1px solid #d0d0d0', 'important');
+                    actions.style.setProperty('border-radius', '8px', 'important');
+                    actions.style.setProperty('box-shadow', '0 8px 24px rgba(0,0,0,.18)', 'important');
+                    actions.style.setProperty('padding', '8px', 'important');
+                    actions.querySelectorAll('*').forEach(child => {
+                        child.style.setProperty('pointer-events', 'auto', 'important');
+                        child.style.setProperty('visibility', 'visible', 'important');
+                        child.style.setProperty('opacity', '1', 'important');
+                    });
                     return true;
                 }
 
@@ -2071,6 +2145,12 @@
 
                     if (!abrir) {
                         limparPainelPropsForcado();
+                        const shield = document.getElementById('mobileNavShield');
+                        if (shield) {
+                            shield.style.removeProperty('display');
+                            shield.style.removeProperty('pointer-events');
+                        }
+                        window._atualizarEstadoFerramentas();
                         return;
                     }
 
