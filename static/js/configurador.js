@@ -359,16 +359,39 @@ function drawBancadaDims(sections, sc, ox, oy, b) {
     const lArm = sections.find(s => s.isL);
     const esp = CFG.espelhar;
 
+    const totalW = Math.max(...sections.map(s => s.x + s.w));
     let dy = oy + b.h * sc + 55;
-    main.forEach(sec => {
-        const x1 = ox + sec.x * sc, x2 = x1 + sec.w * sc;
-        drawHDim(x1, x2, dy, fmt(sec.w));
-    });
-    if (main.length > 1 || lArm) {
+
+    if (lArm) {
+        // Bancadas em L precisam de cotas horizontais por quebras reais de geometria.
+        // Antes, a peça principal acima do braço em L era cotada inteira e a largura
+        // do braço era cotada por cima dela, gerando 120 + 120 + 60 no Modelo 1.
+        // Agora a cota inferior usa os pontos X reais: ex. 0|60|120|240 => 60|60|120.
+        const breakpoints = Array.from(new Set(
+            sections.flatMap(s => [roundDim(s.x), roundDim(s.x + s.w)])
+        )).sort((a, b) => a - b);
+
+        for (let i = 0; i < breakpoints.length - 1; i++) {
+            const xA = breakpoints[i];
+            const xB = breakpoints[i + 1];
+            if (xB - xA > 0.1) {
+                drawHDim(ox + xA * sc, ox + xB * sc, dy, fmt(xB - xA));
+            }
+        }
+
         dy += 26;
-        const totalW = Math.max(...sections.map(s => s.x + s.w));
         drawHDim(ox, ox + totalW * sc, dy, fmt(totalW));
+    } else {
+        main.forEach(sec => {
+            const x1 = ox + sec.x * sc, x2 = x1 + sec.w * sc;
+            drawHDim(x1, x2, dy, fmt(sec.w));
+        });
+        if (main.length > 1) {
+            dy += 26;
+            drawHDim(ox, ox + totalW * sc, dy, fmt(totalW));
+        }
     }
+
     const depths = [...new Set(main.map(s => s.h))];
     let dx = esp ? ox - 55 : ox + b.w * sc + 55;
     depths.forEach(d => {
@@ -377,14 +400,13 @@ function drawBancadaDims(sections, sc, ox, oy, b) {
         dx += esp ? -40 : 40;
     });
     if (lArm) {
-        const x1 = ox + lArm.x * sc, x2 = x1 + lArm.w * sc;
-        const y2 = oy + (lArm.y + lArm.h) * sc;
-        drawHDim(x1, x2, y2 + 55, fmt(lArm.w));
         const totalH = lArm.y + lArm.h;
         const lDimX = esp ? ox + b.w * sc + 55 : ox - 55;
         drawVDim(lDimX, oy, oy + totalH * sc, fmt(totalH));
     }
 }
+
+function roundDim(v) { return Math.round(v * 1000) / 1000; }
 
 function fmt(v) { return (v % 1 === 0 ? v : v.toFixed(1)) + 'cm'; }
 
