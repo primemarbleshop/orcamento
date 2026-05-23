@@ -367,7 +367,7 @@ def _gerar_pdf_bytes(codigo):
     exclude_payments = orcamento_salvo.exclude_payments.split(',') if orcamento_salvo.exclude_payments else []
     rendered_html = render_template(
         "detalhes_orcamento_salvo.html",
-        logo_url="https://primemarbleshop.com.br/static/logo.jpg",
+        logo_url=url_for('static', filename='logo.jpg'),
         codigo_orcamento=orcamento_salvo.codigo,
         data_salvo=orcamento_salvo.data_salvo,
         cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
@@ -388,8 +388,8 @@ def _gerar_pdf_bytes(codigo):
         temp_pdf_path = temp_pdf.name
     with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as final_pdf:
         final_pdf_path = final_pdf.name
-    HTML(string=rendered_html, base_url="https://primemarbleshop.com.br").write_pdf(temp_pdf_path)
-    logo_path = "static/logo.jpg"
+    HTML(string=rendered_html, base_url=request.url_root).write_pdf(temp_pdf_path)
+    logo_path = os.path.join(app.root_path, "static", "logo.jpg")
     doc = fitz.open(temp_pdf_path)
     if os.path.exists(logo_path):
         page = doc[0]
@@ -2077,7 +2077,7 @@ def detalhes_orcamento_salvo(codigo):
     valor_total_float = valor_total_final
     
     # Configurar logo URL
-    logo_url = "https://primemarbleshop.com.br/static/logo.jpg"
+    logo_url = url_for('static', filename='logo.jpg')
     
     # Obter informações do usuário
     usuario = Usuario.query.filter_by(cpf=session.get('user_cpf')).first()
@@ -2399,7 +2399,7 @@ def gerar_pdf_orcamento(codigo_ou_token):
     valor_total_final = sum(o.valor_total for o in orcamentos)
     valor_total_float = valor_total_final
 
-    logo_url = "https://primemarbleshop.com.br/static/logo.jpg"
+    logo_url = url_for('static', filename='logo.jpg')
     
     usuario = Usuario.query.filter_by(cpf=session.get('user_cpf')).first()
     if not usuario:
@@ -2450,11 +2450,11 @@ def gerar_pdf_orcamento(codigo_ou_token):
     with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as final_pdf:
         final_pdf_path = final_pdf.name
 
-    HTML(string=rendered_html, base_url="https://primemarbleshop.com.br").write_pdf(temp_pdf_path)
+    HTML(string=rendered_html, base_url=request.url_root).write_pdf(temp_pdf_path)
 
     # Adicionar logo (se existir)
     import fitz  # PyMuPDF
-    logo_path = "static/logo.jpg"
+    logo_path = os.path.join(app.root_path, "static", "logo.jpg")
     doc = fitz.open(temp_pdf_path)
     if os.path.exists(logo_path):
         page = doc[0]
