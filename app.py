@@ -581,6 +581,55 @@ def api_configurador_orcamento():
                 prof_s_val = pcfg.get('profSeca', 60)
                 mainD = max(prof_m_val, prof_s_val)
 
+                # DENTE DE FUNDO PARA ORÇAMENTO
+                # Quando bancadas lado a lado têm larguras/profundidades diferentes,
+                # o dente é a diferença entre elas. Esse trecho deve ser cobrado no
+                # mesmo acabamento do fundo e atribuído à bancada de maior largura.
+                dente_fundo_molhada = 0
+                dente_fundo_seca = 0
+                dente_fundo_seca_esq = 0
+                dente_fundo_seca_dir = 0
+                dente_fundo_molhada_esq = 0
+                dente_fundo_molhada_dir = 0
+
+                def acumular_dente(prof_a, prof_b):
+                    d = abs((prof_a or 0) - (prof_b or 0))
+                    return d if d > 0 else 0
+
+                if has_molhada and has_seca:
+                    if modelo in ['molhada_esq_seca_dir', 'molhada_dir_seca_esq', 'l_seca_molhada', 'l_seca_molhada_seca']:
+                        d = acumular_dente(prof_m_val, prof_s_val)
+                        if prof_m_val > prof_s_val:
+                            dente_fundo_molhada += d
+                        elif prof_s_val > prof_m_val:
+                            dente_fundo_seca += d
+                    elif modelo == 'molhada_centro_seca_lat':
+                        prof_seca_esq = pcfg.get('profSecaEsq', prof_s_val)
+                        prof_seca_dir = pcfg.get('profSecaDir', prof_s_val)
+                        d = acumular_dente(prof_m_val, prof_seca_esq)
+                        if prof_m_val > prof_seca_esq:
+                            dente_fundo_molhada += d
+                        elif prof_seca_esq > prof_m_val:
+                            dente_fundo_seca_esq += d
+                        d = acumular_dente(prof_m_val, prof_seca_dir)
+                        if prof_m_val > prof_seca_dir:
+                            dente_fundo_molhada += d
+                        elif prof_seca_dir > prof_m_val:
+                            dente_fundo_seca_dir += d
+                    elif modelo == 'seca_centro_molhada_lat':
+                        prof_molhada_esq = pcfg.get('profMolhadaEsq', prof_m_val)
+                        prof_molhada_dir = pcfg.get('profMolhadaDir', prof_m_val)
+                        d = acumular_dente(prof_s_val, prof_molhada_esq)
+                        if prof_s_val > prof_molhada_esq:
+                            dente_fundo_seca += d
+                        elif prof_molhada_esq > prof_s_val:
+                            dente_fundo_molhada_esq += d
+                        d = acumular_dente(prof_s_val, prof_molhada_dir)
+                        if prof_s_val > prof_molhada_dir:
+                            dente_fundo_seca += d
+                        elif prof_molhada_dir > prof_s_val:
+                            dente_fundo_molhada_dir += d
+
                 if has_molhada and modelo != 'seca_centro_molhada_lat':
                     comp_m = pcfg.get('compMolhada', 120)
                     prof_m = prof_m_val
@@ -593,6 +642,8 @@ def api_configurador_orcamento():
                         sides_m.append(('esquerda', prof_m))
                     if not has_seca:
                         sides_m.append(('direita', prof_m))
+                    if dente_fundo_molhada > 0:
+                        sides_m.append(('fundo', dente_fundo_molhada))
                     cs, ls, cf, lf, _ilh = calc_saia_fronte(sides_m, bordas, borda_alts, borda_saia_larg)
                     tc, qc, cc, lc, pc = cubas_na_secao('molhada')
                     criar_item_p('Bancada', comp_m, prof_m, cs, ls, cf, lf,
@@ -608,6 +659,8 @@ def api_configurador_orcamento():
                         sides_s.append(('direita', prof_s))
                     if not has_molhada:
                         sides_s.append(('esquerda', prof_s))
+                    if dente_fundo_seca > 0:
+                        sides_s.append(('fundo', dente_fundo_seca))
                     cs, ls, cf, lf, _ilh = calc_saia_fronte(sides_s, bordas, borda_alts, borda_saia_larg)
                     tc, qc, cc, lc, pc = cubas_na_secao('seca')
                     cook = 'Sim' if pcfg.get('cooktop') else 'Não'
@@ -626,6 +679,9 @@ def api_configurador_orcamento():
                         comp_sl = pcfg.get(comp_key, pcfg.get('compSecaLat', 60))
                         prof_sl = pcfg.get(prof_key, prof_s_val)
                         sides_sl = [('fundo', comp_sl), ('frente', comp_sl), (side_key, prof_sl)]
+                        dente_lateral = dente_fundo_seca_esq if side_key == 'esquerda' else dente_fundo_seca_dir
+                        if dente_lateral > 0:
+                            sides_sl.append(('fundo', dente_lateral))
                         cs, ls, cf, lf, _ilh = calc_saia_fronte(sides_sl, bordas, borda_alts, borda_saia_larg)
                         tc, qc, cc, lc, pc = cubas_na_secao(cuba_local)
                         cook = 'Sim' if pcfg.get('cooktop') and cooktop_idx == idx else 'Não'
@@ -643,6 +699,9 @@ def api_configurador_orcamento():
                         comp_ml = pcfg.get(comp_key, pcfg.get('compMolhadaLat', 60))
                         prof_ml = pcfg.get(prof_key, prof_m_val)
                         sides_ml = [('fundo', comp_ml), ('frente', comp_ml), (side_key, prof_ml)]
+                        dente_lateral = dente_fundo_molhada_esq if side_key == 'esquerda' else dente_fundo_molhada_dir
+                        if dente_lateral > 0:
+                            sides_ml.append(('fundo', dente_lateral))
                         cs, ls, cf, lf, _ilh = calc_saia_fronte(sides_ml, bordas, borda_alts, borda_saia_larg)
                         tc, qc, cc, lc, pc = cubas_na_secao(cuba_local)
                         criar_item_p('Bancada', comp_ml, prof_ml, cs, ls, cf, lf,
