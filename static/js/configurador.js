@@ -8,13 +8,11 @@ const CONTENCAO = 2;
 const EDGE_COLORS = { fronte:'#e63946', saia:'#2a9d8f', parede:'#6c757d', livre:'#bbb', ilharga:'#d97706' };
 const EDGE_NAMES = { fronte:'Parede com fronte', saia:'Acabamento com saia', parede:'Parede sem fronte', livre:'Acabamento sem saia', ilharga:'Ilharga' };
 function edgeName(type, side) {
-    // Sempre retorna um único texto. Não quebra mais em duas linhas.
-    // Isso evita o efeito de um texto ficar em cima do outro no preview.
-    if (type === 'fronte') return ['/// Parede com fronte' + (side ? ' larg:'+fmt(CFG.bordaAlts[side]) : '')];
-    if (type === 'saia') return ['// Acabamento com saia' + (side ? ' larg:'+fmt(CFG.bordaSaiaLarg[side]) : '')];
-    if (type === 'ilharga') return ['Ilharga' + (side ? ' alt:'+fmt(CFG.bordaAlts[side]) : '')];
-    if (type === 'parede') return ['Parede sem fronte'];
-    return ['Acabamento sem saia'];
+    if (type === 'fronte') return ['/// Parede', 'com fronte' + (side ? ' larg:'+fmt(CFG.bordaAlts[side]) : '')];
+    if (type === 'saia') return ['// Acabamento', 'com saia' + (side ? ' larg:'+fmt(CFG.bordaSaiaLarg[side]) : '')];
+    if (type === 'ilharga') return ['Ilharga', side ? 'alt:'+fmt(CFG.bordaAlts[side]) : ''];
+    if (type === 'parede') return ['Parede', 'sem fronte'];
+    return ['Acabamento', 'sem saia'];
 }
 let edgeLabelBoxes = [];
 
@@ -661,7 +659,10 @@ function drawBancadaEdges(sections, sc, ox, oy, b) {
         drawnEdges.push({side:seg.side, x1:px1, y1:py1, x2:px2, y2:py2});
     });
 
-    // labels centralizados por lado
+    const labelItems = [];
+
+    // calcula os labels, mas só desenha depois.
+    // Isso permite alinhar textos verticais do mesmo lado em colunas lado a lado.
     const sides = ['fundo','frente','esquerda','direita','l_esquerda','l_fundo'];
     sides.forEach(side => {
         const sideSegs = segs.filter(s => s.side === side);
@@ -671,11 +672,6 @@ function drawBancadaEdges(sections, sc, ox, oy, b) {
             const isHoriz = Math.abs(seg.x2 - seg.x1) >= Math.abs(seg.y2 - seg.y1);
             return preferHorizontal ? isHoriz : !isHoriz;
         });
-        // Para as bancadas em L:
-        // - a frente deve usar o(s) trecho(s) horizontais verdes para centralizar o texto;
-        // - o fundo do L deve usar o trecho vertical externo da peça lateral;
-        // - o trecho horizontal inferior do L (l_esquerda) não deve duplicar o label
-        //   quando for o mesmo acabamento do fundo do L, para não aparecer um texto solto embaixo.
         let labelSegs = preferredSegs.length ? preferredSegs : sideSegs;
         const lArm = sections.find(s => s.isL);
         if (lArm && side === 'frente') {
@@ -689,6 +685,7 @@ function drawBancadaEdges(sections, sc, ox, oy, b) {
         if (lArm && side === 'l_esquerda' && CFG.bordas.l_esquerda === CFG.bordas.l_fundo) {
             return;
         }
+
         let totalLen = 0;
         const pixSegs = labelSegs.map(seg => {
             const px1 = ox + seg.x1 * sc, py1 = oy + seg.y1 * sc;
@@ -700,11 +697,6 @@ function drawBancadaEdges(sections, sc, ox, oy, b) {
         let target = totalLen / 2, acc = 0;
         let lx, ly;
 
-        // Centralização explícita dos labels principais.
-        // - fundo: deve permanecer centralizado na medida total do fundo da bancada,
-        //   mesmo quando existir um dente vertical acompanhando o mesmo acabamento;
-        // - frente: centraliza pelo vão horizontal útil da frente;
-        // - l_fundo: centraliza na lateral externa do braço do L.
         if (side === 'fundo') {
             const horiz = labelSegs.filter(seg => Math.abs(seg.x2 - seg.x1) >= Math.abs(seg.y2 - seg.y1));
             const pool = horiz.length ? horiz : labelSegs;
@@ -740,13 +732,14 @@ function drawBancadaEdges(sections, sc, ox, oy, b) {
                 acc += s.len;
             }
         }
+
+        if (lx == null) return;
         const longest = labelSegs.reduce((a, b) => {
             const la = Math.abs(b.x2-b.x1) + Math.abs(b.y2-b.y1);
             const lb = Math.abs(a.x2-a.x1) + Math.abs(a.y2-a.y1);
             return la > lb ? b : a;
         });
         const ds = segDrawSide(longest.x1, longest.y1, longest.x2, longest.y2);
-        if (lx == null) return;
         const type = CFG.bordas[side];
         const color = EDGE_COLORS[type];
         let nx=0, ny=0;
@@ -755,13 +748,50 @@ function drawBancadaEdges(sections, sc, ox, oy, b) {
         const isVert = preferHorizontal ? false : (ds === 'left' || ds === 'right');
         const ofsX = nx < 0 ? 32 : 18;
         const ofsY = ny < 0 ? 32 : 18;
-        const labelX = lx + nx*ofsX;
-        const labelY = ly + ny*ofsY;
-        ctx.fillStyle = color; ctx.font = 'bold 10px Inter,sans-serif';
+        labelItems.push({
+            side,
+            lines: edgeName(type, side),
+            x: lx + nx*ofsX,
+            y: ly + ny*ofsY,
+            nx,
+            ny,
+            isVert,
+            color
+        });
+    });
+
+    // Primeiro desenha textos horizontais sem interferir nos verticais.
+    labelItems.filter(it => !it.isVert).forEach(it => {
+        ctx.fillStyle = it.color; ctx.font = 'bold 10px Inter,sans-serif';
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
-        const labelLines = edgeName(type, side);
-        if (isVert) drawEdgeLabelSmart(labelLines, labelX, labelY, isVert, nx, ny);
-        else drawEdgeLabel(labelLines, labelX, labelY, isVert);
+        drawEdgeLabel(it.lines, it.x, it.y, false);
+    });
+
+    // Agora desenha textos verticais em colunas fixas por lado.
+    // Regra: se houver dois ou mais textos verticais no mesmo lado,
+    // eles ficam sempre lado a lado, no mesmo alinhamento Y.
+    const verticalGroups = [
+        labelItems.filter(it => it.isVert && it.nx < 0),
+        labelItems.filter(it => it.isVert && it.nx > 0)
+    ];
+    verticalGroups.forEach(group => {
+        if (!group.length) return;
+        const commonY = group.length > 1
+            ? (Math.min(...group.map(it => it.y)) + Math.max(...group.map(it => it.y))) / 2
+            : group[0].y;
+        const baseX = group[0].nx < 0
+            ? Math.max(...group.map(it => it.x))
+            : Math.min(...group.map(it => it.x));
+        const colGap = 42;
+        const ordered = group[0].nx < 0
+            ? [...group].sort((a,b) => b.x - a.x)
+            : [...group].sort((a,b) => a.x - b.x);
+        ordered.forEach((it, idx) => {
+            const drawX = baseX + (it.nx < 0 ? -idx * colGap : idx * colGap);
+            ctx.fillStyle = it.color; ctx.font = 'bold 10px Inter,sans-serif';
+            ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+            drawEdgeLabel(it.lines, drawX, commonY, true);
+        });
     });
 }
 
