@@ -15,6 +15,7 @@ function edgeName(type, side) {
     return ['Acabamento', 'sem saia'];
 }
 let edgeLabelBoxes = [];
+let edgeLabelColumns = {};
 
 function drawEdgeLabel(lines, x, y, isVert) {
     const filtered = lines.filter(l => l);
@@ -53,26 +54,36 @@ function drawEdgeLabelSmart(lines, x, y, isVert, nx, ny) {
         return;
     }
 
-    // REGRA FIXA:
-    // Textos verticais que colidirem NÃO podem abrir em colunas horizontais.
-    // Eles devem manter o mesmo X do lado da peça e se separar no eixo Y,
-    // ou seja: lado a lado acompanhando o sentido vertical do desenho.
-    const gap = 10;
+    // REGRA FINAL PARA LABELS VERTICAIS:
+    // 1) Textos verticais do mesmo lado ficam na MESMA COLUNA X.
+    // 2) Quando colidem, o afastamento é SOMENTE NO EIXO Y.
+    // 3) Nunca cria duas colunas horizontais para o mesmo lado.
+    const sideKey = nx < 0 ? 'left' : 'right';
+    const gap = 12;
+
+    if (edgeLabelColumns[sideKey] === undefined) {
+        edgeLabelColumns[sideKey] = x;
+    } else {
+        x = edgeLabelColumns[sideKey];
+    }
+
     const baseBox = getEdgeLabelBox(lines, x, y, isVert);
     const h = Math.max(1, baseBox.bottom - baseBox.top);
+    const step = h + gap;
 
     let bestY = y;
     let bestBox = baseBox;
+    const sameSideBoxes = () => edgeLabelBoxes.filter(b => b.sideKey === sideKey);
 
     const candidateYs = [y];
-    for (let i = 1; i <= 12; i++) {
-        candidateYs.push(y + i * (h + gap));
-        candidateYs.push(y - i * (h + gap));
+    for (let i = 1; i <= 20; i++) {
+        candidateYs.push(y + i * step);
+        candidateYs.push(y - i * step);
     }
 
     for (const cy of candidateYs) {
-        const cbox = getEdgeLabelBox(lines, x, cy, isVert);
-        if (!edgeLabelBoxes.some(b => boxesOverlap(cbox, b, 8))) {
+        const cbox = {...getEdgeLabelBox(lines, x, cy, isVert), sideKey};
+        if (!sameSideBoxes().some(b => boxesOverlap(cbox, b, 8))) {
             bestY = cy;
             bestBox = cbox;
             break;
@@ -280,6 +291,7 @@ function getBounds(secs) {
    ============================================================ */
 function draw() {
     edgeLabelBoxes = [];
+    edgeLabelColumns = {};
     const W = canvas.clientWidth, H = canvas.clientHeight;
     ctx.clearRect(0, 0, W*2, H*2);
     ctx.fillStyle = '#ffffff';
