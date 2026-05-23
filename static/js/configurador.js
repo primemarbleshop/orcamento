@@ -495,15 +495,28 @@ function getContourSegments(sections) {
 
     const bounds = getBounds(sections);
     const sideForVertical = (x, outsideRight, y1, y2) => {
+        const esp = !!CFG.espelhar;
+        const leftKey = esp ? 'direita' : 'esquerda';
+        const rightKey = esp ? 'esquerda' : 'direita';
         const lArm = sections.find(s => s.isL);
         if (lArm) {
             const midY = (y1 + y2) / 2;
-            if (Math.abs(x - lArm.x) < 0.01 && midY >= lArm.y - 0.01) return 'l_fundo';
-            if (Math.abs(x - (lArm.x + lArm.w)) < 0.01 && midY >= lArm.y - 0.01) return 'frente';
+            const isLLeft = Math.abs(x - lArm.x) < 0.01 && midY >= lArm.y - 0.01;
+            const isLRight = Math.abs(x - (lArm.x + lArm.w)) < 0.01 && midY >= lArm.y - 0.01;
+            // Em L espelhado, o acabamento lateral do braço também precisa espelhar.
+            // A chave l_fundo representa a lateral externa do braço: esquerda no desenho normal,
+            // direita quando espelhado. A frente/saia não pode ficar presa no lado externo errado.
+            if (!esp) {
+                if (isLLeft) return 'l_fundo';
+                if (isLRight) return 'frente';
+            } else {
+                if (isLRight) return 'l_fundo';
+                if (isLLeft) return 'frente';
+            }
         }
-        if (Math.abs(x - bounds.x0) < 0.01) return 'esquerda';
-        if (Math.abs(x - bounds.x1) < 0.01) return 'direita';
-        return outsideRight ? 'direita' : 'esquerda';
+        if (Math.abs(x - bounds.x0) < 0.01) return leftKey;
+        if (Math.abs(x - bounds.x1) < 0.01) return rightKey;
+        return outsideRight ? rightKey : leftKey;
     };
 
     const sideForHorizontal = (y, outsideBelow, x1, x2) => {
@@ -581,12 +594,20 @@ function drawBancadaEdges(sections, sc, ox, oy, b) {
     sides.forEach(side => {
         const sideSegs = segs.filter(s => s.side === side);
         if (!sideSegs.length) return;
-        let totalLen = 0, midAcc = 0;
-        const pixSegs = sideSegs.map(seg => {
+        const preferHorizontal = ['fundo','frente','l_esquerda'].includes(side);
+        const preferredSegs = sideSegs.filter(seg => {
+            const isHoriz = Math.abs(seg.x2 - seg.x1) >= Math.abs(seg.y2 - seg.y1);
+            return preferHorizontal ? isHoriz : !isHoriz;
+        });
+        // Para frente/saia do L, usa preferencialmente um trecho horizontal.
+        // Isso evita o texto "Acabamento com saia" ficar girado em 90° quando há uma perna vertical no L.
+        const labelSegs = preferredSegs.length ? preferredSegs : sideSegs;
+        let totalLen = 0;
+        const pixSegs = labelSegs.map(seg => {
             const px1 = ox + seg.x1 * sc, py1 = oy + seg.y1 * sc;
             const px2 = ox + seg.x2 * sc, py2 = oy + seg.y2 * sc;
             const len = Math.sqrt((px2-px1)**2 + (py2-py1)**2);
-            return {px1,py1,px2,py2,len};
+            return {px1,py1,px2,py2,len,seg};
         });
         pixSegs.forEach(s => totalLen += s.len);
         let target = totalLen / 2, acc = 0;
@@ -600,7 +621,7 @@ function drawBancadaEdges(sections, sc, ox, oy, b) {
             }
             acc += s.len;
         }
-        const longest = sideSegs.reduce((a, b) => {
+        const longest = labelSegs.reduce((a, b) => {
             const la = Math.abs(b.x2-b.x1) + Math.abs(b.y2-b.y1);
             const lb = Math.abs(a.x2-a.x1) + Math.abs(a.y2-a.y1);
             return la > lb ? b : a;
@@ -612,7 +633,7 @@ function drawBancadaEdges(sections, sc, ox, oy, b) {
         let nx=0, ny=0;
         if (ds==='top') ny=-1; else if (ds==='bottom') ny=1;
         else if (ds==='left') nx=-1; else nx=1;
-        const isVert = (ds === 'left' || ds === 'right');
+        const isVert = preferHorizontal ? false : (ds === 'left' || ds === 'right');
         const ofsX = nx < 0 ? 32 : 18;
         const ofsY = ny < 0 ? 32 : 18;
         const labelX = lx + nx*ofsX;
