@@ -349,7 +349,7 @@
                 border-left: none;
                 border-right: none;
             }
-            /* Quando nenhuma ferramenta ativa: toque passa pro browser (scroll/zoom da página) */
+            /* Quando nenhuma ferramenta ativa: toque passa direto para o browser (scroll/zoom da página). */
             #excalidraw-container.no-tool {
                 pointer-events: none;
                 touch-action: auto;
@@ -377,20 +377,37 @@
             display: none !important;
         }
 
-        /* Touch: impedir scroll da página quando ferramenta ativa, mas permitir pinch-zoom */
+        /* Desktop: quando desenhar com ferramenta ativa, evita rolagem acidental fora do canvas.
+           No mobile há override acima para priorizar scroll/zoom da página. */
         body.tool-active {
             overflow: hidden !important;
             touch-action: pinch-zoom !important;
         }
-        /* Qualquer ferramenta ativa: bloquear pan do browser mas permitir pinch-zoom */
         #excalidraw-container.has-tool,
         #excalidraw-container.lasso-active,
         #excalidraw-container.eraser-active,
         #excalidraw-container.edge-tool-active {
-            touch-action: pinch-zoom;
+            touch-action: pan-y pinch-zoom;
         }
         #lassoCanvas, #eraserCanvas {
-            touch-action: pinch-zoom;
+            touch-action: pan-y pinch-zoom;
+        }
+
+        @media (max-width: 820px) {
+            body.tool-active {
+                overflow-x: hidden !important;
+                overflow-y: auto !important;
+                touch-action: auto !important;
+            }
+            #excalidraw-container,
+            #excalidraw-container.has-tool,
+            #excalidraw-container.lasso-active,
+            #excalidraw-container.eraser-active,
+            #excalidraw-container.edge-tool-active,
+            #lassoCanvas,
+            #eraserCanvas {
+                touch-action: pan-y pinch-zoom !important;
+            }
         }
 
         @media print {
@@ -591,6 +608,47 @@
         };
         A4.FIRST_PAGE_H = A4.HEIGHT - A4.EXTERNAL_HEADER_H;
         A4.FULL_PAGE_H = A4.HEIGHT - A4.EXTERNAL_HEADER_H; // todas as páginas têm cabeçalho
+
+        // Layout responsivo do desenho:
+        // - Desktop mantém escala 1:1.
+        // - Mobile reduz o zoom inicial do Excalidraw para caber na largura da tela.
+        //   Esse zoom é travado como "escala de encaixe", não como zoom interativo interno.
+        let _drawingLogicalHeight = A4.FIRST_PAGE_H;
+        let _drawingFitZoom = 1;
+
+        function isMobileDrawingViewport() {
+            return window.matchMedia && window.matchMedia('(max-width: 820px)').matches;
+        }
+
+        function getDrawingFitZoom() {
+            const container = document.getElementById('excalidraw-container');
+            const availableWidth = Math.max(1, container?.clientWidth || window.innerWidth || A4.WIDTH);
+            if (!isMobileDrawingViewport()) return 1;
+            return Math.min(1, Math.max(0.35, availableWidth / A4.WIDTH));
+        }
+
+        function applyDrawingResponsiveLayout(logicalHeight) {
+            const container = document.getElementById('excalidraw-container');
+            _drawingLogicalHeight = Math.max(1, logicalHeight || _drawingLogicalHeight || A4.FIRST_PAGE_H);
+            _drawingFitZoom = getDrawingFitZoom();
+            if (container) {
+                container.style.height = Math.ceil(_drawingLogicalHeight * _drawingFitZoom) + 'px';
+            }
+            return _drawingFitZoom;
+        }
+
+        function syncDrawingViewport(api) {
+            const zoom = applyDrawingResponsiveLayout(_drawingLogicalHeight);
+            if (api) {
+                api.updateScene({
+                    appState: {
+                        scrollX: 0,
+                        scrollY: 0,
+                        zoom: { value: zoom }
+                    }
+                });
+            }
+        }
 
         const CONFIG = {
             ESCALA: 1.875,
@@ -1605,10 +1663,16 @@
                     const data = JSON.parse(desenhoSalvo);
                     if (data.elements && Array.isArray(data.elements)) {
                         const h = calcularAlturaContainer(data.elements);
-                        document.getElementById('excalidraw-container').style.height = h + 'px';
+                        const fitZoom = applyDrawingResponsiveLayout(h);
                         return {
                             elements: data.elements,
-                            appState: { ...baseAppState, ...(data.appState || {}) },
+                            appState: {
+                                ...baseAppState,
+                                ...(data.appState || {}),
+                                scrollX: 0,
+                                scrollY: 0,
+                                zoom: { value: fitZoom }
+                            },
                             files: data.files || undefined
                         };
                     }
@@ -1619,11 +1683,16 @@
 
             const elements = criarElementosPecas(dadosPecas);
             const h = calcularAlturaContainer(elements);
-            document.getElementById('excalidraw-container').style.height = h + 'px';
+            const fitZoom = applyDrawingResponsiveLayout(h);
 
             return {
                 elements,
-                appState: baseAppState,
+                appState: {
+                    ...baseAppState,
+                    scrollX: 0,
+                    scrollY: 0,
+                    zoom: { value: fitZoom }
+                },
                 scrollToContent: false
             };
         }
@@ -1648,11 +1717,19 @@
 
                 setTimeout(() => {
                     if (this.excalidrawAPI) {
-                        this.excalidrawAPI.updateScene({
-                            appState: { scrollX: 0, scrollY: 0, zoom: { value: 1 } }
-                        });
+                        syncDrawingViewport(this.excalidrawAPI);
                     }
                 }, 300);
+
+                let resizeTimer = null;
+                const onResponsiveResize = () => {
+                    clearTimeout(resizeTimer);
+                    resizeTimer = setTimeout(() => {
+                        if (this.excalidrawAPI) syncDrawingViewport(this.excalidrawAPI);
+                    }, 120);
+                };
+                window.addEventListener('resize', onResponsiveResize, { passive: true });
+                window.addEventListener('orientationchange', onResponsiveResize, { passive: true });
 
                 // Criar grid overlay visual (sem snap) - fora do React
                 setTimeout(() => {
@@ -1731,10 +1808,11 @@
 
                 const self = this;
 
-                // Prevenir scroll via touchmove no body quando ferramenta ativa
+                // Desktop: evita rolagem acidental quando uma ferramenta está ativa.
+                // Mobile: não bloqueia o touchmove, porque o scroll/zoom deve ser da página inteira.
                 document.body.addEventListener('touchmove', (e) => {
                     if (document.body.classList.contains('tool-active')) {
-                        // Permitir interação dentro do excalidraw-container
+                        if (isMobileDrawingViewport()) return;
                         const container = document.getElementById('excalidraw-container');
                         if (container && container.contains(e.target)) return;
                         e.preventDefault();
@@ -2343,7 +2421,7 @@
                     if (result.isConfirmed) {
                         const elements = criarElementosPecas(this.dadosPecas);
                         const h = calcularAlturaContainer(elements);
-                        document.getElementById('excalidraw-container').style.height = h + 'px';
+                        const fitZoom = applyDrawingResponsiveLayout(h);
                         this.excalidrawAPI.updateScene({
                             elements,
                             appState: {
@@ -2353,7 +2431,7 @@
                                 currentItemFontSize: 16,
                                 scrollX: 0,
                                 scrollY: 0,
-                                zoom: { value: 1 },
+                                zoom: { value: fitZoom },
                             }
                         });
                         Swal.fire({
@@ -2379,16 +2457,16 @@
             if (_clampingScroll || !apiRef.current) return;
 
             const zoom = appState.zoom?.value || 1;
-            const viewW = appState.width || 790;
-            const viewH = appState.height || 600;
-            const contentW = A4.WIDTH;
+            const targetZoom = getDrawingFitZoom();
 
             let changed = false;
             let newAppState = {};
 
-            // Forçar zoom=1 sempre (zoom da página é via browser, não via Excalidraw)
-            if (Math.abs(zoom - 1) > 0.01) {
-                newAppState.zoom = { value: 1 };
+            // Travar o zoom interno na escala responsiva: desktop=1; mobile=cabe na tela.
+            // O usuário continua usando o zoom nativo do navegador na página inteira.
+            if (Math.abs(zoom - targetZoom) > 0.01) {
+                applyDrawingResponsiveLayout(_drawingLogicalHeight);
+                newAppState.zoom = { value: targetZoom };
                 changed = true;
             }
 
@@ -2626,14 +2704,10 @@
         // O scroll é da PÁGINA, não do canvas interno
         const excContainer = document.getElementById('excalidraw-container');
         excContainer.addEventListener('wheel', (e) => {
-            // Bloquear scroll interno do Excalidraw (impedir que ele processe o wheel)
+            // Bloquear scroll/zoom interno do Excalidraw sem bloquear o comportamento nativo do navegador.
+            // Wheel normal rola a página; Ctrl/trackpad pinch dá zoom na página inteira.
             e.stopPropagation();
-            // Se for Ctrl+wheel (zoom), bloquear também o browser zoom no container
-            if (e.ctrlKey || e.metaKey) {
-                e.preventDefault();
-            }
-            // Wheel normal: não preventDefault → browser faz scroll na página normalmente
-        }, { passive: false, capture: true });
+        }, { passive: true, capture: true });
 
         // Mobile: bloquear pinch-zoom INTERNO do Excalidraw, mas permitir zoom do BROWSER (página toda)
         (function blockExcalidrawPinchZoom() {
