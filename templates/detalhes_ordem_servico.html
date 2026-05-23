@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ordem de Serviço - {{ codigo_orcamento }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -353,13 +353,7 @@
         /* Touch: impedir scroll da página quando ferramenta ativa */
         body.tool-active {
             overflow: hidden !important;
-            position: fixed !important;
-            width: 100% !important;
-            height: 100% !important;
             touch-action: none !important;
-        }
-        body.tool-active .main-container {
-            overflow: hidden !important;
         }
         #excalidraw-container.lasso-active,
         #excalidraw-container.eraser-active,
@@ -1745,7 +1739,7 @@
                     atualizarBodyToolActive();
                 }
 
-                // Ferramentas normais do Excalidraw
+                // Ferramentas normais do Excalidraw (com toggle: clicar de novo desseleciona)
                 document.querySelectorAll('.tool-btn[data-tool]').forEach(btn => {
                     btn.addEventListener('click', () => {
                         edgeToolActive = false;
@@ -1755,8 +1749,22 @@
                         desativarBorracha();
                         atualizarBodyToolActive();
                         const tool = btn.dataset.tool;
-                        if (self.excalidrawAPI) {
-                            self.excalidrawAPI.setActiveTool({ type: tool });
+                        const wasActive = btn.classList.contains('active');
+
+                        // Remover active de todos os tool-btn[data-tool]
+                        document.querySelectorAll('.tool-btn[data-tool]').forEach(b => b.classList.remove('active'));
+
+                        if (wasActive && tool !== 'selection') {
+                            // Estava ativo → desselecionar, voltar pra selection
+                            if (self.excalidrawAPI) {
+                                self.excalidrawAPI.setActiveTool({ type: 'selection' });
+                            }
+                        } else {
+                            // Ativar a ferramenta
+                            btn.classList.add('active');
+                            if (self.excalidrawAPI) {
+                                self.excalidrawAPI.setActiveTool({ type: tool });
+                            }
                         }
                     });
                 });
@@ -2338,6 +2346,13 @@
             let sx = appState.scrollX;
             let sy = appState.scrollY;
             let changed = false;
+            let newAppState = {};
+
+            // Forçar zoom=1 sempre (zoom da página é via browser, não via Excalidraw)
+            if (Math.abs(zoom - 1) > 0.01) {
+                newAppState.zoom = { value: 1 };
+                changed = true;
+            }
 
             if (sx > 0) { sx = 0; changed = true; }
 
@@ -2352,9 +2367,9 @@
 
             if (changed) {
                 _clampingScroll = true;
-                apiRef.current.updateScene({
-                    appState: { scrollX: sx, scrollY: sy }
-                });
+                newAppState.scrollX = sx;
+                newAppState.scrollY = sy;
+                apiRef.current.updateScene({ appState: newAppState });
                 requestAnimationFrame(() => { _clampingScroll = false; });
             }
         }
@@ -2571,6 +2586,32 @@
                 e.stopPropagation();
             }
         }, { passive: false, capture: true });
+
+        // Mobile: bloquear pinch-zoom interno do Excalidraw
+        // O zoom do Excalidraw é resetado pra 1 no clampScroll,
+        // e aqui impedimos que o gesto de pinch cause pan/zoom dentro do Excalidraw
+        (function blockExcalidrawPinchZoom() {
+            let _pinching = false;
+            excContainer.addEventListener('touchstart', (e) => {
+                if (e.touches.length >= 2) {
+                    _pinching = true;
+                }
+            }, { passive: true, capture: true });
+
+            excContainer.addEventListener('touchmove', (e) => {
+                if (_pinching || e.touches.length >= 2) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+            }, { passive: false, capture: true });
+
+            excContainer.addEventListener('touchend', (e) => {
+                if (e.touches.length < 2) {
+                    _pinching = false;
+                }
+            }, { passive: true, capture: true });
+        })();
+
 
     </script>
 </body>
