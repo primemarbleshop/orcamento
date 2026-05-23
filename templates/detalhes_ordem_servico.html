@@ -2,7 +2,7 @@
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Ordem de Serviço - {{ codigo_orcamento }}</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -294,6 +294,82 @@
             display: none;
         }
 
+        /* ── Mobile: esconder elementos extras do Excalidraw ── */
+        @media (max-width: 820px) {
+            .main-container {
+                padding: 0;
+            }
+            .top-buttons-container {
+                padding: 4px 8px;
+            }
+            .toolbar-container {
+                padding: 4px 8px;
+                gap: 4px;
+            }
+            .toolbar-container .btn {
+                font-size: 0.75rem;
+                padding: 4px 8px;
+            }
+            .btn-text-hide {
+                display: none;
+            }
+            .tool-btn {
+                width: 28px;
+                height: 28px;
+                font-size: 12px;
+            }
+            .toolbar-separator {
+                height: 24px;
+                margin: 0 2px;
+            }
+            .print-header {
+                padding: 4px 10px;
+            }
+            .cliente-header h1 { font-size: 14px; }
+            .cliente-header p { font-size: 10px; }
+        }
+
+        /* Esconder UI interna do Excalidraw que vaza no mobile */
+        #excalidraw-container .App-toolbar,
+        #excalidraw-container .App-toolbar-container,
+        #excalidraw-container .footer-center,
+        #excalidraw-container .layer-ui__wrapper__footer,
+        #excalidraw-container .layer-ui__wrapper__footer-left,
+        #excalidraw-container .layer-ui__wrapper__footer-right,
+        #excalidraw-container .App-bottom-bar,
+        #excalidraw-container .mobile-misc-tools-container,
+        #excalidraw-container .ToolIcon,
+        #excalidraw-container .Island,
+        #excalidraw-container .App-menu,
+        #excalidraw-container .App-menu__left,
+        #excalidraw-container .welcome-screen-center,
+        #excalidraw-container .welcome-screen-menu-hintContainer,
+        #excalidraw-container .HintViewer,
+        #excalidraw-container .layer-ui__wrapper__top-right,
+        #excalidraw-container .shapes-section {
+            display: none !important;
+        }
+
+        /* Touch: impedir scroll da página quando ferramenta ativa */
+        body.tool-active {
+            overflow: hidden !important;
+            position: fixed !important;
+            width: 100% !important;
+            height: 100% !important;
+            touch-action: none !important;
+        }
+        body.tool-active .main-container {
+            overflow: hidden !important;
+        }
+        #excalidraw-container.lasso-active,
+        #excalidraw-container.eraser-active,
+        #excalidraw-container.edge-tool-active {
+            touch-action: none;
+        }
+        #lassoCanvas, #eraserCanvas {
+            touch-action: none;
+        }
+
         @media print {
             @page {
                 size: A4;
@@ -407,7 +483,7 @@
             <div class="toolbar-separator"></div>
 
             <button class="tool-btn" data-tool="selection" title="Seleção Retangular"><i class="fas fa-mouse-pointer"></i></button>
-            <button class="tool-btn active" id="btnLasso" title="Laço (seleção livre)"><i class="fas fa-draw-polygon"></i></button>
+            <button class="tool-btn" id="btnLasso" title="Laço (seleção livre)"><i class="fas fa-draw-polygon"></i></button>
             <button class="tool-btn" id="btnEdgeTool" title="Acabamento de Borda"><i class="fas fa-brush"></i></button>
             <button class="tool-btn" data-tool="rectangle" title="Retângulo"><i class="far fa-square"></i></button>
             <button class="tool-btn" data-tool="diamond" title="Losango"><i class="fas fa-diamond"></i></button>
@@ -425,7 +501,7 @@
 
         </div>
 
-        <div id="excalidraw-container" class="lasso-active">
+        <div id="excalidraw-container">
             <div class="loading-overlay" id="loadingOverlay">
                 <div class="spinner-border text-primary" role="status"></div>
                 <span>Carregando editor de desenho...</span>
@@ -514,7 +590,7 @@
         ];
 
         let edgeToolActive = false;
-        let lassoActive = true; // Laço ativo por padrão
+        let lassoActive = false; // Iniciar com ferramentas desabilitadas
 
         // ===== LASSO LIVRE - Seleção por interseção =====
         (function initLasso() {
@@ -655,8 +731,27 @@
             function attachEvents() {
                 if (!canvas) return;
 
+                // Cancelar laço se multi-touch detectado (zoom pinça)
+                let _lassoTouchCount = 0;
+                canvas.addEventListener('touchstart', (e) => {
+                    _lassoTouchCount = e.touches.length;
+                    if (e.touches.length > 1 && drawing) {
+                        // Multi-touch: cancelar laço e deixar gesto de zoom
+                        drawing = false;
+                        points = [];
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        canvas.style.pointerEvents = 'none';
+                        setTimeout(() => { if (lassoActive) canvas.style.pointerEvents = 'auto'; }, 600);
+                    }
+                }, { passive: true });
+                canvas.addEventListener('touchend', (e) => {
+                    _lassoTouchCount = e.touches.length;
+                }, { passive: true });
+
                 canvas.addEventListener('pointerdown', (e) => {
                     if (!lassoActive || e.button !== 0) return;
+                    // Ignorar se multi-touch (zoom pinça)
+                    if (e.pointerType === 'touch' && _lassoTouchCount > 1) return;
                     const pt = mouseToScene(e);
                     if (!pt) return;
 
@@ -746,6 +841,8 @@
                     container.classList.remove('edge-tool-active');
                     document.querySelectorAll('.tool-btn[data-tool]').forEach(b => b.classList.remove('active'));
                 }
+                // Atualizar body para impedir scroll no mobile
+                document.body.classList.toggle('tool-active', lassoActive || document.getElementById('btnEraser')?.classList.contains('active') || edgeToolActive);
             });
 
             // Quando uma ferramenta do Excalidraw é ativada, desativar laço
@@ -755,6 +852,7 @@
                         lassoActive = false;
                         document.getElementById('btnLasso').classList.remove('active');
                         container.classList.remove('lasso-active');
+                        document.body.classList.remove('tool-active');
                     }
                 });
             });
@@ -1061,8 +1159,43 @@
             }
 
             // ---- Eventos ----
+            let _eraserTouchCount = 0;
+
             function attachEraserEvents() {
                 if (!canvas) return;
+
+                // Multi-touch detection (previne zoom pinça de ativar borracha)
+                canvas.addEventListener('touchstart', (e) => {
+                    _eraserTouchCount = e.touches.length;
+                    if (e.touches.length > 1 && drawing) {
+                        // Cancelar borracha em andamento
+                        if (_eraseTimer) { clearTimeout(_eraseTimer); _erasePending = false; }
+                        // Descartar snapshot (não aplicar apagamento parcial)
+                        if (_eraserSnapshotTaken && _eraserUndoStack.length > 0) {
+                            const snapshot = _eraserUndoStack.pop();
+                            const api = window.gerenciadorDesenho?.excalidrawAPI;
+                            if (api) {
+                                if (window._setUpdatingScene) window._setUpdatingScene(true);
+                                api.updateScene({ elements: snapshot });
+                                setTimeout(() => { if (window._setUpdatingScene) window._setUpdatingScene(false); }, 300);
+                            }
+                        }
+                        drawing = false;
+                        lastPt = null;
+                        eraserPath = [];
+                        _eraserSnapshotTaken = false;
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+                        canvas.style.pointerEvents = 'none';
+                        setTimeout(() => {
+                            const btn = document.getElementById('btnEraser');
+                            if (btn && btn.classList.contains('active')) canvas.style.pointerEvents = 'auto';
+                        }, 600);
+                    }
+                }, { passive: true });
+
+                canvas.addEventListener('touchend', (e) => {
+                    _eraserTouchCount = e.touches.length;
+                }, { passive: true });
 
                 canvas.addEventListener('pointermove', (e) => {
                     const pt = mouseToScene(e);
@@ -1078,6 +1211,7 @@
 
                 canvas.addEventListener('pointerdown', (e) => {
                     if (e.button !== 0) return;
+                    if (e.pointerType === 'touch' && _eraserTouchCount > 1) return;
                     const pt = mouseToScene(e);
                     if (!pt) return;
                     drawing = true;
@@ -1559,11 +1693,28 @@
 
                 const self = this;
 
+                // Atualiza body.tool-active para impedir scroll no mobile
+                function atualizarBodyToolActive() {
+                    const anyActive = lassoActive || _eraserActive || edgeToolActive;
+                    document.body.classList.toggle('tool-active', anyActive);
+                }
+
+                // Prevenir scroll via touchmove no body quando ferramenta ativa
+                document.body.addEventListener('touchmove', (e) => {
+                    if (document.body.classList.contains('tool-active')) {
+                        // Permitir scroll dentro do excalidraw-container (zoom nativo do Excalidraw)
+                        const container = document.getElementById('excalidraw-container');
+                        if (container && container.contains(e.target)) return;
+                        e.preventDefault();
+                    }
+                }, { passive: false });
+
                 // Função utilitária para desativar laço
                 function desativarLasso() {
                     lassoActive = false;
                     document.getElementById('btnLasso')?.classList.remove('active');
                     document.getElementById('excalidraw-container').classList.remove('lasso-active');
+                    atualizarBodyToolActive();
                 }
 
                 // Função utilitária para ativar laço
@@ -1576,6 +1727,7 @@
                     document.getElementById('excalidraw-container').classList.remove('edge-tool-active');
                     document.querySelectorAll('.tool-btn[data-tool]').forEach(b => b.classList.remove('active'));
                     desativarBorracha();
+                    atualizarBodyToolActive();
                 }
 
                 // Função utilitária para desativar borracha
@@ -1590,6 +1742,7 @@
                         const ectx = eraserCanvas.getContext('2d');
                         ectx.clearRect(0, 0, eraserCanvas.width, eraserCanvas.height);
                     }
+                    atualizarBodyToolActive();
                 }
 
                 // Ferramentas normais do Excalidraw
@@ -1600,6 +1753,7 @@
                         document.getElementById('excalidraw-container').classList.remove('edge-tool-active');
                         desativarLasso();
                         desativarBorracha();
+                        atualizarBodyToolActive();
                         const tool = btn.dataset.tool;
                         if (self.excalidrawAPI) {
                             self.excalidrawAPI.setActiveTool({ type: tool });
@@ -1626,6 +1780,7 @@
                             self.excalidrawAPI.setActiveTool({ type: 'selection' });
                         }
                     }
+                    atualizarBodyToolActive();
                 });
 
                 // Ferramenta de acabamento de borda (substitui a mãozinha)
@@ -1634,10 +1789,12 @@
                     document.getElementById('btnEdgeTool').classList.toggle('active', edgeToolActive);
                     document.getElementById('excalidraw-container').classList.toggle('edge-tool-active', edgeToolActive);
                     desativarLasso();
+                    desativarBorracha();
                     document.querySelectorAll('.tool-btn[data-tool]').forEach(b => b.classList.remove('active'));
                     if (edgeToolActive && self.excalidrawAPI) {
                         self.excalidrawAPI.setActiveTool({ type: 'selection' });
                     }
+                    atualizarBodyToolActive();
                 });
 
                 // Distância ponto-segmento de reta
@@ -1651,9 +1808,18 @@
                 }
 
                 // Detecta clique em borda de peça
+                let _edgeTouchCount = 0;
+                document.getElementById('excalidraw-container').addEventListener('touchstart', (e) => {
+                    _edgeTouchCount = e.touches.length;
+                }, { passive: true });
+                document.getElementById('excalidraw-container').addEventListener('touchend', (e) => {
+                    _edgeTouchCount = e.touches.length;
+                }, { passive: true });
+
                 document.getElementById('excalidraw-container').addEventListener('pointerup', (e) => {
                     if (!edgeToolActive || !self.excalidrawAPI) return;
                     if (e.button !== 0) return; // só clique esquerdo
+                    if (e.pointerType === 'touch' && _edgeTouchCount > 0) return; // ignora se multi-touch
 
                     const appState = self.excalidrawAPI.getAppState();
                     const z = appState.zoom?.value || 1;
