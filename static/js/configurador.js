@@ -48,29 +48,39 @@ function boxesOverlap(a, b, gap = 6) {
 }
 
 function drawEdgeLabelSmart(lines, x, y, isVert, nx, ny) {
-    // Para texto vertical, se houver colisão, desloca somente no eixo X.
-    // Assim os textos ficam em colunas lado a lado, nunca empilhados.
     if (!isVert) {
         drawEdgeLabel(lines, x, y, isVert);
         return;
     }
-    let tx = x;
-    let box = getEdgeLabelBox(lines, tx, y, isVert);
-    let tries = 0;
-    while (edgeLabelBoxes.some(b => boxesOverlap(box, b, 8)) && tries < 10) {
-        const sameSide = edgeLabelBoxes.filter(b => !(box.bottom + 8 < b.top || box.top - 8 > b.bottom));
-        if (nx < 0 && sameSide.length) {
-            tx = Math.min(...sameSide.map(b => b.left)) - 18;
-        } else if (nx > 0 && sameSide.length) {
-            tx = Math.max(...sameSide.map(b => b.right)) + 18;
-        } else {
-            tx += (nx || 1) * 18;
-        }
-        box = getEdgeLabelBox(lines, tx, y, isVert);
-        tries++;
+
+    // REGRA FIXA:
+    // Textos verticais que colidirem NÃO podem abrir em colunas horizontais.
+    // Eles devem manter o mesmo X do lado da peça e se separar no eixo Y,
+    // ou seja: lado a lado acompanhando o sentido vertical do desenho.
+    const gap = 10;
+    const baseBox = getEdgeLabelBox(lines, x, y, isVert);
+    const h = Math.max(1, baseBox.bottom - baseBox.top);
+
+    let bestY = y;
+    let bestBox = baseBox;
+
+    const candidateYs = [y];
+    for (let i = 1; i <= 12; i++) {
+        candidateYs.push(y + i * (h + gap));
+        candidateYs.push(y - i * (h + gap));
     }
-    edgeLabelBoxes.push(box);
-    drawEdgeLabel(lines, tx, y, isVert);
+
+    for (const cy of candidateYs) {
+        const cbox = getEdgeLabelBox(lines, x, cy, isVert);
+        if (!edgeLabelBoxes.some(b => boxesOverlap(cbox, b, 8))) {
+            bestY = cy;
+            bestBox = cbox;
+            break;
+        }
+    }
+
+    edgeLabelBoxes.push(bestBox);
+    drawEdgeLabel(lines, x, bestY, isVert);
 }
 
 const MODELOS = [
