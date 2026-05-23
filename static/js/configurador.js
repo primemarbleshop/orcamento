@@ -130,42 +130,78 @@ function getSections() {
     const ws = CFG.compSeca, ds = CFG.profSeca;
     const wm = CFG.compMolhada, dm = CFG.profMolhada;
     const secs = [];
+
+    // Regra de layout das bancadas:
+    // quando duas ou mais bancadas ficam lado a lado com larguras diferentes,
+    // a frente deve permanecer sempre na mesma linha. A diferença de largura
+    // deve aparecer para trás, formando o dente no fundo/parede, nunca na frente.
+    const alignFront = (row) => {
+        if (!row || row.length <= 1) return row;
+        const frontY = Math.max(...row.map(s => s.h));
+        row.forEach(s => { s.y = frontY - s.h; });
+        return row;
+    };
+
     switch(md) {
         case 'toda_molhada':
             secs.push({type:'molhada', x:0, y:0, w:wm, h:dm}); break;
         case 'toda_seca':
             secs.push({type:'seca', x:0, y:0, w:ws, h:ds}); break;
-        case 'molhada_esq_seca_dir':
-            secs.push({type:'molhada', x:0, y:0, w:wm, h:dm});
-            secs.push({type:'seca', x:wm, y:0, w:ws, h:ds}); break;
-        case 'molhada_dir_seca_esq':
-            secs.push({type:'molhada', x:0, y:0, w:wm, h:dm});
-            secs.push({type:'seca', x:wm, y:0, w:ws, h:ds}); break;
+        case 'molhada_esq_seca_dir': {
+            const row = [
+                {type:'molhada', x:0, y:0, w:wm, h:dm},
+                {type:'seca', x:wm, y:0, w:ws, h:ds}
+            ];
+            alignFront(row); secs.push(...row); break;
+        }
+        case 'molhada_dir_seca_esq': {
+            const row = [
+                {type:'molhada', x:0, y:0, w:wm, h:dm},
+                {type:'seca', x:wm, y:0, w:ws, h:ds}
+            ];
+            alignFront(row); secs.push(...row); break;
+        }
         case 'molhada_centro_seca_lat': {
             const sle = CFG.compSecaEsq, dle = CFG.profSecaEsq;
             const sld = CFG.compSecaDir, dld = CFG.profSecaDir;
-            secs.push({type:'seca', x:0, y:0, w:sle, h:dle, label:'SECA ESQ'});
-            secs.push({type:'molhada', x:sle, y:0, w:wm, h:dm});
-            secs.push({type:'seca', x:sle+wm, y:0, w:sld, h:dld, label:'SECA DIR'}); break;
+            const row = [
+                {type:'seca', x:0, y:0, w:sle, h:dle, label:'SECA ESQ'},
+                {type:'molhada', x:sle, y:0, w:wm, h:dm},
+                {type:'seca', x:sle+wm, y:0, w:sld, h:dld, label:'SECA DIR'}
+            ];
+            alignFront(row); secs.push(...row); break;
         }
         case 'seca_centro_molhada_lat': {
             const mle = CFG.compMolhadaEsq, dme = CFG.profMolhadaEsq;
             const mld = CFG.compMolhadaDir, dmd = CFG.profMolhadaDir;
-            secs.push({type:'molhada', x:0, y:0, w:mle, h:dme, label:'MOLHADA ESQ'});
-            secs.push({type:'seca', x:mle, y:0, w:ws, h:ds});
-            secs.push({type:'molhada', x:mle+ws, y:0, w:mld, h:dmd, label:'MOLHADA DIR'}); break;
+            const row = [
+                {type:'molhada', x:0, y:0, w:mle, h:dme, label:'MOLHADA ESQ'},
+                {type:'seca', x:mle, y:0, w:ws, h:ds},
+                {type:'molhada', x:mle+ws, y:0, w:mld, h:dmd, label:'MOLHADA DIR'}
+            ];
+            alignFront(row); secs.push(...row); break;
         }
         case 'l_seca_molhada': {
-            secs.push({type:'molhada', x:0, y:0, w:wm, h:dm});
-            secs.push({type:'seca', x:wm, y:0, w:ws, h:ds});
-            const mainD = Math.max(dm, ds);
-            secs.push({type:'seca', x:0, y:mainD, w:CFG.profL, h:CFG.compL, isL:true});
+            const row = [
+                {type:'molhada', x:0, y:0, w:wm, h:dm},
+                {type:'seca', x:wm, y:0, w:ws, h:ds}
+            ];
+            alignFront(row);
+            const frontY = Math.max(...row.map(s => s.y + s.h));
+            secs.push(...row);
+            // O braço do L deve encostar na frente alinhada da bancada superior.
+            secs.push({type:'seca', x:0, y:frontY, w:CFG.profL, h:CFG.compL, isL:true});
             break;
         }
         case 'l_seca_molhada_seca': {
-            secs.push({type:'seca', x:0, y:0, w:CFG.profL, h:CFG.compL, isL:true});
-            secs.push({type:'molhada', x:CFG.profL, y:0, w:wm, h:dm});
-            secs.push({type:'seca', x:CFG.profL+wm, y:0, w:ws, h:ds});
+            const row = [
+                {type:'molhada', x:CFG.profL, y:0, w:wm, h:dm},
+                {type:'seca', x:CFG.profL+wm, y:0, w:ws, h:ds}
+            ];
+            alignFront(row);
+            const backY = Math.min(...row.map(s => s.y));
+            secs.push({type:'seca', x:0, y:backY, w:CFG.profL, h:CFG.compL, isL:true});
+            secs.push(...row);
             break;
         }
     }
@@ -442,106 +478,80 @@ function drawVDim(x, y1, y2, text) {
 
 /* ---------- CONTORNO EXTERNO + BORDAS ---------- */
 function getContourSegments(sections) {
-    const esp = CFG.espelhar;
-    const main = sections.filter(s => !s.isL).sort((a,b) => a.x - b.x);
-    const lArm = sections.find(s => s.isL);
-    const totalW = Math.max(...sections.map(s => s.x + s.w));
+    // Contorno externo genérico por união de retângulos.
+    // Necessário porque agora bancadas lado a lado podem ter larguras diferentes
+    // alinhadas pela frente, criando dentes no fundo. A lógica antiga assumia
+    // todas as peças com y=0 e quebrava quando a frente ficava alinhada.
+    const eps = 0.001;
+    const xs = Array.from(new Set(sections.flatMap(s => [roundDim(s.x), roundDim(s.x + s.w)]))).sort((a,b) => a-b);
+    const ys = Array.from(new Set(sections.flatMap(s => [roundDim(s.y), roundDim(s.y + s.h)]))).sort((a,b) => a-b);
     const segs = [];
+    if (xs.length < 2 || ys.length < 2) return segs;
 
-    const sideEsq = esp ? 'direita' : 'esquerda';
-    const sideDir = esp ? 'esquerda' : 'direita';
+    const contains = (x, y) => sections.some(s =>
+        x > s.x + eps && x < s.x + s.w - eps &&
+        y > s.y + eps && y < s.y + s.h - eps
+    );
 
-    // FUNDO
-    segs.push({x1:0, y1:0, x2:totalW, y2:0, side:'fundo'});
-
-    // LADO DIREITO (no desenho)
-    const lastMain = main[main.length-1];
-    const rH = lastMain.h;
-
-    if (lArm && lArm.x + lArm.w > lastMain.x + lastMain.w - 0.1) {
-        const lArmB = lArm.y + lArm.h;
-        if (lArm.y < 0.1) {
-            segs.push({x1:totalW, y1:0, x2:totalW, y2:lArmB, side:'l_fundo'});
-        } else {
-            segs.push({x1:totalW, y1:0, x2:totalW, y2:lArm.y, side:sideDir});
-            segs.push({x1:totalW, y1:lArm.y, x2:totalW, y2:lArmB, side:'l_fundo'});
+    const bounds = getBounds(sections);
+    const sideForVertical = (x, outsideRight, y1, y2) => {
+        const lArm = sections.find(s => s.isL);
+        if (lArm) {
+            const midY = (y1 + y2) / 2;
+            if (Math.abs(x - lArm.x) < 0.01 && midY >= lArm.y - 0.01) return 'l_fundo';
+            if (Math.abs(x - (lArm.x + lArm.w)) < 0.01 && midY >= lArm.y - 0.01) return 'frente';
         }
-    } else {
-        segs.push({x1:totalW, y1:0, x2:totalW, y2:rH, side:sideDir});
-    }
+        if (Math.abs(x - bounds.x0) < 0.01) return 'esquerda';
+        if (Math.abs(x - bounds.x1) < 0.01) return 'direita';
+        return outsideRight ? 'direita' : 'esquerda';
+    };
 
-    // FRENTE (direita pra esquerda, seguindo contorno)
-    const lArmLeft = lArm ? lArm.x : -1;
-    const lArmRight = lArm ? lArm.x + lArm.w : -1;
-    let curX = totalW, curY;
-
-    if (lArm && lArm.x + lArm.w > lastMain.x + lastMain.w - 0.1) {
-        curY = lArm.y + lArm.h;
-        segs.push({x1:totalW, y1:curY, x2:lArmLeft, y2:curY, side:'l_esquerda'});
-        curX = lArmLeft;
-        const secAtX = main.find(s => s.x <= curX && s.x + s.w >= curX);
-        const mainH = secAtX ? secAtX.h : rH;
-        if (Math.abs(curY - mainH) > 0.1) {
-            segs.push({x1:curX, y1:curY, x2:curX, y2:mainH, side:'frente'});
+    const sideForHorizontal = (y, outsideBelow, x1, x2) => {
+        const lArm = sections.find(s => s.isL);
+        if (lArm) {
+            const midX = (x1 + x2) / 2;
+            if (Math.abs(y - (lArm.y + lArm.h)) < 0.01 && midX >= lArm.x - 0.01 && midX <= lArm.x + lArm.w + 0.01) return 'l_esquerda';
         }
-        curY = mainH;
-    } else {
-        curY = rH;
-    }
+        return outsideBelow ? 'frente' : 'fundo';
+    };
 
-    for (let i = main.length-1; i >= 0; i--) {
-        const sec = main[i];
-        const secR = sec.x + sec.w;
-        const secL = sec.x;
-        const secB = sec.h;
-
-        if (Math.abs(curY - secB) > 0.1 && curX <= secR + 0.1) {
-            segs.push({x1:curX, y1:curY, x2:curX, y2:secB, side:'frente'});
-            curY = secB;
-        }
-
-        const lArmBelow = lArm && lArm.y > 0.1 && lArm.x >= secL - 0.1 && lArm.x <= secR + 0.1;
-        const stopX = lArmBelow ? lArm.x + lArm.w : secL;
-        const endX = Math.max(secL, stopX);
-        if (curX > endX + 0.1) {
-            segs.push({x1:curX, y1:curY, x2:endX, y2:curY, side:'frente'});
-            curX = endX;
-        }
-
-        if (i > 0 && curX > 0.1) {
-            const prevB = main[i-1].h;
-            if (Math.abs(curY - prevB) > 0.1) {
-                segs.push({x1:curX, y1:curY, x2:curX, y2:prevB, side:'frente'});
-                curY = prevB;
+    // Fronteiras verticais: ocupado de um lado e vazio do outro.
+    xs.forEach(x => {
+        for (let i = 0; i < ys.length - 1; i++) {
+            const y1 = ys[i], y2 = ys[i+1];
+            if (y2 - y1 < 0.01) continue;
+            const midY = (y1 + y2) / 2;
+            const leftOcc = contains(x - eps*10, midY);
+            const rightOcc = contains(x + eps*10, midY);
+            if (leftOcc === rightOcc) continue;
+            if (leftOcc && !rightOcc) {
+                // vazio à direita: desenha para baixo para o offset/label sair à direita
+                segs.push({x1:x, y1:y1, x2:x, y2:y2, side:sideForVertical(x, true, y1, y2)});
+            } else {
+                // vazio à esquerda: desenha para cima para o offset/label sair à esquerda
+                segs.push({x1:x, y1:y2, x2:x, y2:y1, side:sideForVertical(x, false, y1, y2)});
             }
         }
-    }
+    });
 
-    // BRAÇO L no lado esquerdo (do desenho)
-    if (lArm && lArm.x < main[0].x + 0.1) {
-        const lArmB = lArm.y + lArm.h;
-        const lArmR = lArm.x + lArm.w;
-        if (curX > lArmR - 0.1 && curX > 0.1) {
-            segs.push({x1:curX, y1:curY, x2:lArmR, y2:curY, side:'frente'});
-            curX = lArmR;
+    // Fronteiras horizontais: ocupado em cima/baixo e vazio no outro lado.
+    ys.forEach(y => {
+        for (let i = 0; i < xs.length - 1; i++) {
+            const x1 = xs[i], x2 = xs[i+1];
+            if (x2 - x1 < 0.01) continue;
+            const midX = (x1 + x2) / 2;
+            const aboveOcc = contains(midX, y - eps*10);
+            const belowOcc = contains(midX, y + eps*10);
+            if (aboveOcc === belowOcc) continue;
+            if (!aboveOcc && belowOcc) {
+                // vazio em cima: fundo/parede, desenha esquerda→direita
+                segs.push({x1:x1, y1:y, x2:x2, y2:y, side:sideForHorizontal(y, false, x1, x2)});
+            } else {
+                // vazio embaixo: frente, desenha direita→esquerda para offset sair para baixo
+                segs.push({x1:x2, y1:y, x2:x1, y2:y, side:sideForHorizontal(y, true, x1, x2)});
+            }
         }
-        segs.push({x1:curX, y1:curY, x2:curX, y2:lArmB, side:'frente'});
-        segs.push({x1:curX, y1:lArmB, x2:0, y2:lArmB, side:'l_esquerda'});
-        segs.push({x1:0, y1:lArmB, x2:0, y2:lArm.y, side:'l_fundo'});
-        if (lArm.y > 0.1) {
-            segs.push({x1:0, y1:lArm.y, x2:0, y2:0, side:sideEsq});
-        }
-    } else if (!lArm) {
-        if (curX > 0.1) {
-            segs.push({x1:curX, y1:curY, x2:0, y2:curY, side:'frente'});
-        }
-        segs.push({x1:0, y1:main[0].h, x2:0, y2:0, side:sideEsq});
-    } else {
-        if (curX > 0.1) {
-            segs.push({x1:curX, y1:curY, x2:0, y2:curY, side:'frente'});
-        }
-        segs.push({x1:0, y1:main[0].h, x2:0, y2:0, side:sideEsq});
-    }
+    });
 
     return segs;
 }
