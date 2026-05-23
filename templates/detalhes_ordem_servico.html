@@ -1833,27 +1833,7 @@ adicionarEstilosMobile() {
         }
 
         carregarDadosPecas() {
-            const grupos = {};
-            {% for material_nome, produtos in materiais_agrupados.items() %}
-                grupos["{{ material_nome }}"] = [
-                    {% for produto in produtos %}
-                    {
-                        id: {{ produto.id }},
-                        tipo: "{{ produto.tipo_produto }}",
-                        comprimento: {{ produto.comprimento }},
-                        largura: {{ produto.largura }},
-                        material: "{{ produto.material.nome }}",
-                        quantidade: {{ produto.quantidade }},
-                        comprimento_saia: {{ produto.comprimento_saia or 0 }},
-                        largura_saia: {{ produto.largura_saia or 0 }},
-                        comprimento_fronte: {{ produto.comprimento_fronte or 0 }},
-                        largura_fronte: {{ produto.largura_fronte or 0 }},
-                        profundidade_nicho: {{ produto.profundidade_nicho or 0 }}
-                    },
-                    {% endfor %}
-                ];
-            {% endfor %}
-            return grupos;
+            return {{ grupos_pecas_json | tojson | safe }};
         }
 
         inicializar() {

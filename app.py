@@ -309,6 +309,20 @@ class DesenhoOrdemServico(db.Model):
     data_criacao = db.Column(db.DateTime, default=datetime.utcnow)
 
 
+def _eh_imagem_configurador(desenho_data):
+    """Identifica imagens geradas pelo configurador 3D, que não são HTML editável da OS."""
+    if not desenho_data:
+        return False
+    return str(desenho_data).lstrip().lower().startswith('data:image/')
+
+
+def _eh_html_ordem_servico(desenho_data):
+    """Retorna True somente para desenho HTML editável da tela Detalhes Ordem de Serviço."""
+    if not desenho_data:
+        return False
+    return not _eh_imagem_configurador(desenho_data)
+
+
 # Função para inicializar o banco de dados
 def criar_banco():
     with app.app_context():
@@ -835,11 +849,14 @@ def whatsapp_webhook_receive():
 
 @app.route('/ver_desenho/<codigo>')
 def ver_desenho(codigo):
-    desenhos = DesenhoOrdemServico.query.filter_by(
-        orcamento_salvo_codigo=codigo
-    ).order_by(DesenhoOrdemServico.data_criacao.asc()).all()
+    desenhos = [
+        d for d in DesenhoOrdemServico.query.filter_by(
+            orcamento_salvo_codigo=codigo
+        ).order_by(DesenhoOrdemServico.data_criacao.asc()).all()
+        if _eh_imagem_configurador(d.desenho_data)
+    ]
     if not desenhos:
-        return 'Desenho nao encontrado', 404
+        return 'Desenho do configurador 3D nao encontrado', 404
 
     orc_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
     header_html = ''
@@ -1977,9 +1994,12 @@ def listar_orcamentos_salvos():
     usuarios = Usuario.query.all()
 
     codigos_com_desenho = set(
-        d.orcamento_salvo_codigo for d in DesenhoOrdemServico.query.with_entities(
-            DesenhoOrdemServico.orcamento_salvo_codigo
+        d.orcamento_salvo_codigo
+        for d in DesenhoOrdemServico.query.with_entities(
+            DesenhoOrdemServico.orcamento_salvo_codigo,
+            DesenhoOrdemServico.desenho_data
         ).all()
+        if _eh_imagem_configurador(d.desenho_data)
     )
 
     return render_template("orcamentos_salvos.html",
@@ -2225,9 +2245,12 @@ def orcamentos_salvos():
     ).all()
 
     codigos_com_desenho = set(
-        d.orcamento_salvo_codigo for d in DesenhoOrdemServico.query.with_entities(
-            DesenhoOrdemServico.orcamento_salvo_codigo
+        d.orcamento_salvo_codigo
+        for d in DesenhoOrdemServico.query.with_entities(
+            DesenhoOrdemServico.orcamento_salvo_codigo,
+            DesenhoOrdemServico.desenho_data
         ).all()
+        if _eh_imagem_configurador(d.desenho_data)
     )
 
     return render_template('orcamentos_salvos.html', orcamentos=orcamentos, codigos_com_desenho=codigos_com_desenho)
@@ -3112,49 +3135,40 @@ def ordens_servico():
 @app.route('/salvar_desenho_ordem_servico/<codigo>', methods=['POST'])
 def salvar_desenho_ordem_servico(codigo):
     try:
-        # Obter dados JSON da requisição
         data = request.get_json()
         if not data:
             return jsonify({"success": False, "error": "Nenhum dado JSON recebido"}), 400
-        
+
         desenho_data = data.get('drawingAreaHTML')
-        
+
         if not desenho_data:
             return jsonify({"success": False, "error": "Dados do desenho não fornecidos"}), 400
-        
-        print(f"💾 Salvando desenho para orçamento: {codigo}")
-        
-        # Verificar se o orçamento salvo existe
+
+        if _eh_imagem_configurador(desenho_data):
+            return jsonify({
+                "success": False,
+                "error": "A ordem de serviço deve salvar HTML editável, não imagem do configurador 3D."
+            }), 400
+
+        print(f"💾 Salvando desenho editável da OS para orçamento: {codigo}")
+
         orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
         if not orcamento_salvo:
             return jsonify({"success": False, "error": "Orçamento salvo não encontrado"}), 404
-        
-        # Salvar na tabela DesenhoOrdemServico
-        desenho_existente = DesenhoOrdemServico.query.filter_by(orcamento_salvo_codigo=codigo).first()
-        
-        if desenho_existente:
-            # Atualizar desenho existente
-            desenho_existente.desenho_data = desenho_data
-            desenho_existente.data_criacao = datetime.utcnow()
-            print("📝 Desenho existente atualizado na tabela DesenhoOrdemServico")
-        else:
-            # Criar novo registro de desenho
-            novo_desenho = DesenhoOrdemServico(
-                orcamento_salvo_codigo=codigo,
-                desenho_data=desenho_data
-            )
-            db.session.add(novo_desenho)
-            print("🆕 Novo desenho criado na tabela DesenhoOrdemServico")
-        
-        # Também salvar no campo desenho_ordem_servico do OrcamentoSalvo
+
+        # IMPORTANTE:
+        # A tabela DesenhoOrdemServico é reservada para desenhos/imagens gerados pelo
+        # fluxo público "Gere seu Orçamento" do configurador 3D. É essa tabela que
+        # habilita o botão azul "Ver Desenho" na lista de orçamentos salvos.
+        # Ao salvar a tela Detalhes Ordem de Serviço, gravamos somente o HTML editável
+        # no próprio OrcamentoSalvo para não criar botão azul indevido.
         orcamento_salvo.desenho_ordem_servico = desenho_data
-        print("📝 Desenho salvo no campo desenho_ordem_servico do OrcamentoSalvo")
-        
+
         db.session.commit()
-        print("✅ Desenho salvo com sucesso no banco de dados")
-        
+        print("✅ Desenho editável da OS salvo sem alterar o desenho do configurador")
+
         return jsonify({"success": True, "message": "Desenho salvo com sucesso"})
-        
+
     except Exception as e:
         db.session.rollback()
         print(f"❌ Erro ao salvar desenho: {str(e)}")
@@ -3197,28 +3211,54 @@ def detalhes_ordem_servico(codigo):
     # 🔥 AGRUPAR POR MATERIAL (SUA LÓGICA ORIGINAL)
     materiais_agrupados = {}
     for orcamento in orcamentos:
-        material_nome = orcamento.material.nome
-        
+        material_nome = orcamento.material.nome if orcamento.material else 'Sem Material'
+
         if material_nome not in materiais_agrupados:
             materiais_agrupados[material_nome] = []
-        
+
         materiais_agrupados[material_nome].append(orcamento)
 
-    logo_url = "https://primemarbleshop.com.br/static/logo.jpg"
-    
+    # Dados serializados com segurança para o JavaScript da tela de desenho.
+    # Isso evita quebra na geração de peças quando nomes têm aspas, caracteres especiais
+    # ou quando o orçamento vem do configurador 3D.
+    grupos_pecas_json = {}
+    for material_nome, produtos in materiais_agrupados.items():
+        grupos_pecas_json[material_nome] = []
+        for produto in produtos:
+            grupos_pecas_json[material_nome].append({
+                'id': produto.id,
+                'tipo': produto.tipo_produto or '',
+                'comprimento': produto.comprimento or 0,
+                'largura': produto.largura or 0,
+                'material': produto.material.nome if produto.material else material_nome,
+                'quantidade': produto.quantidade or 1,
+                'comprimento_saia': produto.comprimento_saia or 0,
+                'largura_saia': produto.largura_saia or 0,
+                'comprimento_fronte': produto.comprimento_fronte or 0,
+                'largura_fronte': produto.largura_fronte or 0,
+                'profundidade_nicho': produto.profundidade_nicho or 0
+            })
+
+    logo_url = url_for('static', filename='logo.jpg')
+
     usuario = Usuario.query.filter_by(cpf=user_cpf).first()
     telefone_usuario = usuario.telefone if usuario else ""
 
-    # 🔥 CARREGAR DESENHO SALVO
+    # 🔥 CARREGAR SOMENTE HTML EDITÁVEL DA ORDEM DE SERVIÇO
+    # O configurador 3D salva imagem data:image/... em DesenhoOrdemServico para o botão azul
+    # "Ver Desenho". Essa imagem não pode ser colocada como innerHTML na OS.
     desenho_salvo = None
-    desenho_registro = DesenhoOrdemServico.query.filter_by(
-        orcamento_salvo_codigo=codigo
-    ).order_by(DesenhoOrdemServico.data_criacao.desc()).first()
-    
-    if desenho_registro:
-        desenho_salvo = desenho_registro.desenho_data
-    elif orcamento_salvo.desenho_ordem_servico:
+    if _eh_html_ordem_servico(orcamento_salvo.desenho_ordem_servico):
         desenho_salvo = orcamento_salvo.desenho_ordem_servico
+    else:
+        desenho_registro = DesenhoOrdemServico.query.filter_by(
+            orcamento_salvo_codigo=codigo
+        ).order_by(DesenhoOrdemServico.data_criacao.desc()).first()
+
+        # Compatibilidade com registros antigos que, por erro, salvaram HTML editável
+        # na tabela do configurador. Imagens do configurador são ignoradas aqui.
+        if desenho_registro and _eh_html_ordem_servico(desenho_registro.desenho_data):
+            desenho_salvo = desenho_registro.desenho_data
 
     # 🔥 RENDERIZAR TEMPLATE COM TODOS OS DADOS
     return render_template(
@@ -3229,6 +3269,7 @@ def detalhes_ordem_servico(codigo):
         cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
         orcamentos=orcamentos,
         materiais_agrupados=materiais_agrupados,
+        grupos_pecas_json=grupos_pecas_json,
         telefone_usuario=telefone_usuario,
         desenho_salvo=desenho_salvo
     )
