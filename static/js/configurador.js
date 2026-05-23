@@ -59,14 +59,36 @@ function labelBoxesNearOnSameSide(a, b, gap = 18) {
 function resolveEdgeLabelPosition(lines, x, y, isVert, nx, ny) {
     let tx = x, ty = y;
     let box = { ...getEdgeLabelBox(lines, tx, ty, isVert), isVert, nx, ny };
-    const step = isVert ? 18 : 14;
-    let tries = 0;
-    while (edgeLabelBoxes.some(b => labelBoxesOverlap(box, b) || labelBoxesNearOnSameSide(box, b)) && tries < 12) {
-        tx += nx * step;
-        if (!isVert) ty += ny * step;
-        box = { ...getEdgeLabelBox(lines, tx, ty, isVert), isVert, nx, ny };
-        tries += 1;
+
+    if (isVert) {
+        // Labels verticais do mesmo lado devem ficar em colunas, um ao lado do outro,
+        // nunca empilhados ou se cruzando.
+        let tries = 0;
+        while (tries < 12) {
+            const sameSide = edgeLabelBoxes.filter(b => b.isVert && b.nx === nx && !(box.bottom + 8 < b.top || box.top - 8 > b.bottom));
+            if (!sameSide.length || !sameSide.some(b => labelBoxesOverlap(box, b) || labelBoxesNearOnSameSide(box, b))) break;
+            const halfW = (box.right - box.left) / 2;
+            if (nx < 0) {
+                const outerLeft = Math.min(...sameSide.map(b => b.left));
+                tx = outerLeft - 12 - halfW;
+            } else {
+                const outerRight = Math.max(...sameSide.map(b => b.right));
+                tx = outerRight + 12 + halfW;
+            }
+            box = { ...getEdgeLabelBox(lines, tx, ty, isVert), isVert, nx, ny };
+            tries += 1;
+        }
+    } else {
+        const step = 14;
+        let tries = 0;
+        while (edgeLabelBoxes.some(b => labelBoxesOverlap(box, b)) && tries < 12) {
+            tx += nx * step;
+            ty += ny * step;
+            box = { ...getEdgeLabelBox(lines, tx, ty, isVert), isVert, nx, ny };
+            tries += 1;
+        }
     }
+
     edgeLabelBoxes.push(box);
     return {x: tx, y: ty};
 }
