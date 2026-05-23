@@ -382,13 +382,15 @@
             overflow: hidden !important;
             touch-action: pinch-zoom !important;
         }
+        /* Qualquer ferramenta ativa: bloquear pan do browser mas permitir pinch-zoom */
+        #excalidraw-container.has-tool,
         #excalidraw-container.lasso-active,
         #excalidraw-container.eraser-active,
         #excalidraw-container.edge-tool-active {
-            touch-action: none;
+            touch-action: pinch-zoom;
         }
         #lassoCanvas, #eraserCanvas {
-            touch-action: none;
+            touch-action: pinch-zoom;
         }
 
         @media print {
@@ -622,7 +624,10 @@
             window._noToolMode = !anyActive;
             document.body.classList.toggle('tool-active', anyActive);
             const exc = document.getElementById('excalidraw-container');
-            if (exc) exc.classList.toggle('no-tool', !anyActive);
+            if (exc) {
+                exc.classList.toggle('no-tool', !anyActive);
+                exc.classList.toggle('has-tool', anyActive);
+            }
         };
 
         // ===== LASSO LIVRE - Seleção por interseção =====
@@ -2378,8 +2383,6 @@
             const viewH = appState.height || 600;
             const contentW = A4.WIDTH;
 
-            let sx = appState.scrollX;
-            let sy = appState.scrollY;
             let changed = false;
             let newAppState = {};
 
@@ -2389,21 +2392,20 @@
                 changed = true;
             }
 
-            if (sx > 0) { sx = 0; changed = true; }
-
-            const minSx = -((contentW) - viewW / zoom);
-            if (viewW / zoom >= contentW) {
-                if (sx !== 0) { sx = 0; changed = true; }
-            } else if (sx < minSx) {
-                sx = minSx; changed = true;
+            // Travar scroll em 0,0 — o scroll é da PÁGINA, não do Excalidraw
+            if (Math.abs(appState.scrollX) > 0.5) {
+                newAppState.scrollX = 0;
+                changed = true;
             }
-
-            if (sy > 0) { sy = 0; changed = true; }
+            if (Math.abs(appState.scrollY) > 0.5) {
+                newAppState.scrollY = 0;
+                changed = true;
+            }
 
             if (changed) {
                 _clampingScroll = true;
-                newAppState.scrollX = sx;
-                newAppState.scrollY = sy;
+                if (newAppState.scrollX === undefined) newAppState.scrollX = 0;
+                if (newAppState.scrollY === undefined) newAppState.scrollY = 0;
                 apiRef.current.updateScene({ appState: newAppState });
                 requestAnimationFrame(() => { _clampingScroll = false; });
             }
@@ -2620,13 +2622,17 @@
         const root = createRoot(container);
         root.render(h(ExcalidrawApp));
 
-        // Bloquear zoom do Excalidraw (Ctrl+scroll / pinch zoom)
+        // Bloquear TODA interação de wheel/scroll do Excalidraw
+        // O scroll é da PÁGINA, não do canvas interno
         const excContainer = document.getElementById('excalidraw-container');
         excContainer.addEventListener('wheel', (e) => {
+            // Bloquear scroll interno do Excalidraw (impedir que ele processe o wheel)
+            e.stopPropagation();
+            // Se for Ctrl+wheel (zoom), bloquear também o browser zoom no container
             if (e.ctrlKey || e.metaKey) {
                 e.preventDefault();
-                e.stopPropagation();
             }
+            // Wheel normal: não preventDefault → browser faz scroll na página normalmente
         }, { passive: false, capture: true });
 
         // Mobile: bloquear pinch-zoom INTERNO do Excalidraw, mas permitir zoom do BROWSER (página toda)
