@@ -282,9 +282,18 @@
             });
         }
 
+        function normalizarBuscaTexto(valor) {
+            return String(valor || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .trim();
+        }
+
         // Função para filtrar materiais
         function filterMateriais() {
-            const filtroNome = document.getElementById('filtro_nome').value.toLowerCase();
+            const filtroNomeOriginal = document.getElementById('filtro_nome').value;
+            const filtroNome = normalizarBuscaTexto(filtroNomeOriginal);
             const filtroValorMin = parseFloat(document.getElementById('filtro_valor_min').value) || 0;
             const filtroValorMax = parseFloat(document.getElementById('filtro_valor_max').value) || Number.MAX_SAFE_INTEGER;
             
@@ -292,7 +301,7 @@
             let visibleCount = 0;
             
             rows.forEach(row => {
-                const nome = row.getAttribute('data-nome').toLowerCase();
+                const nome = normalizarBuscaTexto(row.getAttribute('data-nome'));
                 const valor = parseFloat(row.getAttribute('data-valor'));
                 
                 let show = true;
@@ -332,7 +341,7 @@
             document.getElementById('total-materiais').textContent = visibleCount;
             
             // Salvar filtros no localStorage
-            localStorage.setItem('filtroNomeMateriais', filtroNome);
+            localStorage.setItem('filtroNomeMateriais', filtroNomeOriginal);
             localStorage.setItem('filtroValorMinMateriais', filtroValorMin);
             localStorage.setItem('filtroValorMaxMateriais', filtroValorMax === Number.MAX_SAFE_INTEGER ? '' : filtroValorMax);
         }

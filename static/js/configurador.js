@@ -7,6 +7,14 @@ const CONTENCAO = 2;
 
 const EDGE_COLORS = { fronte:'#e63946', saia:'#2a9d8f', parede:'#6c757d', livre:'#bbb', ilharga:'#d97706' };
 const EDGE_NAMES = { fronte:'Parede com fronte', saia:'Acabamento com saia', parede:'Parede sem fronte', livre:'Acabamento sem saia', ilharga:'Ilharga' };
+function normalizarBuscaTexto(valor) {
+    return String(valor || '')
+        .normalize('NFD')
+        .replace(/[̀-ͯ]/g, '')
+        .toLowerCase()
+        .trim();
+}
+
 function edgeName(type, side) {
     // Quebra interna restaurada para cada acabamento.
     // O afastamento entre labels verticais continua sendo feito somente no eixo Y.
@@ -1619,10 +1627,10 @@ function renderMaterial(sb) {
     const inp = document.getElementById('matBusca');
     inp.addEventListener('input', function() {
         CFG._materialBusca = this.value;
-        const q = this.value.trim().toLowerCase();
+        const q = normalizarBuscaTexto(this.value);
         const box = document.getElementById('matResultados');
         if (q.length < 3) { box.innerHTML = ''; CFG.materialId = ''; return; }
-        const matches = materiaisCache.filter(m => m.nome.toLowerCase().includes(q));
+        const matches = materiaisCache.filter(m => normalizarBuscaTexto(m.nome).includes(q));
         if (matches.length === 0) {
             box.innerHTML = '<div style="color:#999;font-size:.78rem;padding:8px">Nenhum material encontrado.</div>';
             CFG.materialId = '';
@@ -1636,6 +1644,40 @@ function renderMaterial(sb) {
     });
     if (matNome.length >= 3 && !matSel) inp.dispatchEvent(new Event('input'));
 }
+
+function camposFocaveisDaEtapa() {
+    const raiz = document.getElementById('sideBody') || document;
+    return Array.from(raiz.querySelectorAll('input:not([type="hidden"]), select, textarea'))
+        .filter(el => !el.disabled && !el.readOnly && el.offsetParent !== null);
+}
+
+function moverFocoParaProximoCampoAtual(campoAtual) {
+    if (!campoAtual) return;
+    campoAtual.dispatchEvent(new Event('input', {bubbles:true}));
+    campoAtual.dispatchEvent(new Event('change', {bubbles:true}));
+
+    const campos = camposFocaveisDaEtapa();
+    const idx = campos.indexOf(campoAtual);
+    const proximo = idx >= 0 ? campos[idx + 1] : null;
+
+    if (proximo) {
+        proximo.focus();
+        if (typeof proximo.select === 'function' && proximo.tagName === 'INPUT') proximo.select();
+        return;
+    }
+
+    const botaoContinuar = document.getElementById('btnNext');
+    if (botaoContinuar && !botaoContinuar.disabled) botaoContinuar.focus();
+}
+
+document.addEventListener('keydown', function(event) {
+    if (event.key !== 'Enter' || event.isComposing) return;
+    const el = event.target;
+    if (!el || !el.matches || !el.matches('input, select, textarea')) return;
+    if (el.tagName === 'TEXTAREA' && event.shiftKey) return;
+    event.preventDefault();
+    moverFocoParaProximoCampoAtual(el);
+});
 
 function finalizarOrcamento() {
     const btnNext = document.getElementById('btnNext');
