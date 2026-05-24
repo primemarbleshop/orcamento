@@ -376,13 +376,8 @@ function drawSection(sec, sc, ox, oy) {
     ctx.strokeStyle = '#1f2937'; ctx.lineWidth = 2;
     ctx.strokeRect(rx, ry, rw, rh);
 
-    // label no canto superior esquerdo
-    const label = sec.label || (sec.type === 'molhada' ? 'MOLHADA' : 'SECA');
-    ctx.fillStyle = '#374151'; ctx.font = 'bold 11px Inter,sans-serif';
-    ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-    ctx.fillText(label, rx + 6, ry + 5);
-    ctx.fillStyle = '#6b7280'; ctx.font = '10px Inter,sans-serif';
-    ctx.fillText(sec.w + ' × ' + (sec.labelH || sec.h), rx + 6, ry + 20);
+    // Legenda interna removida para deixar o desenho mais limpo.
+    // Mantém apenas cor/contorno da peça; as medidas permanecem nas cotas externas.
     ctx.textBaseline = 'middle';
 }
 
