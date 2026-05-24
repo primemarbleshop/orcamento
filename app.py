@@ -745,7 +745,38 @@ def api_configurador_orcamento():
                             criar_item_p('Ilharga', alt, prof_l, cs_ilh, ls_ilh, 0, 0,
                                       produto_nome='Ilharga')
                         else:
-                            prof_ilh = pcfg.get('profMolhada', 60) if has_molhada else pcfg.get('profSeca', 60)
+                            def profundidade_ilharga_lateral(side):
+                                # A largura/profundidade da ilharga lateral deve seguir a bancada
+                                # onde aquela lateral está encostada. Ex.: molhada 60 e seca 50
+                                # => ilharga esquerda 60, ilharga direita 50 quando a molhada está à esquerda.
+                                prof_m_base = pcfg.get('profMolhada', 60)
+                                prof_s_base = pcfg.get('profSeca', 60)
+
+                                if modelo == 'toda_molhada':
+                                    return prof_m_base
+                                if modelo == 'toda_seca':
+                                    return prof_s_base
+
+                                if modelo == 'molhada_esq_seca_dir':
+                                    return prof_m_base if side == 'esquerda' else prof_s_base
+                                if modelo == 'molhada_dir_seca_esq':
+                                    return prof_s_base if side == 'esquerda' else prof_m_base
+
+                                if modelo == 'molhada_centro_seca_lat':
+                                    return pcfg.get('profSecaEsq', prof_s_base) if side == 'esquerda' else pcfg.get('profSecaDir', prof_s_base)
+                                if modelo == 'seca_centro_molhada_lat':
+                                    return pcfg.get('profMolhadaEsq', prof_m_base) if side == 'esquerda' else pcfg.get('profMolhadaDir', prof_m_base)
+
+                                # Modelos em L: a lateral externa padrão acompanha a peça seca do braço/lateral.
+                                # As laterais específicas do L continuam tratadas em l_esquerda/l_fundo acima.
+                                if modelo in ['l_seca_molhada', 'l_seca_molhada_seca']:
+                                    if side == 'esquerda':
+                                        return pcfg.get('profL', prof_s_base)
+                                    return prof_s_base if has_seca else prof_m_base
+
+                                return prof_m_base if has_molhada else prof_s_base
+
+                            prof_ilh = profundidade_ilharga_lateral(side_key)
                             saia_frente = borda_saia_larg.get('frente', 10) if bordas.get('frente') in ['saia'] else 0
                             saia_fundo = borda_saia_larg.get('fundo', 10) if bordas.get('fundo') in ['saia'] else 0
                             n_saias = (1 if saia_frente > 0 else 0) + (1 if saia_fundo > 0 else 0)
