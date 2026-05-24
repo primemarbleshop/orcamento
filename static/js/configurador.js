@@ -8,13 +8,13 @@ const CONTENCAO = 2;
 const EDGE_COLORS = { fronte:'#e63946', saia:'#2a9d8f', parede:'#6c757d', livre:'#bbb', ilharga:'#d97706' };
 const EDGE_NAMES = { fronte:'Parede com fronte', saia:'Acabamento com saia', parede:'Parede sem fronte', livre:'Acabamento sem saia', ilharga:'Ilharga' };
 function edgeName(type, side) {
-    // Sempre retorna um único texto. Não quebra mais em duas linhas.
-    // Isso evita o efeito de um texto ficar em cima do outro no preview.
-    if (type === 'fronte') return ['/// Parede com fronte' + (side ? ' larg:'+fmt(CFG.bordaAlts[side]) : '')];
-    if (type === 'saia') return ['// Acabamento com saia' + (side ? ' larg:'+fmt(CFG.bordaSaiaLarg[side]) : '')];
-    if (type === 'ilharga') return ['Ilharga' + (side ? ' alt:'+fmt(CFG.bordaAlts[side]) : '')];
-    if (type === 'parede') return ['Parede sem fronte'];
-    return ['Acabamento sem saia'];
+    // Quebra interna restaurada para cada acabamento.
+    // O afastamento entre labels verticais continua sendo feito somente no eixo Y.
+    if (type === 'fronte') return ['/// Parede', 'com fronte larg:'+fmt(CFG.bordaAlts[side] || 0)];
+    if (type === 'saia') return ['// Acabamento', 'com saia larg:'+fmt(CFG.bordaSaiaLarg[side] || 0)];
+    if (type === 'ilharga') return ['Ilharga', 'alt:'+fmt(CFG.bordaAlts[side] || 0)];
+    if (type === 'parede') return ['Parede', 'sem fronte'];
+    return ['Acabamento', 'sem saia'];
 }
 let edgeLabelBoxes = [];
 let edgeLabelColumns = {};
@@ -36,14 +36,28 @@ function drawEdgeLabel(lines, x, y, isVert) {
 
 function getEdgeLabelBox(lines, x, y, isVert) {
     const filtered = lines.filter(l => l);
-    const txt = filtered.join(' ');
-    const wText = ctx.measureText(txt).width || 0;
+    const widths = filtered.map(l => ctx.measureText(l).width || 0);
+    const maxW = widths.length ? Math.max(...widths) : 0;
     const lineH = 12;
     const pad = 4;
+    const count = Math.max(1, filtered.length);
     if (isVert) {
-        return { left:x - lineH/2 - pad, right:x + lineH/2 + pad, top:y - wText/2 - pad, bottom:y + wText/2 + pad };
+        // Após rotate(-90), as linhas internas do mesmo label viram colunas próximas no X.
+        // A altura real do box deve usar a maior linha, não o texto inteiro concatenado.
+        const stackW = count * lineH;
+        return {
+            left: x - stackW/2 - pad,
+            right: x + stackW/2 + pad,
+            top: y - maxW/2 - pad,
+            bottom: y + maxW/2 + pad
+        };
     }
-    return { left:x - wText/2 - pad, right:x + wText/2 + pad, top:y - lineH/2 - pad, bottom:y + lineH/2 + pad };
+    return {
+        left:x - maxW/2 - pad,
+        right:x + maxW/2 + pad,
+        top:y - (count * lineH)/2 - pad,
+        bottom:y + (count * lineH)/2 + pad
+    };
 }
 
 function boxesOverlap(a, b, gap = 6) {
@@ -63,7 +77,7 @@ function drawEdgeLabelSmart(lines, x, y, isVert, nx, ny) {
     //
     // │ TEXTO 2 │
     const sideKey = nx < 0 ? 'left' : 'right';
-    const gap = 12;
+    const gap = 4;
 
     if (edgeLabelColumns[sideKey] === undefined) {
         edgeLabelColumns[sideKey] = x;
