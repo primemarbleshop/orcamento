@@ -50,22 +50,22 @@
                 <div class="metric-grid">
                     <div class="metric-card">
                         <div class="metric-label">Total no funil</div>
-                        <div class="metric-value">{{ dashboard.total }}</div>
-                        <div class="metric-note">{{ dashboard.valor_total }} em propostas</div>
+                        <div class="metric-value" data-summary="total">{{ dashboard.total }}</div>
+                        <div class="metric-note"><span data-summary="valor_total">{{ dashboard.valor_total }}</span> em propostas</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-label">Em espera</div>
-                        <div class="metric-value">{{ dashboard.espera }}</div>
-                        <div class="metric-note">{{ dashboard.valor_aberto }} em negociação</div>
+                        <div class="metric-value" data-summary="espera">{{ dashboard.espera }}</div>
+                        <div class="metric-note"><span data-summary="valor_aberto">{{ dashboard.valor_aberto }}</span> em negociação</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-label">Aprovados</div>
-                        <div class="metric-value">{{ dashboard.aprovados }}</div>
-                        <div class="metric-note">{{ dashboard.valor_aprovado }} convertido</div>
+                        <div class="metric-value" data-summary="aprovados">{{ dashboard.aprovados }}</div>
+                        <div class="metric-note"><span data-summary="valor_aprovado">{{ dashboard.valor_aprovado }}</span> convertido</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-label">Taxa</div>
-                        <div class="metric-value">{{ dashboard.taxa_conversao }}%</div>
+                        <div class="metric-value"><span data-summary="taxa_conversao">{{ dashboard.taxa_conversao }}</span>%</div>
                         <div class="metric-note">Conversão atual</div>
                     </div>
                 </div>
@@ -107,7 +107,7 @@
                             </thead>
                             <tbody>
                                 {% for orcamento in orcamentos %}
-                                <tr data-search="{{ orcamento.codigo }} {{ orcamento.cliente }} {{ orcamento.criado_por }} {{ orcamento.status }} {{ orcamento.tipo_cliente }}" data-id="{{ orcamento.id }}">
+                                <tr data-search="{{ orcamento.codigo }} {{ orcamento.cliente }} {{ orcamento.criado_por }} {{ orcamento.status }} {{ orcamento.tipo_cliente }}" data-id="{{ orcamento.id }}" data-valor-total="{{ '%.2f'|format(orcamento.valor_float or 0) }}">
                                     <td data-label="Código"><a href="{{ url_for('detalhes_orcamento_salvo', codigo=orcamento.codigo) }}">{{ orcamento.codigo }}</a></td>
                                     <td data-label="Cliente">{{ orcamento.cliente }}</td>
                                     <td data-label="Valor">
@@ -173,17 +173,17 @@
 
                 <div class="pipeline" style="grid-template-columns:1fr;">
                     <div class="pipeline-card">
-                        <strong>{{ dashboard.espera }}</strong>
+                        <strong data-summary="side_espera">{{ dashboard.espera }}</strong>
                         <span>Propostas abertas</span>
-                        <div class="metric-note">{{ dashboard.valor_aberto }}</div>
+                        <div class="metric-note" data-summary="side_valor_aberto">{{ dashboard.valor_aberto }}</div>
                     </div>
                     <div class="pipeline-card">
-                        <strong>{{ dashboard.aprovados }}</strong>
+                        <strong data-summary="side_aprovados">{{ dashboard.aprovados }}</strong>
                         <span>Vendas aprovadas</span>
-                        <div class="metric-note">{{ dashboard.valor_aprovado }}</div>
+                        <div class="metric-note" data-summary="side_valor_aprovado">{{ dashboard.valor_aprovado }}</div>
                     </div>
                     <div class="pipeline-card">
-                        <strong>{{ dashboard.declinados }}</strong>
+                        <strong data-summary="side_declinados">{{ dashboard.declinados }}</strong>
                         <span>Vendas perdidas</span>
                     </div>
                 </div>
@@ -213,6 +213,8 @@
         const noteModal = document.getElementById('noteModal');
         const noteText = document.getElementById('noteText');
         const saveNoteButton = document.getElementById('saveNoteButton');
+        const filtroMesAtual = '{{ filtro_mes or "todos" }}';
+        const filtroAnoAtual = '{{ filtro_ano or "todos" }}';
         let activeNoteRow = null;
 
         document.querySelectorAll('.js-period-filter').forEach((select) => {
@@ -226,6 +228,85 @@
                 linha.style.display = texto.includes(termo) ? '' : 'none';
             });
         });
+
+        function moedaBR(valor) {
+            return new Intl.NumberFormat('pt-BR', {
+                style: 'currency',
+                currency: 'BRL'
+            }).format(valor || 0);
+        }
+
+        function numeroCampo(campo) {
+            if (!campo) return 0;
+            return Number(String(campo.value || campo.dataset.valor || 0).replace(',', '.')) || 0;
+        }
+
+        function linhaPertenceAoPeriodo(linha) {
+            const statusAtual = linha.querySelector('[data-field="status"]').value;
+            if (statusAtual === 'Em Espera') return true;
+            const dataFechamento = linha.querySelector('[data-field="data_fechamento"]')?.value;
+            if (!dataFechamento) return false;
+            const partes = dataFechamento.split('-').map(Number);
+            const ano = partes[0];
+            const mes = partes[1];
+            if (filtroAnoAtual !== 'todos' && ano !== Number(filtroAnoAtual)) return false;
+            if (filtroMesAtual !== 'todos' && mes !== Number(filtroMesAtual)) return false;
+            return true;
+        }
+
+        function setResumo(chave, valor) {
+            document.querySelectorAll(`[data-summary="${chave}"]`).forEach((item) => {
+                item.textContent = valor;
+            });
+        }
+
+        function atualizarResumoTela() {
+            let total = 0;
+            let espera = 0;
+            let aprovados = 0;
+            let declinados = 0;
+            let valorTotal = 0;
+            let valorAberto = 0;
+            let valorAprovado = 0;
+
+            linhas.forEach((linha) => {
+                const pertence = linhaPertenceAoPeriodo(linha);
+                linha.hidden = !pertence;
+                if (!pertence) return;
+
+                const statusAtual = linha.querySelector('[data-field="status"]').value;
+                const valorOriginal = Number(linha.dataset.valorTotal || 0) || 0;
+                const valorVenda = numeroCampo(linha.querySelector('[data-field="valor_venda"]')) || valorOriginal;
+
+                total += 1;
+                valorTotal += valorOriginal;
+
+                if (statusAtual === 'Aprovado') {
+                    aprovados += 1;
+                    valorAprovado += valorVenda;
+                } else if (statusAtual === 'Declinado') {
+                    declinados += 1;
+                } else {
+                    espera += 1;
+                    valorAberto += valorOriginal;
+                }
+            });
+
+            const taxa = total ? ((aprovados / total) * 100).toFixed(1) : '0.0';
+
+            setResumo('total', total);
+            setResumo('espera', espera);
+            setResumo('aprovados', aprovados);
+            setResumo('taxa_conversao', taxa);
+            setResumo('valor_total', moedaBR(valorTotal));
+            setResumo('valor_aberto', moedaBR(valorAberto));
+            setResumo('valor_aprovado', moedaBR(valorAprovado));
+            setResumo('side_espera', espera);
+            setResumo('side_aprovados', aprovados);
+            setResumo('side_declinados', declinados);
+            setResumo('side_valor_aberto', moedaBR(valorAberto));
+            setResumo('side_valor_aprovado', moedaBR(valorAprovado));
+        }
 
         function getSalePayload(linha) {
             const statusAtual = linha.querySelector('[data-field="status"]').value;
@@ -284,6 +365,11 @@
                     return;
                 }
                 alternarCamposVenda(linha);
+                if (data.data_fechamento) {
+                    const campoData = linha.querySelector('[data-field="data_fechamento"]');
+                    if (campoData) campoData.value = data.data_fechamento;
+                }
+                atualizarResumoTela();
             })
             .catch(() => {
                 alert('Erro de comunicação com o servidor.');
@@ -326,6 +412,8 @@
                 botao.addEventListener('click', () => abrirModalObservacao(linha, botao));
             });
         });
+
+        atualizarResumoTela();
 
         document.querySelectorAll('.js-close-note').forEach((botao) => {
             botao.addEventListener('click', fecharModalObservacao);

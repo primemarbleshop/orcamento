@@ -1306,6 +1306,7 @@ def conversao_vendas():
                 "codigo": o.codigo,
                 "cliente": (_cliente_do_orcamento_salvo(o).nome if _cliente_do_orcamento_salvo(o) else "Não definido"),
                 "valor": _moeda(o.valor_total),
+                "valor_float": o.valor_total or 0,
                 "status": o.status or "Em Espera",
                 "tipo_cliente": o.tipo_cliente or "Cliente de Porta",
                 "criado_por": o.criado_por or "",
