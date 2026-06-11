@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Conversao de Vendas | Prime Marble Shop</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pilot.css') }}">
+</head>
+<body class="pilot-body">
+    <main class="pilot-shell">
+        <header class="pilot-topbar">
+            <div class="pilot-brand">
+                <img src="{{ url_for('static', filename='logo.jpg') }}" class="pilot-logo" alt="Prime Marble Shop">
+                <div>
+                    <p class="pilot-brand-title">Prime Marble Shop</p>
+                    <p class="pilot-brand-subtitle">Controle de conversao de vendas</p>
+                </div>
+            </div>
+
+            <div class="pilot-user">
+                <a href="{{ url_for('index') }}" class="pilot-btn">Página inicial</a>
+                <a href="{{ url_for('listar_orcamentos_salvos') }}" class="pilot-btn">Orcamentos salvos</a>
+                <a href="{{ url_for('logout') }}" class="pilot-btn pilot-btn-danger">Sair</a>
+            </div>
+        </header>
+
+        <section class="dash-layout conversion-layout">
+            <div class="dash-main">
+                <div class="dash-title">
+                    <div>
+                        <h1>Conversão de vendas {{ periodo_label }}</h1>
+                        <p>Controle o status dos orçamentos salvos e acompanhe o resultado do período.</p>
+                    </div>
+                </div>
+
+                <form method="GET" class="dash-panel" style="padding: 16px; margin-bottom: 16px;">
+                    <div class="conversion-toolbar" style="margin-bottom:0;">
+                        <div>
+                            <h2 style="margin:0;font-size:1.06rem;">Período analisado</h2>
+                            <p style="margin:4px 0 0;color:var(--muted);">Escolha mês e ano para recalcular os indicadores.</p>
+                        </div>
+                        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+                            <select name="mes" class="conversion-select js-period-filter">
+                                <option value="todos">Todos os meses</option>
+                                {% for numero, nome in meses %}
+                                    <option value="{{ numero }}" {% if filtro_mes == numero %}selected{% endif %}>{{ nome }}</option>
+                                {% endfor %}
+                            </select>
+
+                            <select name="ano" class="conversion-select js-period-filter">
+                                <option value="todos">Todos os anos</option>
+                                {% for ano in anos_disponiveis %}
+                                    <option value="{{ ano }}" {% if filtro_ano == ano %}selected{% endif %}>{{ ano }}</option>
+                                {% endfor %}
+                            </select>
+
+                            <a href="{{ url_for('conversao_vendas') }}" class="pilot-btn">Limpar</a>
+                        </div>
+                    </div>
+                </form>
+
+                <div class="metric-grid">
+                    <div class="metric-card">
+                        <div class="metric-label">Total no funil</div>
+                        <div class="metric-value">{{ dashboard.total }}</div>
+                        <div class="metric-note">{{ dashboard.valor_total }} em propostas</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Em espera</div>
+                        <div class="metric-value">{{ dashboard.espera }}</div>
+                        <div class="metric-note">{{ dashboard.valor_aberto }} em negociacao</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Aprovados</div>
+                        <div class="metric-value">{{ dashboard.aprovados }}</div>
+                        <div class="metric-note">{{ dashboard.valor_aprovado }} convertido</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Taxa</div>
+                        <div class="metric-value">{{ dashboard.taxa_conversao }}%</div>
+                        <div class="metric-note">Conversao atual</div>
+                    </div>
+                </div>
+
+                <div class="dash-panel" style="padding: 18px;">
+                    <div class="conversion-toolbar">
+                        <div>
+                            <h2 style="margin:0;font-size:1.12rem;">Orçamentos do período</h2>
+                            <p style="margin:4px 0 0;color:var(--muted);">Atualize o status e o tipo de cliente direto na tabela.</p>
+                        </div>
+                        <input type="search" id="buscaConversao" class="conversion-search" placeholder="Buscar por código, cliente ou vendedor">
+                    </div>
+
+                    <div class="table-scroll">
+                        <table class="dash-table responsive-table" id="tabelaConversao">
+                            <thead>
+                                <tr>
+                                    <th>Código</th>
+                                    <th>Cliente</th>
+                                    <th>Valor</th>
+                                    <th>Status</th>
+                                    <th>Tipo de cliente</th>
+                                    <th>Vendedor</th>
+                                    <th>Data</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for orcamento in orcamentos %}
+                                <tr data-search="{{ orcamento.codigo }} {{ orcamento.cliente }} {{ orcamento.criado_por }} {{ orcamento.status }} {{ orcamento.tipo_cliente }}">
+                                    <td data-label="Código"><a href="{{ url_for('detalhes_orcamento_salvo', codigo=orcamento.codigo) }}">{{ orcamento.codigo }}</a></td>
+                                    <td data-label="Cliente">{{ orcamento.cliente }}</td>
+                                    <td data-label="Valor">{{ orcamento.valor }}</td>
+                                    <td data-label="Status">
+                                        <select class="conversion-select js-conversion-field" data-id="{{ orcamento.id }}" data-field="status">
+                                            <option value="Em Espera" {% if orcamento.status == 'Em Espera' %}selected{% endif %}>Em Espera</option>
+                                            <option value="Aprovado" {% if orcamento.status == 'Aprovado' %}selected{% endif %}>Aprovado</option>
+                                            <option value="Declinado" {% if orcamento.status == 'Declinado' %}selected{% endif %}>Declinado</option>
+                                        </select>
+                                    </td>
+                                    <td data-label="Tipo">
+                                        <select class="conversion-select js-conversion-field" data-id="{{ orcamento.id }}" data-field="tipo_cliente">
+                                            <option value="Cliente de Porta" {% if orcamento.tipo_cliente == 'Cliente de Porta' %}selected{% endif %}>Cliente de Porta</option>
+                                            <option value="Arquiteto" {% if orcamento.tipo_cliente == 'Arquiteto' %}selected{% endif %}>Arquiteto</option>
+                                            <option value="Construtora" {% if orcamento.tipo_cliente == 'Construtora' %}selected{% endif %}>Construtora</option>
+                                            <option value="Cliente Online" {% if orcamento.tipo_cliente == 'Cliente Online' %}selected{% endif %}>Cliente Online</option>
+                                            <option value="Indicacao" {% if orcamento.tipo_cliente == 'Indicacao' %}selected{% endif %}>Indicacao</option>
+                                        </select>
+                                    </td>
+                                    <td data-label="Vendedor">{{ orcamento.criado_por }}</td>
+                                    <td data-label="Data">{{ orcamento.data }}</td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="7">Nenhum orcamento salvo encontrado.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <aside class="dash-side">
+                <div class="dash-title">
+                    <div>
+                        <h2>Resumo do período</h2>
+                        <p>Use o status para separar negociação, venda e perda.</p>
+                    </div>
+                </div>
+
+                <div class="pipeline" style="grid-template-columns:1fr;">
+                    <div class="pipeline-card">
+                        <strong>{{ dashboard.espera }}</strong>
+                        <span>Propostas abertas</span>
+                        <div class="metric-note">{{ dashboard.valor_aberto }}</div>
+                    </div>
+                    <div class="pipeline-card">
+                        <strong>{{ dashboard.aprovados }}</strong>
+                        <span>Vendas aprovadas</span>
+                        <div class="metric-note">{{ dashboard.valor_aprovado }}</div>
+                    </div>
+                    <div class="pipeline-card">
+                        <strong>{{ dashboard.declinados }}</strong>
+                        <span>Vendas perdidas</span>
+                    </div>
+                </div>
+            </aside>
+        </section>
+    </main>
+
+    <script>
+        const busca = document.getElementById('buscaConversao');
+        const linhas = Array.from(document.querySelectorAll('#tabelaConversao tbody tr[data-search]'));
+        const filtroPeriodo = document.querySelector('form[method="GET"]');
+
+        document.querySelectorAll('.js-period-filter').forEach((select) => {
+            select.addEventListener('change', () => filtroPeriodo.submit());
+        });
+
+        busca.addEventListener('input', () => {
+            const termo = busca.value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            linhas.forEach((linha) => {
+                const texto = linha.dataset.search.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                linha.style.display = texto.includes(termo) ? '' : 'none';
+            });
+        });
+
+        document.querySelectorAll('.js-conversion-field').forEach((select) => {
+            select.addEventListener('change', () => {
+                const linha = select.closest('tr');
+                const id = select.dataset.id;
+                const status = linha.querySelector('[data-field="status"]').value;
+                const tipoCliente = linha.querySelector('[data-field="tipo_cliente"]').value;
+
+                select.disabled = true;
+
+                fetch('{{ url_for("atualizar_status_tipo_cliente") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: id,
+                        status: status,
+                        tipo_cliente: tipoCliente
+                    })
+                })
+                .then((response) => response.json())
+                .then((data) => {
+                    if (!data.success) {
+                        alert(data.error || 'Nao foi possivel atualizar o orcamento.');
+                        return;
+                    }
+                    window.location.reload();
+                })
+                .catch(() => alert('Erro de comunicacao com o servidor.'))
+                .finally(() => {
+                    select.disabled = false;
+                });
+            });
+        });
+    </script>
+</body>
+</html>

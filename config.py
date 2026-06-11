@@ -1,11 +1,22 @@
 import os
 
-class Config:
-    """Classe para armazenar as configurações do aplicativo Flask."""
 
-    SECRET_KEY = os.getenv("SECRET_KEY", "*Henrycm051094")  # Usa variável de ambiente ou valor padrão
+class Config:
+    """Configuracoes do aplicativo Flask."""
+
+    SECRET_KEY = os.getenv("SECRET_KEY", "*Henrycm051094")
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
-    # Configuração do Banco de Dados (Persistência no Volume do Render)
-    DATABASE_PATH = "/data/orcamentos.db"
-    SQLALCHEMY_DATABASE_URI = f"sqlite:///{DATABASE_PATH}"
+    BASE_DIR = os.path.abspath(os.path.dirname(__file__))
+    LOCAL_DATABASE_PATH = os.path.join(BASE_DIR, "orcamentos.db")
+    RENDER_DATABASE_PATH = "/data/orcamentos.db"
+
+    # No Render usa o volume persistente; localmente usa o banco do projeto.
+    DATABASE_PATH = os.getenv(
+        "DATABASE_PATH",
+        RENDER_DATABASE_PATH if os.getenv("RENDER") else LOCAL_DATABASE_PATH,
+    )
+    SQLALCHEMY_DATABASE_URI = os.getenv(
+        "DATABASE_URL",
+        f"sqlite:///{DATABASE_PATH.replace(os.sep, '/')}",
+    )

@@ -3,183 +3,185 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Orçamentos</title>
+    <title>Dashboard | Prime Marble Shop</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pilot.css') }}">
 </head>
-<body>
-<div class="user-info">
-    <p>Logado como: <strong>{{ session['user_cpf'] }}</strong></p>
-    <a href="{{ url_for('alterar_senha') }}" class="btn-alterar-senha">Alterar Senha</a>
-    <a href="{{ url_for('logout') }}" class="btn-logout">Logout</a>
-</div>
+<body class="pilot-body">
+    <main class="pilot-shell">
+        <header class="pilot-topbar">
+            <div class="pilot-brand">
+                <img src="{{ url_for('static', filename='logo.jpg') }}" class="pilot-logo" alt="Prime Marble Shop">
+                <div>
+                    <p class="pilot-brand-title">Prime Marble Shop</p>
+                </div>
+            </div>
 
-{% if session['admin'] %}
-    <a href="{{ url_for('criar_usuario') }}" class="btn-acao">Cadastrar Novo Usuário</a>
-{% endif %}{% if session['admin'] %}
-    
-    <a href="{{ url_for('gerenciar_usuarios') }}" class="btn-acao">Gerenciar Usuários</a>
-{% endif %} 
+            <div class="pilot-user">
+                <strong>{{ session['user_cpf'] }}</strong>
+                <a href="{{ url_for('alterar_senha') }}" class="pilot-btn">Alterar senha</a>
+                <a href="{{ url_for('logout') }}" class="pilot-btn pilot-btn-danger">Sair</a>
+            </div>
+        </header>
 
+        <section class="dash-layout">
+            <aside class="dash-side">
+                <div class="dash-title">
+                    <div>
+                        <h2>Navegação</h2>
+                        <p>Acesso rapido as rotinas.</p>
+                    </div>
+                </div>
 
-</br>
-</br>
-</br>
-</br>
-</br>
-    <h1 class="titulo-centralizado">Bem-vindo a Prime Marble Shop!</h1>
-	
+                <nav class="side-nav">
+                    <a href="{{ url_for('listar_orcamentos') }}" class="side-link"><span>Orcamentos</span></a>
+                    <a href="{{ url_for('listar_orcamentos_salvos') }}" class="side-link"><span>Orcamentos salvos</span></a>
+                    <a href="{{ url_for('ordens_servico') }}" class="side-link"><span>Ordens de servico</span></a>
+                    <a href="{{ url_for('clientes') }}" class="side-link"><span>Clientes</span></a>
+                    {% if session['admin'] %}
+                    <a href="{{ url_for('materiais') }}" class="side-link"><span>Materiais</span></a>
+                    <a href="{{ url_for('gerenciar_usuarios') }}" class="side-link"><span>Usuarios</span></a>
+                    {% endif %}
+                    <a href="{{ url_for('configurador_3d') }}" class="side-link"><span>Configurador 3D</span></a>
+                </nav>
+            </aside>
 
-<nav class="button-container">
-    </br>
-    </br>
-    <div class="button-container">
-        {% if session['admin'] %}
-            <a href="{{ url_for('listar_orcamentos') }}" class="btn-acao">Lista de Orçamentos</a>
-            </br>
-	    <a href="{{ url_for('listar_orcamentos_salvos') }}" class="btn-acao">Ver Orçamentos Salvos</a>
-	    </br>
-            <a href="{{ url_for('ordens_servico') }}" class="btn-acao">Ordens de Serviço</a>
-            </br>
-            <a href="{{ url_for('clientes') }}" class="btn-acao">Lista de Clientes</a>
-            </br>
-            <a href="{{ url_for('materiais') }}" class="btn-acao">Cadastro de Materiais</a> <!-- Agora visível apenas para administradores -->
-        {% else %}
-            <a href="{{ url_for('listar_orcamentos') }}" class="btn-acao">Gerenciar Orçamentos</a>
-            </br>
-	    <a href="{{ url_for('listar_orcamentos_salvos') }}" class="btn-acao">Ver Orçamentos Salvos</a>
-	    </br>
-            <a href="{{ url_for('ordens_servico') }}" class="btn-acao">Ordens de Serviço</a>
-            </br>
-            <a href="{{ url_for('clientes') }}" class="btn-acao">Cadastro de Clientes</a>
-	    
-        
-{% endif %}
-    </br>
-    <a href="{{ url_for('configurador_3d') }}" class="btn-acao">Gere seu Orcamento</a>
-    </div>
+            <div class="dash-main">
+                <div class="dash-title">
+                    <div>
+                        <h1>Resumo comercial {{ periodo_label }}</h1>
+                        <p>Acompanhe orcamentos salvos, valores em aberto e conversao de vendas do mes atual.</p>
+                    </div>
+                    <a href="{{ url_for('conversao_vendas') }}" class="pilot-btn pilot-btn-primary">Controle de conversao</a>
+                </div>
 
+                <div class="metric-grid">
+                    <div class="metric-card">
+                        <div class="metric-label">Orcamentos salvos</div>
+                        <div class="metric-value">{{ dashboard.total }}</div>
+                        <div class="metric-note">Total visivel em {{ periodo_label }}</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Valor em aberto</div>
+                        <div class="metric-value">{{ dashboard.valor_aberto }}</div>
+                        <div class="metric-note">{{ dashboard.espera }} aguardando decisao</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Vendas aprovadas</div>
+                        <div class="metric-value">{{ dashboard.valor_aprovado }}</div>
+                        <div class="metric-note">{{ dashboard.aprovados }} aprovados</div>
+                    </div>
+                    <div class="metric-card">
+                        <div class="metric-label">Conversao</div>
+                        <div class="metric-value">{{ dashboard.taxa_conversao }}%</div>
+                        <div class="metric-note">Ticket medio {{ dashboard.ticket_medio }}</div>
+                    </div>
+                </div>
 
+                <div class="dash-panel" style="padding: 18px; margin-bottom: 16px;">
+                    <div class="dash-title">
+                        <div>
+                            <h2>Funil de orcamentos</h2>
+                            <p>Status dos orcamentos salvos em {{ periodo_label }}</p>
+                        </div>
+                    </div>
+                    <div class="pipeline">
+                        <div class="pipeline-card">
+                            <strong>{{ dashboard.espera }}</strong>
+                            <span>Em espera</span>
+                            <div class="pipeline-bar"><i style="width: {{ (dashboard.espera / dashboard.total * 100) if dashboard.total else 0 }}%;"></i></div>
+                        </div>
+                        <div class="pipeline-card">
+                            <strong>{{ dashboard.aprovados }}</strong>
+                            <span>Aprovados</span>
+                            <div class="pipeline-bar"><i style="width: {{ (dashboard.aprovados / dashboard.total * 100) if dashboard.total else 0 }}%;"></i></div>
+                        </div>
+                        <div class="pipeline-card">
+                            <strong>{{ dashboard.declinados }}</strong>
+                            <span>Declinados</span>
+                            <div class="pipeline-bar"><i style="width: {{ (dashboard.declinados / dashboard.total * 100) if dashboard.total else 0 }}%;"></i></div>
+                        </div>
+                    </div>
+                </div>
 
+                <div class="dash-panel" style="padding: 18px;">
+                    <div class="dash-title">
+                        <div>
+                            <h2>Ultimos orcamentos salvos</h2>
+                            <p>Clique no codigo para abrir os detalhes.</p>
+                        </div>
+                    </div>
+                    <div class="table-scroll">
+                        <table class="dash-table responsive-table">
+                            <thead>
+                                <tr>
+                                    <th>Codigo</th>
+                                    <th>Cliente</th>
+                                    <th>Valor</th>
+                                    <th>Status</th>
+                                    <th>Data</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for orcamento in dashboard.recentes %}
+                                <tr>
+                                    <td data-label="Codigo"><a href="{{ url_for('detalhes_orcamento_salvo', codigo=orcamento.codigo) }}">{{ orcamento.codigo }}</a></td>
+                                    <td data-label="Cliente">{{ orcamento.cliente }}</td>
+                                    <td data-label="Valor">{{ orcamento.valor }}</td>
+                                    <td data-label="Status">
+                                        <select class="conversion-select js-home-status" data-id="{{ orcamento.id }}" data-tipo-cliente="{{ orcamento.tipo_cliente }}">
+                                            <option value="Em Espera" {% if orcamento.status == 'Em Espera' %}selected{% endif %}>Em Espera</option>
+                                            <option value="Aprovado" {% if orcamento.status == 'Aprovado' %}selected{% endif %}>Aprovado</option>
+                                            <option value="Declinado" {% if orcamento.status == 'Declinado' %}selected{% endif %}>Declinado</option>
+                                        </select>
+                                    </td>
+                                    <td data-label="Data">{{ orcamento.data }}</td>
+                                </tr>
+                                {% else %}
+                                <tr>
+                                    <td colspan="5">Nenhum orcamento salvo ainda.</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% if dashboard.recentes|length < dashboard.total %}
+                    <div style="display:flex;justify-content:center;margin-top:14px;">
+                        <a href="{{ url_for('index', limite=proximo_limite) }}" class="pilot-btn pilot-btn-primary">Carregar mais orçamentos</a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
 
+        </section>
+    </main>
+    <script>
+        document.querySelectorAll('.js-home-status').forEach((select) => {
+            select.addEventListener('change', () => {
+                select.disabled = true;
 
-
-<style>
-
-body {
-    position: relative;
-    background-color: #ffffff; /* Fundo branco para garantir contraste */
-}
-
-body::before {
-    content: "";
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: url("{{ url_for('static', filename='logo.jpg') }}");
-    background-size: contain; /* Mantém a proporção da imagem */
-    background-position: center; /* Centraliza a imagem no fundo */
-    background-repeat: no-repeat; /* Evita repetição */
-    background-attachment: fixed; /* Mantém a imagem fixa ao rolar a página */
-    opacity: 0.1; /* Ajusta a transparência da marca d'água */
-    z-index: -1; /* Mantém a imagem no fundo sem interferir no conteúdo */
-}
-
-    
-
-    /* Centralizar o título */
-    .titulo-centralizado {
-        text-align: center;
-        margin-top: 20px;
-    }
-
-    /* Centralizar os botões */
-    .button-container {
-        display: flex;
-        flex-direction: column; /* Deixar os botões em coluna */
-        align-items: center; /* Alinhar os botões no centro */
-        justify-content: center; /* Centralizar verticalmente */
-        margin-top: 20px;
-    }
-
-
-    /* Estilo dos botões */
-    .btn-acao {
-        display: inline-block;
-        padding: 10px 20px;
-        font-size: 16px;
-        font-weight: bold;
-        color: black; /* Texto preto */
-        background-color: #d6d6d6; /* Fundo cinza claro */
-        border: 2px solid black; /* Borda preta */
-        cursor: pointer;
-        border-radius: 5px;
-        text-decoration: none;
-        text-align: center;
-        margin: 10px;
-        transition: background-color 0.3s ease-in-out, color 0.3s ease-in-out;
-    }
-
-    /* Efeito hover: escurecer o botão e mudar a cor do texto */
-    .btn-acao:hover {
-        background-color: #bfbfbf; /* Cinza mais escuro */
-        color: white; /* Texto branco ao passar o mouse */
-    }
-.user-info {
-    position: absolute;
-    top: 15px;
-    right: 20px;
-    background-color: rgba(0, 0, 0, 0.1);
-    padding: 10px 15px;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: bold;
-    text-align: right;
-}
-
-.user-info p {
-    margin: 0;
-    color: #333;
-}
-
-.btn-logout {
-    display: inline-block;
-    padding: 5px 10px;
-    font-size: 12px;
-    font-weight: bold;
-    color: white;
-    background-color: #d9534f; /* Cor vermelha para destacar o logout */
-    border-radius: 5px;
-    text-decoration: none;
-    border: 1px solid #b52b27;
-    transition: background-color 0.3s ease-in-out;
-}
-
-.btn-logout:hover {
-    background-color: #c9302c;
-}
-
-.btn-alterar-senha,
-.btn-logout {
-    display: inline-block;
-    padding: 5px 10px;
-    font-size: 12px;
-    font-weight: bold;
-    border-radius: 5px;
-    text-decoration: none;
-    border: 1px solid black;
-    transition: background-color 0.3s ease-in-out;
-    margin-left: 5px;
-}
-.btn-alterar-senha {
-    background-color: #0275d8; /* Azul */
-    color: white;
-}
-
-.btn-alterar-senha:hover {
-    background-color: #025aa5;
-}
-</style>
-
+                fetch('{{ url_for("atualizar_status_tipo_cliente") }}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        id: select.dataset.id,
+                        status: select.value,
+                        tipo_cliente: select.dataset.tipoCliente
+                    })
+                })
+                .then((response) => response.json())
+                .then((data) => {
+                    if (!data.success) {
+                        alert(data.error || 'Nao foi possivel atualizar o status.');
+                        return;
+                    }
+                    window.location.reload();
+                })
+                .catch(() => alert('Erro de comunicacao com o servidor.'))
+                .finally(() => {
+                    select.disabled = false;
+                });
+            });
+        });
+    </script>
 </body>
 </html>

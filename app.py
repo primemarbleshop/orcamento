@@ -1,17 +1,28 @@
 # 📌 Imports de Bibliotecas Externas
+import os
+import sys
+
+PROJECT_DIR = os.path.abspath(os.path.dirname(__file__))
+VENV_PYTHON = os.path.join(PROJECT_DIR, ".venv", "Scripts", "python.exe")
+
+if (
+    os.name == "nt"
+    and os.path.exists(VENV_PYTHON)
+    and os.path.abspath(sys.executable).lower() != os.path.abspath(VENV_PYTHON).lower()
+):
+    os.execv(VENV_PYTHON, [VENV_PYTHON, __file__, *sys.argv[1:]])
+
 from flask import Flask, render_template, make_response, request, redirect, url_for, jsonify, flash, session, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from pytz import timezone
-from weasyprint import HTML
 from sqlalchemy import or_
 import io
 import fitz  # PyMuPDF
 import requests
 import base64
-import os
 from itsdangerous import URLSafeSerializer
 
 from models import db, Orcamento, OrcamentoSalvo, Usuario  # Modelos do SQLAlchemy
@@ -100,6 +111,15 @@ def enviar_whatsapp_orcamento(telefone_cliente, codigo_orcamento, nome_cliente='
     except Exception as e:
         print(f'[WhatsApp] Erro ao enviar: {e}')
         return False
+
+def _get_weasyprint_html():
+    try:
+        from weasyprint import HTML
+        return HTML
+    except OSError as exc:
+        raise RuntimeError(
+            "WeasyPrint precisa das bibliotecas nativas GTK/Pango instaladas para gerar PDF no Windows."
+        ) from exc
 
 # 📌 Inicializa o Flask
 app = Flask(__name__)
@@ -388,7 +408,7 @@ def _gerar_pdf_bytes(codigo):
         temp_pdf_path = temp_pdf.name
     with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as final_pdf:
         final_pdf_path = final_pdf.name
-    HTML(string=rendered_html, base_url=request.url_root).write_pdf(temp_pdf_path)
+    _get_weasyprint_html()(string=rendered_html, base_url=request.url_root).write_pdf(temp_pdf_path)
     logo_path = os.path.join(app.root_path, "static", "logo.jpg")
     doc = fitz.open(temp_pdf_path)
     if os.path.exists(logo_path):
@@ -998,7 +1018,200 @@ def index():
     if 'user_cpf' not in session:
         return redirect(url_for('login'))
 
-    return render_template('index.html')
+    try:
+        limite_recentes = max(int(request.args.get("limite", 6)), 6)
+    except ValueError:
+        limite_recentes = 6
+
+    hoje = datetime.now(br_tz)
+    orcamentos, mes_atual, ano_atual = _filtrar_orcamentos_por_periodo(
+        _orcamentos_salvos_visiveis(),
+        mes=hoje.month,
+        ano=hoje.year,
+    )
+    dashboard = _montar_dashboard_vendas(orcamentos, limite_recentes=limite_recentes)
+    meses = {
+        1: "Janeiro",
+        2: "Fevereiro",
+        3: "Março",
+        4: "Abril",
+        5: "Maio",
+        6: "Junho",
+        7: "Julho",
+        8: "Agosto",
+        9: "Setembro",
+        10: "Outubro",
+        11: "Novembro",
+        12: "Dezembro",
+    }
+
+    return render_template(
+        'index.html',
+        dashboard=dashboard,
+        periodo_label=f"{meses[mes_atual]} de {ano_atual}",
+        proximo_limite=limite_recentes + 6,
+    )
+
+def _ids_orcamento_salvo(orcamento_salvo):
+    ids = []
+    for item in (orcamento_salvo.orcamentos_ids or "").split(","):
+        item = item.strip()
+        if item.isdigit():
+            ids.append(int(item))
+    return ids
+
+def _cliente_do_orcamento_salvo(orcamento_salvo):
+    ids = _ids_orcamento_salvo(orcamento_salvo)
+    if not ids:
+        return None
+    primeiro_orcamento = Orcamento.query.get(ids[0])
+    return primeiro_orcamento.cliente if primeiro_orcamento else None
+
+def _orcamentos_salvos_visiveis():
+    user_cpf = session.get("user_cpf")
+    is_admin = session.get("admin")
+    orcamentos = OrcamentoSalvo.query.order_by(OrcamentoSalvo.data_salvo.desc()).all()
+
+    if is_admin:
+        return orcamentos
+
+    visiveis = []
+    for orcamento_salvo in orcamentos:
+        cliente = _cliente_do_orcamento_salvo(orcamento_salvo)
+        if cliente and cliente.dono == user_cpf:
+            visiveis.append(orcamento_salvo)
+    return visiveis
+
+def _moeda(valor):
+    return "R$ {:,.2f}".format(valor or 0).replace(",", "X").replace(".", ",").replace("X", ".")
+
+def _montar_dashboard_vendas(orcamentos, limite_recentes=6):
+    hoje = datetime.now(br_tz).date()
+    total = len(orcamentos)
+    aprovados = [o for o in orcamentos if (o.status or "") == "Aprovado"]
+    espera = [o for o in orcamentos if (o.status or "") == "Em Espera"]
+    declinados = [o for o in orcamentos if (o.status or "") == "Declinado"]
+    valor_total = sum(o.valor_total or 0 for o in orcamentos)
+    valor_aberto = sum(o.valor_total or 0 for o in espera)
+    valor_aprovado = sum(o.valor_total or 0 for o in aprovados)
+    taxa_conversao = round((len(aprovados) / total) * 100, 1) if total else 0
+
+    recentes = []
+    for orcamento in orcamentos[:limite_recentes]:
+        cliente = _cliente_do_orcamento_salvo(orcamento)
+        data_salvo = orcamento.data_salvo
+        data_base = data_salvo.date() if data_salvo else hoje
+        recentes.append({
+            "id": orcamento.id,
+            "codigo": orcamento.codigo,
+            "cliente": cliente.nome if cliente else "Nao definido",
+            "valor": _moeda(orcamento.valor_total),
+            "valor_float": orcamento.valor_total or 0,
+            "status": orcamento.status or "Em Espera",
+            "tipo_cliente": orcamento.tipo_cliente or "Cliente de Porta",
+            "criado_por": orcamento.criado_por or "",
+            "data": data_salvo.strftime("%d/%m/%Y") if data_salvo else "",
+            "dias": max((hoje - data_base).days, 0),
+        })
+
+    return {
+        "total": total,
+        "aprovados": len(aprovados),
+        "espera": len(espera),
+        "declinados": len(declinados),
+        "taxa_conversao": taxa_conversao,
+        "valor_total": _moeda(valor_total),
+        "valor_aberto": _moeda(valor_aberto),
+        "valor_aprovado": _moeda(valor_aprovado),
+        "ticket_medio": _moeda(valor_total / total if total else 0),
+        "recentes": recentes,
+    }
+
+def _filtrar_orcamentos_por_periodo(orcamentos, mes=None, ano=None):
+    try:
+        mes = int(mes) if mes not in (None, "", "todos") else None
+    except ValueError:
+        mes = None
+
+    try:
+        ano = int(ano) if ano not in (None, "", "todos") else None
+    except ValueError:
+        ano = None
+
+    filtrados = []
+    for orcamento in orcamentos:
+        if not orcamento.data_salvo:
+            continue
+        if ano and orcamento.data_salvo.year != ano:
+            continue
+        if mes and orcamento.data_salvo.month != mes:
+            continue
+        filtrados.append(orcamento)
+    return filtrados, mes, ano
+
+@app.route('/conversao_vendas')
+def conversao_vendas():
+    if 'user_cpf' not in session:
+        return redirect(url_for('login'))
+
+    todos_orcamentos = _orcamentos_salvos_visiveis()
+    anos_disponiveis = sorted(
+        {o.data_salvo.year for o in todos_orcamentos if o.data_salvo},
+        reverse=True,
+    )
+    hoje = datetime.now(br_tz)
+    mes_filtro = request.args.get("mes", str(hoje.month))
+    ano_filtro = request.args.get("ano", str(hoje.year))
+    orcamentos, mes_filtro, ano_filtro = _filtrar_orcamentos_por_periodo(
+        todos_orcamentos,
+        mes=mes_filtro,
+        ano=ano_filtro,
+    )
+    dashboard = _montar_dashboard_vendas(orcamentos)
+    meses = [
+        (1, "Janeiro"),
+        (2, "Fevereiro"),
+        (3, "Março"),
+        (4, "Abril"),
+        (5, "Maio"),
+        (6, "Junho"),
+        (7, "Julho"),
+        (8, "Agosto"),
+        (9, "Setembro"),
+        (10, "Outubro"),
+        (11, "Novembro"),
+        (12, "Dezembro"),
+    ]
+    periodo_label = "Todo o período"
+    if mes_filtro and ano_filtro:
+        periodo_label = f"{dict(meses).get(mes_filtro, '')} de {ano_filtro}"
+    elif mes_filtro:
+        periodo_label = dict(meses).get(mes_filtro, "Mês selecionado")
+    elif ano_filtro:
+        periodo_label = str(ano_filtro)
+
+    return render_template(
+        'conversao_vendas.html',
+        dashboard=dashboard,
+        meses=meses,
+        anos_disponiveis=anos_disponiveis,
+        filtro_mes=mes_filtro,
+        filtro_ano=ano_filtro,
+        periodo_label=periodo_label,
+        orcamentos=dashboard["recentes"] if request.args.get("recentes") else [
+            {
+                "id": o.id,
+                "codigo": o.codigo,
+                "cliente": (_cliente_do_orcamento_salvo(o).nome if _cliente_do_orcamento_salvo(o) else "Nao definido"),
+                "valor": _moeda(o.valor_total),
+                "status": o.status or "Em Espera",
+                "tipo_cliente": o.tipo_cliente or "Cliente de Porta",
+                "criado_por": o.criado_por or "",
+                "data": o.data_salvo.strftime("%d/%m/%Y") if o.data_salvo else "",
+            }
+            for o in orcamentos
+        ],
+    )
 
 @app.route('/orcamentos', methods=['GET', 'POST'])
 def listar_orcamentos():
@@ -2540,7 +2753,7 @@ def gerar_pdf_orcamento(codigo_ou_token):
     with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as final_pdf:
         final_pdf_path = final_pdf.name
 
-    HTML(string=rendered_html, base_url=request.url_root).write_pdf(temp_pdf_path)
+    _get_weasyprint_html()(string=rendered_html, base_url=request.url_root).write_pdf(temp_pdf_path)
 
     # Adicionar logo (se existir)
     import fitz  # PyMuPDF
@@ -3623,4 +3836,15 @@ def itens_excluidos_count(codigo):
 
 if __name__ == '__main__':
     criar_banco()
-    app.run(debug=True)
+    port = int(os.getenv("PORT", "5000"))
+    host = os.getenv("HOST", "127.0.0.1")
+    debug = os.getenv("FLASK_DEBUG", "1").lower() in ("1", "true", "yes", "on")
+    open_browser = os.getenv("OPEN_BROWSER", "1").lower() in ("1", "true", "yes", "on")
+
+    if open_browser and host in ("127.0.0.1", "localhost") and (not debug or os.getenv("WERKZEUG_RUN_MAIN") == "true"):
+        import threading
+        import webbrowser
+
+        threading.Timer(1.2, lambda: webbrowser.open(f"http://127.0.0.1:{port}")).start()
+
+    app.run(host=host, port=port, debug=debug)
