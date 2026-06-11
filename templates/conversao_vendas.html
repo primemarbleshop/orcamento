@@ -224,6 +224,7 @@
             const statusAtual = linha.querySelector('[data-field="status"]').value;
             const aprovado = statusAtual === 'Aprovado';
             const fechado = statusAtual === 'Aprovado' || statusAtual === 'Declinado';
+            const hoje = new Date().toISOString().slice(0, 10);
             linha.querySelector('.js-valor-texto')?.toggleAttribute('hidden', aprovado);
             linha.querySelectorAll('.compact-sale-field').forEach((campo) => {
                 campo.hidden = !aprovado;
@@ -232,6 +233,7 @@
             linha.querySelectorAll('.compact-date-field').forEach((campo) => {
                 campo.hidden = !fechado;
                 campo.disabled = !fechado;
+                if (fechado && !campo.value) campo.value = hoje;
                 if (!fechado) campo.value = '';
             });
         }

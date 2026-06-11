@@ -2809,7 +2809,10 @@ def atualizar_status_tipo_cliente():
         if "forma_pagamento" in data:
             orcamento.forma_pagamento = forma_pagamento
         if "data_fechamento" in data:
-            orcamento.data_fechamento = data_fechamento if (orcamento.status or "") in ("Aprovado", "Declinado") else None
+            if (orcamento.status or "") in ("Aprovado", "Declinado"):
+                orcamento.data_fechamento = data_fechamento or datetime.now(br_tz).replace(hour=0, minute=0, second=0, microsecond=0)
+            else:
+                orcamento.data_fechamento = None
 
         db.session.commit()
 
