@@ -18,7 +18,7 @@ from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from pytz import timezone
-from sqlalchemy import or_
+from sqlalchemy import or_, text
 import io
 import fitz  # PyMuPDF
 import requests
@@ -264,6 +264,12 @@ class OrcamentoSalvo(db.Model):
     criado_por = db.Column(db.String)
     status = db.Column(db.String, default='Em Espera')
     tipo_cliente = db.Column(db.String, default='Cliente de Porta')
+    valor_venda = db.Column(db.Float, nullable=True)
+    forma_pagamento = db.Column(db.String(30), nullable=True)
+    entrada_percentual = db.Column(db.Float, nullable=True)
+    final_percentual = db.Column(db.Float, nullable=True)
+    entrada_valor = db.Column(db.Float, nullable=True)
+    final_valor = db.Column(db.Float, nullable=True)
     prazo_entrega = db.Column(db.Integer, default=15, nullable=False)
     desconto_avista = db.Column(db.Integer, default=5, nullable=False)
     desconto_parcelado = db.Column(db.Integer, default=10, nullable=False)
@@ -359,6 +365,27 @@ def _eh_html_ordem_servico(desenho_data):
 def criar_banco():
     with app.app_context():
         db.create_all()
+        _garantir_colunas_orcamento_salvo()
+
+def _garantir_coluna(tabela, coluna, definicao):
+    colunas = [
+        row[1] for row in db.session.execute(text(f"PRAGMA table_info({tabela})")).fetchall()
+    ]
+    if coluna not in colunas:
+        db.session.execute(text(f"ALTER TABLE {tabela} ADD COLUMN {coluna} {definicao}"))
+        db.session.commit()
+
+def _garantir_colunas_orcamento_salvo():
+    colunas = {
+        "valor_venda": "FLOAT",
+        "forma_pagamento": "VARCHAR(30)",
+        "entrada_percentual": "FLOAT",
+        "final_percentual": "FLOAT",
+        "entrada_valor": "FLOAT",
+        "final_valor": "FLOAT",
+    }
+    for coluna, definicao in colunas.items():
+        _garantir_coluna("orcamento_salvo", coluna, definicao)
 
 @app.route('/orcamento')
 def configurador_3d():
@@ -1097,6 +1124,41 @@ def _orcamentos_salvos_visiveis():
 def _moeda(valor):
     return "R$ {:,.2f}".format(valor or 0).replace(",", "X").replace(".", ",").replace("X", ".")
 
+def _valor_venda_considerado(orcamento):
+    if (orcamento.status or "") == "Aprovado" and orcamento.valor_venda:
+        return orcamento.valor_venda
+    return orcamento.valor_total or 0
+
+def _float_payload(valor):
+    if valor in (None, ""):
+        return None
+    if isinstance(valor, (int, float)):
+        return float(valor)
+    valor = str(valor).strip().replace("R$", "").replace(" ", "")
+    if "," in valor and "." in valor:
+        valor = valor.replace(".", "").replace(",", ".")
+    else:
+        valor = valor.replace(",", ".")
+    return float(valor) if valor else None
+
+def _dados_venda_orcamento(orcamento):
+    valor_base = orcamento.valor_venda if orcamento.valor_venda is not None else (orcamento.valor_total or 0)
+    entrada_percentual = orcamento.entrada_percentual if orcamento.entrada_percentual is not None else 50
+    final_percentual = orcamento.final_percentual if orcamento.final_percentual is not None else 50
+    entrada_valor = orcamento.entrada_valor if orcamento.entrada_valor is not None else valor_base * entrada_percentual / 100
+    final_valor = orcamento.final_valor if orcamento.final_valor is not None else valor_base * final_percentual / 100
+    return {
+        "valor_venda": valor_base,
+        "valor_venda_formatado": _moeda(valor_base),
+        "forma_pagamento": orcamento.forma_pagamento or "",
+        "entrada_percentual": entrada_percentual,
+        "final_percentual": final_percentual,
+        "entrada_valor": entrada_valor,
+        "final_valor": final_valor,
+        "entrada_valor_formatado": _moeda(entrada_valor),
+        "final_valor_formatado": _moeda(final_valor),
+    }
+
 def _montar_dashboard_vendas(orcamentos, limite_recentes=6):
     hoje = datetime.now(br_tz).date()
     total = len(orcamentos)
@@ -1105,7 +1167,7 @@ def _montar_dashboard_vendas(orcamentos, limite_recentes=6):
     declinados = [o for o in orcamentos if (o.status or "") == "Declinado"]
     valor_total = sum(o.valor_total or 0 for o in orcamentos)
     valor_aberto = sum(o.valor_total or 0 for o in espera)
-    valor_aprovado = sum(o.valor_total or 0 for o in aprovados)
+    valor_aprovado = sum(_valor_venda_considerado(o) for o in aprovados)
     taxa_conversao = round((len(aprovados) / total) * 100, 1) if total else 0
 
     recentes = []
@@ -1113,10 +1175,11 @@ def _montar_dashboard_vendas(orcamentos, limite_recentes=6):
         cliente = _cliente_do_orcamento_salvo(orcamento)
         data_salvo = orcamento.data_salvo
         data_base = data_salvo.date() if data_salvo else hoje
+        dados_venda = _dados_venda_orcamento(orcamento)
         recentes.append({
             "id": orcamento.id,
             "codigo": orcamento.codigo,
-            "cliente": cliente.nome if cliente else "Nao definido",
+            "cliente": cliente.nome if cliente else "Não definido",
             "valor": _moeda(orcamento.valor_total),
             "valor_float": orcamento.valor_total or 0,
             "status": orcamento.status or "Em Espera",
@@ -1124,6 +1187,7 @@ def _montar_dashboard_vendas(orcamentos, limite_recentes=6):
             "criado_por": orcamento.criado_por or "",
             "data": data_salvo.strftime("%d/%m/%Y") if data_salvo else "",
             "dias": max((hoje - data_base).days, 0),
+            **dados_venda,
         })
 
     return {
@@ -1214,15 +1278,103 @@ def conversao_vendas():
             {
                 "id": o.id,
                 "codigo": o.codigo,
-                "cliente": (_cliente_do_orcamento_salvo(o).nome if _cliente_do_orcamento_salvo(o) else "Nao definido"),
+                "cliente": (_cliente_do_orcamento_salvo(o).nome if _cliente_do_orcamento_salvo(o) else "Não definido"),
                 "valor": _moeda(o.valor_total),
                 "status": o.status or "Em Espera",
                 "tipo_cliente": o.tipo_cliente or "Cliente de Porta",
                 "criado_por": o.criado_por or "",
                 "data": o.data_salvo.strftime("%d/%m/%Y") if o.data_salvo else "",
+                **_dados_venda_orcamento(o),
             }
             for o in orcamentos
         ],
+    )
+
+@app.route('/relatorio_vendas')
+def relatorio_vendas():
+    if 'user_cpf' not in session:
+        return redirect(url_for('login'))
+
+    todos_orcamentos = _orcamentos_salvos_visiveis()
+    hoje = datetime.now(br_tz)
+    mes_filtro = request.args.get("mes", str(hoje.month))
+    ano_filtro = request.args.get("ano", str(hoje.year))
+    orcamentos, mes_filtro, ano_filtro = _filtrar_orcamentos_por_periodo(
+        todos_orcamentos,
+        mes=mes_filtro,
+        ano=ano_filtro,
+    )
+    dashboard = _montar_dashboard_vendas(orcamentos, limite_recentes=len(orcamentos) or 1)
+    meses = [
+        (1, "Janeiro"), (2, "Fevereiro"), (3, "Março"), (4, "Abril"),
+        (5, "Maio"), (6, "Junho"), (7, "Julho"), (8, "Agosto"),
+        (9, "Setembro"), (10, "Outubro"), (11, "Novembro"), (12, "Dezembro"),
+    ]
+    periodo_label = "Todo o período"
+    if mes_filtro and ano_filtro:
+        periodo_label = f"{dict(meses).get(mes_filtro, '')} de {ano_filtro}"
+    elif mes_filtro:
+        periodo_label = dict(meses).get(mes_filtro, "Mês selecionado")
+    elif ano_filtro:
+        periodo_label = str(ano_filtro)
+
+    status_resumo = {
+        "Em Espera": {"quantidade": 0, "valor": 0},
+        "Aprovado": {"quantidade": 0, "valor": 0},
+        "Declinado": {"quantidade": 0, "valor": 0},
+    }
+    formas_pagamento = {}
+    vendedores = {}
+    tipos_cliente = {}
+    clientes_resumo = {}
+
+    for orcamento in orcamentos:
+        status = orcamento.status or "Em Espera"
+        if status not in status_resumo:
+            status_resumo[status] = {"quantidade": 0, "valor": 0}
+        status_resumo[status]["quantidade"] += 1
+        status_resumo[status]["valor"] += _valor_venda_considerado(orcamento) if status == "Aprovado" else (orcamento.valor_total or 0)
+
+        if (orcamento.status or "") == "Aprovado":
+            valor_venda = _valor_venda_considerado(orcamento)
+            forma = orcamento.forma_pagamento or "Não informado"
+            vendedor = orcamento.criado_por or "Não informado"
+            tipo_cliente = orcamento.tipo_cliente or "Não informado"
+            cliente = _cliente_do_orcamento_salvo(orcamento)
+            cliente_nome = cliente.nome if cliente else "Não informado"
+
+            for grupo, chave in (
+                (formas_pagamento, forma),
+                (vendedores, vendedor),
+                (tipos_cliente, tipo_cliente),
+                (clientes_resumo, cliente_nome),
+            ):
+                if chave not in grupo:
+                    grupo[chave] = {"quantidade": 0, "valor": 0}
+                grupo[chave]["quantidade"] += 1
+                grupo[chave]["valor"] += valor_venda
+
+    for grupo in (formas_pagamento, vendedores, tipos_cliente, clientes_resumo):
+        for item in grupo.values():
+            item["ticket"] = item["valor"] / item["quantidade"] if item["quantidade"] else 0
+
+    clientes_resumo = dict(
+        sorted(clientes_resumo.items(), key=lambda item: item[1]["valor"], reverse=True)[:8]
+    )
+
+    return render_template(
+        "relatorio_vendas.html",
+        periodo_label=periodo_label,
+        dashboard=dashboard,
+        orcamentos=dashboard["recentes"],
+        status_resumo=status_resumo,
+        formas_pagamento=formas_pagamento,
+        vendedores=vendedores,
+        tipos_cliente=tipos_cliente,
+        clientes_resumo=clientes_resumo,
+        mes=mes_filtro or "todos",
+        ano=ano_filtro or "todos",
+        moeda=_moeda,
     )
 
 @app.route('/orcamentos', methods=['GET', 'POST'])
@@ -2602,10 +2754,16 @@ def deletar_orcamento_salvo(orcamento_id):
 @app.route('/atualizar_status_tipo_cliente', methods=['POST'])
 def atualizar_status_tipo_cliente():
     try:
-        data = request.json
+        data = request.json or {}
         orcamento_id = data.get('id')
         novo_status = data.get('status')
         novo_tipo_cliente = data.get('tipo_cliente')
+        valor_venda = _float_payload(data.get('valor_venda'))
+        entrada_percentual = _float_payload(data.get('entrada_percentual'))
+        final_percentual = _float_payload(data.get('final_percentual'))
+        entrada_valor = _float_payload(data.get('entrada_valor'))
+        final_valor = _float_payload(data.get('final_valor'))
+        forma_pagamento = (data.get('forma_pagamento') or '').strip()
 
         if not orcamento_id:
             return jsonify({"success": False, "error": "ID do orçamento não foi enviado!"}), 400
@@ -2620,10 +2778,30 @@ def atualizar_status_tipo_cliente():
             orcamento.status = novo_status
         if novo_tipo_cliente and orcamento.tipo_cliente != novo_tipo_cliente:
             orcamento.tipo_cliente = novo_tipo_cliente
+        if "valor_venda" in data:
+            orcamento.valor_venda = valor_venda
+        if "entrada_percentual" in data:
+            orcamento.entrada_percentual = entrada_percentual
+        if "final_percentual" in data:
+            orcamento.final_percentual = final_percentual
+        if "entrada_valor" in data:
+            orcamento.entrada_valor = entrada_valor
+        if "final_valor" in data:
+            orcamento.final_valor = final_valor
+        if "forma_pagamento" in data:
+            orcamento.forma_pagamento = forma_pagamento
 
         db.session.commit()
 
-        return jsonify({"success": True, "message": "Orçamento atualizado com sucesso!"})
+        dados_venda = _dados_venda_orcamento(orcamento)
+        return jsonify({
+            "success": True,
+            "message": "Orçamento atualizado com sucesso!",
+            "status": orcamento.status,
+            "tipo_cliente": orcamento.tipo_cliente,
+            "valor_aprovado": _moeda(_valor_venda_considerado(orcamento)),
+            **dados_venda,
+        })
 
     except Exception as e:
         db.session.rollback()

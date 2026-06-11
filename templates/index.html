@@ -13,45 +13,42 @@
 
         <section class="dash-layout">
             <aside class="dash-side">
-                <div class="dash-title">
-                    <div>
-                        <h2>Navegação</h2>
-                        <p>Acesso rapido as rotinas.</p>
-                    </div>
-                </div>
+                <details class="side-menu" open>
+                    <summary><span class="menu-icon" aria-hidden="true">☰</span> Menu</summary>
 
-                <nav class="side-nav">
-                    <a href="{{ url_for('listar_orcamentos') }}" class="side-link"><span>Orcamentos</span></a>
-                    <a href="{{ url_for('listar_orcamentos_salvos') }}" class="side-link"><span>Orcamentos salvos</span></a>
-                    <a href="{{ url_for('ordens_servico') }}" class="side-link"><span>Ordens de servico</span></a>
-                    <a href="{{ url_for('clientes') }}" class="side-link"><span>Clientes</span></a>
-                    {% if session['admin'] %}
-                    <a href="{{ url_for('materiais') }}" class="side-link"><span>Materiais</span></a>
-                    <a href="{{ url_for('gerenciar_usuarios') }}" class="side-link"><span>Usuarios</span></a>
-                    {% endif %}
-                    <a href="{{ url_for('configurador_3d') }}" class="side-link"><span>Configurador 3D</span></a>
-                </nav>
+                    <nav class="side-nav">
+                        <a href="{{ url_for('listar_orcamentos') }}" class="side-link"><span>Orçamentos</span></a>
+                        <a href="{{ url_for('listar_orcamentos_salvos') }}" class="side-link"><span>Orçamentos salvos</span></a>
+                        <a href="{{ url_for('ordens_servico') }}" class="side-link"><span>Ordens de serviço</span></a>
+                        <a href="{{ url_for('clientes') }}" class="side-link"><span>Clientes</span></a>
+                        {% if session['admin'] %}
+                        <a href="{{ url_for('materiais') }}" class="side-link"><span>Materiais</span></a>
+                        <a href="{{ url_for('gerenciar_usuarios') }}" class="side-link"><span>Usuários</span></a>
+                        {% endif %}
+                        <a href="{{ url_for('configurador_3d') }}" class="side-link"><span>Configurador 3D</span></a>
+                    </nav>
+                </details>
             </aside>
 
             <div class="dash-main">
                 <div class="dash-title">
                     <div>
                         <h1>Resumo comercial {{ periodo_label }}</h1>
-                        <p>Acompanhe orcamentos salvos, valores em aberto e conversao de vendas do mes atual.</p>
+                        <p>Acompanhe orçamentos salvos, valores em aberto e conversão de vendas do mês atual.</p>
                     </div>
-                    <a href="{{ url_for('conversao_vendas') }}" class="pilot-btn pilot-btn-primary">Controle de conversao</a>
+                    <a href="{{ url_for('conversao_vendas') }}" class="pilot-btn pilot-btn-primary">Controle de vendas</a>
                 </div>
 
                 <div class="metric-grid">
                     <div class="metric-card">
-                        <div class="metric-label">Orcamentos salvos</div>
+                        <div class="metric-label">Orçamentos salvos</div>
                         <div class="metric-value">{{ dashboard.total }}</div>
-                        <div class="metric-note">Total visivel em {{ periodo_label }}</div>
+                        <div class="metric-note">Total visível em {{ periodo_label }}</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-label">Valor em aberto</div>
                         <div class="metric-value">{{ dashboard.valor_aberto }}</div>
-                        <div class="metric-note">{{ dashboard.espera }} aguardando decisao</div>
+                        <div class="metric-note">{{ dashboard.espera }} aguardando decisão</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-label">Vendas aprovadas</div>
@@ -59,7 +56,7 @@
                         <div class="metric-note">{{ dashboard.aprovados }} aprovados</div>
                     </div>
                     <div class="metric-card">
-                        <div class="metric-label">Conversao</div>
+                        <div class="metric-label">Conversão</div>
                         <div class="metric-value">{{ dashboard.taxa_conversao }}%</div>
                         <div class="metric-note">Ticket medio {{ dashboard.ticket_medio }}</div>
                     </div>
@@ -68,8 +65,8 @@
                 <div class="dash-panel" style="padding: 18px; margin-bottom: 16px;">
                     <div class="dash-title">
                         <div>
-                            <h2>Funil de orcamentos</h2>
-                            <p>Status dos orcamentos salvos em {{ periodo_label }}</p>
+                            <h2>Funil de orçamentos</h2>
+                            <p>Status dos orçamentos salvos em {{ periodo_label }}</p>
                         </div>
                     </div>
                     <div class="pipeline">
@@ -94,15 +91,15 @@
                 <div class="dash-panel" style="padding: 18px;">
                     <div class="dash-title">
                         <div>
-                            <h2>Ultimos orcamentos salvos</h2>
-                            <p>Clique no codigo para abrir os detalhes.</p>
+                            <h2>Últimos orçamentos salvos</h2>
+                            <p>Clique no código para abrir os detalhes.</p>
                         </div>
                     </div>
                     <div class="table-scroll">
                         <table class="dash-table responsive-table">
                             <thead>
                                 <tr>
-                                    <th>Codigo</th>
+                                    <th>Código</th>
                                     <th>Cliente</th>
                                     <th>Valor</th>
                                     <th>Status</th>
@@ -112,7 +109,7 @@
                             <tbody>
                                 {% for orcamento in dashboard.recentes %}
                                 <tr>
-                                    <td data-label="Codigo"><a href="{{ url_for('detalhes_orcamento_salvo', codigo=orcamento.codigo) }}">{{ orcamento.codigo }}</a></td>
+                                    <td data-label="Código"><a href="{{ url_for('detalhes_orcamento_salvo', codigo=orcamento.codigo) }}">{{ orcamento.codigo }}</a></td>
                                     <td data-label="Cliente">{{ orcamento.cliente }}</td>
                                     <td data-label="Valor">{{ orcamento.valor }}</td>
                                     <td data-label="Status">
@@ -126,7 +123,7 @@
                                 </tr>
                                 {% else %}
                                 <tr>
-                                    <td colspan="5">Nenhum orcamento salvo ainda.</td>
+                                    <td colspan="5">Nenhum orçamento salvo ainda.</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -159,16 +156,25 @@
                 .then((response) => response.json())
                 .then((data) => {
                     if (!data.success) {
-                        alert(data.error || 'Nao foi possivel atualizar o status.');
+                        alert(data.error || 'Não foi possível atualizar o status.');
                         return;
                     }
-                    window.location.reload();
                 })
-                .catch(() => alert('Erro de comunicacao com o servidor.'))
+                .catch(() => alert('Erro de comunicação com o servidor.'))
                 .finally(() => {
                     select.disabled = false;
                 });
             });
+        });
+
+        const sideMenu = document.querySelector('.side-menu');
+        if (sideMenu && window.matchMedia('(max-width: 900px)').matches) {
+            sideMenu.removeAttribute('open');
+        }
+        sideMenu?.querySelector('summary')?.addEventListener('click', (event) => {
+            if (!window.matchMedia('(max-width: 900px)').matches) {
+                event.preventDefault();
+            }
         });
     </script>
 </body>

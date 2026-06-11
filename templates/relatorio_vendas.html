@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Vendas | Prime Marble Shop</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pilot.css') }}">
+    <style>
+        @media print {
+            body.pilot-body {
+                background: #fff !important;
+            }
+
+            .no-print {
+                display: none !important;
+            }
+
+            .pilot-shell {
+                width: 100%;
+                padding: 0;
+            }
+
+            .dash-main,
+            .dash-panel,
+            .metric-card,
+            .pipeline-card {
+                box-shadow: none !important;
+                break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body class="pilot-body">
+    <main class="pilot-shell">
+        {% set header_subtitle = "Relatório de vendas" %}
+        {% include "partials/app_header.html" %}
+
+        <section class="dash-main" style="margin-top:22px;">
+            <div class="dash-title">
+                <div>
+                    <h1>Relatório de vendas {{ periodo_label }}</h1>
+                    <p>Resumo comercial gerado a partir dos orçamentos salvos e aprovados.</p>
+                </div>
+                <button class="pilot-btn pilot-btn-primary no-print" onclick="window.print()">Imprimir relatório</button>
+            </div>
+
+            <div class="report-summary">
+                <div class="metric-card">
+                    <div class="metric-label">Total analisado</div>
+                    <div class="metric-value">{{ dashboard.total }}</div>
+                    <div class="metric-note">{{ dashboard.valor_total }} em propostas</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Vendas aprovadas</div>
+                    <div class="metric-value">{{ dashboard.aprovados }}</div>
+                    <div class="metric-note">{{ dashboard.valor_aprovado }} em vendas</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Taxa de conversão</div>
+                    <div class="metric-value">{{ dashboard.taxa_conversao }}%</div>
+                    <div class="metric-note">Aprovados sobre propostas</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-label">Ticket médio</div>
+                    <div class="metric-value">{{ dashboard.ticket_medio }}</div>
+                    <div class="metric-note">Base do período</div>
+                </div>
+            </div>
+
+            <div class="dash-panel" style="padding:18px;margin-top:16px;">
+                <div class="dash-title">
+                    <h2>Resumo do funil</h2>
+                </div>
+                <div class="pipeline">
+                    {% for status, dados in status_resumo.items() %}
+                    <div class="pipeline-card">
+                        <strong>{{ dados.quantidade }}</strong>
+                        <span>{{ status }}</span>
+                        <div class="metric-note">{{ moeda(dados.valor) }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="dash-panel" style="padding:18px;margin-top:16px;">
+                <div class="dash-title">
+                    <h2>Resumo por pagamento</h2>
+                </div>
+                <div class="pipeline">
+                    {% for forma, dados in formas_pagamento.items() %}
+                    <div class="pipeline-card">
+                        <strong>{{ moeda(dados.valor) }}</strong>
+                        <span>{{ forma }}</span>
+                        <div class="metric-note">{{ dados.quantidade }} venda(s) | Ticket {{ moeda(dados.ticket) }}</div>
+                    </div>
+                    {% else %}
+                    <div class="pipeline-card">
+                        <strong>R$ 0,00</strong>
+                        <span>Nenhuma venda aprovada no período</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="dash-panel" style="padding:18px;margin-top:16px;">
+                <div class="dash-title">
+                    <h2>Resumo por vendedor</h2>
+                </div>
+                <div class="pipeline">
+                    {% for vendedor, dados in vendedores.items() %}
+                    <div class="pipeline-card">
+                        <strong>{{ moeda(dados.valor) }}</strong>
+                        <span>{{ vendedor }}</span>
+                        <div class="metric-note">{{ dados.quantidade }} venda(s) | Ticket {{ moeda(dados.ticket) }}</div>
+                    </div>
+                    {% else %}
+                    <div class="pipeline-card">
+                        <strong>R$ 0,00</strong>
+                        <span>Nenhum vendedor com venda aprovada</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="dash-panel" style="padding:18px;margin-top:16px;">
+                <div class="dash-title">
+                    <h2>Resumo por tipo de cliente</h2>
+                </div>
+                <div class="pipeline">
+                    {% for tipo, dados in tipos_cliente.items() %}
+                    <div class="pipeline-card">
+                        <strong>{{ moeda(dados.valor) }}</strong>
+                        <span>{{ tipo }}</span>
+                        <div class="metric-note">{{ dados.quantidade }} venda(s) | Ticket {{ moeda(dados.ticket) }}</div>
+                    </div>
+                    {% else %}
+                    <div class="pipeline-card">
+                        <strong>R$ 0,00</strong>
+                        <span>Nenhum tipo de cliente com venda aprovada</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="dash-panel" style="padding:18px;margin-top:16px;">
+                <div class="dash-title">
+                    <h2>Principais clientes</h2>
+                </div>
+                <div class="pipeline">
+                    {% for cliente, dados in clientes_resumo.items() %}
+                    <div class="pipeline-card">
+                        <strong>{{ moeda(dados.valor) }}</strong>
+                        <span>{{ cliente }}</span>
+                        <div class="metric-note">{{ dados.quantidade }} venda(s) | Ticket {{ moeda(dados.ticket) }}</div>
+                    </div>
+                    {% else %}
+                    <div class="pipeline-card">
+                        <strong>R$ 0,00</strong>
+                        <span>Nenhum cliente com venda aprovada</span>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="dash-panel" style="padding:18px;margin-top:16px;">
+                <div class="dash-title">
+                    <h2>Detalhamento das vendas</h2>
+                </div>
+                <div class="table-scroll">
+                    <table class="dash-table responsive-table">
+                        <thead>
+                            <tr>
+                                <th>Código</th>
+                                <th>Cliente</th>
+                                <th>Status</th>
+                                <th>Valor da venda</th>
+                                <th>Pagamento</th>
+                                <th>Vendedor</th>
+                                <th>Data</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for orcamento in orcamentos %}
+                            <tr>
+                                <td data-label="Código">{{ orcamento.codigo }}</td>
+                                <td data-label="Cliente">{{ orcamento.cliente }}</td>
+                                <td data-label="Status">{{ orcamento.status }}</td>
+                                <td data-label="Valor">{{ orcamento.valor_venda_formatado }}</td>
+                                <td data-label="Pagamento">{{ orcamento.forma_pagamento or "Não informado" }}</td>
+                                <td data-label="Vendedor">{{ orcamento.criado_por }}</td>
+                                <td data-label="Data">{{ orcamento.data }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7">Nenhum orçamento encontrado para o período.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

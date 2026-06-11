@@ -1,23 +1,24 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Conversao de Vendas | Prime Marble Shop</title>
+    <title>Controle de Vendas | Prime Marble Shop</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pilot.css') }}">
 </head>
 <body class="pilot-body">
-    <main class="pilot-shell">
-        {% set header_subtitle = "Controle de conversão de vendas" %}
+    <main class="pilot-shell conversion-shell">
+        {% set header_subtitle = "Controle de vendas" %}
         {% include "partials/app_header.html" %}
 
         <section class="dash-layout conversion-layout">
             <div class="dash-main">
                 <div class="dash-title">
                     <div>
-                        <h1>Conversão de vendas {{ periodo_label }}</h1>
-                        <p>Controle o status dos orçamentos salvos e acompanhe o resultado do período.</p>
+                        <h1>Controle de vendas {{ periodo_label }}</h1>
+                        <p>Controle status, valor vendido e forma de pagamento dos orçamentos aprovados.</p>
                     </div>
+                    <a href="{{ url_for('relatorio_vendas', mes=filtro_mes or 'todos', ano=filtro_ano or 'todos') }}" class="pilot-btn pilot-btn-primary" target="_blank">Gerar relatório de vendas</a>
                 </div>
 
                 <form method="GET" class="dash-panel" style="padding: 16px; margin-bottom: 16px;">
@@ -55,7 +56,7 @@
                     <div class="metric-card">
                         <div class="metric-label">Em espera</div>
                         <div class="metric-value">{{ dashboard.espera }}</div>
-                        <div class="metric-note">{{ dashboard.valor_aberto }} em negociacao</div>
+                        <div class="metric-note">{{ dashboard.valor_aberto }} em negociação</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-label">Aprovados</div>
@@ -65,7 +66,7 @@
                     <div class="metric-card">
                         <div class="metric-label">Taxa</div>
                         <div class="metric-value">{{ dashboard.taxa_conversao }}%</div>
-                        <div class="metric-note">Conversao atual</div>
+                        <div class="metric-note">Conversão atual</div>
                     </div>
                 </div>
 
@@ -73,13 +74,23 @@
                     <div class="conversion-toolbar">
                         <div>
                             <h2 style="margin:0;font-size:1.12rem;">Orçamentos do período</h2>
-                            <p style="margin:4px 0 0;color:var(--muted);">Atualize o status e o tipo de cliente direto na tabela.</p>
+                            <p style="margin:4px 0 0;color:var(--muted);">Ao aprovar, preencha o valor da venda e a forma de pagamento.</p>
                         </div>
                         <input type="search" id="buscaConversao" class="conversion-search" placeholder="Buscar por código, cliente ou vendedor">
                     </div>
 
                     <div class="table-scroll">
-                        <table class="dash-table responsive-table" id="tabelaConversao">
+                        <table class="dash-table responsive-table conversion-table" id="tabelaConversao">
+                            <colgroup>
+                                <col class="col-codigo">
+                                <col class="col-cliente">
+                                <col class="col-valor">
+                                <col class="col-status">
+                                <col class="col-tipo">
+                                <col class="col-pagamento">
+                                <col class="col-vendedor">
+                                <col class="col-data">
+                            </colgroup>
                             <thead>
                                 <tr>
                                     <th>Código</th>
@@ -87,38 +98,52 @@
                                     <th>Valor</th>
                                     <th>Status</th>
                                     <th>Tipo de cliente</th>
+                                    <th>Forma de pagamento</th>
                                     <th>Vendedor</th>
                                     <th>Data</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {% for orcamento in orcamentos %}
-                                <tr data-search="{{ orcamento.codigo }} {{ orcamento.cliente }} {{ orcamento.criado_por }} {{ orcamento.status }} {{ orcamento.tipo_cliente }}">
+                                <tr data-search="{{ orcamento.codigo }} {{ orcamento.cliente }} {{ orcamento.criado_por }} {{ orcamento.status }} {{ orcamento.tipo_cliente }}" data-id="{{ orcamento.id }}">
                                     <td data-label="Código"><a href="{{ url_for('detalhes_orcamento_salvo', codigo=orcamento.codigo) }}">{{ orcamento.codigo }}</a></td>
                                     <td data-label="Cliente">{{ orcamento.cliente }}</td>
-                                    <td data-label="Valor">{{ orcamento.valor }}</td>
+                                    <td data-label="Valor">
+                                        <span class="js-valor-texto" {% if orcamento.status == 'Aprovado' %}hidden{% endif %}>{{ orcamento.valor }}</span>
+                                        <input type="number" min="0" step="0.01" class="sale-input compact-sale-field js-sale-field" data-field="valor_venda" value="{{ '%.2f'|format(orcamento.valor_venda or orcamento.valor_float or 0) }}" {% if orcamento.status != 'Aprovado' %}disabled hidden{% endif %}>
+                                    </td>
                                     <td data-label="Status">
-                                        <select class="conversion-select js-conversion-field" data-id="{{ orcamento.id }}" data-field="status">
+                                        <select class="conversion-select js-conversion-field" data-field="status">
                                             <option value="Em Espera" {% if orcamento.status == 'Em Espera' %}selected{% endif %}>Em Espera</option>
                                             <option value="Aprovado" {% if orcamento.status == 'Aprovado' %}selected{% endif %}>Aprovado</option>
                                             <option value="Declinado" {% if orcamento.status == 'Declinado' %}selected{% endif %}>Declinado</option>
                                         </select>
                                     </td>
                                     <td data-label="Tipo">
-                                        <select class="conversion-select js-conversion-field" data-id="{{ orcamento.id }}" data-field="tipo_cliente">
+                                        <select class="conversion-select js-conversion-field" data-field="tipo_cliente">
                                             <option value="Cliente de Porta" {% if orcamento.tipo_cliente == 'Cliente de Porta' %}selected{% endif %}>Cliente de Porta</option>
                                             <option value="Arquiteto" {% if orcamento.tipo_cliente == 'Arquiteto' %}selected{% endif %}>Arquiteto</option>
                                             <option value="Construtora" {% if orcamento.tipo_cliente == 'Construtora' %}selected{% endif %}>Construtora</option>
                                             <option value="Cliente Online" {% if orcamento.tipo_cliente == 'Cliente Online' %}selected{% endif %}>Cliente Online</option>
-                                            <option value="Indicacao" {% if orcamento.tipo_cliente == 'Indicacao' %}selected{% endif %}>Indicacao</option>
+                                            <option value="Indicação" {% if orcamento.tipo_cliente == 'Indicacao' or orcamento.tipo_cliente == 'Indicação' %}selected{% endif %}>Indicação</option>
                                         </select>
+                                    </td>
+                                    <td data-label="Pagamento">
+                                        <select class="sale-input compact-sale-field js-sale-field" data-field="forma_pagamento" {% if orcamento.status != 'Aprovado' %}disabled hidden{% endif %}>
+                                            <option value="">Selecione</option>
+                                            <option value="Débito" {% if orcamento.forma_pagamento == 'Débito' %}selected{% endif %}>Débito</option>
+                                            <option value="Crédito" {% if orcamento.forma_pagamento == 'Crédito' %}selected{% endif %}>Crédito</option>
+                                            <option value="Pix" {% if orcamento.forma_pagamento == 'Pix' %}selected{% endif %}>Pix</option>
+                                            <option value="Dinheiro" {% if orcamento.forma_pagamento == 'Dinheiro' %}selected{% endif %}>Dinheiro</option>
+                                        </select>
+                                        <div class="save-state" aria-live="polite"></div>
                                     </td>
                                     <td data-label="Vendedor">{{ orcamento.criado_por }}</td>
                                     <td data-label="Data">{{ orcamento.data }}</td>
                                 </tr>
                                 {% else %}
                                 <tr>
-                                    <td colspan="7">Nenhum orcamento salvo encontrado.</td>
+                                    <td colspan="8">Nenhum orçamento salvo encontrado.</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -172,39 +197,70 @@
             });
         });
 
-        document.querySelectorAll('.js-conversion-field').forEach((select) => {
-            select.addEventListener('change', () => {
-                const linha = select.closest('tr');
-                const id = select.dataset.id;
-                const status = linha.querySelector('[data-field="status"]').value;
-                const tipoCliente = linha.querySelector('[data-field="tipo_cliente"]').value;
+        function getSalePayload(linha) {
+            const aprovado = linha.querySelector('[data-field="status"]').value === 'Aprovado';
+            const payload = {
+                id: linha.dataset.id,
+                status: linha.querySelector('[data-field="status"]').value,
+                tipo_cliente: linha.querySelector('[data-field="tipo_cliente"]').value
+            };
+            if (aprovado) {
+                payload.valor_venda = Number(linha.querySelector('[data-field="valor_venda"]')?.value || 0);
+                payload.forma_pagamento = linha.querySelector('[data-field="forma_pagamento"]')?.value || '';
+            }
+            return payload;
+        }
 
-                select.disabled = true;
+        function alternarCamposVenda(linha) {
+            const aprovado = linha.querySelector('[data-field="status"]').value === 'Aprovado';
+            linha.querySelector('.js-valor-texto')?.toggleAttribute('hidden', aprovado);
+            linha.querySelectorAll('.compact-sale-field').forEach((campo) => {
+                campo.hidden = !aprovado;
+                campo.disabled = !aprovado;
+            });
+        }
 
-                fetch('{{ url_for("atualizar_status_tipo_cliente") }}', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        id: id,
-                        status: status,
-                        tipo_cliente: tipoCliente
-                    })
-                })
-                .then((response) => response.json())
-                .then((data) => {
-                    if (!data.success) {
-                        alert(data.error || 'Nao foi possivel atualizar o orcamento.');
-                        return;
-                    }
-                    window.location.reload();
-                })
-                .catch(() => alert('Erro de comunicacao com o servidor.'))
-                .finally(() => {
-                    select.disabled = false;
-                });
+        function salvarLinha(linha, origem) {
+            const payload = getSalePayload(linha);
+            const status = linha.querySelector('.save-state');
+            if (status) status.textContent = 'Salvando...';
+
+            fetch('{{ url_for("atualizar_status_tipo_cliente") }}', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then((response) => response.json())
+            .then((data) => {
+                if (!data.success) {
+                    alert(data.error || 'Não foi possível atualizar o orçamento.');
+                    if (status) status.textContent = '';
+                    return;
+                }
+                alternarCamposVenda(linha);
+                if (status) {
+                    status.textContent = origem === 'status' ? 'Status salvo.' : 'Venda salva.';
+                    setTimeout(() => status.textContent = '', 1800);
+                }
+            })
+            .catch(() => {
+                alert('Erro de comunicação com o servidor.');
+                if (status) status.textContent = '';
+            });
+        }
+
+        document.querySelectorAll('#tabelaConversao tbody tr[data-id]').forEach((linha) => {
+            alternarCamposVenda(linha);
+
+            linha.querySelectorAll('.js-conversion-field').forEach((campo) => {
+                campo.addEventListener('change', () => salvarLinha(linha, campo.dataset.field === 'status' ? 'status' : 'tipo'));
+            });
+
+            linha.querySelectorAll('.js-sale-field').forEach((campo) => {
+                if (campo.closest('.js-conversion-field')) return;
+                campo.addEventListener('change', () => salvarLinha(linha, 'venda'));
             });
         });
     </script>
 </body>
 </html>
-
