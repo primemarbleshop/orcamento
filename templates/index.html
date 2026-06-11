@@ -113,11 +113,9 @@
                                     <td data-label="Cliente">{{ orcamento.cliente }}</td>
                                     <td data-label="Valor">{{ orcamento.valor }}</td>
                                     <td data-label="Status">
-                                        <select class="conversion-select js-home-status" data-id="{{ orcamento.id }}" data-tipo-cliente="{{ orcamento.tipo_cliente }}">
-                                            <option value="Em Espera" {% if orcamento.status == 'Em Espera' %}selected{% endif %}>Em Espera</option>
-                                            <option value="Aprovado" {% if orcamento.status == 'Aprovado' %}selected{% endif %}>Aprovado</option>
-                                            <option value="Declinado" {% if orcamento.status == 'Declinado' %}selected{% endif %}>Declinado</option>
-                                        </select>
+                                        <span class="status-pill status-{{ (orcamento.status or 'Em Espera')|lower|replace(' ', '-') }}">
+                                            {{ orcamento.status }}
+                                        </span>
                                     </td>
                                     <td data-label="Data">{{ orcamento.data }}</td>
                                 </tr>
@@ -140,33 +138,6 @@
         </section>
     </main>
     <script>
-        document.querySelectorAll('.js-home-status').forEach((select) => {
-            select.addEventListener('change', () => {
-                select.disabled = true;
-
-                fetch('{{ url_for("atualizar_status_tipo_cliente") }}', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        id: select.dataset.id,
-                        status: select.value,
-                        tipo_cliente: select.dataset.tipoCliente
-                    })
-                })
-                .then((response) => response.json())
-                .then((data) => {
-                    if (!data.success) {
-                        alert(data.error || 'Não foi possível atualizar o status.');
-                        return;
-                    }
-                })
-                .catch(() => alert('Erro de comunicação com o servidor.'))
-                .finally(() => {
-                    select.disabled = false;
-                });
-            });
-        });
-
         const sideMenu = document.querySelector('.side-menu');
         if (sideMenu && window.matchMedia('(max-width: 900px)').matches) {
             sideMenu.removeAttribute('open');
