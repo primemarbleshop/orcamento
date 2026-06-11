@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
@@ -136,9 +136,13 @@
     </style>
 </head>
 <body class="app-theme">
+    <div class="pilot-shell app-header-shell">
+        {% set header_subtitle = "Gerenciar materiais" %}
+        {% include "partials/app_header.html" %}
+    </div>
     <div class="container-fluid py-4">
         <!-- Cabeçalho -->
-        <div class="page-header">
+        <div class="page-header legacy-home-header">
             <div class="row align-items-center">
                 <div class="col">
                     <h1 class="h3 text-gray-800"><i class="fas fa-boxes me-2"></i>Gerenciar Materiais</h1>
@@ -232,9 +236,14 @@
                                 <td class="valor-total">{{ "R$ {:,.2f}".format(material.valor).replace(",", "X").replace(".", ",").replace("X", ".") }}</td>
                                 <td>
                                     <div class="action-buttons">
-                                        <a href="{{ url_for('editar_material', id=material.id) }}" class="btn btn-sm btn-custom-primary" title="Editar">
+                                        <button type="button"
+                                                class="btn btn-sm btn-custom-primary btn-editar-material"
+                                                title="Editar"
+                                                data-id="{{ material.id }}"
+                                                data-nome="{{ material.nome|e }}"
+                                                data-valor="{{ material.valor }}">
                                             <i class="fas fa-edit"></i>
-                                        </a>
+                                        </button>
                                         <form action="{{ url_for('deletar_material', id=material.id) }}" method="POST" class="d-inline" onsubmit="confirmarExclusao(event, this)">
                                             <button type="submit" class="btn btn-sm btn-custom-danger" title="Excluir">
                                                 <i class="fas fa-trash"></i>
@@ -252,6 +261,35 @@
                 <div id="no-results" class="alert alert-info mt-3" style="display: none;">
                     <i class="fas fa-info-circle me-2"></i> Nenhum material encontrado com os filtros aplicados.
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="editarMaterialModal" tabindex="-1" aria-labelledby="editarMaterialModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="POST" id="editarMaterialForm">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editarMaterialModalLabel">Editar Material</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="edit_material_nome" class="form-label">Nome do Material:</label>
+                            <input type="text" id="edit_material_nome" name="nome" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_material_valor" class="form-label">Valor (R$):</label>
+                            <input type="number" id="edit_material_valor" name="valor" class="form-control" step="0.01" min="0" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-custom-success">
+                            <i class="fas fa-save me-1"></i> Salvar Alterações
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -282,6 +320,15 @@
                 }
             });
         }
+
+        document.querySelectorAll('.btn-editar-material').forEach(button => {
+            button.addEventListener('click', function() {
+                document.getElementById('editarMaterialForm').action = `/materiais/edit/${this.dataset.id}`;
+                document.getElementById('edit_material_nome').value = this.dataset.nome || '';
+                document.getElementById('edit_material_valor').value = this.dataset.valor || '';
+                new bootstrap.Modal(document.getElementById('editarMaterialModal')).show();
+            });
+        });
 
         function normalizarBuscaTexto(valor) {
             return String(valor || '')
@@ -380,3 +427,4 @@
     </script>
 </body>
 </html>
+

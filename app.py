@@ -131,6 +131,18 @@ migrate = Migrate(app, db)
 
 _url_serializer = URLSafeSerializer(app.config['SECRET_KEY'], salt='orcamento-link')
 
+@app.context_processor
+def dados_usuario_layout():
+    cpf = session.get('user_cpf')
+    if not cpf:
+        return {}
+
+    if cpf == "39903780000115":
+        return {"usuario_display_nome": "Prime Marble Shop"}
+
+    usuario = Usuario.query.filter_by(cpf=cpf).first()
+    return {"usuario_display_nome": usuario.nome if usuario and usuario.nome else cpf}
+
 def gerar_token_orcamento(codigo):
     return _url_serializer.dumps(codigo)
 
@@ -1587,7 +1599,7 @@ def materiais():
 
 @app.route('/clientes/edit/<int:id>', methods=['GET', 'POST'])
 def editar_cliente(id):
-    cliente = Cliente.query.get(id)
+    cliente = Cliente.query.get_or_404(id)
 
     if request.method == 'POST':
         nome = request.form['nome']
@@ -1611,18 +1623,18 @@ def editar_cliente(id):
         flash("Cliente atualizado com sucesso!", "success")
         return redirect(url_for('clientes'))
 
-    return render_template('editar_cliente.html', cliente=cliente)
+    return redirect(url_for('clientes'))
 
 
 @app.route('/materiais/edit/<int:id>', methods=['GET', 'POST'])
 def editar_material(id):
-    material = Material.query.get(id)
+    material = Material.query.get_or_404(id)
     if request.method == 'POST':
         material.nome = request.form['nome']
         material.valor = float(request.form['valor'])
         db.session.commit()
         return redirect(url_for('materiais'))
-    return render_template('editar_material.html', material=material)
+    return redirect(url_for('materiais'))
 
 @app.route('/orcamentos/edit/<int:id>', methods=['GET', 'POST'])
 def editar_orcamento(id):

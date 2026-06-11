@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
@@ -147,9 +147,13 @@
     </style>
 </head>
 <body class="app-theme">
+    <div class="pilot-shell app-header-shell">
+        {% set header_subtitle = "Gerenciar clientes" %}
+        {% include "partials/app_header.html" %}
+    </div>
     <div class="container-fluid py-4">
         <!-- Cabeçalho -->
-        <div class="page-header">
+        <div class="page-header legacy-home-header">
             <div class="row align-items-center">
                 <div class="col">
                     <h1 class="h3 text-gray-800"><i class="fas fa-users me-2"></i>Gerenciar Clientes</h1>
@@ -260,7 +264,7 @@
                         </thead>
                         <tbody id="cliente_table">
                             {% for cliente, nome_usuario in clientes %}
-                            <tr data-nome="{{ cliente.nome }}" data-telefone="{{ cliente.telefone }}">
+                            <tr data-id="{{ cliente.id }}" data-nome="{{ cliente.nome }}" data-endereco="{{ cliente.endereco or '' }}" data-telefone="{{ cliente.telefone }}">
                                 {% if session['admin'] %}
                                     <td>{{ nome_usuario }}</td>
                                     <td>{{ cliente.id }}</td>
@@ -270,9 +274,15 @@
                                 <td>{{ cliente.telefone }}</td>
                                 <td>
                                     <div class="action-buttons">
-                                        <a href="{{ url_for('editar_cliente', id=cliente.id) }}" class="btn btn-sm btn-custom-primary" title="Editar">
+                                        <button type="button"
+                                                class="btn btn-sm btn-custom-primary btn-editar-cliente"
+                                                title="Editar"
+                                                data-id="{{ cliente.id }}"
+                                                data-nome="{{ cliente.nome|e }}"
+                                                data-endereco="{{ (cliente.endereco or '')|e }}"
+                                                data-telefone="{{ (cliente.telefone or '')|e }}">
                                             <i class="fas fa-edit"></i>
-                                        </a>
+                                        </button>
                                         <button class="btn btn-sm btn-custom-danger" title="Excluir" onclick="confirmarExclusao(event, '{{ url_for('deletar_cliente', id=cliente.id) }}')">
                                             <i class="fas fa-trash"></i>
                                         </button>
@@ -283,6 +293,41 @@
                         </tbody>
                     </table>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="editarClienteModal" tabindex="-1" aria-labelledby="editarClienteModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <form method="POST" id="editarClienteForm">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editarClienteModalLabel">Editar Cliente</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="mb-3">
+                            <label for="edit_cliente_nome" class="form-label">Nome:</label>
+                            <input type="text" id="edit_cliente_nome" name="nome" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_cliente_endereco" class="form-label">Endereço:</label>
+                            <input type="text" id="edit_cliente_endereco" name="endereco" class="form-control">
+                        </div>
+                        <div class="mb-3">
+                            <label for="edit_cliente_telefone" class="form-label">Telefone:</label>
+                            <input type="text" id="edit_cliente_telefone" name="telefone" class="form-control">
+                        </div>
+                        <input type="hidden" name="pais_selecionado" value="BR">
+                        <input type="hidden" name="codigo_pais" value="55">
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <button type="submit" class="btn btn-custom-success">
+                            <i class="fas fa-save me-1"></i> Salvar Alterações
+                        </button>
+                    </div>
+                </form>
             </div>
         </div>
     </div>
@@ -444,6 +489,16 @@
             });
         }
 
+        document.querySelectorAll('.btn-editar-cliente').forEach(button => {
+            button.addEventListener('click', function() {
+                document.getElementById('editarClienteForm').action = `/clientes/edit/${this.dataset.id}`;
+                document.getElementById('edit_cliente_nome').value = this.dataset.nome || '';
+                document.getElementById('edit_cliente_endereco').value = this.dataset.endereco || '';
+                document.getElementById('edit_cliente_telefone').value = this.dataset.telefone || '';
+                new bootstrap.Modal(document.getElementById('editarClienteModal')).show();
+            });
+        });
+
         // Função para filtrar clientes
         function filterClientes() {
             const filtroNome = document.getElementById('filtro_nome').value.toLowerCase();
@@ -532,3 +587,4 @@
     </script>
 </body>
 </html>
+
