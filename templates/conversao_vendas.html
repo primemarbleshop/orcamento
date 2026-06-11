@@ -16,7 +16,7 @@
                 <div class="dash-title">
                     <div>
                         <h1>Controle de vendas {{ periodo_label }}</h1>
-                        <p>Controle status, valor vendido e forma de pagamento dos orçamentos aprovados.</p>
+                        <p>Controle status, data de fechamento, valor vendido e forma de pagamento.</p>
                     </div>
                     <a href="{{ url_for('relatorio_vendas', mes=filtro_mes or 'todos', ano=filtro_ano or 'todos') }}" class="pilot-btn pilot-btn-primary" target="_blank">Gerar relatório de vendas</a>
                 </div>
@@ -25,7 +25,7 @@
                     <div class="conversion-toolbar" style="margin-bottom:0;">
                         <div>
                             <h2 style="margin:0;font-size:1.06rem;">Período analisado</h2>
-                            <p style="margin:4px 0 0;color:var(--muted);">Escolha mês e ano para recalcular os indicadores.</p>
+                            <p style="margin:4px 0 0;color:var(--muted);">Aprovados e declinados entram no mês da data de fechamento.</p>
                         </div>
                         <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
                             <select name="mes" class="conversion-select js-period-filter">
@@ -74,7 +74,7 @@
                     <div class="conversion-toolbar">
                         <div>
                             <h2 style="margin:0;font-size:1.12rem;">Orçamentos do período</h2>
-                            <p style="margin:4px 0 0;color:var(--muted);">Ao aprovar, preencha o valor da venda e a forma de pagamento.</p>
+                            <p style="margin:4px 0 0;color:var(--muted);">A data fica em branco enquanto o orçamento estiver em espera.</p>
                         </div>
                         <input type="search" id="buscaConversao" class="conversion-search" placeholder="Buscar por código, cliente ou vendedor">
                     </div>
@@ -100,7 +100,7 @@
                                     <th>Tipo de cliente</th>
                                     <th>Forma de pagamento</th>
                                     <th>Vendedor</th>
-                                    <th>Data</th>
+                                    <th>Data fechamento</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -139,7 +139,9 @@
                                         <div class="save-state" aria-live="polite"></div>
                                     </td>
                                     <td data-label="Vendedor">{{ orcamento.criado_por }}</td>
-                                    <td data-label="Data">{{ orcamento.data }}</td>
+                                    <td data-label="Data">
+                                        <input type="date" class="sale-input compact-date-field js-sale-field" data-field="data_fechamento" value="{{ orcamento.data_fechamento }}" {% if orcamento.status == 'Em Espera' %}disabled hidden{% endif %}>
+                                    </td>
                                 </tr>
                                 {% else %}
                                 <tr>
@@ -198,12 +200,19 @@
         });
 
         function getSalePayload(linha) {
-            const aprovado = linha.querySelector('[data-field="status"]').value === 'Aprovado';
+            const statusAtual = linha.querySelector('[data-field="status"]').value;
+            const aprovado = statusAtual === 'Aprovado';
+            const fechado = statusAtual === 'Aprovado' || statusAtual === 'Declinado';
             const payload = {
                 id: linha.dataset.id,
-                status: linha.querySelector('[data-field="status"]').value,
+                status: statusAtual,
                 tipo_cliente: linha.querySelector('[data-field="tipo_cliente"]').value
             };
+            if (fechado) {
+                payload.data_fechamento = linha.querySelector('[data-field="data_fechamento"]')?.value || '';
+            } else {
+                payload.data_fechamento = '';
+            }
             if (aprovado) {
                 payload.valor_venda = Number(linha.querySelector('[data-field="valor_venda"]')?.value || 0);
                 payload.forma_pagamento = linha.querySelector('[data-field="forma_pagamento"]')?.value || '';
@@ -212,11 +221,18 @@
         }
 
         function alternarCamposVenda(linha) {
-            const aprovado = linha.querySelector('[data-field="status"]').value === 'Aprovado';
+            const statusAtual = linha.querySelector('[data-field="status"]').value;
+            const aprovado = statusAtual === 'Aprovado';
+            const fechado = statusAtual === 'Aprovado' || statusAtual === 'Declinado';
             linha.querySelector('.js-valor-texto')?.toggleAttribute('hidden', aprovado);
             linha.querySelectorAll('.compact-sale-field').forEach((campo) => {
                 campo.hidden = !aprovado;
                 campo.disabled = !aprovado;
+            });
+            linha.querySelectorAll('.compact-date-field').forEach((campo) => {
+                campo.hidden = !fechado;
+                campo.disabled = !fechado;
+                if (!fechado) campo.value = '';
             });
         }
 

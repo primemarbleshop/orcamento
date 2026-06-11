@@ -266,6 +266,7 @@ class OrcamentoSalvo(db.Model):
     tipo_cliente = db.Column(db.String, default='Cliente de Porta')
     valor_venda = db.Column(db.Float, nullable=True)
     forma_pagamento = db.Column(db.String(30), nullable=True)
+    data_fechamento = db.Column(db.DateTime, nullable=True)
     entrada_percentual = db.Column(db.Float, nullable=True)
     final_percentual = db.Column(db.Float, nullable=True)
     entrada_valor = db.Column(db.Float, nullable=True)
@@ -379,6 +380,7 @@ def _garantir_colunas_orcamento_salvo():
     colunas = {
         "valor_venda": "FLOAT",
         "forma_pagamento": "VARCHAR(30)",
+        "data_fechamento": "DATETIME",
         "entrada_percentual": "FLOAT",
         "final_percentual": "FLOAT",
         "entrada_valor": "FLOAT",
@@ -1141,6 +1143,11 @@ def _float_payload(valor):
         valor = valor.replace(",", ".")
     return float(valor) if valor else None
 
+def _data_payload(valor):
+    if valor in (None, ""):
+        return None
+    return datetime.strptime(str(valor), "%Y-%m-%d")
+
 def _dados_venda_orcamento(orcamento):
     valor_base = orcamento.valor_venda if orcamento.valor_venda is not None else (orcamento.valor_total or 0)
     entrada_percentual = orcamento.entrada_percentual if orcamento.entrada_percentual is not None else 50
@@ -1151,6 +1158,8 @@ def _dados_venda_orcamento(orcamento):
         "valor_venda": valor_base,
         "valor_venda_formatado": _moeda(valor_base),
         "forma_pagamento": orcamento.forma_pagamento or "",
+        "data_fechamento": orcamento.data_fechamento.strftime("%Y-%m-%d") if orcamento.data_fechamento else "",
+        "data_fechamento_formatada": orcamento.data_fechamento.strftime("%d/%m/%Y") if orcamento.data_fechamento else "",
         "entrada_percentual": entrada_percentual,
         "final_percentual": final_percentual,
         "entrada_valor": entrada_valor,
@@ -1216,11 +1225,17 @@ def _filtrar_orcamentos_por_periodo(orcamentos, mes=None, ano=None):
 
     filtrados = []
     for orcamento in orcamentos:
-        if not orcamento.data_salvo:
+        status = orcamento.status or "Em Espera"
+        if status == "Em Espera":
+            filtrados.append(orcamento)
             continue
-        if ano and orcamento.data_salvo.year != ano:
+
+        data_base = orcamento.data_fechamento
+        if not data_base:
             continue
-        if mes and orcamento.data_salvo.month != mes:
+        if ano and data_base.year != ano:
+            continue
+        if mes and data_base.month != mes:
             continue
         filtrados.append(orcamento)
     return filtrados, mes, ano
@@ -1231,11 +1246,11 @@ def conversao_vendas():
         return redirect(url_for('login'))
 
     todos_orcamentos = _orcamentos_salvos_visiveis()
+    hoje = datetime.now(br_tz)
     anos_disponiveis = sorted(
-        {o.data_salvo.year for o in todos_orcamentos if o.data_salvo},
+        {o.data_fechamento.year for o in todos_orcamentos if o.data_fechamento} | {hoje.year},
         reverse=True,
     )
-    hoje = datetime.now(br_tz)
     mes_filtro = request.args.get("mes", str(hoje.month))
     ano_filtro = request.args.get("ano", str(hoje.year))
     orcamentos, mes_filtro, ano_filtro = _filtrar_orcamentos_por_periodo(
@@ -2764,6 +2779,7 @@ def atualizar_status_tipo_cliente():
         entrada_valor = _float_payload(data.get('entrada_valor'))
         final_valor = _float_payload(data.get('final_valor'))
         forma_pagamento = (data.get('forma_pagamento') or '').strip()
+        data_fechamento = _data_payload(data.get('data_fechamento'))
 
         if not orcamento_id:
             return jsonify({"success": False, "error": "ID do orçamento não foi enviado!"}), 400
@@ -2778,6 +2794,8 @@ def atualizar_status_tipo_cliente():
             orcamento.status = novo_status
         if novo_tipo_cliente and orcamento.tipo_cliente != novo_tipo_cliente:
             orcamento.tipo_cliente = novo_tipo_cliente
+        if novo_status == "Em Espera":
+            orcamento.data_fechamento = None
         if "valor_venda" in data:
             orcamento.valor_venda = valor_venda
         if "entrada_percentual" in data:
@@ -2790,6 +2808,8 @@ def atualizar_status_tipo_cliente():
             orcamento.final_valor = final_valor
         if "forma_pagamento" in data:
             orcamento.forma_pagamento = forma_pagamento
+        if "data_fechamento" in data:
+            orcamento.data_fechamento = data_fechamento if (orcamento.status or "") in ("Aprovado", "Declinado") else None
 
         db.session.commit()
 
