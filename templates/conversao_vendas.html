@@ -90,6 +90,7 @@
                                 <col class="col-pagamento">
                                 <col class="col-vendedor">
                                 <col class="col-data">
+                                <col class="col-obs">
                             </colgroup>
                             <thead>
                                 <tr>
@@ -101,6 +102,7 @@
                                     <th>Forma de pagamento</th>
                                     <th>Vendedor</th>
                                     <th>Data fechamento</th>
+                                    <th>Obs.:</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -136,16 +138,23 @@
                                             <option value="Pix" {% if orcamento.forma_pagamento == 'Pix' %}selected{% endif %}>Pix</option>
                                             <option value="Dinheiro" {% if orcamento.forma_pagamento == 'Dinheiro' %}selected{% endif %}>Dinheiro</option>
                                         </select>
-                                        <div class="save-state" aria-live="polite"></div>
                                     </td>
                                     <td data-label="Vendedor">{{ orcamento.criado_por }}</td>
                                     <td data-label="Data">
                                         <input type="date" class="sale-input compact-date-field js-sale-field" data-field="data_fechamento" value="{{ orcamento.data_fechamento }}" {% if orcamento.status == 'Em Espera' %}disabled hidden{% endif %}>
                                     </td>
+                                    <td data-label="Obs.">
+                                        <button type="button"
+                                                class="note-button js-open-note {% if orcamento.observacao_vendas %}has-note{% endif %}"
+                                                data-note="{{ (orcamento.observacao_vendas or '')|e|replace('\n', '&#10;') }}"
+                                                aria-label="Abrir observações do orçamento">
+                                            &#128466;
+                                        </button>
+                                    </td>
                                 </tr>
                                 {% else %}
                                 <tr>
-                                    <td colspan="8">Nenhum orçamento salvo encontrado.</td>
+                                    <td colspan="9">Nenhum orçamento salvo encontrado.</td>
                                 </tr>
                                 {% endfor %}
                             </tbody>
@@ -182,10 +191,29 @@
         </section>
     </main>
 
+    <div class="note-modal" id="noteModal" hidden>
+        <div class="note-modal-backdrop js-close-note"></div>
+        <div class="note-modal-box" role="dialog" aria-modal="true" aria-labelledby="noteModalTitle">
+            <div class="note-modal-header">
+                <h2 id="noteModalTitle">Observações do orçamento</h2>
+                <button type="button" class="note-close js-close-note" aria-label="Fechar">&times;</button>
+            </div>
+            <textarea id="noteText" class="note-textarea" rows="10" placeholder="Escreva as observações necessárias..."></textarea>
+            <div class="note-modal-actions">
+                <button type="button" class="pilot-btn js-close-note">Cancelar</button>
+                <button type="button" class="pilot-btn pilot-btn-primary" id="saveNoteButton">Salvar</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const busca = document.getElementById('buscaConversao');
         const linhas = Array.from(document.querySelectorAll('#tabelaConversao tbody tr[data-search]'));
         const filtroPeriodo = document.querySelector('form[method="GET"]');
+        const noteModal = document.getElementById('noteModal');
+        const noteText = document.getElementById('noteText');
+        const saveNoteButton = document.getElementById('saveNoteButton');
+        let activeNoteRow = null;
 
         document.querySelectorAll('.js-period-filter').forEach((select) => {
             select.addEventListener('change', () => filtroPeriodo.submit());
@@ -217,6 +245,9 @@
                 payload.valor_venda = Number(linha.querySelector('[data-field="valor_venda"]')?.value || 0);
                 payload.forma_pagamento = linha.querySelector('[data-field="forma_pagamento"]')?.value || '';
             }
+            if (linha.dataset.includeNote === 'true') {
+                payload.observacao_vendas = linha.dataset.observacaoVendas || '';
+            }
             return payload;
         }
 
@@ -240,8 +271,6 @@
 
         function salvarLinha(linha, origem) {
             const payload = getSalePayload(linha);
-            const status = linha.querySelector('.save-state');
-            if (status) status.textContent = 'Salvando...';
 
             fetch('{{ url_for("atualizar_status_tipo_cliente") }}', {
                 method: 'POST',
@@ -252,32 +281,68 @@
             .then((data) => {
                 if (!data.success) {
                     alert(data.error || 'Não foi possível atualizar o orçamento.');
-                    if (status) status.textContent = '';
                     return;
                 }
                 alternarCamposVenda(linha);
-                if (status) {
-                    status.textContent = origem === 'status' ? 'Status salvo.' : 'Venda salva.';
-                    setTimeout(() => status.textContent = '', 1800);
-                }
             })
             .catch(() => {
                 alert('Erro de comunicação com o servidor.');
-                if (status) status.textContent = '';
             });
+        }
+
+
+
+        function abrirModalObservacao(linha, botao) {
+            activeNoteRow = linha;
+            noteText.value = botao.dataset.note || '';
+            noteModal.hidden = false;
+            noteText.focus();
+        }
+
+        function fecharModalObservacao() {
+            noteModal.hidden = true;
+            activeNoteRow = null;
+            noteText.value = '';
         }
 
         document.querySelectorAll('#tabelaConversao tbody tr[data-id]').forEach((linha) => {
             alternarCamposVenda(linha);
 
             linha.querySelectorAll('.js-conversion-field').forEach((campo) => {
-                campo.addEventListener('change', () => salvarLinha(linha, campo.dataset.field === 'status' ? 'status' : 'tipo'));
+                campo.addEventListener('change', () => {
+                    if (campo.dataset.field === 'status') {
+                        alternarCamposVenda(linha);
+                    }
+                    salvarLinha(linha, campo.dataset.field === 'status' ? 'status' : 'tipo');
+                });
             });
 
             linha.querySelectorAll('.js-sale-field').forEach((campo) => {
                 if (campo.closest('.js-conversion-field')) return;
                 campo.addEventListener('change', () => salvarLinha(linha, 'venda'));
             });
+
+            linha.querySelectorAll('.js-open-note').forEach((botao) => {
+                botao.addEventListener('click', () => abrirModalObservacao(linha, botao));
+            });
+        });
+
+        document.querySelectorAll('.js-close-note').forEach((botao) => {
+            botao.addEventListener('click', fecharModalObservacao);
+        });
+
+        saveNoteButton.addEventListener('click', () => {
+            if (!activeNoteRow) return;
+            const botao = activeNoteRow.querySelector('.js-open-note');
+            activeNoteRow.dataset.observacaoVendas = noteText.value;
+            activeNoteRow.dataset.includeNote = 'true';
+            if (botao) {
+                botao.dataset.note = noteText.value;
+                botao.classList.toggle('has-note', noteText.value.trim().length > 0);
+            }
+            salvarLinha(activeNoteRow, 'observacao');
+            activeNoteRow.dataset.includeNote = 'false';
+            fecharModalObservacao();
         });
     </script>
 </body>

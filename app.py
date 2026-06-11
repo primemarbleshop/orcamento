@@ -33,6 +33,7 @@ from config import Config
 WHATSAPP_PHONE_ID = os.getenv('WHATSAPP_PHONE_ID', '')
 WHATSAPP_TOKEN = os.getenv('WHATSAPP_TOKEN', '')
 WHATSAPP_TEMPLATE_NAME = os.getenv('WHATSAPP_TEMPLATE_NAME', 'envio_orcamento')
+VENDAS_DATA_INICIAL = datetime(2026, 6, 1)
 
 def _formatar_telefone(telefone_cliente):
     telefone = telefone_cliente.replace(' ', '').replace('-', '').replace('(', '').replace(')', '')
@@ -267,6 +268,7 @@ class OrcamentoSalvo(db.Model):
     valor_venda = db.Column(db.Float, nullable=True)
     forma_pagamento = db.Column(db.String(30), nullable=True)
     data_fechamento = db.Column(db.DateTime, nullable=True)
+    observacao_vendas = db.Column(db.Text, nullable=True)
     entrada_percentual = db.Column(db.Float, nullable=True)
     final_percentual = db.Column(db.Float, nullable=True)
     entrada_valor = db.Column(db.Float, nullable=True)
@@ -381,6 +383,7 @@ def _garantir_colunas_orcamento_salvo():
         "valor_venda": "FLOAT",
         "forma_pagamento": "VARCHAR(30)",
         "data_fechamento": "DATETIME",
+        "observacao_vendas": "TEXT",
         "entrada_percentual": "FLOAT",
         "final_percentual": "FLOAT",
         "entrada_valor": "FLOAT",
@@ -1160,6 +1163,7 @@ def _dados_venda_orcamento(orcamento):
         "forma_pagamento": orcamento.forma_pagamento or "",
         "data_fechamento": orcamento.data_fechamento.strftime("%Y-%m-%d") if orcamento.data_fechamento else "",
         "data_fechamento_formatada": orcamento.data_fechamento.strftime("%d/%m/%Y") if orcamento.data_fechamento else "",
+        "observacao_vendas": orcamento.observacao_vendas or "",
         "entrada_percentual": entrada_percentual,
         "final_percentual": final_percentual,
         "entrada_valor": entrada_valor,
@@ -1224,14 +1228,20 @@ def _filtrar_orcamentos_por_periodo(orcamentos, mes=None, ano=None):
         ano = None
 
     filtrados = []
+    data_minima = VENDAS_DATA_INICIAL.date()
     for orcamento in orcamentos:
         status = orcamento.status or "Em Espera"
         if status == "Em Espera":
+            data_criacao = orcamento.data_salvo.date() if orcamento.data_salvo else None
+            if data_criacao and data_criacao < data_minima:
+                continue
             filtrados.append(orcamento)
             continue
 
         data_base = orcamento.data_fechamento
         if not data_base:
+            continue
+        if data_base.date() < data_minima:
             continue
         if ano and data_base.year != ano:
             continue
@@ -1247,8 +1257,9 @@ def conversao_vendas():
 
     todos_orcamentos = _orcamentos_salvos_visiveis()
     hoje = datetime.now(br_tz)
+    anos_base = set(range(VENDAS_DATA_INICIAL.year, hoje.year + 1))
     anos_disponiveis = sorted(
-        {o.data_fechamento.year for o in todos_orcamentos if o.data_fechamento} | {hoje.year},
+        anos_base | {o.data_fechamento.year for o in todos_orcamentos if o.data_fechamento},
         reverse=True,
     )
     mes_filtro = request.args.get("mes", str(hoje.month))
@@ -2780,6 +2791,7 @@ def atualizar_status_tipo_cliente():
         final_valor = _float_payload(data.get('final_valor'))
         forma_pagamento = (data.get('forma_pagamento') or '').strip()
         data_fechamento = _data_payload(data.get('data_fechamento'))
+        observacao_vendas = data.get('observacao_vendas')
 
         if not orcamento_id:
             return jsonify({"success": False, "error": "ID do orçamento não foi enviado!"}), 400
@@ -2796,6 +2808,8 @@ def atualizar_status_tipo_cliente():
             orcamento.tipo_cliente = novo_tipo_cliente
         if novo_status == "Em Espera":
             orcamento.data_fechamento = None
+        if (orcamento.status or "") in ("Aprovado", "Declinado") and "data_fechamento" not in data and not orcamento.data_fechamento:
+            orcamento.data_fechamento = datetime.now(br_tz).replace(hour=0, minute=0, second=0, microsecond=0)
         if "valor_venda" in data:
             orcamento.valor_venda = valor_venda
         if "entrada_percentual" in data:
@@ -2813,6 +2827,8 @@ def atualizar_status_tipo_cliente():
                 orcamento.data_fechamento = data_fechamento or datetime.now(br_tz).replace(hour=0, minute=0, second=0, microsecond=0)
             else:
                 orcamento.data_fechamento = None
+        if "observacao_vendas" in data:
+            orcamento.observacao_vendas = observacao_vendas or None
 
         db.session.commit()
 
