@@ -4024,8 +4024,9 @@ def itens_excluidos_count(codigo):
 
 
 
+criar_banco()
+
 if __name__ == '__main__':
-    criar_banco()
     port = int(os.getenv("PORT", "5000"))
     host = os.getenv("HOST", "127.0.0.1")
     debug = os.getenv("FLASK_DEBUG", "1").lower() in ("1", "true", "yes", "on")
