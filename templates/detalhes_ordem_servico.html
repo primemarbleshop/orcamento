@@ -1521,6 +1521,8 @@ height: 0px !important;
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.11/dist/interact.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
     <script>
     const CONFIG = {
@@ -2629,15 +2631,89 @@ refazer() {
             });
         }
 
-        imprimirDesenho() {
-            console.log('Preparando impressão do estado atual...');
-            
+        async imprimirDesenho() {
+            console.log('Gerando PDF limpo da ordem de serviço...');
+
             this.salvarEstadoHistorico('Antes da Impressão');
             this.desselecionarElemento();
-            
-            setTimeout(() => {
+
+            const elemento = document.querySelector('.main-container');
+            const botoes = document.querySelectorAll('.top-buttons-container, .action-buttons-container, .mobile-buttons-container, .zoom-controls, .handles-container');
+
+            if (!elemento || !window.html2canvas || !window.jspdf) {
                 window.print();
-            }, 500);
+                return;
+            }
+
+            try {
+                Swal.fire({
+                    title: 'Gerando PDF...',
+                    text: 'Preparando impressão sem cabeçalho e rodapé do navegador.',
+                    allowOutsideClick: false,
+                    didOpen: () => Swal.showLoading()
+                });
+
+                botoes.forEach((item) => item.dataset.printDisplay = item.style.display || '');
+                botoes.forEach((item) => item.style.display = 'none');
+                document.body.classList.add('gerando-pdf-os');
+                await new Promise((resolve) => setTimeout(resolve, 180));
+
+                const canvas = await html2canvas(elemento, {
+                    scale: 2,
+                    useCORS: true,
+                    allowTaint: true,
+                    backgroundColor: '#ffffff',
+                    scrollX: 0,
+                    scrollY: 0,
+                    windowWidth: Math.max(elemento.scrollWidth, 1200),
+                    windowHeight: Math.max(elemento.scrollHeight, 1600)
+                });
+
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const pageWidth = pdf.internal.pageSize.getWidth();
+                const pageHeight = pdf.internal.pageSize.getHeight();
+                const margin = 8;
+                const usableWidth = pageWidth - (margin * 2);
+                const usableHeight = pageHeight - (margin * 2);
+                const imgWidth = usableWidth;
+                const pageCanvasHeight = Math.floor((usableHeight * canvas.width) / imgWidth);
+
+                let sourceY = 0;
+                let pageIndex = 0;
+
+                while (sourceY < canvas.height) {
+                    const sliceHeight = Math.min(pageCanvasHeight, canvas.height - sourceY);
+                    const pageCanvas = document.createElement('canvas');
+                    pageCanvas.width = canvas.width;
+                    pageCanvas.height = sliceHeight;
+                    const context = pageCanvas.getContext('2d');
+                    context.fillStyle = '#ffffff';
+                    context.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+                    context.drawImage(canvas, 0, sourceY, canvas.width, sliceHeight, 0, 0, canvas.width, sliceHeight);
+
+                    if (pageIndex > 0) pdf.addPage();
+                    const sliceImgHeight = (sliceHeight * imgWidth) / canvas.width;
+                    pdf.addImage(pageCanvas.toDataURL('image/jpeg', 0.95), 'JPEG', margin, margin, imgWidth, sliceImgHeight);
+
+                    sourceY += sliceHeight;
+                    pageIndex += 1;
+                }
+
+                const blobUrl = pdf.output('bloburl');
+                Swal.close();
+                window.open(blobUrl, '_blank');
+            } catch (error) {
+                console.error('Erro ao gerar PDF de impressão:', error);
+                Swal.close();
+                window.print();
+            } finally {
+                document.body.classList.remove('gerando-pdf-os');
+                botoes.forEach((item) => {
+                    item.style.display = item.dataset.printDisplay || '';
+                    delete item.dataset.printDisplay;
+                });
+            }
         }
 
         configurarEventos() {
