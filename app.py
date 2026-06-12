@@ -148,6 +148,8 @@ def dados_usuario_layout():
 def injetar_ordenacao_tabelas(response):
     if response.direct_passthrough or response.mimetype != "text/html" or response.status_code >= 300:
         return response
+    if request.endpoint == "relatorio_vendas":
+        return response
 
     html = response.get_data(as_text=True)
     if not html or "sortable_tables.js" in html or "</body>" not in html.lower():
@@ -1413,13 +1415,54 @@ def relatorio_vendas():
         for item in grupo.values():
             item["ticket"] = item["valor"] / item["quantidade"] if item["quantidade"] else 0
 
+    formas_pagamento = dict(
+        sorted(formas_pagamento.items(), key=lambda item: item[1]["valor"], reverse=True)
+    )
+    vendedores = dict(
+        sorted(vendedores.items(), key=lambda item: item[1]["valor"], reverse=True)
+    )
+    tipos_cliente = dict(
+        sorted(tipos_cliente.items(), key=lambda item: item[1]["valor"], reverse=True)
+    )
     clientes_resumo = dict(
         sorted(clientes_resumo.items(), key=lambda item: item[1]["valor"], reverse=True)[:8]
     )
+    aprovados = status_resumo.get("Aprovado", {"quantidade": 0, "valor": 0})
+    declinados = status_resumo.get("Declinado", {"quantidade": 0, "valor": 0})
+    em_espera = status_resumo.get("Em Espera", {"quantidade": 0, "valor": 0})
+    decisoes = aprovados["quantidade"] + declinados["quantidade"]
+    taxa_ganho = round((aprovados["quantidade"] / decisoes) * 100, 1) if decisoes else 0
+    ticket_vendas = aprovados["valor"] / aprovados["quantidade"] if aprovados["quantidade"] else 0
+    observacoes_count = sum(1 for o in orcamentos if getattr(o, "observacao_vendas", None))
+    usuario_atual = Usuario.query.filter_by(cpf=session.get("user_cpf")).first()
+    responsavel_relatorio = "Prime Marble Shop" if session.get("user_cpf") == "39903780000115" else (
+        usuario_atual.nome if usuario_atual and usuario_atual.nome else session.get("user_cpf", "")
+    )
+    resumo_executivo = {
+        "periodo": periodo_label,
+        "emitido_em": hoje.strftime("%d/%m/%Y %H:%M"),
+        "responsavel": responsavel_relatorio,
+        "orcamentos_analisados": len(orcamentos),
+        "receita_aprovada": aprovados["valor"],
+        "receita_aprovada_formatada": _moeda(aprovados["valor"]),
+        "valor_negociacao": em_espera["valor"],
+        "valor_negociacao_formatado": _moeda(em_espera["valor"]),
+        "valor_perdido": declinados["valor"],
+        "valor_perdido_formatado": _moeda(declinados["valor"]),
+        "aprovados": aprovados["quantidade"],
+        "declinados": declinados["quantidade"],
+        "em_espera": em_espera["quantidade"],
+        "decisoes": decisoes,
+        "taxa_ganho": taxa_ganho,
+        "ticket_medio": ticket_vendas,
+        "ticket_medio_formatado": _moeda(ticket_vendas),
+        "observacoes": observacoes_count,
+    }
 
     return render_template(
         "relatorio_vendas.html",
         periodo_label=periodo_label,
+        resumo=resumo_executivo,
         dashboard=dashboard,
         orcamentos=dashboard["recentes"],
         status_resumo=status_resumo,
