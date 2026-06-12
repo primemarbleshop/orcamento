@@ -555,7 +555,6 @@
         right: 0;
         height: 0;
         border-top: 2px dashed rgba(78, 115, 223, 0.65);
-        box-shadow: 0 0 0 9999px rgba(78, 115, 223, 0.025);
         z-index: 4;
         pointer-events: none;
     }
@@ -1138,37 +1137,67 @@
             width: 100% !important;
             max-width: 100% !important;
             margin: 0 !important;
-            padding: 68px 10px 10px !important;
+            padding: 185px 10px 10px !important;
             font-size: 18px !important;
             background: white !important;
             box-shadow: none !important;
         }
 
         .print-page-header {
-            display: flex !important;
+            display: grid !important;
+            grid-template-columns: 1fr 135px !important;
+            gap: 18px !important;
             position: fixed !important;
             top: 0 !important;
             left: 0 !important;
             right: 0 !important;
-            height: 48px !important;
-            align-items: center !important;
-            justify-content: space-between !important;
-            padding: 6px 10px !important;
+            height: 165px !important;
+            align-items: start !important;
+            padding: 10px 10px 8px !important;
             background: white !important;
             border-bottom: 1px solid #999 !important;
-            font-size: 10px !important;
+            font-size: 11px !important;
             line-height: 1.2 !important;
             z-index: 9999 !important;
+            box-sizing: border-box !important;
+        }
+
+        .print-page-header h1,
+        .print-page-header h2,
+        .print-page-header p {
+            margin: 0 0 3px !important;
+            padding: 0 !important;
+            line-height: 1.15 !important;
+            text-align: left !important;
+        }
+
+        .print-page-header h1 {
+            font-size: 22px !important;
+            font-weight: 500 !important;
+        }
+
+        .print-page-header h2 {
+            font-size: 17px !important;
+            font-weight: 500 !important;
         }
 
         .print-page-header strong {
-            font-size: 12px !important;
+            font-weight: 700 !important;
         }
 
         .print-page-header img {
-            width: 42px !important;
-            height: 42px !important;
+            justify-self: end !important;
+            align-self: start !important;
+            width: 120px !important;
+            height: 120px !important;
             object-fit: contain !important;
+        }
+
+        .header-container,
+        .cliente-header,
+        .main-container > h2,
+        .orcamento-info {
+            display: none !important;
         }
 
         .peca, .cuba, .texto-legenda, .legenda-simplificada, 
@@ -1526,11 +1555,14 @@ height: 0px !important;
     <div class="main-container">
         <div class="print-page-header">
             <div>
-                <strong>Prime Marble Shop</strong><br>
-                OS {{ codigo_orcamento }} - {{ cliente_nome }}
-            </div>
-            <div>
-                Data: {{ data_salvo.strftime('%d/%m/%Y') }}
+                <h1>Prime Marble Shop</h1>
+                <p><strong>Endereço:</strong> Estrada do Engenho, 1800 - Bangu</p>
+                <p><strong>CNPJ:</strong> 39.903.780/0001-15</p>
+                <h2><strong>Cliente:</strong> {{ cliente_nome }}</h2>
+                <p><strong>Endereço:</strong> {{ orcamentos[0].cliente.endereco }}</p>
+                <p><strong>Telefone:</strong> {{ orcamentos[0].cliente.telefone }}</p>
+                <h2>Ordem de Serviço - {{ codigo_orcamento }}</h2>
+                <p><strong>Data:</strong> {{ data_salvo.strftime('%d/%m/%Y') }}</p>
             </div>
             <img src="{{ logo_url }}" alt="Logo da Empresa">
         </div>
@@ -2339,6 +2371,11 @@ atualizarCursorBorracha(e) {
         limparAuxiliaresImpressao(root = this.drawingArea) {
             if (!root) return;
             root.querySelectorAll('.page-break-guide, .page-repeat-title').forEach((item) => item.remove());
+            if (root !== this.drawingArea) {
+                root.querySelectorAll('[data-page-auto-shift]').forEach((item) => {
+                    item.removeAttribute('data-page-auto-shift');
+                });
+            }
         }
 
         obterTituloMaterialParaPosicao(posicaoY) {
@@ -2360,14 +2397,96 @@ atualizarCursorBorracha(e) {
             return tituloAtual;
         }
 
+        obterElementosRaizParaPaginacao() {
+            return Array.from(this.drawingArea.querySelectorAll(
+                '.area-pecas > .peca, .area-pecas > .cuba, .area-pecas > .texto-legenda, .area-pecas > .legenda-simplificada, #drawingArea > .cuba, #drawingArea > .texto-legenda, #drawingArea > .legenda-simplificada, #drawingArea > .titulo-grupo'
+            )).filter((elemento) => {
+                return !elemento.classList.contains('page-repeat-title') &&
+                    !elemento.classList.contains('page-break-guide') &&
+                    !elemento.classList.contains('cursor-borracha') &&
+                    !elemento.classList.contains('grupo-temporario');
+            });
+        }
+
+        obterTopRelativoArea(elemento) {
+            const areaRect = this.drawingArea.getBoundingClientRect();
+            const rect = elemento.getBoundingClientRect();
+            return rect.top - areaRect.top + this.drawingArea.scrollTop;
+        }
+
+        obterAlturaElemento(elemento) {
+            const rect = elemento.getBoundingClientRect();
+            return rect.height || parseFloat(elemento.style.height) || 0;
+        }
+
+        ajustarElementoPaginacao(elemento, delta) {
+            const topAtual = parseFloat(elemento.style.top) || 0;
+            const deslocamentoAtual = parseFloat(elemento.dataset.pageAutoShift || '0') || 0;
+            elemento.style.top = `${topAtual + delta}px`;
+            elemento.dataset.pageAutoShift = `${deslocamentoAtual + delta}`;
+        }
+
+        limparAjustesAutomaticosPaginacao() {
+            this.obterElementosRaizParaPaginacao().forEach((elemento) => {
+                const deslocamento = parseFloat(elemento.dataset.pageAutoShift || '0') || 0;
+                if (deslocamento) {
+                    const topAtual = parseFloat(elemento.style.top) || 0;
+                    elemento.style.top = `${topAtual - deslocamento}px`;
+                    delete elemento.dataset.pageAutoShift;
+                }
+            });
+        }
+
+        ajustarPecasParaQuebrasPagina() {
+            const alturaPaginaDesenho = 900;
+            const espacoTituloPagina = 245;
+            const margemSeguranca = 20;
+
+            this.limparAjustesAutomaticosPaginacao();
+
+            for (let tentativa = 0; tentativa < 8; tentativa++) {
+                let alterou = false;
+                const elementos = this.obterElementosRaizParaPaginacao()
+                    .map((elemento) => {
+                        const top = this.obterTopRelativoArea(elemento);
+                        const height = this.obterAlturaElemento(elemento);
+                        return { elemento, top, bottom: top + height };
+                    })
+                    .sort((a, b) => a.top - b.top);
+
+                const alturaConteudo = elementos.reduce((maior, item) => Math.max(maior, item.bottom), 0) + 120;
+
+                for (let quebra = alturaPaginaDesenho; quebra < alturaConteudo; quebra += alturaPaginaDesenho) {
+                    const itemProblema = elementos.find((item) => {
+                        const cruzaQuebra = item.top < (quebra - margemSeguranca) && item.bottom > (quebra - margemSeguranca);
+                        const invadeCabecalhoPagina = item.top >= (quebra - margemSeguranca) && item.top < (quebra + espacoTituloPagina);
+                        return cruzaQuebra || invadeCabecalhoPagina;
+                    });
+
+                    if (!itemProblema) continue;
+
+                    const delta = (quebra + espacoTituloPagina) - itemProblema.top;
+                    elementos
+                        .filter((item) => item.top >= itemProblema.top - 1)
+                        .forEach((item) => this.ajustarElementoPaginacao(item.elemento, delta));
+
+                    alterou = true;
+                    break;
+                }
+
+                if (!alterou) break;
+            }
+        }
+
         atualizarGuiasQuebraPagina() {
             if (!this.drawingArea) return;
 
             const scrollTop = this.drawingArea.scrollTop;
             const scrollLeft = this.drawingArea.scrollLeft;
             this.limparAuxiliaresImpressao();
+            this.ajustarPecasParaQuebrasPagina();
 
-            const alturaPaginaDesenho = 1040;
+            const alturaPaginaDesenho = 900;
             const areaRect = this.drawingArea.getBoundingClientRect();
             const elementosConteudo = Array.from(this.drawingArea.querySelectorAll(
                 '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca, .pintura-borracha'
@@ -2391,12 +2510,18 @@ atualizarCursorBorracha(e) {
                 guia.style.top = `${posicaoQuebra}px`;
                 this.drawingArea.appendChild(guia);
 
-                const tituloMaterial = this.obterTituloMaterialParaPosicao(posicaoQuebra);
+                const tituloJaNaProximaPagina = Array.from(this.drawingArea.querySelectorAll('.titulo-grupo'))
+                    .filter((titulo) => !titulo.classList.contains('page-repeat-title'))
+                    .some((titulo) => {
+                        const top = parseFloat(titulo.style.top) || titulo.offsetTop || 0;
+                        return top >= posicaoQuebra + 160 && top <= posicaoQuebra + 260;
+                    });
+                const tituloMaterial = tituloJaNaProximaPagina ? null : this.obterTituloMaterialParaPosicao(posicaoQuebra);
                 if (tituloMaterial) {
                     const tituloRepetido = document.createElement('div');
                     tituloRepetido.className = 'page-repeat-title';
                     tituloRepetido.textContent = tituloMaterial.textContent.trim();
-                    tituloRepetido.style.top = `${posicaoQuebra + 18}px`;
+                    tituloRepetido.style.top = `${posicaoQuebra + 185}px`;
                     this.drawingArea.appendChild(tituloRepetido);
                 }
             }
@@ -2461,6 +2586,7 @@ atualizarCursorBorracha(e) {
         '#laco-selecao, .laco-temporario, .linha-temporaria, .preview-laco, .cursor-borracha, .page-break-guide, .page-repeat-title'
     );
     temporarios.forEach(el => el.remove());
+    clone.querySelectorAll('[data-page-auto-shift]').forEach(el => el.removeAttribute('data-page-auto-shift'));
 
     const grupoTemp = clone.querySelector('.grupo-temporario');
     if (grupoTemp) grupoTemp.remove();
