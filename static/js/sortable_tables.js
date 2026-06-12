@@ -89,6 +89,19 @@
         });
     }
 
+    function restoreDefaultOrder(table, header) {
+        Array.from(table.tBodies || []).forEach((tbody) => {
+            Array.from(tbody.rows)
+                .sort((a, b) => Number(a.dataset.sortOriginalIndex || 0) - Number(b.dataset.sortOriginalIndex || 0))
+                .forEach((row) => tbody.appendChild(row));
+        });
+
+        clearTableState(table, header);
+        delete table.dataset.sortColumn;
+        table.dataset.sortDirection = 'default';
+        header.setAttribute('aria-sort', 'none');
+    }
+
     function sortTable(table, columnIndex, direction, header) {
         Array.from(table.tBodies || []).forEach((tbody) => {
             const rows = Array.from(tbody.rows)
@@ -109,10 +122,27 @@
         header.setAttribute('aria-sort', direction === 'asc' ? 'ascending' : 'descending');
     }
 
+    function nextSortState(table, columnIndex) {
+        if (table.dataset.sortColumn !== String(columnIndex)) return 'asc';
+        if (table.dataset.sortDirection === 'asc') return 'desc';
+        if (table.dataset.sortDirection === 'desc') return 'default';
+        return 'asc';
+    }
+
     function prepareTable(table) {
         if (table.dataset.sortableReady === 'true') return;
         const headerRow = table.tHead?.rows?.[0];
         if (!headerRow || !table.tBodies?.length) return;
+
+        let originalIndex = 0;
+        Array.from(table.tBodies).forEach((tbody) => {
+            Array.from(tbody.rows).forEach((row) => {
+                if (!row.dataset.sortOriginalIndex) {
+                    row.dataset.sortOriginalIndex = String(originalIndex);
+                }
+                originalIndex += 1;
+            });
+        });
 
         Array.from(headerRow.cells).forEach((th, index) => {
             if (!isSortableHeader(th)) return;
@@ -120,13 +150,15 @@
             th.tabIndex = 0;
             th.setAttribute('role', 'button');
             th.setAttribute('aria-sort', 'none');
-            th.title = 'Clique para ordenar';
+            th.title = 'Clique para ordenar: crescente, decrescente e padrão';
 
             const activate = () => {
-                const currentColumn = table.dataset.sortColumn;
-                const currentDirection = table.dataset.sortDirection || 'desc';
-                const direction = currentColumn === String(index) && currentDirection === 'asc' ? 'desc' : 'asc';
-                sortTable(table, index, direction, th);
+                const direction = nextSortState(table, index);
+                if (direction === 'default') {
+                    restoreDefaultOrder(table, th);
+                } else {
+                    sortTable(table, index, direction, th);
+                }
             };
 
             th.addEventListener('click', activate);
