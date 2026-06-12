@@ -144,6 +144,31 @@ def dados_usuario_layout():
     usuario = Usuario.query.filter_by(cpf=cpf).first()
     return {"usuario_display_nome": usuario.nome if usuario and usuario.nome else cpf}
 
+@app.after_request
+def injetar_ordenacao_tabelas(response):
+    if response.direct_passthrough or response.mimetype != "text/html" or response.status_code >= 300:
+        return response
+
+    html = response.get_data(as_text=True)
+    if not html or "sortable_tables.js" in html or "</body>" not in html.lower():
+        return response
+
+    css_tag = '<link rel="stylesheet" href="/static/css/sortable_tables.css">'
+    js_tag = '<script src="/static/js/sortable_tables.js" defer></script>'
+    lower_html = html.lower()
+    head_index = lower_html.rfind("</head>")
+
+    if head_index != -1 and "sortable_tables.css" not in html:
+        html = html[:head_index] + f"    {css_tag}\n" + html[head_index:]
+
+    body_index = html.lower().rfind("</body>")
+    if body_index != -1:
+        html = html[:body_index] + f"    {js_tag}\n" + html[body_index:]
+        response.set_data(html)
+        response.headers["Content-Length"] = str(len(response.get_data()))
+
+    return response
+
 def gerar_token_orcamento(codigo):
     return _url_serializer.dumps(codigo)
 
