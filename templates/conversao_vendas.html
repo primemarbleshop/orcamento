@@ -16,7 +16,6 @@
                 <div class="dash-title">
                     <div>
                         <h1>Controle de vendas {{ periodo_label }}</h1>
-                        <p>Controle status, data de fechamento, valor vendido e forma de pagamento.</p>
                     </div>
                     <a href="{{ url_for('relatorio_vendas', mes=filtro_mes or 'todos', ano=filtro_ano or 'todos') }}" class="pilot-btn pilot-btn-primary" target="_blank">Gerar relatório de vendas</a>
                 </div>
@@ -49,11 +48,6 @@
 
                 <div class="metric-grid">
                     <div class="metric-card">
-                        <div class="metric-label">Total no funil</div>
-                        <div class="metric-value" data-summary="total">{{ dashboard.total }}</div>
-                        <div class="metric-note"><span data-summary="valor_total">{{ dashboard.valor_total }}</span> em propostas</div>
-                    </div>
-                    <div class="metric-card">
                         <div class="metric-label">Em espera</div>
                         <div class="metric-value" data-summary="espera">{{ dashboard.espera }}</div>
                         <div class="metric-note"><span data-summary="valor_aberto">{{ dashboard.valor_aberto }}</span> em negociação</div>
@@ -64,9 +58,14 @@
                         <div class="metric-note"><span data-summary="valor_aprovado">{{ dashboard.valor_aprovado }}</span> convertido</div>
                     </div>
                     <div class="metric-card">
+                        <div class="metric-label">Declinados</div>
+                        <div class="metric-value" data-summary="declinados">{{ dashboard.declinados }}</div>
+                        <div class="metric-note">Não convertidos no período</div>
+                    </div>
+                    <div class="metric-card">
                         <div class="metric-label">Taxa</div>
                         <div class="metric-value"><span data-summary="taxa_conversao">{{ dashboard.taxa_conversao }}</span>%</div>
-                        <div class="metric-note">Conversão atual</div>
+                        <div class="metric-note">Aprovados sobre decisões</div>
                     </div>
                 </div>
 
@@ -107,8 +106,8 @@
                             </thead>
                             <tbody>
                                 {% for orcamento in orcamentos %}
-                                <tr data-search="{{ orcamento.codigo }} {{ orcamento.cliente }} {{ orcamento.criado_por }} {{ orcamento.status }} {{ orcamento.tipo_cliente }}" data-id="{{ orcamento.id }}" data-valor-total="{{ '%.2f'|format(orcamento.valor_float or 0) }}">
-                                    <td data-label="Código"><a href="{{ url_for('detalhes_orcamento_salvo', codigo=orcamento.codigo) }}">{{ orcamento.codigo }}</a></td>
+                                <tr data-search="{{ orcamento.codigo }} {{ orcamento.cliente }} {{ orcamento.criado_por }} {{ orcamento.status }} {{ orcamento.tipo_cliente }}" data-id="{{ orcamento.id }}" data-valor-total="{{ '%.2f'|format(orcamento.valor_float or 0) }}" data-data-salvo="{{ orcamento.data_salvo_iso }}">
+                                    <td data-label="Código"><a class="budget-code-link" href="{{ url_for('detalhes_orcamento_salvo', codigo=orcamento.codigo) }}">{{ orcamento.codigo }}</a></td>
                                     <td data-label="Cliente">{{ orcamento.cliente }}</td>
                                     <td data-label="Valor">
                                         <span class="js-valor-texto" {% if orcamento.status == 'Aprovado' %}hidden{% endif %}>{{ orcamento.valor }}</span>
@@ -244,7 +243,7 @@
         function linhaPertenceAoPeriodo(linha) {
             const statusAtual = linha.querySelector('[data-field="status"]').value;
             if (statusAtual === 'Em Espera') return true;
-            const dataFechamento = linha.querySelector('[data-field="data_fechamento"]')?.value;
+            const dataFechamento = linha.querySelector('[data-field="data_fechamento"]')?.value || linha.dataset.dataSalvo;
             if (!dataFechamento) return false;
             const partes = dataFechamento.split('-').map(Number);
             const ano = partes[0];
@@ -265,7 +264,6 @@
             let espera = 0;
             let aprovados = 0;
             let declinados = 0;
-            let valorTotal = 0;
             let valorAberto = 0;
             let valorAprovado = 0;
 
@@ -279,7 +277,6 @@
                 const valorVenda = numeroCampo(linha.querySelector('[data-field="valor_venda"]')) || valorOriginal;
 
                 total += 1;
-                valorTotal += valorOriginal;
 
                 if (statusAtual === 'Aprovado') {
                     aprovados += 1;
@@ -292,13 +289,13 @@
                 }
             });
 
-            const taxa = total ? ((aprovados / total) * 100).toFixed(1) : '0.0';
+            const decisoes = aprovados + declinados;
+            const taxa = decisoes ? ((aprovados / decisoes) * 100).toFixed(1) : '0.0';
 
-            setResumo('total', total);
             setResumo('espera', espera);
             setResumo('aprovados', aprovados);
+            setResumo('declinados', declinados);
             setResumo('taxa_conversao', taxa);
-            setResumo('valor_total', moedaBR(valorTotal));
             setResumo('valor_aberto', moedaBR(valorAberto));
             setResumo('valor_aprovado', moedaBR(valorAprovado));
             setResumo('side_espera', espera);
@@ -332,7 +329,7 @@
             return payload;
         }
 
-        function alternarCamposVenda(linha) {
+        function alternarCamposVenda(linha, preencherData = false) {
             const statusAtual = linha.querySelector('[data-field="status"]').value;
             const aprovado = statusAtual === 'Aprovado';
             const fechado = statusAtual === 'Aprovado' || statusAtual === 'Declinado';
@@ -345,7 +342,7 @@
             linha.querySelectorAll('.compact-date-field').forEach((campo) => {
                 campo.hidden = !fechado;
                 campo.disabled = !fechado;
-                if (fechado && !campo.value) campo.value = hoje;
+                if (preencherData && fechado && !campo.value) campo.value = hoje;
                 if (!fechado) campo.value = '';
             });
         }
@@ -397,7 +394,7 @@
             linha.querySelectorAll('.js-conversion-field').forEach((campo) => {
                 campo.addEventListener('change', () => {
                     if (campo.dataset.field === 'status') {
-                        alternarCamposVenda(linha);
+                        alternarCamposVenda(linha, true);
                     }
                     salvarLinha(linha, campo.dataset.field === 'status' ? 'status' : 'tipo');
                 });

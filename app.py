@@ -1181,7 +1181,8 @@ def _montar_dashboard_vendas(orcamentos, limite_recentes=6):
     valor_total = sum(o.valor_total or 0 for o in orcamentos)
     valor_aberto = sum(o.valor_total or 0 for o in espera)
     valor_aprovado = sum(_valor_venda_considerado(o) for o in aprovados)
-    taxa_conversao = round((len(aprovados) / total) * 100, 1) if total else 0
+    total_decidido = len(aprovados) + len(declinados)
+    taxa_conversao = round((len(aprovados) / total_decidido) * 100, 1) if total_decidido else 0
 
     recentes = []
     for orcamento in orcamentos[:limite_recentes]:
@@ -1208,6 +1209,7 @@ def _montar_dashboard_vendas(orcamentos, limite_recentes=6):
         "aprovados": len(aprovados),
         "espera": len(espera),
         "declinados": len(declinados),
+        "decididos": total_decidido,
         "taxa_conversao": taxa_conversao,
         "valor_total": _moeda(valor_total),
         "valor_aberto": _moeda(valor_aberto),
@@ -1238,7 +1240,7 @@ def _filtrar_orcamentos_por_periodo(orcamentos, mes=None, ano=None):
             filtrados.append(orcamento)
             continue
 
-        data_base = orcamento.data_fechamento
+        data_base = orcamento.data_fechamento or orcamento.data_salvo
         if not data_base:
             continue
         if data_base.date() < data_minima:
@@ -1311,6 +1313,7 @@ def conversao_vendas():
                 "tipo_cliente": o.tipo_cliente or "Cliente de Porta",
                 "criado_por": o.criado_por or "",
                 "data": o.data_salvo.strftime("%d/%m/%Y") if o.data_salvo else "",
+                "data_salvo_iso": o.data_salvo.strftime("%Y-%m-%d") if o.data_salvo else "",
                 **_dados_venda_orcamento(o),
             }
             for o in orcamentos
