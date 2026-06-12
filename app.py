@@ -1425,7 +1425,7 @@ def relatorio_vendas():
         sorted(tipos_cliente.items(), key=lambda item: item[1]["valor"], reverse=True)
     )
     clientes_resumo = dict(
-        sorted(clientes_resumo.items(), key=lambda item: item[1]["valor"], reverse=True)[:8]
+        sorted(clientes_resumo.items(), key=lambda item: item[1]["valor"], reverse=True)[:3]
     )
     aprovados = status_resumo.get("Aprovado", {"quantidade": 0, "valor": 0})
     declinados = status_resumo.get("Declinado", {"quantidade": 0, "valor": 0})
