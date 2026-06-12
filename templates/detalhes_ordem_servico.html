@@ -549,51 +549,6 @@
         pointer-events: auto;
     }
 
-    .page-break-guide {
-        position: absolute;
-        left: 0;
-        right: 0;
-        height: 0;
-        border-top: 2px dashed rgba(78, 115, 223, 0.65);
-        z-index: 4;
-        pointer-events: none;
-    }
-
-    .page-break-guide::after {
-        content: attr(data-label);
-        position: absolute;
-        right: 14px;
-        top: -26px;
-        padding: 4px 8px;
-        border-radius: 4px;
-        background: rgba(78, 115, 223, 0.12);
-        color: #2e59d9;
-        font-size: 12px;
-        font-weight: 700;
-        border: 1px solid rgba(78, 115, 223, 0.25);
-    }
-
-    .page-repeat-title {
-        position: absolute;
-        left: 10px;
-        min-width: 200px;
-        padding: 8px 12px;
-        border-radius: 5px;
-        border: 2px solid #4e73df;
-        background: rgba(255, 255, 255, 0.97);
-        color: #2e59d9;
-        font-size: 16px;
-        font-weight: 700;
-        z-index: 21;
-        pointer-events: none;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-        white-space: nowrap;
-    }
-
-    .print-page-header {
-        display: none;
-    }
-
     .titulo-grupo.selecionavel {
         cursor: pointer;
     }
@@ -1132,74 +1087,15 @@
         
         .main-container {
             position: absolute;
-            left: calc(50% - 500px);
+            left: 0;
             top: 0;
-            width: 1000px !important;
-            max-width: 1000px !important;
+            width: 100% !important;
+            max-width: 100% !important;
             margin: 0 !important;
-            padding: 210px 0 10px !important;
+            padding: 10px !important;
             font-size: 18px !important;
             background: white !important;
             box-shadow: none !important;
-            box-sizing: border-box !important;
-        }
-
-        .print-page-header {
-            display: grid !important;
-            grid-template-columns: 1fr 170px !important;
-            gap: 24px !important;
-            position: fixed !important;
-            top: 0 !important;
-            left: calc(50% - 500px) !important;
-            right: auto !important;
-            width: 1000px !important;
-            height: 190px !important;
-            align-items: start !important;
-            padding: 10px 0 10px !important;
-            background: white !important;
-            border-bottom: 1px solid #999 !important;
-            font-size: 14px !important;
-            line-height: 1.25 !important;
-            z-index: 9999 !important;
-            box-sizing: border-box !important;
-        }
-
-        .print-page-header h1,
-        .print-page-header h2,
-        .print-page-header p {
-            margin: 0 0 3px !important;
-            padding: 0 !important;
-            line-height: 1.15 !important;
-            text-align: left !important;
-        }
-
-        .print-page-header h1 {
-            font-size: 32px !important;
-            font-weight: 500 !important;
-        }
-
-        .print-page-header h2 {
-            font-size: 22px !important;
-            font-weight: 500 !important;
-        }
-
-        .print-page-header strong {
-            font-weight: 700 !important;
-        }
-
-        .print-page-header img {
-            justify-self: end !important;
-            align-self: start !important;
-            width: 160px !important;
-            height: 160px !important;
-            object-fit: contain !important;
-        }
-
-        .header-container,
-        .cliente-header,
-        .main-container > h2,
-        .orcamento-info {
-            display: none !important;
         }
 
         .peca, .cuba, .texto-legenda, .legenda-simplificada, 
@@ -1217,25 +1113,8 @@
         .handle-rotacao,
         .elemento-selecionado,
         .modal-controles,
-        .modal-backdrop,
-        .page-break-guide { 
+        .modal-backdrop { 
             display: none !important; 
-        }
-
-        .page-repeat-title {
-            display: block !important;
-            position: absolute !important;
-            left: 10px !important;
-            min-width: 200px !important;
-            padding: 8px 12px !important;
-            border-radius: 5px !important;
-            border: 2px solid #4e73df !important;
-            background: white !important;
-            color: #2e59d9 !important;
-            font-size: 16px !important;
-            font-weight: 700 !important;
-            z-index: 21 !important;
-            box-shadow: none !important;
         }
 
         .drawing-area {
@@ -1555,20 +1434,6 @@ height: 0px !important;
 </head>
 <body>
     <div class="main-container">
-        <div class="print-page-header">
-            <div>
-                <h1>Prime Marble Shop</h1>
-                <p><strong>Endereço:</strong> Estrada do Engenho, 1800 - Bangu</p>
-                <p><strong>CNPJ:</strong> 39.903.780/0001-15</p>
-                <h2><strong>Cliente:</strong> {{ cliente_nome }}</h2>
-                <p><strong>Endereço:</strong> {{ orcamentos[0].cliente.endereco }}</p>
-                <p><strong>Telefone:</strong> {{ orcamentos[0].cliente.telefone }}</p>
-                <h2>Ordem de Serviço - {{ codigo_orcamento }}</h2>
-                <p><strong>Data:</strong> {{ data_salvo.strftime('%d/%m/%Y') }}</p>
-            </div>
-            <img src="{{ logo_url }}" alt="Logo da Empresa">
-        </div>
-
         <div class="top-buttons-container">
             <a href="/ordens_servico" class="btn btn-custom-primary">
                 <i class="fas fa-arrow-left me-1"></i> Voltar
@@ -2344,7 +2209,6 @@ atualizarCursorBorracha(e) {
                 this.drawingArea.innerHTML = this.desenhoSalvo;
                 this.restaurarElementosTexto();
                 this.reconfigurarElementosAposHistorico();
-                this.atualizarGuiasQuebraPagina();
                 console.log('Desenho salvo carregado com sucesso!');
             } catch (error) {
                 console.error('Erro ao carregar desenho salvo:', error);
@@ -2368,168 +2232,6 @@ atualizarCursorBorracha(e) {
                 texto.style.height = 'auto';
                 texto.style.height = (texto.scrollHeight) + 'px';
             });
-        }
-
-        limparAuxiliaresImpressao(root = this.drawingArea) {
-            if (!root) return;
-            root.querySelectorAll('.page-break-guide, .page-repeat-title').forEach((item) => item.remove());
-            if (root !== this.drawingArea) {
-                root.querySelectorAll('[data-page-auto-shift]').forEach((item) => {
-                    item.removeAttribute('data-page-auto-shift');
-                });
-            }
-        }
-
-        obterTituloMaterialParaPosicao(posicaoY) {
-            const titulos = Array.from(this.drawingArea.querySelectorAll('.titulo-grupo'))
-                .filter((titulo) => !titulo.classList.contains('page-repeat-title'))
-                .map((titulo) => ({
-                    elemento: titulo,
-                    top: parseFloat(titulo.style.top) || titulo.offsetTop || 0
-                }))
-                .sort((a, b) => a.top - b.top);
-
-            let tituloAtual = null;
-            titulos.forEach((titulo) => {
-                if (titulo.top < posicaoY) {
-                    tituloAtual = titulo.elemento;
-                }
-            });
-
-            return tituloAtual;
-        }
-
-        obterElementosRaizParaPaginacao() {
-            return Array.from(this.drawingArea.querySelectorAll(
-                '.area-pecas > .peca, .area-pecas > .cuba, .area-pecas > .texto-legenda, .area-pecas > .legenda-simplificada, #drawingArea > .cuba, #drawingArea > .texto-legenda, #drawingArea > .legenda-simplificada, #drawingArea > .titulo-grupo'
-            )).filter((elemento) => {
-                return !elemento.classList.contains('page-repeat-title') &&
-                    !elemento.classList.contains('page-break-guide') &&
-                    !elemento.classList.contains('cursor-borracha') &&
-                    !elemento.classList.contains('grupo-temporario');
-            });
-        }
-
-        obterTopRelativoArea(elemento) {
-            const areaRect = this.drawingArea.getBoundingClientRect();
-            const rect = elemento.getBoundingClientRect();
-            return rect.top - areaRect.top + this.drawingArea.scrollTop;
-        }
-
-        obterAlturaElemento(elemento) {
-            const rect = elemento.getBoundingClientRect();
-            return rect.height || parseFloat(elemento.style.height) || 0;
-        }
-
-        ajustarElementoPaginacao(elemento, delta) {
-            const topAtual = parseFloat(elemento.style.top) || 0;
-            const deslocamentoAtual = parseFloat(elemento.dataset.pageAutoShift || '0') || 0;
-            elemento.style.top = `${topAtual + delta}px`;
-            elemento.dataset.pageAutoShift = `${deslocamentoAtual + delta}`;
-        }
-
-        limparAjustesAutomaticosPaginacao() {
-            this.obterElementosRaizParaPaginacao().forEach((elemento) => {
-                const deslocamento = parseFloat(elemento.dataset.pageAutoShift || '0') || 0;
-                if (deslocamento) {
-                    const topAtual = parseFloat(elemento.style.top) || 0;
-                    elemento.style.top = `${topAtual - deslocamento}px`;
-                    delete elemento.dataset.pageAutoShift;
-                }
-            });
-        }
-
-        ajustarPecasParaQuebrasPagina() {
-            const alturaPaginaDesenho = 900;
-            const espacoTituloPagina = 275;
-            const margemSeguranca = 20;
-
-            this.limparAjustesAutomaticosPaginacao();
-
-            for (let tentativa = 0; tentativa < 8; tentativa++) {
-                let alterou = false;
-                const elementos = this.obterElementosRaizParaPaginacao()
-                    .map((elemento) => {
-                        const top = this.obterTopRelativoArea(elemento);
-                        const height = this.obterAlturaElemento(elemento);
-                        return { elemento, top, bottom: top + height };
-                    })
-                    .sort((a, b) => a.top - b.top);
-
-                const alturaConteudo = elementos.reduce((maior, item) => Math.max(maior, item.bottom), 0) + 120;
-
-                for (let quebra = alturaPaginaDesenho; quebra < alturaConteudo; quebra += alturaPaginaDesenho) {
-                    const itemProblema = elementos.find((item) => {
-                        const cruzaQuebra = item.top < (quebra - margemSeguranca) && item.bottom > (quebra - margemSeguranca);
-                        const invadeCabecalhoPagina = item.top >= (quebra - margemSeguranca) && item.top < (quebra + espacoTituloPagina);
-                        return cruzaQuebra || invadeCabecalhoPagina;
-                    });
-
-                    if (!itemProblema) continue;
-
-                    const delta = (quebra + espacoTituloPagina) - itemProblema.top;
-                    elementos
-                        .filter((item) => item.top >= itemProblema.top - 1)
-                        .forEach((item) => this.ajustarElementoPaginacao(item.elemento, delta));
-
-                    alterou = true;
-                    break;
-                }
-
-                if (!alterou) break;
-            }
-        }
-
-        atualizarGuiasQuebraPagina() {
-            if (!this.drawingArea) return;
-
-            const scrollTop = this.drawingArea.scrollTop;
-            const scrollLeft = this.drawingArea.scrollLeft;
-            this.limparAuxiliaresImpressao();
-            this.ajustarPecasParaQuebrasPagina();
-
-            const alturaPaginaDesenho = 900;
-            const areaRect = this.drawingArea.getBoundingClientRect();
-            const elementosConteudo = Array.from(this.drawingArea.querySelectorAll(
-                '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca, .pintura-borracha'
-            ));
-            const alturaConteudo = elementosConteudo.reduce((maior, elemento) => {
-                const rect = elemento.getBoundingClientRect();
-                const bottom = rect.bottom - areaRect.top + this.drawingArea.scrollTop;
-                return Math.max(maior, bottom);
-            }, 0) + 120;
-
-            if (alturaConteudo <= alturaPaginaDesenho) {
-                this.drawingArea.scrollTop = scrollTop;
-                this.drawingArea.scrollLeft = scrollLeft;
-                return;
-            }
-
-            for (let posicaoQuebra = alturaPaginaDesenho, pagina = 2; posicaoQuebra < alturaConteudo; posicaoQuebra += alturaPaginaDesenho, pagina++) {
-                const guia = document.createElement('div');
-                guia.className = 'page-break-guide';
-                guia.dataset.label = `Quebra da página ${pagina}`;
-                guia.style.top = `${posicaoQuebra}px`;
-                this.drawingArea.appendChild(guia);
-
-                const tituloJaNaProximaPagina = Array.from(this.drawingArea.querySelectorAll('.titulo-grupo'))
-                    .filter((titulo) => !titulo.classList.contains('page-repeat-title'))
-                    .some((titulo) => {
-                        const top = parseFloat(titulo.style.top) || titulo.offsetTop || 0;
-                        return top >= posicaoQuebra + 190 && top <= posicaoQuebra + 300;
-                    });
-                const tituloMaterial = tituloJaNaProximaPagina ? null : this.obterTituloMaterialParaPosicao(posicaoQuebra);
-                if (tituloMaterial) {
-                    const tituloRepetido = document.createElement('div');
-                    tituloRepetido.className = 'page-repeat-title';
-                    tituloRepetido.textContent = tituloMaterial.textContent.trim();
-                    tituloRepetido.style.top = `${posicaoQuebra + 215}px`;
-                    this.drawingArea.appendChild(tituloRepetido);
-                }
-            }
-
-            this.drawingArea.scrollTop = scrollTop;
-            this.drawingArea.scrollLeft = scrollLeft;
         }
 
       salvarEstadoHistorico(descricao, forcarSalvamento = false) {
@@ -2572,7 +2274,6 @@ atualizarCursorBorracha(e) {
     
     this.ultimoSalvamentoHistorico = agora;
     this.atualizarBotoesHistorico();
-    setTimeout(() => this.atualizarGuiasQuebraPagina(), 0);
     console.log(`Histórico salvo: ${descricao} (${this.historico.length} estados, índice: ${this.indiceHistorico})`);
 }
 
@@ -2585,10 +2286,9 @@ atualizarCursorBorracha(e) {
     const clone = this.drawingArea.cloneNode(true);
 
     const temporarios = clone.querySelectorAll(
-        '#laco-selecao, .laco-temporario, .linha-temporaria, .preview-laco, .cursor-borracha, .page-break-guide, .page-repeat-title'
+        '#laco-selecao, .laco-temporario, .linha-temporaria, .preview-laco, .cursor-borracha'
     );
     temporarios.forEach(el => el.remove());
-    clone.querySelectorAll('[data-page-auto-shift]').forEach(el => el.removeAttribute('data-page-auto-shift'));
 
     const grupoTemp = clone.querySelector('.grupo-temporario');
     if (grupoTemp) grupoTemp.remove();
@@ -2629,7 +2329,6 @@ limparPinturasBorracha() {
     
     this.restaurarElementosTexto();
     this.reconfigurarElementosAposHistorico();
-    this.atualizarGuiasQuebraPagina();
 }
 
 
@@ -2873,9 +2572,7 @@ refazer() {
                 texto.setAttribute('data-valor', texto.value);
             });
             
-            const clone = this.drawingArea.cloneNode(true);
-            this.limparAuxiliaresImpressao(clone);
-            const drawingAreaHTML = clone.innerHTML;
+            const drawingAreaHTML = this.drawingArea.innerHTML;
             
             const dadosDesenho = {
                 drawingAreaHTML: drawingAreaHTML,
@@ -4494,7 +4191,7 @@ _isTouchGesture(e) {
                         elemento.setAttribute('data-rotate', snappedAngle);
                         
                         this.atualizarLinhasESimbolos(elemento);
-                        this.reposicionarHandlesExistentes(elemento);
+                        this.atualizarHandles();
                     },
                     end: () => {
                         elemento.removeAttribute('data-initial-transform');
@@ -4539,61 +4236,6 @@ _isTouchGesture(e) {
             console.log('Atualizando handles...');
             this.removerHandles();
             this.criarHandles(this.elementoSelecionado);
-        }
-
-        reposicionarHandlesExistentes(elemento = this.elementoSelecionado) {
-            if (!elemento || !this.handlesContainer) return false;
-
-            const pos = this.obterPosicaoComScroll(elemento);
-            const left = pos.left;
-            const top = pos.top;
-            const width = pos.width;
-            const height = pos.height;
-            const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
-            const rad = rotation * Math.PI / 180;
-            const centerX = left + width / 2;
-            const centerY = top + height / 2;
-
-            let relativeHandles;
-            if (elemento.classList.contains('linha-reta')) {
-                relativeHandles = [
-                    { class: 'handle-se', relX: width / 2, relY: height / 2 },
-                    { class: 'handle-nw', relX: -width / 2, relY: -height / 2 }
-                ];
-            } else {
-                relativeHandles = [
-                    { class: 'handle-n', relX: 0, relY: -height / 2 },
-                    { class: 'handle-s', relX: 0, relY: height / 2 },
-                    { class: 'handle-e', relX: width / 2, relY: 0 },
-                    { class: 'handle-w', relX: -width / 2, relY: 0 },
-                    { class: 'handle-ne', relX: width / 2, relY: -height / 2 },
-                    { class: 'handle-nw', relX: -width / 2, relY: -height / 2 },
-                    { class: 'handle-se', relX: width / 2, relY: height / 2 },
-                    { class: 'handle-sw', relX: -width / 2, relY: height / 2 }
-                ];
-            }
-
-            relativeHandles.forEach((handleInfo) => {
-                const handleElement = this.handlesContainer.querySelector(`.${handleInfo.class}`);
-                if (!handleElement) return;
-
-                const rotatedX = handleInfo.relX * Math.cos(rad) - handleInfo.relY * Math.sin(rad);
-                const rotatedY = handleInfo.relX * Math.sin(rad) + handleInfo.relY * Math.cos(rad);
-                handleElement.style.left = `${centerX + rotatedX}px`;
-                handleElement.style.top = `${centerY + rotatedY}px`;
-            });
-
-            const handleRotacao = this.handlesContainer.querySelector('.handle-rotacao');
-            if (handleRotacao) {
-                const handleRotacaoRelY = elemento.classList.contains('linha-reta') ? -60 : -height / 2 - 40;
-                const handleRotacaoX = -handleRotacaoRelY * Math.sin(rad);
-                const handleRotacaoY = handleRotacaoRelY * Math.cos(rad);
-                handleRotacao.style.left = `${centerX + handleRotacaoX}px`;
-                handleRotacao.style.top = `${centerY + handleRotacaoY}px`;
-                handleRotacao.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
-            }
-
-            return true;
         }
 
         desabilitarLinhasPecas() {
@@ -4840,7 +4482,6 @@ _isTouchGesture(e) {
     this.pecasCriadas = true;
     
     this.forcarAtualizacaoInteratividade();
-    this.atualizarGuiasQuebraPagina();
     
     console.log('Peças base criadas com sucesso!');
 }
