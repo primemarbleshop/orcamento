@@ -1132,32 +1132,34 @@
         
         .main-container {
             position: absolute;
-            left: 0;
+            left: calc(50% - 500px);
             top: 0;
-            width: 100% !important;
-            max-width: 100% !important;
+            width: 1000px !important;
+            max-width: 1000px !important;
             margin: 0 !important;
-            padding: 185px 10px 10px !important;
+            padding: 210px 0 10px !important;
             font-size: 18px !important;
             background: white !important;
             box-shadow: none !important;
+            box-sizing: border-box !important;
         }
 
         .print-page-header {
             display: grid !important;
-            grid-template-columns: 1fr 135px !important;
-            gap: 18px !important;
+            grid-template-columns: 1fr 170px !important;
+            gap: 24px !important;
             position: fixed !important;
             top: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
-            height: 165px !important;
+            left: calc(50% - 500px) !important;
+            right: auto !important;
+            width: 1000px !important;
+            height: 190px !important;
             align-items: start !important;
-            padding: 10px 10px 8px !important;
+            padding: 10px 0 10px !important;
             background: white !important;
             border-bottom: 1px solid #999 !important;
-            font-size: 11px !important;
-            line-height: 1.2 !important;
+            font-size: 14px !important;
+            line-height: 1.25 !important;
             z-index: 9999 !important;
             box-sizing: border-box !important;
         }
@@ -1172,12 +1174,12 @@
         }
 
         .print-page-header h1 {
-            font-size: 22px !important;
+            font-size: 32px !important;
             font-weight: 500 !important;
         }
 
         .print-page-header h2 {
-            font-size: 17px !important;
+            font-size: 22px !important;
             font-weight: 500 !important;
         }
 
@@ -1188,8 +1190,8 @@
         .print-page-header img {
             justify-self: end !important;
             align-self: start !important;
-            width: 120px !important;
-            height: 120px !important;
+            width: 160px !important;
+            height: 160px !important;
             object-fit: contain !important;
         }
 
@@ -2439,7 +2441,7 @@ atualizarCursorBorracha(e) {
 
         ajustarPecasParaQuebrasPagina() {
             const alturaPaginaDesenho = 900;
-            const espacoTituloPagina = 245;
+            const espacoTituloPagina = 275;
             const margemSeguranca = 20;
 
             this.limparAjustesAutomaticosPaginacao();
@@ -2514,14 +2516,14 @@ atualizarCursorBorracha(e) {
                     .filter((titulo) => !titulo.classList.contains('page-repeat-title'))
                     .some((titulo) => {
                         const top = parseFloat(titulo.style.top) || titulo.offsetTop || 0;
-                        return top >= posicaoQuebra + 160 && top <= posicaoQuebra + 260;
+                        return top >= posicaoQuebra + 190 && top <= posicaoQuebra + 300;
                     });
                 const tituloMaterial = tituloJaNaProximaPagina ? null : this.obterTituloMaterialParaPosicao(posicaoQuebra);
                 if (tituloMaterial) {
                     const tituloRepetido = document.createElement('div');
                     tituloRepetido.className = 'page-repeat-title';
                     tituloRepetido.textContent = tituloMaterial.textContent.trim();
-                    tituloRepetido.style.top = `${posicaoQuebra + 185}px`;
+                    tituloRepetido.style.top = `${posicaoQuebra + 215}px`;
                     this.drawingArea.appendChild(tituloRepetido);
                 }
             }
@@ -4492,7 +4494,7 @@ _isTouchGesture(e) {
                         elemento.setAttribute('data-rotate', snappedAngle);
                         
                         this.atualizarLinhasESimbolos(elemento);
-                        this.atualizarHandles();
+                        this.reposicionarHandlesExistentes(elemento);
                     },
                     end: () => {
                         elemento.removeAttribute('data-initial-transform');
@@ -4537,6 +4539,61 @@ _isTouchGesture(e) {
             console.log('Atualizando handles...');
             this.removerHandles();
             this.criarHandles(this.elementoSelecionado);
+        }
+
+        reposicionarHandlesExistentes(elemento = this.elementoSelecionado) {
+            if (!elemento || !this.handlesContainer) return false;
+
+            const pos = this.obterPosicaoComScroll(elemento);
+            const left = pos.left;
+            const top = pos.top;
+            const width = pos.width;
+            const height = pos.height;
+            const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+            const rad = rotation * Math.PI / 180;
+            const centerX = left + width / 2;
+            const centerY = top + height / 2;
+
+            let relativeHandles;
+            if (elemento.classList.contains('linha-reta')) {
+                relativeHandles = [
+                    { class: 'handle-se', relX: width / 2, relY: height / 2 },
+                    { class: 'handle-nw', relX: -width / 2, relY: -height / 2 }
+                ];
+            } else {
+                relativeHandles = [
+                    { class: 'handle-n', relX: 0, relY: -height / 2 },
+                    { class: 'handle-s', relX: 0, relY: height / 2 },
+                    { class: 'handle-e', relX: width / 2, relY: 0 },
+                    { class: 'handle-w', relX: -width / 2, relY: 0 },
+                    { class: 'handle-ne', relX: width / 2, relY: -height / 2 },
+                    { class: 'handle-nw', relX: -width / 2, relY: -height / 2 },
+                    { class: 'handle-se', relX: width / 2, relY: height / 2 },
+                    { class: 'handle-sw', relX: -width / 2, relY: height / 2 }
+                ];
+            }
+
+            relativeHandles.forEach((handleInfo) => {
+                const handleElement = this.handlesContainer.querySelector(`.${handleInfo.class}`);
+                if (!handleElement) return;
+
+                const rotatedX = handleInfo.relX * Math.cos(rad) - handleInfo.relY * Math.sin(rad);
+                const rotatedY = handleInfo.relX * Math.sin(rad) + handleInfo.relY * Math.cos(rad);
+                handleElement.style.left = `${centerX + rotatedX}px`;
+                handleElement.style.top = `${centerY + rotatedY}px`;
+            });
+
+            const handleRotacao = this.handlesContainer.querySelector('.handle-rotacao');
+            if (handleRotacao) {
+                const handleRotacaoRelY = elemento.classList.contains('linha-reta') ? -60 : -height / 2 - 40;
+                const handleRotacaoX = -handleRotacaoRelY * Math.sin(rad);
+                const handleRotacaoY = handleRotacaoRelY * Math.cos(rad);
+                handleRotacao.style.left = `${centerX + handleRotacaoX}px`;
+                handleRotacao.style.top = `${centerY + handleRotacaoY}px`;
+                handleRotacao.style.transform = `translate(-50%, -50%) rotate(${rotation}deg)`;
+            }
+
+            return true;
         }
 
         desabilitarLinhasPecas() {
