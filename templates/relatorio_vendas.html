@@ -7,7 +7,7 @@
     <style>
         @page {
             size: A4 landscape;
-            margin: 12mm;
+            margin: 8mm;
         }
 
         * {
@@ -21,10 +21,12 @@
             font-family: "Segoe UI", Arial, sans-serif;
             font-size: 11px;
             line-height: 1.35;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
         }
 
         .print-actions {
-            width: 297mm;
+            width: min(297mm, calc(100vw - 32px));
             margin: 16px auto 10px;
             display: flex;
             justify-content: flex-end;
@@ -44,10 +46,10 @@
         }
 
         .report-page {
-            width: 297mm;
+            width: min(297mm, calc(100vw - 32px));
             min-height: 210mm;
             margin: 0 auto 18px;
-            padding: 14mm;
+            padding: 10mm;
             background: #fff;
             box-shadow: 0 16px 42px rgba(15, 23, 42, 0.16);
         }
@@ -208,6 +210,33 @@
             white-space: pre-wrap;
         }
 
+        .detail-table {
+            table-layout: fixed;
+            font-size: 9px;
+        }
+
+        .detail-table th,
+        .detail-table td {
+            padding: 5px 6px;
+            overflow-wrap: anywhere;
+            word-break: normal;
+        }
+
+        .detail-table .col-code { width: 8%; }
+        .detail-table .col-client { width: 20%; }
+        .detail-table .col-status { width: 10%; }
+        .detail-table .col-value { width: 12%; }
+        .detail-table .col-payment { width: 13%; }
+        .detail-table .col-seller { width: 12%; }
+        .detail-table .col-close { width: 11%; }
+        .detail-table .col-notes { width: 14%; }
+
+        .detail-table .notes-cell {
+            max-width: none;
+            font-size: 8.5px;
+            line-height: 1.25;
+        }
+
         .report-footer {
             display: flex;
             justify-content: space-between;
@@ -246,7 +275,7 @@
             }
 
             .report-page {
-                width: auto;
+                width: 100%;
                 min-height: auto;
                 margin: 0;
                 padding: 0;
@@ -274,6 +303,15 @@
             .report-table {
                 break-inside: auto;
                 page-break-inside: auto;
+            }
+
+            .detail-table {
+                font-size: 8.2px;
+            }
+
+            .detail-table th,
+            .detail-table td {
+                padding: 4px 5px;
             }
         }
 
@@ -500,7 +538,17 @@
 
         <section class="section">
             <h2>Detalhamento dos Orçamentos</h2>
-            <table class="report-table">
+            <table class="report-table detail-table">
+                <colgroup>
+                    <col class="col-code">
+                    <col class="col-client">
+                    <col class="col-status">
+                    <col class="col-value">
+                    <col class="col-payment">
+                    <col class="col-seller">
+                    <col class="col-close">
+                    <col class="col-notes">
+                </colgroup>
                 <thead>
                     <tr>
                         <th>Código</th>

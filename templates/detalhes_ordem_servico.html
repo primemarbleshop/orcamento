@@ -759,18 +759,32 @@
     
     .handle {
         position: absolute;
-        width: 8px;
-        height: 8px;
-        background-color: #4e73df;
-        border: 0px solid Blue;
+        width: 20px;
+        height: 20px;
+        background-color: transparent;
+        border: 0;
         border-radius: 50%;
         pointer-events: all;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        box-shadow: none;
         transform: translate(-50%, -50%);
         z-index: 9999;
         touch-action: none;
         -webkit-user-select: none;
         user-select: none;
+    }
+
+    .handle::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        width: 8px;
+        height: 8px;
+        transform: translate(-50%, -50%);
+        background-color: #4e73df;
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        pointer-events: none;
     }
 
     .handle-rotacao {
@@ -793,16 +807,20 @@
     
     .handle-rotacao {
         position: absolute;
-        width: 8px;
-        height: 8px;
-        background-color: yellow;
-        border: 0px solid yellow;
+        width: 20px;
+        height: 20px;
+        background-color: transparent;
+        border: 0;
         border-radius: 50%;
         pointer-events: all;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        box-shadow: none;
         transform: translate(-50%, -50%);
         cursor: grab;
         z-index: 9999;
+    }
+
+    .handle-rotacao::after {
+        background-color: yellow;
     }
     
     .handle-n {
@@ -862,8 +880,32 @@
     z-index: 20 !important;
 }
 
-.pintura-borracha {
+.pintura-borracha,
+.recorte-borracha {
     z-index: 9 !important;
+}
+
+.guia-quebra-impressao {
+    position: absolute;
+    left: 0;
+    right: 0;
+    height: 0;
+    border-top: 1px dashed rgba(78, 115, 223, 0.7);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.guia-quebra-impressao span {
+    position: absolute;
+    right: 14px;
+    top: -18px;
+    padding: 2px 8px;
+    border: 1px solid rgba(78, 115, 223, 0.45);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.96);
+    color: #4e73df;
+    font-size: 12px;
+    font-weight: 600;
 }
 
 .cursor-borracha {
@@ -1113,23 +1155,25 @@
         .handle-rotacao,
         .elemento-selecionado,
         .modal-controles,
-        .modal-backdrop { 
+        .modal-backdrop,
+        .guia-quebra-impressao { 
             display: none !important; 
         }
 
         .drawing-area {
             width: 1000px !important;
-            height: auto !important;
-            min-height: auto !important;
-            max-height: none !important;
-            border: 1px solid #ccc !important;
+            height: var(--altura-impressao-desenho, auto) !important;
+            min-height: var(--altura-impressao-desenho, auto) !important;
+            max-height: var(--altura-impressao-desenho, none) !important;
+            border: none !important;
             background: white !important;
             margin: 0 auto !important;
             padding: 0px !important;
             overflow: visible !important;
             box-shadow: none !important;
             position: relative !important;
-            page-break-inside: avoid;
+            page-break-inside: auto !important;
+            break-inside: auto !important;
         }
         
         .dimensoes-right {
@@ -1767,65 +1811,216 @@ adicionarEstilosMobile() {
             });
         }
 
+        ehElementoMedida(elemento) {
+            return !!elemento && (
+                elemento.classList.contains('dimensoes') ||
+                elemento.classList.contains('quantidade-peca')
+            );
+        }
+
         atualizarPosicaoDimensoes(pecaElement) {
-            const pecaId = pecaElement.getAttribute('data-peca-id');
-            
             const dimensoesTop = pecaElement.querySelector('.dimensoes-top');
             const dimensoesRight = pecaElement.querySelector('.dimensoes-right');
-            
             if (!dimensoesTop || !dimensoesRight) return;
-            
-            const pecaWidth = parseFloat(pecaElement.style.width);
-            const pecaHeight = parseFloat(pecaElement.style.height);
-            
-            const offsetTopX = parseFloat(dimensoesTop.getAttribute('data-x')) || 0;
-            const offsetTopY = parseFloat(dimensoesTop.getAttribute('data-y')) || 0;
-            const offsetRightX = parseFloat(dimensoesRight.getAttribute('data-x')) || 0;
-            const offsetRightY = parseFloat(dimensoesRight.getAttribute('data-y')) || 0;
-            
-            dimensoesTop.style.left = `${(pecaWidth / 2) + offsetTopX}px`;
-            dimensoesTop.style.top = `${-35 + offsetTopY}px`;
-            dimensoesTop.style.transform = 'translateX(-50%)';
-            
-            dimensoesRight.style.right = `${-35 + offsetRightX}px`;
-            dimensoesRight.style.top = `${(pecaHeight / 2) + offsetRightY}px`;
-            dimensoesRight.style.transform = 'translateY(-50%)';
+
+            const pecaWidth = parseFloat(pecaElement.style.width) || pecaElement.offsetWidth || 0;
+            const pecaHeight = parseFloat(pecaElement.style.height) || pecaElement.offsetHeight || 0;
+
+            const aplicarManual = (dimensao) => {
+                if (dimensao.getAttribute('data-posicao-manual') !== '1') return false;
+
+                const manualLeft = parseFloat(dimensao.getAttribute('data-manual-left'));
+                const manualTop = parseFloat(dimensao.getAttribute('data-manual-top'));
+                if (!Number.isFinite(manualLeft) || !Number.isFinite(manualTop)) return false;
+
+                // Posição manual de cota é sempre top-left local da própria peça.
+                // Não usa right nem translate, senão a cota muda de lugar quando o texto,
+                // a peça ou o resize alteram largura/altura.
+                dimensao.style.right = 'auto';
+                dimensao.style.left = `${manualLeft}px`;
+                dimensao.style.top = `${manualTop}px`;
+                dimensao.style.width = 'auto';
+                dimensao.style.height = 'auto';
+                dimensao.style.transform = 'none';
+                dimensao.setAttribute('data-x', '0');
+                dimensao.setAttribute('data-y', '0');
+                return true;
+            };
+
+            if (!aplicarManual(dimensoesTop)) {
+                const offsetTopX = parseFloat(dimensoesTop.getAttribute('data-x')) || 0;
+                const offsetTopY = parseFloat(dimensoesTop.getAttribute('data-y')) || 0;
+
+                dimensoesTop.style.right = 'auto';
+                dimensoesTop.style.width = 'auto';
+                dimensoesTop.style.height = 'auto';
+                dimensoesTop.style.left = `${(pecaWidth / 2) + offsetTopX}px`;
+                dimensoesTop.style.top = `${-35 + offsetTopY}px`;
+                dimensoesTop.style.transform = 'translateX(-50%)';
+            }
+
+            if (!aplicarManual(dimensoesRight)) {
+                const offsetRightX = parseFloat(dimensoesRight.getAttribute('data-x')) || 0;
+                const offsetRightY = parseFloat(dimensoesRight.getAttribute('data-y')) || 0;
+
+                dimensoesRight.style.left = 'auto';
+                dimensoesRight.style.width = 'auto';
+                dimensoesRight.style.height = 'auto';
+                dimensoesRight.style.right = `${-35 - offsetRightX}px`;
+                dimensoesRight.style.top = `${(pecaHeight / 2) + offsetRightY}px`;
+                dimensoesRight.style.transform = 'translateY(-50%)';
+            }
+        }
+
+        calcularTopLeftLocalAtualDimensao(dimensaoElement) {
+            const pecaElement = dimensaoElement.closest('.peca');
+            if (!pecaElement) {
+                return {
+                    left: parseFloat(dimensaoElement.style.left) || dimensaoElement.offsetLeft || 0,
+                    top: parseFloat(dimensaoElement.style.top) || dimensaoElement.offsetTop || 0
+                };
+            }
+
+            const pecaWidth = parseFloat(pecaElement.style.width) || pecaElement.offsetWidth || 0;
+            const pecaHeight = parseFloat(pecaElement.style.height) || pecaElement.offsetHeight || 0;
+            const larguraDimensao = dimensaoElement.offsetWidth || 0;
+            const alturaDimensao = dimensaoElement.offsetHeight || 0;
+
+            if (dimensaoElement.getAttribute('data-posicao-manual') === '1') {
+                const manualLeft = parseFloat(dimensaoElement.getAttribute('data-manual-left'));
+                const manualTop = parseFloat(dimensaoElement.getAttribute('data-manual-top'));
+                if (Number.isFinite(manualLeft) && Number.isFinite(manualTop)) {
+                    return { left: manualLeft, top: manualTop };
+                }
+            }
+
+            if (dimensaoElement.classList.contains('dimensoes-top')) {
+                const offsetX = parseFloat(dimensaoElement.getAttribute('data-x')) || 0;
+                const offsetY = parseFloat(dimensaoElement.getAttribute('data-y')) || 0;
+                return {
+                    left: (pecaWidth / 2) + offsetX - (larguraDimensao / 2),
+                    top: -35 + offsetY
+                };
+            }
+
+            if (dimensaoElement.classList.contains('dimensoes-right')) {
+                const offsetX = parseFloat(dimensaoElement.getAttribute('data-x')) || 0;
+                const offsetY = parseFloat(dimensaoElement.getAttribute('data-y')) || 0;
+                return {
+                    left: pecaWidth + 35 - offsetX - larguraDimensao,
+                    top: (pecaHeight / 2) + offsetY - (alturaDimensao / 2)
+                };
+            }
+
+            return {
+                left: parseFloat(dimensaoElement.style.left) || dimensaoElement.offsetLeft || 0,
+                top: parseFloat(dimensaoElement.style.top) || dimensaoElement.offsetTop || 0
+            };
+        }
+
+        aplicarPosicaoManualDimensao(dimensaoElement) {
+            const manualLeft = parseFloat(dimensaoElement.getAttribute('data-manual-left'));
+            const manualTop = parseFloat(dimensaoElement.getAttribute('data-manual-top'));
+            if (!Number.isFinite(manualLeft) || !Number.isFinite(manualTop)) return;
+
+            const manualWidth = parseFloat(dimensaoElement.getAttribute('data-manual-width'));
+            const manualHeight = parseFloat(dimensaoElement.getAttribute('data-manual-height'));
+
+            const rotacaoManual = parseFloat(dimensaoElement.getAttribute('data-rotate')) || 0;
+
+            dimensaoElement.style.right = 'auto';
+            dimensaoElement.style.left = `${manualLeft}px`;
+            dimensaoElement.style.top = `${manualTop}px`;
+            dimensaoElement.style.transform = rotacaoManual ? `rotate(${rotacaoManual}deg)` : 'none';
+            dimensaoElement.style.transformOrigin = 'center center';
+
+            if (Number.isFinite(manualWidth) && manualWidth > 0) {
+                dimensaoElement.style.width = `${manualWidth}px`;
+            } else {
+                dimensaoElement.style.width = 'auto';
+            }
+
+            if (Number.isFinite(manualHeight) && manualHeight > 0) {
+                dimensaoElement.style.height = `${manualHeight}px`;
+            } else {
+                dimensaoElement.style.height = 'auto';
+            }
+
+            dimensaoElement.setAttribute('data-x', '0');
+            dimensaoElement.setAttribute('data-y', '0');
+        }
+
+        capturarPosicaoManualDimensao(dimensaoElement) {
+            const pos = this.calcularTopLeftLocalAtualDimensao(dimensaoElement);
+            const estilos = window.getComputedStyle(dimensaoElement);
+            const larguraAtual = parseFloat(estilos.width) || dimensaoElement.offsetWidth || 20;
+            const alturaAtual = parseFloat(estilos.height) || dimensaoElement.offsetHeight || 20;
+
+            dimensaoElement.setAttribute('data-posicao-manual', '1');
+            dimensaoElement.setAttribute('data-manual-left', `${pos.left}`);
+            dimensaoElement.setAttribute('data-manual-top', `${pos.top}`);
+            if (!dimensaoElement.hasAttribute('data-rotate')) {
+                const rotacaoAtual = this.obterRotacaoElemento ? this.obterRotacaoElemento(dimensaoElement) : 0;
+                dimensaoElement.setAttribute('data-rotate', `${rotacaoAtual || 0}`);
+            }
+            if (!dimensaoElement.hasAttribute('data-manual-width')) {
+                dimensaoElement.setAttribute('data-manual-width', `${larguraAtual}`);
+            }
+            if (!dimensaoElement.hasAttribute('data-manual-height')) {
+                dimensaoElement.setAttribute('data-manual-height', `${alturaAtual}`);
+            }
+            dimensaoElement.setAttribute('data-x', '0');
+            dimensaoElement.setAttribute('data-y', '0');
+            this.aplicarPosicaoManualDimensao(dimensaoElement);
         }
 
         configurarInteratividadeDimensao(dimensaoElement) {
             console.log('Configurando interatividade para dimensão:', dimensaoElement);
-            
+            this.removerInteratividade(dimensaoElement);
+
             interact(dimensaoElement).draggable({
-                modifiers: [
-                    interact.modifiers.restrict({
-                        restriction: 'parent',
-                        endOnly: false
-                    })
-                ],
+                allowFrom: '.dimensoes',
+                ignoreFrom: 'input, textarea, button, select, .handle, .handle-rotacao',
+                preventDefault: 'always',
                 listeners: {
                     start: (event) => {
+                        event.stopPropagation();
+                        if (event.type.includes('touch')) event.preventDefault();
+
                         dimensaoElement.style.zIndex = '1000';
+                        if (dimensaoElement.getAttribute('data-posicao-manual') !== '1') {
+                            this.capturarPosicaoManualDimensao(dimensaoElement);
+                        } else {
+                            this.aplicarPosicaoManualDimensao(dimensaoElement);
+                        }
+
                         console.log('Iniciando movimento da dimensão');
                     },
                     move: (event) => {
-                        const pecaId = dimensaoElement.getAttribute('data-peca-id');
-                        const pecaElement = this.drawingArea.querySelector(`#peca-${pecaId}`);
+                        event.stopPropagation();
+                        if (event.type.includes('touch')) event.preventDefault();
+
+                        const pecaElement = dimensaoElement.closest('.peca');
                         const rotacaoPeca = pecaElement ? parseFloat(pecaElement.getAttribute('data-rotate')) || 0 : 0;
-                        
-                        const coordenadasCompensadas = this.transformarCoordenadasParaLocal(event.dx, event.dy, rotacaoPeca);
-                        
-                        let x = (parseFloat(dimensaoElement.getAttribute('data-x')) || 0) + coordenadasCompensadas.dx;
-                        let y = (parseFloat(dimensaoElement.getAttribute('data-y')) || 0) + coordenadasCompensadas.dy;
-                        
-                        dimensaoElement.setAttribute('data-x', x);
-                        dimensaoElement.setAttribute('data-y', y);
-                        
-                        if (pecaElement) {
-                            this.atualizarPosicaoDimensoes(pecaElement);
+                        const deltaLocal = this.transformarCoordenadasParaLocal(event.dx, event.dy, rotacaoPeca);
+
+                        const manualLeft = (parseFloat(dimensaoElement.getAttribute('data-manual-left')) || 0) + deltaLocal.dx;
+                        const manualTop = (parseFloat(dimensaoElement.getAttribute('data-manual-top')) || 0) + deltaLocal.dy;
+
+                        dimensaoElement.setAttribute('data-posicao-manual', '1');
+                        dimensaoElement.setAttribute('data-manual-left', `${manualLeft}`);
+                        dimensaoElement.setAttribute('data-manual-top', `${manualTop}`);
+                        this.aplicarPosicaoManualDimensao(dimensaoElement);
+                        if (this.elementoSelecionado === dimensaoElement) {
+                            this.posicionarHandles(dimensaoElement);
                         }
                     },
-                    end: () => {
+                    end: (event) => {
+                        if (event) event.stopPropagation();
                         dimensaoElement.style.zIndex = '';
+                        if (this.elementoSelecionado === dimensaoElement) {
+                            this.posicionarHandles(dimensaoElement);
+                        }
                         this.salvarEstadoHistorico('Mover Dimensão');
                         console.log('Movimento da dimensão concluído');
                     }
@@ -1972,10 +2167,10 @@ pararPinturaBorracha() {
     this.borrachaPressionada = false;
     this.ultimaPosicaoBorracha = null;
     
-    const elementosPintura = this.drawingArea.querySelectorAll('.pintura-borracha');
+    const elementosPintura = this.drawingArea.querySelectorAll('.recorte-borracha');
     if (elementosPintura.length > 0) {
-        this.salvarEstadoHistorico('Pintar com Borracha');
-        console.log(`Borracha salva: ${elementosPintura.length} elementos pintados`);
+        this.salvarEstadoHistorico('Apagar com Borracha');
+        console.log(`Borracha salva: ${elementosPintura.length} recortes aplicados`);
     }
     
     console.log('Parando pintura com borracha');
@@ -2001,7 +2196,7 @@ salvarEstadoHistoricoForcado(descricao) {
     this.indiceHistorico++;
     
     if (this.borrachaCursor) {
-        this.borrahaCursor.style.display = displayOriginal || 'block';
+        this.borrachaCursor.style.display = displayOriginal || 'block';
     }
 
     if (this.historico.length > this.maximoHistorico) {
@@ -2065,15 +2260,7 @@ salvarEstadoHistoricoForcado(descricao) {
     
     const coords = this.obterCoordenadasBorracha(e);
     
-    const pintura = document.createElement('div');
-    pintura.className = 'pintura-borracha';
-    pintura.style.left = `${coords.x - this.tamanhoBorracha/2}px`;
-    pintura.style.top = `${coords.y - this.tamanhoBorracha/2}px`;
-    pintura.style.width = `${this.tamanhoBorracha}px`;
-    pintura.style.height = `${this.tamanhoBorracha}px`;
-    pintura.style.zIndex = '9';
-    
-    this.drawingArea.appendChild(pintura);
+    this.apagarComBorrachaNoAlvo(coords.x, coords.y);
     
     if (this.ultimaPosicaoBorracha) {
         this.preencherEspacoBorracha(this.ultimaPosicaoBorracha, coords);
@@ -2092,15 +2279,74 @@ salvarEstadoHistoricoForcado(descricao) {
                 const x = inicio.x + (fim.x - inicio.x) * t;
                 const y = inicio.y + (fim.y - inicio.y) * t;
                 
-                const pintura = document.createElement('div');
-                pintura.className = 'pintura-borracha';
-                pintura.style.left = `${x - this.tamanhoBorracha/2}px`;
-                pintura.style.top = `${y - this.tamanhoBorracha/2}px`;
-                pintura.style.width = `${this.tamanhoBorracha}px`;
-                pintura.style.height = `${this.tamanhoBorracha}px`;
-                
-                this.drawingArea.appendChild(pintura);
+                this.apagarComBorrachaNoAlvo(x, y);
             }
+        }
+
+        apagarComBorrachaNoAlvo(x, y) {
+            const alvo = this.encontrarAlvoBorracha(x, y);
+            if (!alvo) return;
+
+            const alvoRect = alvo.getBoundingClientRect();
+            const areaRect = this.drawingArea.getBoundingClientRect();
+            const alvoLeft = alvoRect.left - areaRect.left + this.drawingArea.scrollLeft;
+            const alvoTop = alvoRect.top - areaRect.top + this.drawingArea.scrollTop;
+            const localX = x - alvoLeft;
+            const localY = y - alvoTop;
+
+            const recorte = document.createElement('div');
+            recorte.className = 'recorte-borracha';
+            recorte.style.position = 'absolute';
+            recorte.style.left = `${localX - this.tamanhoBorracha / 2}px`;
+            recorte.style.top = `${localY - this.tamanhoBorracha / 2}px`;
+            recorte.style.width = `${this.tamanhoBorracha}px`;
+            recorte.style.height = `${this.tamanhoBorracha}px`;
+            recorte.style.background = 'white';
+            recorte.style.border = '0';
+            recorte.style.borderRadius = '1px';
+            recorte.style.pointerEvents = 'none';
+            recorte.style.zIndex = '9';
+
+            if (window.getComputedStyle(alvo).position === 'static') {
+                alvo.style.position = 'absolute';
+            }
+
+            alvo.appendChild(recorte);
+        }
+
+        encontrarAlvoBorracha(x, y) {
+            const areaRect = this.drawingArea.getBoundingClientRect();
+            const candidatos = Array.from(this.drawingArea.querySelectorAll('.peca, .cuba, .linha-peca'))
+                .filter((elemento) => {
+                    return !elemento.classList.contains('texto-legenda') &&
+                        !elemento.classList.contains('legenda-simplificada') &&
+                        !elemento.classList.contains('titulo-grupo') &&
+                        !elemento.classList.contains('dimensoes') &&
+                        !elemento.classList.contains('quantidade-peca') &&
+                        !elemento.classList.contains('simbolo-linha');
+                })
+                .map((elemento) => {
+                    const rect = elemento.getBoundingClientRect();
+                    const left = rect.left - areaRect.left + this.drawingArea.scrollLeft;
+                    const top = rect.top - areaRect.top + this.drawingArea.scrollTop;
+                    return {
+                        elemento,
+                        left,
+                        top,
+                        right: left + rect.width,
+                        bottom: top + rect.height,
+                        area: Math.max(rect.width * rect.height, 1)
+                    };
+                })
+                .filter((item) => (
+                    x >= item.left - this.tamanhoBorracha &&
+                    x <= item.right + this.tamanhoBorracha &&
+                    y >= item.top - this.tamanhoBorracha &&
+                    y <= item.bottom + this.tamanhoBorracha
+                ))
+                .sort((a, b) => a.area - b.area);
+
+            return candidatos.length ? candidatos[0].elemento : null;
         }
 
         toggleModoBorracha() {
@@ -2199,6 +2445,11 @@ atualizarCursorBorracha(e) {
             const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
             if (!elementoAlvo) return;
 
+            if (elementoAlvo.classList.contains('grupo-temporario')) {
+                this.excluirGrupoTemporario();
+                return;
+            }
+
             elementoAlvo.remove();
             this.desselecionarElemento();
             this.salvarEstadoHistorico('Excluir Elemento: ' + (elementoAlvo.className || 'Elemento'));
@@ -2208,6 +2459,8 @@ atualizarCursorBorracha(e) {
             try {
                 this.drawingArea.innerHTML = this.desenhoSalvo;
                 this.restaurarElementosTexto();
+                this.reposicionarConteudoParaQuebrasPagina();
+                this.atualizarGuiasQuebraImpressao();
                 this.reconfigurarElementosAposHistorico();
                 console.log('Desenho salvo carregado com sucesso!');
             } catch (error) {
@@ -2229,8 +2482,7 @@ atualizarCursorBorracha(e) {
                     texto.value = texto.textContent;
                 }
                 
-                texto.style.height = 'auto';
-                texto.style.height = (texto.scrollHeight) + 'px';
+                this.ajustarCaixaTextoAoConteudo(texto);
             });
         }
 
@@ -2274,6 +2526,7 @@ atualizarCursorBorracha(e) {
     
     this.ultimoSalvamentoHistorico = agora;
     this.atualizarBotoesHistorico();
+    this.atualizarGuiasQuebraImpressao();
     console.log(`Histórico salvo: ${descricao} (${this.historico.length} estados, índice: ${this.indiceHistorico})`);
 }
 
@@ -2286,7 +2539,7 @@ atualizarCursorBorracha(e) {
     const clone = this.drawingArea.cloneNode(true);
 
     const temporarios = clone.querySelectorAll(
-        '#laco-selecao, .laco-temporario, .linha-temporaria, .preview-laco, .cursor-borracha'
+        '#laco-selecao, .laco-temporario, .linha-temporaria, .preview-laco, .cursor-borracha, .guia-quebra-impressao, .handles-container, .handle, .handle-rotacao'
     );
     temporarios.forEach(el => el.remove());
 
@@ -2303,7 +2556,7 @@ atualizarCursorBorracha(e) {
 }
 
 limparPinturasBorracha() {
-    const pinturas = this.drawingArea.querySelectorAll('.pintura-borracha');
+    const pinturas = this.drawingArea.querySelectorAll('.pintura-borracha, .recorte-borracha');
     pinturas.forEach(pintura => pintura.remove());
 }
 
@@ -2321,6 +2574,7 @@ limparPinturasBorracha() {
     
     this.drawingArea.innerHTML = estado.drawingAreaHTML;
     this.gruposPecas = JSON.parse(JSON.stringify(estado.gruposPecas));
+    this.atualizarGuiasQuebraImpressao();
     
     if (borrachaAtiva && cursorAtual) {
         this.borrachaCursor = cursorAtual;
@@ -2341,6 +2595,9 @@ limparPinturasBorracha() {
             
             elementosInterativos.forEach(elemento => {
                 elemento.classList.remove('selecionavel');
+                if (this.elementoDeveRespeitarTravaBordas(elemento)) {
+                    this.aplicarTravaBordasElemento(elemento);
+                }
                 
                 if (elemento.classList.contains('simbolo-linha')) {
                     this.configurarInteratividadeSimbolo(elemento);
@@ -2348,6 +2605,8 @@ limparPinturasBorracha() {
                     this.configurarInteratividadeCuba(elemento);
                 } else if (elemento.classList.contains('texto-legenda')) {
                     this.configurarInteratividadeTexto(elemento);
+                } else if (elemento.classList.contains('dimensoes')) {
+                    this.configurarInteratividadeDimensao(elemento);
                 }
             });
 
@@ -2374,9 +2633,11 @@ limparPinturasBorracha() {
                 let valorOriginal = texto.value;
                 
                 texto.addEventListener('input', () => {
-                    texto.style.height = 'auto';
-                    texto.style.height = (texto.scrollHeight) + 'px';
+                    this.ajustarCaixaTextoAoConteudo(texto);
                     texto.setAttribute('data-valor', texto.value);
+                    if (texto.classList.contains('elemento-selecionado')) {
+                        this.atualizarHandles();
+                    }
                 });
                 
                 texto.addEventListener('blur', () => {
@@ -2419,7 +2680,7 @@ limparPinturasBorracha() {
             });
             this.handles = [];
             
-            const todosHandles = document.querySelectorAll('.handle, .handle-rotacao');
+            const todosHandles = document.querySelectorAll('.handle, .handle-rotacao, .handles-container');
             todosHandles.forEach(handle => {
                 if (handle.parentNode) {
                     handle.parentNode.removeChild(handle);
@@ -2572,7 +2833,14 @@ refazer() {
                 texto.setAttribute('data-valor', texto.value);
             });
             
-            const drawingAreaHTML = this.drawingArea.innerHTML;
+            const clone = this.drawingArea.cloneNode(true);
+            clone.querySelectorAll(
+                '#laco-selecao, .laco-temporario, .linha-temporaria, .preview-laco, .cursor-borracha, .guia-quebra-impressao, .handle, .handle-rotacao, .grupo-temporario'
+            ).forEach((temporario) => temporario.remove());
+            clone.querySelectorAll('.elemento-selecionado, .elemento-em-grupo').forEach((elemento) => {
+                elemento.classList.remove('elemento-selecionado', 'elemento-em-grupo');
+            });
+            const drawingAreaHTML = clone.innerHTML;
             
             const dadosDesenho = {
                 drawingAreaHTML: drawingAreaHTML,
@@ -2634,6 +2902,8 @@ refazer() {
             
             this.salvarEstadoHistorico('Antes da Impressão');
             this.desselecionarElemento();
+            const infoImpressao = this.prepararAlturaParaImpressaoAtual();
+            console.log(`Impressão recalculada: ${infoImpressao.paginas} página(s), altura ${infoImpressao.alturaTotal}px`);
             
             setTimeout(() => {
                 window.print();
@@ -3125,6 +3395,7 @@ refazer() {
             }
             
             this.desativarModoLaco();
+            this.atualizarEstadoBotoes();
         }
 
         _obterCoordenadasLaco(e) {
@@ -3300,6 +3571,8 @@ refazer() {
 
             
             elementos.forEach(elemento => {
+                elemento.classList.add('elemento-em-grupo');
+
                 const bbox = this._obterBoundingBoxAbsoluta(elemento);
                 minX = Math.min(minX, bbox.left);
                 minY = Math.min(minY, bbox.top);
@@ -3434,8 +3707,12 @@ refazer() {
                             event.stopPropagation();
                         }
 
-                        const x = (parseFloat(grupo.getAttribute('data-x')) || 0) + event.dx;
-                        const y = (parseFloat(grupo.getAttribute('data-y')) || 0) + event.dy;
+                        const deltaLimitado = this.limitarDeltaGrupoPorTravaBordas(elementosRaiz, event.dx, event.dy);
+                        const dxAplicado = deltaLimitado.dx;
+                        const dyAplicado = deltaLimitado.dy;
+
+                        const x = (parseFloat(grupo.getAttribute('data-x')) || 0) + dxAplicado;
+                        const y = (parseFloat(grupo.getAttribute('data-y')) || 0) + dyAplicado;
                         const rotate = grupo.getAttribute('data-rotate') || 0;
                         
                         grupo.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
@@ -3443,17 +3720,13 @@ refazer() {
                         grupo.setAttribute('data-y', y);
                         
                         elementosRaiz.forEach(elemento => {
-                            const currentX = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                            const currentY = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                            const currentX = (parseFloat(elemento.getAttribute('data-x')) || 0) + dxAplicado;
+                            const currentY = (parseFloat(elemento.getAttribute('data-y')) || 0) + dyAplicado;
                             const elementRotate = elemento.getAttribute('data-rotate') || 0;
                             
                             elemento.style.transform = `translate(${currentX}px, ${currentY}px) rotate(${elementRotate}deg)`;
                             elemento.setAttribute('data-x', currentX);
                             elemento.setAttribute('data-y', currentY);
-                            
-                            if (elemento.classList.contains('peca')) {
-                               
-                            }
                         });
                     },
                     end: (event) => {
@@ -3532,11 +3805,8 @@ refazer() {
 
         limparGrupoTemporario() {
             if (this.grupoTemporario && this.grupoTemporario.parentNode) {
-                const elementosData = JSON.parse(this.grupoTemporario.getAttribute('data-elementos') || '[]');
-                elementosData.forEach(data => {
-                    if (data.elemento && data.elemento.classList) {
-                        data.elemento.classList.remove('elemento-em-grupo');
-                    }
+                this.drawingArea.querySelectorAll('.elemento-em-grupo').forEach((elemento) => {
+                    elemento.classList.remove('elemento-em-grupo');
                 });
                 
                 this.grupoTemporario.remove();
@@ -3561,6 +3831,8 @@ refazer() {
                 this.configurarInteratividadeLegenda(elemento);
             } else if (elemento.classList.contains('texto-legenda')) {
                 this.configurarInteratividadeTexto(elemento);
+            } else if (elemento.classList.contains('dimensoes')) {
+                this.configurarInteratividadeDimensao(elemento);
             } else if (elemento.classList.contains('grupo-temporario')) {
                 this._configurarInteratividadeGrupo(elemento, []);
             }
@@ -3578,6 +3850,9 @@ forcarAtualizacaoInteratividade() {
     
     todosElementos.forEach(elemento => {
         elemento.style.pointerEvents = 'auto';
+        if (this.elementoDeveRespeitarTravaBordas(elemento)) {
+            this.aplicarTravaBordasElemento(elemento);
+        }
         
         if (this.modoSelecaoAtivo && !elemento.classList.contains('selecionavel')) {
             elemento.classList.add('selecionavel');
@@ -3585,6 +3860,8 @@ forcarAtualizacaoInteratividade() {
         
         if (elemento.classList.contains('texto-legenda')) {
             this.configurarInteratividadeTexto(elemento);
+        } else if (elemento.classList.contains('dimensoes')) {
+            this.configurarInteratividadeDimensao(elemento);
         } else if (elemento.classList.contains('simbolo-linha')) {
             this.configurarInteratividadeSimbolo(elemento);
         } else if (elemento.classList.contains('legenda-simplificada')) {
@@ -3627,8 +3904,15 @@ forcarAtualizacaoInteratividade() {
         return;
     }
     
-    if (elemento.classList.contains('selecionavel') || 
-        elemento.classList.contains('peca') || 
+    if (elemento.classList.contains('selecionavel') ||
+        elemento.classList.contains('peca') ||
+        elemento.classList.contains('cuba') ||
+        elemento.classList.contains('texto-legenda') ||
+        elemento.classList.contains('legenda-simplificada') ||
+        elemento.classList.contains('titulo-grupo') ||
+        elemento.classList.contains('simbolo-linha') ||
+        elemento.classList.contains('dimensoes') ||
+        elemento.classList.contains('quantidade-peca') ||
         elemento.classList.contains('grupo-temporario')) {
         this.selecionarElemento(elemento, e);
     } else {
@@ -3676,7 +3960,264 @@ _isTouchGesture(e) {
     
     return false;
 }
-        
+
+
+        obterLarguraAreaTravaBordas() {
+            if (!this.drawingArea) return 1000;
+            return this.drawingArea.clientWidth || this.drawingArea.offsetWidth || 1000;
+        }
+
+        obterMargemTravaBordaPx() {
+            const larguraArea = this.obterLarguraAreaTravaBordas();
+            return Math.max(0, larguraArea / 19); // 1 cm na largura útil A4 de 19 cm
+        }
+
+        elementoDeveRespeitarTravaBordas(elemento) {
+            if (!elemento) return false;
+            if (elemento.closest && elemento.closest('.handles-container, .modal-controles, .modal-estilos, .modal-backdrop')) {
+                return false;
+            }
+
+            // A trava de bordas deve atuar apenas em objetos raiz/editáveis do desenho.
+            // As medidas e quantidades são filhos posicionados relativamente à peça;
+            // se forem normalizadas como objetos independentes, perdem o right/top original
+            // e entram para dentro da peça. Elas continuam acompanhando a peça pela regra
+            // atualizarPosicaoDimensoes/criarQuantidade.
+            return elemento.classList.contains('peca') ||
+                   elemento.classList.contains('cuba') ||
+                   elemento.classList.contains('texto-legenda') ||
+                   elemento.classList.contains('legenda-simplificada') ||
+                   elemento.classList.contains('titulo-grupo') ||
+                   elemento.classList.contains('simbolo-linha');
+        }
+
+        obterOffsetPaiNoDrawing(elemento) {
+            const parent = elemento.parentElement || this.drawingArea;
+            if (!parent || parent === this.drawingArea) {
+                return { left: 0, top: 0 };
+            }
+
+            const parentRect = parent.getBoundingClientRect();
+            const drawingRect = this.drawingArea.getBoundingClientRect();
+            const scrollLeft = this.drawingArea.scrollLeft || 0;
+            const scrollTop = this.drawingArea.scrollTop || 0;
+
+            return {
+                left: parentRect.left - drawingRect.left + scrollLeft,
+                top: parentRect.top - drawingRect.top + scrollTop
+            };
+        }
+
+        obterRotacaoElemento(elemento) {
+            return parseFloat(elemento.getAttribute('data-rotate')) ||
+                   parseFloat(elemento.getAttribute('data-rotacao')) || 0;
+        }
+
+        obterParametrosTravaBordas(elemento, proposta = {}) {
+            const estilos = window.getComputedStyle(elemento);
+            const widthAtual = parseFloat(estilos.width) || elemento.offsetWidth || 20;
+            const heightAtual = parseFloat(estilos.height) || elemento.offsetHeight || 20;
+
+            return {
+                left: proposta.left !== undefined ? proposta.left : (parseFloat(elemento.style.left) || 0),
+                top: proposta.top !== undefined ? proposta.top : (parseFloat(elemento.style.top) || 0),
+                width: proposta.width !== undefined ? proposta.width : widthAtual,
+                height: proposta.height !== undefined ? proposta.height : heightAtual,
+                x: proposta.x !== undefined ? proposta.x : (parseFloat(elemento.getAttribute('data-x')) || 0),
+                y: proposta.y !== undefined ? proposta.y : (parseFloat(elemento.getAttribute('data-y')) || 0),
+                rotate: proposta.rotate !== undefined ? proposta.rotate : this.obterRotacaoElemento(elemento)
+            };
+        }
+
+        calcularCaixaVisualTravaBordas(elemento, params) {
+            const offsetPai = this.obterOffsetPaiNoDrawing(elemento);
+            const width = Math.max(1, params.width || 1);
+            const height = Math.max(elemento.classList.contains('linha-reta') ? 2 : 1, params.height || 1);
+            const rad = (params.rotate || 0) * Math.PI / 180;
+            const visualWidth = Math.abs(width * Math.cos(rad)) + Math.abs(height * Math.sin(rad));
+            const visualHeight = Math.abs(width * Math.sin(rad)) + Math.abs(height * Math.cos(rad));
+            const centerX = offsetPai.left + params.left + params.x + width / 2;
+            const centerY = offsetPai.top + params.top + params.y + height / 2;
+
+            return {
+                left: centerX - visualWidth / 2,
+                right: centerX + visualWidth / 2,
+                top: centerY - visualHeight / 2,
+                bottom: centerY + visualHeight / 2,
+                width: visualWidth,
+                height: visualHeight
+            };
+        }
+
+
+        caixaDentroTravaBordas(elemento, params) {
+            if (!this.elementoDeveRespeitarTravaBordas(elemento)) return true;
+
+            const margem = this.obterMargemTravaBordaPx();
+            const limiteDireita = this.obterLarguraAreaTravaBordas() - margem;
+            const caixa = this.calcularCaixaVisualTravaBordas(elemento, params);
+            const tolerancia = 0.25;
+
+            return caixa.left >= margem - tolerancia &&
+                   caixa.right <= limiteDireita + tolerancia &&
+                   caixa.top >= margem - tolerancia;
+        }
+
+        limitarDeltaElementoPorTravaBordas(elemento, dx, dy) {
+            if (!this.elementoDeveRespeitarTravaBordas(elemento)) {
+                return { dx, dy };
+            }
+
+            const margem = this.obterMargemTravaBordaPx();
+            const limiteDireita = this.obterLarguraAreaTravaBordas() - margem;
+            const params = this.obterParametrosTravaBordas(elemento);
+            const caixa = this.calcularCaixaVisualTravaBordas(elemento, params);
+
+            const minDx = margem - caixa.left;
+            const maxDx = limiteDireita - caixa.right;
+            const minDy = margem - caixa.top;
+
+            const dxLimitado = Math.max(minDx, Math.min(maxDx, dx));
+            const dyLimitado = Math.max(minDy, dy);
+
+            return { dx: dxLimitado, dy: dyLimitado };
+        }
+
+        conterResizeNaTravaBordas(elemento, criarProposta, deltaX, deltaY) {
+            const propostaCompleta = criarProposta(deltaX, deltaY);
+            if (!this.elementoDeveRespeitarTravaBordas(elemento) || this.caixaDentroTravaBordas(elemento, propostaCompleta)) {
+                return propostaCompleta;
+            }
+
+            const propostaInicial = criarProposta(0, 0);
+            if (!this.caixaDentroTravaBordas(elemento, propostaInicial)) {
+                return this.ajustarPropostaTravaBordas(elemento, propostaCompleta);
+            }
+
+            let menor = 0;
+            let maior = 1;
+            let melhor = propostaInicial;
+
+            for (let i = 0; i < 28; i++) {
+                const meio = (menor + maior) / 2;
+                const candidata = criarProposta(deltaX * meio, deltaY * meio);
+
+                if (this.caixaDentroTravaBordas(elemento, candidata)) {
+                    melhor = candidata;
+                    menor = meio;
+                } else {
+                    maior = meio;
+                }
+            }
+
+            return melhor;
+        }
+
+        ajustarPropostaTravaBordas(elemento, proposta = {}) {
+            if (!this.elementoDeveRespeitarTravaBordas(elemento)) return proposta;
+
+            const margem = this.obterMargemTravaBordaPx();
+            const larguraArea = this.obterLarguraAreaTravaBordas();
+            const limiteDireita = larguraArea - margem;
+            const larguraUtil = Math.max(1, limiteDireita - margem);
+            const minWidth = proposta.minWidth || (elemento.classList.contains('linha-reta') ? 1 : 10);
+            const minHeight = proposta.minHeight || (elemento.classList.contains('linha-reta') ? 2 : 10);
+            const params = this.obterParametrosTravaBordas(elemento, proposta);
+
+            params.width = Math.max(minWidth, params.width);
+            params.height = Math.max(minHeight, params.height);
+
+            for (let i = 0; i < 3; i++) {
+                const caixa = this.calcularCaixaVisualTravaBordas(elemento, params);
+                if (caixa.width <= larguraUtil + 0.01) break;
+
+                const fator = larguraUtil / caixa.width;
+                params.width = Math.max(minWidth, params.width * fator);
+
+                if (Math.abs(Math.sin((params.rotate || 0) * Math.PI / 180)) > 0.05) {
+                    params.height = Math.max(minHeight, params.height * fator);
+                }
+            }
+
+            let caixa = this.calcularCaixaVisualTravaBordas(elemento, params);
+            let shiftX = 0;
+            let shiftY = 0;
+
+            if (caixa.left < margem) {
+                shiftX += margem - caixa.left;
+            }
+
+            caixa = this.calcularCaixaVisualTravaBordas(elemento, {
+                ...params,
+                x: params.x + shiftX,
+                left: params.left + shiftX
+            });
+
+            if (caixa.right > limiteDireita) {
+                shiftX -= caixa.right - limiteDireita;
+            }
+
+            caixa = this.calcularCaixaVisualTravaBordas(elemento, params);
+            if (caixa.top < margem) {
+                shiftY += margem - caixa.top;
+            }
+
+            const usarTransform = proposta.usarTransform === true ||
+                (proposta.usarTransform !== false && !proposta.preferirLeftTop && (proposta.x !== undefined || proposta.y !== undefined));
+
+            if (usarTransform) {
+                params.x += shiftX;
+                params.y += shiftY;
+            } else {
+                params.left += shiftX;
+                params.top += shiftY;
+            }
+
+            return params;
+        }
+
+        aplicarTravaBordasElemento(elemento, opcoes = {}) {
+            if (!this.elementoDeveRespeitarTravaBordas(elemento)) return;
+
+            const ajustado = this.ajustarPropostaTravaBordas(elemento, {
+                preferirLeftTop: true,
+                minWidth: opcoes.minWidth,
+                minHeight: opcoes.minHeight
+            });
+
+            elemento.style.left = `${ajustado.left}px`;
+            elemento.style.top = `${ajustado.top}px`;
+            elemento.style.width = `${ajustado.width}px`;
+            elemento.style.height = `${ajustado.height}px`;
+
+            if (elemento.classList.contains('peca')) {
+                this.atualizarLinhasESimbolos(elemento);
+                this.atualizarPosicaoDimensoes(elemento);
+            }
+        }
+
+        limitarDeltaGrupoPorTravaBordas(elementos, dx, dy) {
+            const margem = this.obterMargemTravaBordaPx();
+            const limiteDireita = this.obterLarguraAreaTravaBordas() - margem;
+            let minDx = -Infinity;
+            let maxDx = Infinity;
+            let minDy = -Infinity;
+
+            elementos.forEach((elemento) => {
+                if (!this.elementoDeveRespeitarTravaBordas(elemento)) return;
+                const params = this.obterParametrosTravaBordas(elemento);
+                const caixa = this.calcularCaixaVisualTravaBordas(elemento, params);
+                minDx = Math.max(minDx, margem - caixa.left);
+                maxDx = Math.min(maxDx, limiteDireita - caixa.right);
+                minDy = Math.max(minDy, margem - caixa.top);
+            });
+
+            if (minDx !== -Infinity) dx = Math.max(minDx, Math.min(maxDx, dx));
+            if (minDy !== -Infinity) dy = Math.max(minDy, dy);
+
+            return { dx, dy };
+        }
+
         obterPosicaoComScroll(elemento) {
     const rect = elemento.getBoundingClientRect();
     const drawingAreaRect = this.drawingArea.getBoundingClientRect();
@@ -3690,6 +4231,105 @@ _isTouchGesture(e) {
         height: rect.height
     };
 }
+
+        obterGeometriaHandles(elemento) {
+            const rect = elemento.getBoundingClientRect();
+            const drawingAreaRect = this.drawingArea.getBoundingClientRect();
+            const scrollLeft = this.drawingArea.scrollLeft || 0;
+            const scrollTop = this.drawingArea.scrollTop || 0;
+            const estilos = window.getComputedStyle(elemento);
+            const larguraReal = parseFloat(estilos.width) || elemento.offsetWidth || rect.width || 20;
+            let alturaReal = parseFloat(estilos.height) || elemento.offsetHeight || rect.height || 20;
+
+            if (elemento.classList.contains('linha-reta')) {
+                alturaReal = Math.max(2, alturaReal || 2);
+            }
+
+            const leftVisual = rect.left - drawingAreaRect.left + scrollLeft;
+            const topVisual = rect.top - drawingAreaRect.top + scrollTop;
+
+            return {
+                centerX: leftVisual + rect.width / 2,
+                centerY: topVisual + rect.height / 2,
+                width: larguraReal,
+                height: alturaReal,
+                rotation: parseFloat(elemento.getAttribute('data-rotate')) || 0
+            };
+        }
+
+        obterPontoEvento(event) {
+            const origem = event.touches && event.touches[0]
+                ? event.touches[0]
+                : event.changedTouches && event.changedTouches[0]
+                    ? event.changedTouches[0]
+                    : event;
+
+            return {
+                x: origem.clientX,
+                y: origem.clientY
+            };
+        }
+
+        obterRelativosHandles(elemento, geometria) {
+            const width = geometria.width;
+            const height = geometria.height;
+
+            if (elemento.classList.contains('linha-reta')) {
+                return [
+                    { class: 'handle-se', relX: width / 2, relY: height / 2 },
+                    { class: 'handle-nw', relX: -width / 2, relY: -height / 2 }
+                ];
+            }
+
+            return [
+                { class: 'handle-n', relX: 0, relY: -height / 2 },
+                { class: 'handle-s', relX: 0, relY: height / 2 },
+                { class: 'handle-e', relX: width / 2, relY: 0 },
+                { class: 'handle-w', relX: -width / 2, relY: 0 },
+                { class: 'handle-ne', relX: width / 2, relY: -height / 2 },
+                { class: 'handle-nw', relX: -width / 2, relY: -height / 2 },
+                { class: 'handle-se', relX: width / 2, relY: height / 2 },
+                { class: 'handle-sw', relX: -width / 2, relY: height / 2 }
+            ];
+        }
+
+        calcularPontoRotacionado(geometria, relX, relY) {
+            const rad = geometria.rotation * Math.PI / 180;
+            const rotatedX = relX * Math.cos(rad) - relY * Math.sin(rad);
+            const rotatedY = relX * Math.sin(rad) + relY * Math.cos(rad);
+
+            return {
+                x: geometria.centerX + rotatedX,
+                y: geometria.centerY + rotatedY
+            };
+        }
+
+        posicionarHandles(elemento = this.elementoSelecionado) {
+            if (!elemento || !this.handles || this.handles.length === 0) return;
+
+            const geometria = this.obterGeometriaHandles(elemento);
+            const relativos = this.obterRelativosHandles(elemento, geometria);
+
+            this.handles.forEach((handle) => {
+                if (!handle || !handle.parentNode) return;
+
+                if (handle.classList.contains('handle-rotacao')) {
+                    const relY = elemento.classList.contains('linha-reta') ? -60 : -geometria.height / 2 - 40;
+                    const ponto = this.calcularPontoRotacionado(geometria, 0, relY);
+                    handle.style.left = `${ponto.x}px`;
+                    handle.style.top = `${ponto.y}px`;
+                    return;
+                }
+
+                const classeHandle = Array.from(handle.classList).find((classe) => /^handle-(n|s|e|w|ne|nw|se|sw)$/.test(classe));
+                const relativo = relativos.find((item) => item.class === classeHandle);
+                if (!relativo) return;
+
+                const ponto = this.calcularPontoRotacionado(geometria, relativo.relX, relativo.relY);
+                handle.style.left = `${ponto.x}px`;
+                handle.style.top = `${ponto.y}px`;
+            });
+        }
 
         atualizarOrdemEmpilhamento() {
             const todasPecas = this.drawingArea.querySelectorAll('.peca');
@@ -3708,6 +4348,7 @@ _isTouchGesture(e) {
             this.desselecionarElemento();
             
             this.elementoSelecionado = elemento;
+            this.ultimoElementoClicado = elemento;
             elemento.classList.add('elemento-selecionado');
             
             elemento.style.zIndex = '1000';
@@ -3716,7 +4357,8 @@ _isTouchGesture(e) {
             
             this.desabilitarLinhasPecas();
             
-            if (!elemento.classList.contains('simbolo-linha') && !elemento.classList.contains('grupo-temporario')) {
+            if (!elemento.classList.contains('simbolo-linha') &&
+                !elemento.classList.contains('grupo-temporario')) {
                 this.criarHandles(elemento);
             }
             
@@ -3865,66 +4507,16 @@ _isTouchGesture(e) {
 
         configurarRedimensionamentoLinhaReta(elemento) {
         }
-
        criarHandles(elemento) {
     console.log('Criando handles para:', elemento.className);
-    
-    // Primeiro, desselecionar qualquer elemento anterior
-    this.desselecionarElemento();
-    
-    // Selecionar o novo elemento
-    this.elementoSelecionado = elemento;
-    elemento.classList.add('elemento-selecionado');
-    elemento.style.zIndex = '9999'; // Z-index alto mas menor que os handles
-    
-    const pos = this.obterPosicaoComScroll(elemento);
-    const left = pos.left;
-    const top = pos.top;
-    const width = pos.width;
-    const height = pos.height;
-
-    const rotation = parseFloat(elemento.getAttribute('data-rotate')) || 0;
-    const rad = rotation * Math.PI / 180;
-    
-    const centerX = left + width / 2;
-    const centerY = top + height / 2;
-
-    console.log(`Posição: left=${left}, top=${top}, width=${width}, height=${height}, rotation=${rotation}`);
-
-    let relativeHandles = [];
-    
-    if (elemento.classList.contains('linha-reta')) {
-        relativeHandles = [
-            { class: 'handle-se', relX: width / 2, relY: height / 2 },
-            { class: 'handle-nw', relX: -width / 2, relY: -height / 2 },
-        ];
-    } else {
-        relativeHandles = [
-            { class: 'handle-n', relX: 0, relY: -height / 2 },
-            { class: 'handle-s', relX: 0, relY: height / 2 },
-            { class: 'handle-e', relX: width / 2, relY: 0 },
-            { class: 'handle-w', relX: -width / 2, relY: 0 },
-            { class: 'handle-ne', relX: width / 2, relY: -height / 2 },
-            { class: 'handle-nw', relX: -width / 2, relY: -height / 2 },
-            { class: 'handle-se', relX: width / 2, relY: height / 2 },
-            { class: 'handle-sw', relX: -width / 2, relY: height / 2 }
-        ];
-    }
-
-    const handles = relativeHandles.map(handle => {
-        const rotatedX = handle.relX * Math.cos(rad) - handle.relY * Math.sin(rad);
-        const rotatedY = handle.relX * Math.sin(rad) + handle.relY * Math.cos(rad);
-        
-        return {
-            class: handle.class,
-            x: centerX + rotatedX,
-            y: centerY + rotatedY
-        };
-    });
 
     this.removerHandles();
 
-    // Criar container para os handles
+    this.elementoSelecionado = elemento;
+    this.ultimoElementoClicado = elemento;
+    elemento.classList.add('elemento-selecionado');
+    elemento.style.zIndex = '9999';
+
     const handlesContainer = document.createElement('div');
     handlesContainer.className = 'handles-container';
     handlesContainer.style.position = 'absolute';
@@ -3934,294 +4526,352 @@ _isTouchGesture(e) {
     handlesContainer.style.height = '100%';
     handlesContainer.style.pointerEvents = 'none';
     handlesContainer.style.zIndex = '10000';
-    
+
     this.drawingArea.appendChild(handlesContainer);
     this.handlesContainer = handlesContainer;
 
-    handles.forEach(handle => {
+    const geometria = this.obterGeometriaHandles(elemento);
+    const relativos = this.obterRelativosHandles(elemento, geometria);
+
+    relativos.forEach((handleInfo) => {
         const handleElement = document.createElement('div');
-        handleElement.className = `handle ${handle.class}`;
-        handleElement.style.left = `${handle.x}px`;
-        handleElement.style.top = `${handle.y}px`;
-        handleElement.style.zIndex = '10001';
+        handleElement.className = `handle ${handleInfo.class}`;
         handleElement.style.position = 'absolute';
+        handleElement.style.zIndex = '10001';
         handleElement.style.pointerEvents = 'auto';
-        
-        console.log(`Criando handle ${handle.class} em x=${handle.x}, y=${handle.y}`);
-        
+
         handlesContainer.appendChild(handleElement);
         this.handles.push(handleElement);
-        
-        this.configurarHandle(handleElement, elemento, handle.class);
+        this.configurarHandle(handleElement, elemento, handleInfo.class);
     });
-
-    const handleRotacaoRelY = elemento.classList.contains('linha-reta') ? -60 : -height / 2 - 40;
-    const handleRotacaoX = 0 * Math.cos(rad) - handleRotacaoRelY * Math.sin(rad);
-    const handleRotacaoY = 0 * Math.sin(rad) + handleRotacaoRelY * Math.cos(rad);
 
     const handleRotacao = document.createElement('div');
     handleRotacao.className = 'handle handle-rotacao';
-    handleRotacao.style.left = `${centerX + handleRotacaoX}px`;
-    handleRotacao.style.top = `${centerY + handleRotacaoY}px`;
-    handleRotacao.style.zIndex = '10001';
     handleRotacao.style.position = 'absolute';
+    handleRotacao.style.zIndex = '10001';
     handleRotacao.style.pointerEvents = 'auto';
-    
-    console.log(`Criando handle de rotação em x=${centerX + handleRotacaoX}, y=${centerY + handleRotacaoY}`);
-    
+
     handlesContainer.appendChild(handleRotacao);
     this.handles.push(handleRotacao);
-    
     this.configurarHandleRotacao(handleRotacao, elemento);
-    
+
+    this.posicionarHandles(elemento);
     console.log(`${this.handles.length} handles criados com sucesso`);
 }
-
         configurarHandle(handle, elemento, handleClass) {
-    let initialX, initialY;
-    let initialWidth, initialHeight;
-    let initialLeft, initialTop;
-    let initialRatio;
-
-    handle.addEventListener('touchstart', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-    }, { passive: false });
-
-    handle.addEventListener('touchmove', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-    }, { passive: false });
-
-    interact(handle).draggable({
-        preventDefault: 'always',
-        
-        listeners: {
-            start: (event) => {
-                if (event.type.includes('touch')) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                
-                const style = window.getComputedStyle(elemento);
-                initialWidth = parseFloat(style.width);
-                initialHeight = parseFloat(style.height);
-                initialLeft = parseFloat(style.left);
-                initialTop = parseFloat(style.top);
-                
-                initialRatio = initialWidth / initialHeight;
-                
-                initialX = event.clientX || (event.touches && event.touches[0].clientX);
-                initialY = event.clientY || (event.touches && event.touches[0].clientY);
-
-                handle.style.cursor = 'grabbing';
-                console.log('Iniciando redimensionamento proporcional');
-            },
-            move: (event) => {
-                if (event.type.includes('touch')) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-
-                const currentX = event.clientX || (event.touches && event.touches[0].clientX);
-                const currentY = event.clientY || (event.touches && event.touches[0].clientY);
-                
-                const deltaX = currentX - initialX;
-                const deltaY = currentY - initialY;
-
-                const handleClasses = handle.classList;
-                let isEast = handleClasses.contains('handle-e');
-                let isWest = handleClasses.contains('handle-w');
-                let isNorth = handleClasses.contains('handle-n');
-                let isSouth = handleClasses.contains('handle-s');
-                let isNorthEast = handleClasses.contains('handle-ne');
-                let isNorthWest = handleClasses.contains('handle-nw');
-                let isSouthEast = handleClasses.contains('handle-se');
-                let isSouthWest = handleClasses.contains('handle-sw');
-
-                let newWidth = initialWidth;
-                let newHeight = initialHeight;
-                let newLeft = initialLeft;
-                let newTop = initialTop;
-
-                if (elemento.classList.contains('linha-reta')) {
-                    const minSize = 1;
-                    
-                    if (isEast) {
-                        newWidth = Math.max(initialWidth + deltaX, minSize);
-                        newHeight = 2;
-                    }
-                    else if (isWest) {
-                        newWidth = Math.max(initialWidth - deltaX, minSize);
-                        newHeight = 2;
-                        newLeft = initialLeft + deltaX;
-                    }
-                    else if (isNorth) {
-                        newHeight = 2;
-                        newTop = initialTop + deltaY;
-                    }
-                    else if (isSouth) {
-                        newHeight = 2;
-                    }
-                    else if (isNorthEast) {
-                        newWidth = Math.max(initialWidth + deltaX, minSize);
-                        newHeight = 2;
-                        newTop = initialTop + deltaY;
-                    }
-                    else if (isNorthWest) {
-                        newWidth = Math.max(initialWidth - deltaX, minSize);
-                        newHeight = 2;
-                        newLeft = initialLeft + deltaX;
-                        newTop = initialTop + deltaY;
-                    }
-                    else if (isSouthEast) {
-                        newWidth = Math.max(initialWidth + deltaX, minSize);
-                        newHeight = 2;
-                    }
-                    else if (isSouthWest) {
-                        newWidth = Math.max(initialWidth - deltaX, minSize);
-                        newHeight = 2;
-                        newLeft = initialLeft + deltaX;
-                    }
-                } else {
-                    if (isEast) {
-                        newWidth = Math.max(initialWidth + deltaX, 10);
-                    }
-                    else if (isWest) {
-                        newWidth = Math.max(initialWidth - deltaX, 10);
-                        newLeft = initialLeft + deltaX;
-                    }
-                    else if (isNorth) {
-                        newHeight = Math.max(initialHeight - deltaY, 10);
-                        newTop = initialTop + deltaY;
-                    }
-                    else if (isSouth) {
-                        newHeight = Math.max(initialHeight + deltaY, 10);
-                    }
-                    else if (isNorthEast) {
-                        newWidth = Math.max(initialWidth + deltaX, 10);
-                        newHeight = newWidth / initialRatio;
-                        newTop = initialTop + (initialHeight - newHeight);
-                    }
-                    else if (isNorthWest) {
-                        newWidth = Math.max(initialWidth - deltaX, 10);
-                        newHeight = newWidth / initialRatio;
-                        newLeft = initialLeft + deltaX;
-                        newTop = initialTop + (initialHeight - newHeight);
-                    }
-                    else if (isSouthEast) {
-                        newWidth = Math.max(initialWidth + deltaX, 10);
-                        newHeight = newWidth / initialRatio;
-                    }
-                    else if (isSouthWest) {
-                        newWidth = Math.max(initialWidth - deltaX, 10);
-                        newHeight = newWidth / initialRatio;
-                        newLeft = initialLeft + deltaX;
-                    }
-                }
-
-                elemento.style.width = newWidth + 'px';
-                elemento.style.height = newHeight + 'px';
-                
-                if (isWest || isNorthWest || isSouthWest) {
-                    elemento.style.left = newLeft + 'px';
-                }
-                
-                if (isNorth || isNorthEast || isNorthWest) {
-                    elemento.style.top = newTop + 'px';
-                }
-
-                this.atualizarLinhasESimbolos(elemento);
-                this.atualizarHandles();
-            },
-            end: () => {
-                handle.style.cursor = 'grab';
-                this.salvarEstadoHistorico('Redimensionar Elemento');
-                console.log('Redimensionamento proporcional concluído');
-            }
-        }
-    });
-}
-
-        configurarHandleRotacao(handle, elemento) {
-            let initialAngle = parseFloat(elemento.getAttribute('data-rotate')) || 0;
             let initialX, initialY;
-            
-            const angulosFixos = [0, 90, 180, 270];
-            const SNAP_THRESHOLD = 15;
+            let initialWidth, initialHeight;
+            let initialLeft, initialTop;
+            let initialRatio;
+            let initialDataX, initialDataY;
+
+            handle.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, { passive: false });
+
+            handle.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+            }, { passive: false });
 
             interact(handle).draggable({
+                preventDefault: 'always',
                 listeners: {
                     start: (event) => {
-                        const transform = elemento.style.transform || '';
-                        elemento.setAttribute('data-initial-transform', transform);
-                        
-                        const rect = elemento.getBoundingClientRect();
-                        const centerX = rect.left + rect.width / 2;
-                        const centerY = rect.top + rect.height / 2;
-                        initialX = event.clientX;
-                        initialY = event.clientY;
-                        handle.style.cursor = 'grabbing';
-                    },
-                    move: (event) => {
-                        const rect = elemento.getBoundingClientRect();
-                        const centerX = rect.left + rect.width / 2;
-                        const centerY = rect.top + rect.height / 2;
-                        
-                        const deltaX = event.clientX - centerX;
-                        const deltaY = event.clientY - centerY;
-                        let angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI) + 90;
-                        
-                        if (angle < 0) angle += 360;
-                        if (angle >= 360) angle -= 360;
-                        
-                        let snappedAngle = angle;
-                        for (const fixedAngle of angulosFixos) {
-                            if (Math.abs(angle - fixedAngle) < SNAP_THRESHOLD) {
-                                snappedAngle = fixedAngle;
-                                break;
+                        if (event.type.includes('touch')) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+
+                        if (this.ehElementoMedida(elemento)) {
+                            if (elemento.getAttribute('data-posicao-manual') !== '1') {
+                                this.capturarPosicaoManualDimensao(elemento);
+                            } else {
+                                this.aplicarPosicaoManualDimensao(elemento);
                             }
                         }
-                        
-                        const initialTransform = elemento.getAttribute('data-initial-transform') || '';
-                        const translateMatch = initialTransform.match(/translate\(([^)]+)\)/);
-                        const translatePart = translateMatch ? `translate(${translateMatch[1]})` : '';
-                        
-                        elemento.style.transform = `${translatePart} rotate(${snappedAngle}deg)`;
-                        elemento.setAttribute('data-rotate', snappedAngle);
-                        
-                        this.atualizarLinhasESimbolos(elemento);
-                        this.atualizarHandles();
+
+                        const style = window.getComputedStyle(elemento);
+                        initialWidth = parseFloat(style.width) || elemento.offsetWidth || 20;
+                        initialHeight = parseFloat(style.height) || elemento.offsetHeight || 20;
+
+                        if (this.ehElementoMedida(elemento)) {
+                            const posicaoMedida = this.calcularTopLeftLocalAtualDimensao(elemento);
+                            initialLeft = posicaoMedida.left;
+                            initialTop = posicaoMedida.top;
+                            elemento.setAttribute('data-manual-left', `${initialLeft}`);
+                            elemento.setAttribute('data-manual-top', `${initialTop}`);
+                            elemento.setAttribute('data-manual-width', `${initialWidth}`);
+                            elemento.setAttribute('data-manual-height', `${initialHeight}`);
+                        } else {
+                            initialLeft = parseFloat(style.left) || 0;
+                            initialTop = parseFloat(style.top) || 0;
+                        }
+
+                        initialDataX = parseFloat(elemento.getAttribute('data-x')) || 0;
+                        initialDataY = parseFloat(elemento.getAttribute('data-y')) || 0;
+                        initialRatio = initialWidth / Math.max(initialHeight, 1);
+
+                        const ponto = this.obterPontoEvento(event);
+                        initialX = ponto.x;
+                        initialY = ponto.y;
+
+                        handle.style.cursor = 'grabbing';
+                        console.log('Iniciando redimensionamento por handle');
+                    },
+                    move: (event) => {
+                        if (event.type.includes('touch')) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+
+                        const ponto = this.obterPontoEvento(event);
+                        let deltaX = ponto.x - initialX;
+                        let deltaY = ponto.y - initialY;
+                        const rotacaoElemento = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+
+                        if (rotacaoElemento !== 0) {
+                            const deltaLocal = this.transformarCoordenadasParaLocal(deltaX, deltaY, rotacaoElemento);
+                            deltaX = deltaLocal.dx;
+                            deltaY = deltaLocal.dy;
+                        }
+
+                        const handleClasses = handle.classList;
+                        const isEast = handleClasses.contains('handle-e');
+                        const isWest = handleClasses.contains('handle-w');
+                        const isNorth = handleClasses.contains('handle-n');
+                        const isSouth = handleClasses.contains('handle-s');
+                        const isNorthEast = handleClasses.contains('handle-ne');
+                        const isNorthWest = handleClasses.contains('handle-nw');
+                        const isSouthEast = handleClasses.contains('handle-se');
+                        const isSouthWest = handleClasses.contains('handle-sw');
+                        const minWidth = elemento.classList.contains('linha-reta') ? 1 : 10;
+                        const minHeight = elemento.classList.contains('linha-reta') ? 2 : 10;
+
+                        const criarProposta = (dxLocal, dyLocal) => {
+                            let newWidth = initialWidth;
+                            let newHeight = initialHeight;
+                            let newLeft = initialLeft;
+                            let newTop = initialTop;
+
+                            if (elemento.classList.contains('linha-reta')) {
+                                if (isEast || isSouthEast) {
+                                    newWidth = Math.max(initialWidth + dxLocal, minWidth);
+                                    newHeight = 2;
+                                } else if (isWest || isNorthWest || isSouthWest) {
+                                    newWidth = Math.max(initialWidth - dxLocal, minWidth);
+                                    newHeight = 2;
+                                    newLeft = initialLeft + (initialWidth - newWidth);
+                                }
+                            } else {
+                                if (isEast) {
+                                    newWidth = Math.max(initialWidth + dxLocal, minWidth);
+                                } else if (isWest) {
+                                    newWidth = Math.max(initialWidth - dxLocal, minWidth);
+                                    newLeft = initialLeft + (initialWidth - newWidth);
+                                } else if (isNorth) {
+                                    newHeight = Math.max(initialHeight - dyLocal, minHeight);
+                                    newTop = initialTop + (initialHeight - newHeight);
+                                } else if (isSouth) {
+                                    newHeight = Math.max(initialHeight + dyLocal, minHeight);
+                                } else if (isNorthEast) {
+                                    newWidth = Math.max(initialWidth + dxLocal, minWidth);
+                                    newHeight = Math.max(newWidth / initialRatio, minHeight);
+                                    newTop = initialTop + (initialHeight - newHeight);
+                                } else if (isNorthWest) {
+                                    newWidth = Math.max(initialWidth - dxLocal, minWidth);
+                                    newHeight = Math.max(newWidth / initialRatio, minHeight);
+                                    newLeft = initialLeft + (initialWidth - newWidth);
+                                    newTop = initialTop + (initialHeight - newHeight);
+                                } else if (isSouthEast) {
+                                    newWidth = Math.max(initialWidth + dxLocal, minWidth);
+                                    newHeight = Math.max(newWidth / initialRatio, minHeight);
+                                } else if (isSouthWest) {
+                                    newWidth = Math.max(initialWidth - dxLocal, minWidth);
+                                    newHeight = Math.max(newWidth / initialRatio, minHeight);
+                                    newLeft = initialLeft + (initialWidth - newWidth);
+                                }
+
+                                if (rotacaoElemento !== 0) {
+                                    const deltaWidth = newWidth - initialWidth;
+                                    const deltaHeight = newHeight - initialHeight;
+                                    let shiftLocalX = 0;
+                                    let shiftLocalY = 0;
+
+                                    if (isEast || isNorthEast || isSouthEast) shiftLocalX = deltaWidth / 2;
+                                    if (isWest || isNorthWest || isSouthWest) shiftLocalX = -deltaWidth / 2;
+                                    if (isSouth || isSouthEast || isSouthWest) shiftLocalY = deltaHeight / 2;
+                                    if (isNorth || isNorthEast || isNorthWest) shiftLocalY = -deltaHeight / 2;
+
+                                    const rad = rotacaoElemento * Math.PI / 180;
+                                    const shiftX = shiftLocalX * Math.cos(rad) - shiftLocalY * Math.sin(rad);
+                                    const shiftY = shiftLocalX * Math.sin(rad) + shiftLocalY * Math.cos(rad);
+                                    const initialCenterX = initialLeft + initialWidth / 2;
+                                    const initialCenterY = initialTop + initialHeight / 2;
+
+                                    newLeft = initialCenterX + shiftX - newWidth / 2;
+                                    newTop = initialCenterY + shiftY - newHeight / 2;
+                                }
+                            }
+
+                            return {
+                                left: newLeft,
+                                top: newTop,
+                                width: newWidth,
+                                height: newHeight,
+                                x: initialDataX,
+                                y: initialDataY,
+                                rotate: rotacaoElemento,
+                                usarTransform: false,
+                                preferirLeftTop: true
+                            };
+                        };
+
+                        const proposta = this.ehElementoMedida(elemento)
+                            ? criarProposta(deltaX, deltaY)
+                            : this.conterResizeNaTravaBordas(elemento, criarProposta, deltaX, deltaY);
+
+                        if (this.ehElementoMedida(elemento)) {
+                            elemento.setAttribute('data-posicao-manual', '1');
+                            elemento.setAttribute('data-manual-left', `${proposta.left}`);
+                            elemento.setAttribute('data-manual-top', `${proposta.top}`);
+                            elemento.setAttribute('data-manual-width', `${proposta.width}`);
+                            elemento.setAttribute('data-manual-height', `${proposta.height}`);
+                            this.aplicarPosicaoManualDimensao(elemento);
+                            this.posicionarHandles(elemento);
+                            return;
+                        }
+
+                        elemento.style.width = `${proposta.width}px`;
+                        elemento.style.height = `${proposta.height}px`;
+                        elemento.style.left = `${proposta.left}px`;
+                        elemento.style.top = `${proposta.top}px`;
+
+                        if (elemento.classList.contains('peca')) {
+                            this.atualizarLinhasESimbolos(elemento);
+                        } else {
+                            this.posicionarHandles(elemento);
+                        }
                     },
                     end: () => {
-                        elemento.removeAttribute('data-initial-transform');
                         handle.style.cursor = 'grab';
-                        this.salvarEstadoHistorico('Rotacionar Elemento');
+                        if (this.ehElementoMedida(elemento)) {
+                            this.aplicarPosicaoManualDimensao(elemento);
+                        }
+                        this.posicionarHandles(elemento);
+                        this.salvarEstadoHistorico(this.ehElementoMedida(elemento) ? 'Redimensionar Medida' : 'Redimensionar Elemento');
+                        console.log('Redimensionamento por handle concluído');
                     }
                 }
             });
         }
+        configurarHandleRotacao(handle, elemento) {
+            const angulosFixos = [0, 90, 180, 270];
+            const SNAP_THRESHOLD = 15;
 
+            interact(handle).draggable({
+                preventDefault: 'always',
+                listeners: {
+                    start: (event) => {
+                        if (event.type.includes('touch')) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+
+                        if (this.ehElementoMedida(elemento)) {
+                            if (elemento.getAttribute('data-posicao-manual') !== '1') {
+                                this.capturarPosicaoManualDimensao(elemento);
+                            } else {
+                                this.aplicarPosicaoManualDimensao(elemento);
+                            }
+                        }
+
+                        const transform = elemento.style.transform || '';
+                        elemento.setAttribute('data-initial-transform', transform);
+                        handle.style.cursor = 'grabbing';
+                    },
+                    move: (event) => {
+                        if (event.type.includes('touch')) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+
+                        const rect = elemento.getBoundingClientRect();
+                        const centerX = rect.left + rect.width / 2;
+                        const centerY = rect.top + rect.height / 2;
+                        const ponto = this.obterPontoEvento(event);
+
+                        const deltaX = ponto.x - centerX;
+                        const deltaY = ponto.y - centerY;
+                        let angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI) + 90;
+
+                        if (angle < 0) angle += 360;
+                        if (angle >= 360) angle -= 360;
+
+                        let snappedAngle = angle;
+                        for (const fixedAngle of angulosFixos) {
+                            const distancia = Math.min(Math.abs(angle - fixedAngle), Math.abs(angle - fixedAngle + 360), Math.abs(angle - fixedAngle - 360));
+                            if (distancia < SNAP_THRESHOLD) {
+                                snappedAngle = fixedAngle;
+                                break;
+                            }
+                        }
+
+                        if (this.ehElementoMedida(elemento)) {
+                            elemento.setAttribute('data-posicao-manual', '1');
+                            elemento.setAttribute('data-rotate', snappedAngle);
+                            this.aplicarPosicaoManualDimensao(elemento);
+                            this.posicionarHandles(elemento);
+                            return;
+                        }
+
+                        const initialTransform = elemento.getAttribute('data-initial-transform') || '';
+                        const translateMatch = initialTransform.match(/translate\(([^)]+)\)/);
+                        const translatePart = translateMatch ? `translate(${translateMatch[1]})` : '';
+
+                        elemento.style.transform = `${translatePart} rotate(${snappedAngle}deg)`;
+                        elemento.setAttribute('data-rotate', snappedAngle);
+
+                        this.atualizarLinhasESimbolos(elemento);
+                        this.posicionarHandles(elemento);
+                    },
+                    end: () => {
+                        elemento.removeAttribute('data-initial-transform');
+                        handle.style.cursor = 'grab';
+                        if (this.ehElementoMedida(elemento)) {
+                            this.aplicarPosicaoManualDimensao(elemento);
+                        }
+                        this.posicionarHandles(elemento);
+                        this.salvarEstadoHistorico(this.ehElementoMedida(elemento) ? 'Rotacionar Medida' : 'Rotacionar Elemento');
+                    }
+                }
+            });
+        }
         removerHandles() {
             console.log(`Removendo ${this.handles.length} handles...`);
-            
+
             this.handles.forEach(handle => {
                 if (handle && handle.parentNode) {
                     handle.parentNode.removeChild(handle);
                 }
             });
             this.handles = [];
-            
-            const handlesOrfaos = this.drawingArea.querySelectorAll('.handle, .handle-rotacao');
+
+            if (this.handlesContainer && this.handlesContainer.parentNode) {
+                this.handlesContainer.parentNode.removeChild(this.handlesContainer);
+            }
+            this.handlesContainer = null;
+
+            const handlesOrfaos = this.drawingArea.querySelectorAll('.handle, .handle-rotacao, .handles-container');
             handlesOrfaos.forEach(handle => {
                 if (handle.parentNode) {
                     handle.parentNode.removeChild(handle);
                 }
             });
-            
+
             console.log('Handles removidos');
         }
-
         atualizarHandles() {
             if (!this.elementoSelecionado) {
                 console.log('Nenhum elemento selecionado para atualizar handles');
@@ -4233,8 +4883,11 @@ _isTouchGesture(e) {
                 return;
             }
 
-            console.log('Atualizando handles...');
-            this.removerHandles();
+            if (this.handles && this.handles.length > 0) {
+                this.posicionarHandles(this.elementoSelecionado);
+                return;
+            }
+
             this.criarHandles(this.elementoSelecionado);
         }
 
@@ -4243,7 +4896,8 @@ _isTouchGesture(e) {
             linhas.forEach(linha => {
                 linha.style.pointerEvents = 'none';
                 linha.style.cursor = 'default';
-                linha.style.opacity = '0.5';
+                linha.style.backgroundColor = 'transparent';
+                linha.style.opacity = '1';
             });
         }
 
@@ -4252,6 +4906,7 @@ _isTouchGesture(e) {
             linhas.forEach(linha => {
                 linha.style.pointerEvents = 'auto';
                 linha.style.cursor = 'pointer';
+                linha.style.backgroundColor = 'transparent';
                 linha.style.opacity = '1';
             });
         }
@@ -4259,11 +4914,9 @@ _isTouchGesture(e) {
         atualizarEstadoBotoes() {
             const temElementoSelecionado = this.elementoSelecionado !== null;
             
-            const isGrupoTemporario = this.elementoSelecionado && 
-                                    this.elementoSelecionado.classList.contains('grupo-temporario');
             const isModoLacoAtivo = this.modoLacoAtivo;
             
-            const desabilitarBotoes = isGrupoTemporario || isModoLacoAtivo;
+            const desabilitarBotoes = isModoLacoAtivo;
             
             const btnDuplicar = document.getElementById('btnDuplicar');
             const btnExcluir = document.getElementById('btnExcluir');
@@ -4274,8 +4927,8 @@ _isTouchGesture(e) {
             if (desabilitarBotoes) {
                 btnDuplicar.classList.add('btn-desabilitado-mobile');
                 btnExcluir.classList.add('btn-desabilitado-mobile');
-                btnDuplicar.title = 'Ação não disponível para grupo temporário';
-                btnExcluir.title = 'Ação não disponível para grupo temporário';
+                btnDuplicar.title = 'Ação não disponível durante o laço';
+                btnExcluir.title = 'Ação não disponível durante o laço';
             } else {
                 btnDuplicar.classList.remove('btn-desabilitado-mobile');
                 btnExcluir.classList.remove('btn-desabilitado-mobile');
@@ -4322,16 +4975,413 @@ _isTouchGesture(e) {
             this.atualizarHandles();
         }
 
-        duplicarElemento() {
-            const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
-            if (!elementoAlvo) return;
-            
+        capturarRolagemAtual() {
+            return {
+                windowX: window.scrollX || window.pageXOffset || 0,
+                windowY: window.scrollY || window.pageYOffset || 0,
+                areaScrollLeft: this.drawingArea ? (this.drawingArea.scrollLeft || 0) : 0,
+                areaScrollTop: this.drawingArea ? (this.drawingArea.scrollTop || 0) : 0
+            };
+        }
+
+        restaurarRolagemPreservada(rolagem) {
+            if (!rolagem) return;
+
+            if (this.drawingArea) {
+                this.drawingArea.scrollLeft = rolagem.areaScrollLeft || 0;
+                this.drawingArea.scrollTop = rolagem.areaScrollTop || 0;
+            }
+
+            window.scrollTo(rolagem.windowX || 0, rolagem.windowY || 0);
+        }
+
+        executarPreservandoRolagem(callback) {
+            const rolagem = this.capturarRolagemAtual();
+            let resultado;
+
+            try {
+                resultado = callback();
+            } finally {
+                this.restaurarRolagemPreservada(rolagem);
+
+                if (this._restauracaoRolagemPendente) {
+                    cancelAnimationFrame(this._restauracaoRolagemPendente);
+                }
+
+                this._restauracaoRolagemPendente = requestAnimationFrame(() => {
+                    this.restaurarRolagemPreservada(rolagem);
+                    this._restauracaoRolagemPendente = null;
+                });
+            }
+
+            return resultado;
+        }
+
+        obterDimensoesPaginaImpressao() {
+            const larguraBase = this.obterLarguraBaseImpressao();
+            const larguraUtilA4Mm = 210 - (10 * 2);
+            const alturaUtilA4Mm = 297 - (10 * 2);
+            const alturaPagina = Math.round(larguraBase * (alturaUtilA4Mm / larguraUtilA4Mm));
+            const alturaCabecalho = this.obterAlturaCabecalhoPrimeiraPaginaImpressao();
+            const alturaPrimeiraPagina = Math.max(200, alturaPagina - alturaCabecalho);
+
+            return {
+                larguraBase,
+                alturaPagina,
+                alturaCabecalho,
+                alturaPrimeiraPagina
+            };
+        }
+
+        obterAlturaPaginaImpressaoDesenho() {
+            return this.obterDimensoesPaginaImpressao().alturaPagina;
+        }
+
+        obterAlturaPrimeiraPaginaImpressaoDesenho() {
+            return this.obterDimensoesPaginaImpressao().alturaPrimeiraPagina;
+        }
+
+        obterLarguraBaseImpressao() {
+            const estiloArea = window.getComputedStyle(this.drawingArea);
+            const larguraCss = parseFloat(estiloArea.width) || 0;
+            const larguraOffset = this.drawingArea ? (this.drawingArea.offsetWidth || 0) : 0;
+            const larguraInline = parseFloat(this.drawingArea.style.width) || 0;
+
+            // A página impressa usa .drawing-area com 1000px de largura.
+            // Não usar body/main-container de 1400px aqui, porque isso aumenta
+            // artificialmente a altura calculada da página e desloca os objetos no print.
+            return Math.round(larguraCss || larguraInline || larguraOffset || 1000);
+        }
+
+        obterAlturaCabecalhoPrimeiraPaginaImpressao(forcarRecalculo = false) {
+            if (!forcarRecalculo && Number.isFinite(this._alturaCabecalhoPrimeiraPaginaImpressao)) {
+                return this._alturaCabecalhoPrimeiraPaginaImpressao;
+            }
+
+            const mainContainer = document.querySelector('.main-container');
+            if (!mainContainer || !this.drawingArea) return 0;
+
+            return this.executarPreservandoRolagem(() => {
+                const seletoresOcultosNoPrint = [
+                    '.top-buttons-container',
+                    '.action-buttons-container',
+                    '.mobile-buttons-container',
+                    '.zoom-controls',
+                    '.handles-container',
+                    '.modal-controles',
+                    '.modal-backdrop',
+                    '.guia-quebra-impressao'
+                ];
+
+                const estilosOriginais = [];
+                const registrarEstilo = (elemento, props) => {
+                    if (!elemento) return;
+                    const original = {};
+                    props.forEach((prop) => {
+                        original[prop] = elemento.style[prop];
+                    });
+                    estilosOriginais.push({ elemento, original });
+                };
+
+                registrarEstilo(mainContainer, ['width', 'maxWidth', 'margin', 'padding', 'fontSize', 'position', 'left', 'top']);
+                registrarEstilo(this.drawingArea, ['width', 'margin', 'border', 'padding']);
+
+                const ocultos = [];
+                seletoresOcultosNoPrint.forEach((seletor) => {
+                    mainContainer.querySelectorAll(seletor).forEach((elemento) => {
+                        registrarEstilo(elemento, ['display']);
+                        ocultos.push(elemento);
+                    });
+                });
+
+                const larguraBase = Math.round(parseFloat(window.getComputedStyle(this.drawingArea).width) || this.drawingArea.offsetWidth || 1000);
+
+                try {
+                    ocultos.forEach((elemento) => {
+                        elemento.style.display = 'none';
+                    });
+
+                    mainContainer.style.width = `${larguraBase}px`;
+                    mainContainer.style.maxWidth = `${larguraBase}px`;
+                    mainContainer.style.margin = '0';
+                    mainContainer.style.padding = '10px';
+                    mainContainer.style.fontSize = '18px';
+                    mainContainer.style.position = 'absolute';
+                    mainContainer.style.left = '-100000px';
+                    mainContainer.style.top = '0';
+
+                    this.drawingArea.style.width = `${larguraBase}px`;
+                    this.drawingArea.style.margin = '0 auto';
+                    this.drawingArea.style.border = 'none';
+                    this.drawingArea.style.padding = '0px';
+
+                    const mainRect = mainContainer.getBoundingClientRect();
+                    const areaRect = this.drawingArea.getBoundingClientRect();
+                    const alturaCabecalho = Math.ceil(areaRect.top - mainRect.top);
+                    const alturaValida = Number.isFinite(alturaCabecalho) ? Math.max(0, alturaCabecalho) : 0;
+
+                    this._alturaCabecalhoPrimeiraPaginaImpressao = alturaValida;
+                    return alturaValida;
+                } finally {
+                    estilosOriginais.reverse().forEach(({ elemento, original }) => {
+                        Object.keys(original).forEach((prop) => {
+                            elemento.style[prop] = original[prop];
+                        });
+                    });
+                }
+            });
+        }
+
+        obterTopAbsolutoNoDesenho(elemento) {
+            let top = 0;
+            let atual = elemento;
+
+            while (atual && atual !== this.drawingArea) {
+                top += parseFloat(atual.style.top) || atual.offsetTop || 0;
+                atual = atual.offsetParent;
+            }
+
+            return top;
+        }
+
+        obterProximaQuebraImpressao(y) {
+            const { alturaPagina, alturaPrimeiraPagina } = this.obterDimensoesPaginaImpressao();
+
+            if (y < alturaPrimeiraPagina) {
+                return alturaPrimeiraPagina;
+            }
+
+            const paginaRelativa = Math.floor((y - alturaPrimeiraPagina) / alturaPagina) + 1;
+            return alturaPrimeiraPagina + (paginaRelativa * alturaPagina);
+        }
+
+        obterPosicoesQuebraImpressao(paginas = null) {
+            const { alturaPagina, alturaPrimeiraPagina } = this.obterDimensoesPaginaImpressao();
+            const totalPaginas = paginas || this.obterQuantidadePaginasImpressao();
+            const quebras = [];
+
+            for (let pagina = 2; pagina <= totalPaginas; pagina++) {
+                const top = alturaPrimeiraPagina + ((pagina - 2) * alturaPagina);
+                quebras.push({ pagina, top });
+            }
+
+            return quebras;
+        }
+
+        ajustarYParaEvitarQuebraPagina(yAbsoluto, alturaElemento, margem = 36) {
+            const topo = yAbsoluto;
+            const base = yAbsoluto + alturaElemento + margem;
+            const proximaQuebra = this.obterProximaQuebraImpressao(topo);
+
+            if (topo < proximaQuebra && base > proximaQuebra) {
+                return proximaQuebra + margem;
+            }
+
+            return yAbsoluto;
+        }
+
+        ajustarLinhaParaQuebraPagina(areaPecas, yLinha, alturaLinha) {
+            const topAreaPecas = this.obterTopAbsolutoNoDesenho(areaPecas);
+            const yAbsoluto = topAreaPecas + yLinha;
+            const yAjustado = this.ajustarYParaEvitarQuebraPagina(yAbsoluto, alturaLinha, 44);
+
+            return yLinha + (yAjustado - yAbsoluto);
+        }
+
+        obterSeletoresElementosImprimiveis() {
+            return [
+                '.peca',
+                '.cuba',
+                '.texto-legenda',
+                '.legenda-simplificada',
+                '.simbolo-linha',
+                '.titulo-grupo',
+                '.dimensoes',
+                '.quantidade-peca',
+                '.linha-peca',
+                '.recorte-borracha',
+                '.pintura-borracha'
+            ].join(', ');
+        }
+
+        obterElementosImprimiveis() {
+            const seletores = this.obterSeletoresElementosImprimiveis();
+            return Array.from(this.drawingArea.querySelectorAll(seletores)).filter((elemento) => {
+                if (!elemento || elemento.classList.contains('guia-quebra-impressao')) return false;
+                if (elemento.classList.contains('handle') || elemento.classList.contains('handle-rotacao')) return false;
+                if (elemento.closest('.handles-container')) return false;
+                if (elemento.closest('.modal-controles, .modal-estilos, .modal-backdrop')) return false;
+
+                const estilo = window.getComputedStyle(elemento);
+                if (estilo.display === 'none' || estilo.visibility === 'hidden') return false;
+
+                const rect = elemento.getBoundingClientRect();
+                return rect.width > 0 || rect.height > 0;
+            });
+        }
+
+        obterAlturaOcupadaImpressao() {
+            const { alturaPrimeiraPagina } = this.obterDimensoesPaginaImpressao();
+            const areaRect = this.drawingArea.getBoundingClientRect();
+            const scrollTop = this.drawingArea.scrollTop || 0;
+            const margemFinal = 40;
+
+            let maiorBottom = 0;
+
+            this.obterElementosImprimiveis().forEach((elemento) => {
+                const rect = elemento.getBoundingClientRect();
+                const bottom = rect.bottom - areaRect.top + scrollTop;
+                if (Number.isFinite(bottom)) {
+                    maiorBottom = Math.max(maiorBottom, bottom);
+                }
+            });
+
+            return Math.max(alturaPrimeiraPagina, Math.ceil(maiorBottom + margemFinal));
+        }
+
+        obterQuantidadePaginasImpressao() {
+            const { alturaPagina, alturaPrimeiraPagina } = this.obterDimensoesPaginaImpressao();
+            const alturaOcupada = this.obterAlturaOcupadaImpressao();
+
+            if (alturaOcupada <= alturaPrimeiraPagina) {
+                return 1;
+            }
+
+            return 1 + Math.ceil((alturaOcupada - alturaPrimeiraPagina) / alturaPagina);
+        }
+
+        obterAlturaTotalDesenhoParaPaginas(paginas = null) {
+            const { alturaPagina, alturaPrimeiraPagina } = this.obterDimensoesPaginaImpressao();
+            const totalPaginas = paginas || this.obterQuantidadePaginasImpressao();
+
+            if (totalPaginas <= 1) {
+                return alturaPrimeiraPagina;
+            }
+
+            return alturaPrimeiraPagina + ((totalPaginas - 1) * alturaPagina);
+        }
+
+        atualizarAlturaDesenhoParaPaginas() {
+            const paginas = this.obterQuantidadePaginasImpressao();
+            const alturaTotal = this.obterAlturaTotalDesenhoParaPaginas(paginas);
+
+            this.drawingArea.style.height = `${alturaTotal}px`;
+            this.drawingArea.style.minHeight = `${alturaTotal}px`;
+            this.drawingArea.style.setProperty('--altura-impressao-desenho', `${alturaTotal}px`);
+            this.drawingArea.setAttribute('data-paginas-impressao', String(paginas));
+
+            return { paginas, alturaTotal };
+        }
+
+        atualizarGuiasQuebraImpressao() {
+            return this.executarPreservandoRolagem(() => {
+                this.drawingArea.querySelectorAll('.guia-quebra-impressao').forEach((guia) => guia.remove());
+
+                const paginas = this.obterQuantidadePaginasImpressao();
+                const alturaTotal = this.obterAlturaTotalDesenhoParaPaginas(paginas);
+
+                this.drawingArea.style.minHeight = `${alturaTotal}px`;
+                this.drawingArea.setAttribute('data-paginas-impressao', String(paginas));
+
+                this.obterPosicoesQuebraImpressao(paginas).forEach(({ pagina, top }) => {
+                    const guia = document.createElement('div');
+                    guia.className = 'guia-quebra-impressao';
+                    guia.style.top = `${top}px`;
+                    guia.innerHTML = `<span>Quebra da página ${pagina}</span>`;
+                    this.drawingArea.appendChild(guia);
+                });
+            });
+        }
+
+        prepararAlturaParaImpressaoAtual() {
+            return this.executarPreservandoRolagem(() => {
+                this.obterAlturaCabecalhoPrimeiraPaginaImpressao(true);
+                this.atualizarGuiasQuebraImpressao();
+                return this.atualizarAlturaDesenhoParaPaginas();
+            });
+        }
+
+        reposicionarConteudoParaQuebrasPagina() {
+            const obterTop = (elemento) => parseFloat(elemento.style.top) || 0;
+            const definirTop = (elemento, top) => {
+                elemento.style.top = `${top}px`;
+            };
+            const deslocarElementosAbaixo = (limiteTop, delta, ignorarArea) => {
+                Array.from(this.drawingArea.children).forEach((elemento) => {
+                    if (elemento === ignorarArea || elemento.classList.contains('guia-quebra-impressao')) return;
+                    const top = obterTop(elemento);
+                    if (top > limiteTop) {
+                        definirTop(elemento, top + delta);
+                    }
+                });
+            };
+
+            const areas = Array.from(this.drawingArea.querySelectorAll('.area-pecas'))
+                .sort((a, b) => this.obterTopAbsolutoNoDesenho(a) - this.obterTopAbsolutoNoDesenho(b));
+
+            areas.forEach((areaPecas) => {
+                const elementos = Array.from(areaPecas.children)
+                    .filter((elemento) => (
+                        elemento.classList.contains('peca') ||
+                        elemento.classList.contains('cuba') ||
+                        elemento.classList.contains('texto-legenda') ||
+                        elemento.classList.contains('legenda-simplificada')
+                    ))
+                    .sort((a, b) => obterTop(a) - obterTop(b));
+
+                const linhasProcessadas = [];
+
+                elementos.forEach((elemento) => {
+                    const topLinha = obterTop(elemento);
+                    if (linhasProcessadas.some((top) => Math.abs(top - topLinha) <= 8)) return;
+
+                    const itensLinha = elementos.filter((item) => Math.abs(obterTop(item) - topLinha) <= 8);
+                    const alturaLinha = Math.max(...itensLinha.map((item) => item.offsetHeight || 0), elemento.offsetHeight || 0);
+                    const yAjustado = this.ajustarLinhaParaQuebraPagina(areaPecas, topLinha, alturaLinha);
+                    const delta = yAjustado - topLinha;
+
+                    if (delta > 0) {
+                        elementos.forEach((item) => {
+                            const itemTop = obterTop(item);
+                            if (itemTop >= topLinha) {
+                                definirTop(item, itemTop + delta);
+                            }
+                        });
+
+                        const topArea = obterTop(areaPecas);
+                        deslocarElementosAbaixo(topArea, delta, areaPecas);
+                    }
+
+                    linhasProcessadas.push(yAjustado);
+                });
+            });
+        }
+
+        obterElementosRaizDoGrupoTemporario() {
+            if (!this.grupoTemporario) return [];
+
+            return Array.from(this.drawingArea.querySelectorAll('.elemento-em-grupo'))
+                .filter((elemento) => {
+                    if (
+                        elemento.classList.contains('simbolo-linha') ||
+                        elemento.classList.contains('dimensoes') ||
+                        elemento.classList.contains('quantidade-peca') ||
+                        elemento.classList.contains('linha-peca')
+                    ) {
+                        return false;
+                    }
+
+                    const pecaPai = elemento.closest('.peca');
+                    return !pecaPai || pecaPai === elemento || !pecaPai.classList.contains('elemento-em-grupo');
+                });
+        }
+
+        duplicarElementoBase(elementoAlvo, offset = 30) {
             const clone = elementoAlvo.cloneNode(true);
-            
-            const offset = 30;
+
             clone.style.left = `${parseFloat(elementoAlvo.style.left) + offset}px`;
             clone.style.top = `${parseFloat(elementoAlvo.style.top) + offset}px`;
-            clone.classList.remove('elemento-selecionado');
+            clone.classList.remove('elemento-selecionado', 'elemento-em-grupo');
             
             if (!this.modoSelecaoAtivo) {
                 clone.classList.remove('selecionavel');
@@ -4352,8 +5402,13 @@ _isTouchGesture(e) {
             
             const simbolosAntigos = clone.querySelectorAll('.simbolo-linha');
             simbolosAntigos.forEach(simbolo => simbolo.remove());
+
+            clone.querySelectorAll('.elemento-selecionado, .elemento-em-grupo').forEach((item) => {
+                item.classList.remove('elemento-selecionado', 'elemento-em-grupo');
+            });
             
             this.drawingArea.appendChild(clone);
+            this.aplicarTravaBordasElemento(clone);
             
             if (clone.classList.contains('peca')) {
                 const width = parseFloat(clone.style.width);
@@ -4370,7 +5425,47 @@ _isTouchGesture(e) {
                 this.configurarInteratividadeCuba(clone);
             } else if (clone.classList.contains('texto-legenda')) {
                 this.configurarInteratividadeTexto(clone);
+                this.ajustarCaixaTextoAoConteudo(clone);
             }
+
+            return clone;
+        }
+
+        duplicarGrupoTemporario() {
+            const elementos = this.obterElementosRaizDoGrupoTemporario();
+            if (!elementos.length) return;
+
+            const clones = elementos.map((elemento) => this.duplicarElementoBase(elemento, 30));
+            this.limparGrupoTemporario();
+            this.salvarEstadoHistorico(`Duplicar Grupo: ${clones.length} elemento(s)`);
+
+            if (clones.length === 1) {
+                this.selecionarElemento(clones[0], null);
+            } else {
+                this._criarGrupoTemporario(clones);
+            }
+        }
+
+        excluirGrupoTemporario() {
+            const elementos = this.obterElementosRaizDoGrupoTemporario();
+            if (!elementos.length) return;
+
+            elementos.forEach((elemento) => elemento.remove());
+            this.limparGrupoTemporario();
+            this.desselecionarElemento();
+            this.salvarEstadoHistorico(`Excluir Grupo: ${elementos.length} elemento(s)`);
+        }
+
+        duplicarElemento() {
+            const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
+            if (!elementoAlvo) return;
+
+            if (elementoAlvo.classList.contains('grupo-temporario')) {
+                this.duplicarGrupoTemporario();
+                return;
+            }
+
+            const clone = this.duplicarElementoBase(elementoAlvo, 30);
             
             this.salvarEstadoHistorico('Duplicar Elemento: ' + (elementoAlvo.className || 'Elemento'));
             
@@ -4381,13 +5476,16 @@ _isTouchGesture(e) {
     if (this.pecasCriadas) return;
 
     const escala = this.calcularEscalaAutomatica();
-    let posY = 100;
+    this.escalaAtual = escala;
+    const margemTravaBorda = this.obterMargemTravaBordaPx();
+    let posY = Math.max(100, margemTravaBorda);
 
-    const inicioPosX = 50;
+    const inicioPosX = margemTravaBorda;
     const gapHorizontal = 100;
     const gapVertical = 120;
     const espacamentoEntreAgrupamentos = 30;
-    const maxLineWidth = this.drawingArea.offsetWidth - 100;
+    const maxLineWidth = Math.max(100, this.drawingArea.offsetWidth - (margemTravaBorda * 2));
+    const limiteDireitaLayout = this.drawingArea.offsetWidth - margemTravaBorda;
 
     Object.keys(this.gruposPecas).forEach((materialNome, grupoIndex) => {
         const pecasGrupo = this.gruposPecas[materialNome];
@@ -4434,6 +5532,7 @@ _isTouchGesture(e) {
             if (line.length === 0) return;
 
             const lineMaxHeight = Math.max(...line.map(p => p.height));
+            cumulativeY = this.ajustarLinhaParaQuebraPagina(grupoInfo.areaPecas, cumulativeY, lineMaxHeight);
 
             let posX = inicioPosX;
             line.forEach((pObj) => {
@@ -4441,7 +5540,7 @@ _isTouchGesture(e) {
                 const w = pObj.width;
                 const h = pObj.height;
 
-                if (posX + w > maxLineWidth) {
+                if (posX + w > limiteDireitaLayout) {
                     cumulativeY += lineMaxHeight + gapVertical;
                     posX = inicioPosX;
                 }
@@ -4468,8 +5567,9 @@ _isTouchGesture(e) {
                 this.criarLinhasPeca(pecaElement, peca.id, w, h);
 
                 grupoInfo.areaPecas.appendChild(pecaElement);
+                this.aplicarTravaBordasElemento(pecaElement);
 
-                posX += w + gapHorizontal;
+                posX += parseFloat(pecaElement.style.width || w) + gapHorizontal;
             });
 
             cumulativeY += lineMaxHeight + gapVertical;
@@ -4480,6 +5580,7 @@ _isTouchGesture(e) {
     });
 
     this.pecasCriadas = true;
+    this.atualizarGuiasQuebraImpressao();
     
     this.forcarAtualizacaoInteratividade();
     
@@ -4511,6 +5612,7 @@ _isTouchGesture(e) {
             areaPecas.style.width = 'calc(100% - 30px)';
 
             this.drawingArea.appendChild(tituloGrupo);
+            this.aplicarTravaBordasElemento(tituloGrupo, { minWidth: 20, minHeight: 20 });
             this.drawingArea.appendChild(areaPecas);
 
             tituloGrupo.addEventListener('blur', () => {
@@ -4563,6 +5665,7 @@ _isTouchGesture(e) {
     }
 
     this.drawingArea.appendChild(cubaElement);
+    this.aplicarTravaBordasElemento(cubaElement, { minWidth: tipo === 'linha-reta' ? 1 : 10, minHeight: tipo === 'linha-reta' ? 2 : 10 });
 
     this.configurarInteratividadeCuba(cubaElement, tipo);
     this.salvarEstadoHistorico('Adicionar Cuba');
@@ -4576,8 +5679,9 @@ _isTouchGesture(e) {
                 elemento.style.zIndex = '1000';
             },
             move: (event) => {
-                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                const deltaLimitado = this.limitarDeltaElementoPorTravaBordas(elemento, event.dx, event.dy);
+                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + deltaLimitado.dx;
+                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + deltaLimitado.dy;
                 const rotate = elemento.getAttribute('data-rotate') || 0;
 
                 elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
@@ -4689,20 +5793,24 @@ _isTouchGesture(e) {
     textoElement.style.zIndex = '10';
     textoElement.style.minWidth = '20px';
     textoElement.style.minHeight = '20px';
+    textoElement.style.width = 'auto';
 
     if (this.modoSelecaoAtivo) {
         textoElement.classList.add('selecionavel');
     }
 
     this.drawingArea.appendChild(textoElement);
+    this.aplicarTravaBordasElemento(textoElement, { minWidth: 20, minHeight: 20 });
     
     this.salvarEstadoImediato('Adicionar Caixa de Texto');
     textoElement.focus();
 
     textoElement.addEventListener('input', () => {
-        textoElement.style.height = 'auto';
-        textoElement.style.height = (textoElement.scrollHeight) + 'px';
+        this.ajustarCaixaTextoAoConteudo(textoElement);
         textoElement.setAttribute('data-valor', textoElement.value);
+        if (textoElement.classList.contains('elemento-selecionado')) {
+            this.atualizarHandles();
+        }
     });
     
     textoElement.addEventListener('blur', () => {
@@ -4716,9 +5824,38 @@ _isTouchGesture(e) {
     });
 
     this.configurarInteratividadeTexto(textoElement);
+    this.ajustarCaixaTextoAoConteudo(textoElement);
     
     return textoElement;
 }
+
+        ajustarCaixaTextoAoConteudo(elemento) {
+            if (!elemento || !elemento.classList.contains('texto-legenda')) return;
+
+            const conteudo = elemento.value || elemento.placeholder || '';
+            const linhas = conteudo.split('\n');
+            const estilo = window.getComputedStyle(elemento);
+            const medidor = document.createElement('span');
+            medidor.style.position = 'absolute';
+            medidor.style.visibility = 'hidden';
+            medidor.style.whiteSpace = 'pre';
+            medidor.style.fontFamily = estilo.fontFamily;
+            medidor.style.fontSize = estilo.fontSize;
+            medidor.style.fontWeight = estilo.fontWeight;
+            medidor.style.letterSpacing = estilo.letterSpacing;
+            medidor.textContent = linhas.reduce((maior, linha) => (
+                linha.length > maior.length ? linha : maior
+            ), '');
+
+            document.body.appendChild(medidor);
+            const largura = Math.max(20, Math.ceil(medidor.getBoundingClientRect().width) + 4);
+            medidor.remove();
+
+            elemento.style.width = `${largura}px`;
+            elemento.style.height = 'auto';
+            elemento.style.height = `${Math.max(20, elemento.scrollHeight)}px`;
+            this.aplicarTravaBordasElemento(elemento, { minWidth: 20, minHeight: 20 });
+        }
 
 
         configurarInteratividadeTexto(elemento) {
@@ -4761,12 +5898,10 @@ _isTouchGesture(e) {
                         event.preventDefault();
                     }
 
-                    const initialX = parseFloat(elemento.getAttribute('data-initial-x')) || 0;
-                    const initialY = parseFloat(elemento.getAttribute('data-initial-y')) || 0;
+                    const deltaLimitado = this.limitarDeltaElementoPorTravaBordas(elemento, event.dx, event.dy);
                     const rotacao = parseFloat(elemento.getAttribute('data-rotate')) || 0;
-
-                    const x = initialX + event.dx;
-                    const y = initialY + event.dy;
+                    const x = (parseFloat(elemento.getAttribute('data-x')) || 0) + deltaLimitado.dx;
+                    const y = (parseFloat(elemento.getAttribute('data-y')) || 0) + deltaLimitado.dy;
 
                     elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotacao}deg)`;
                     elemento.setAttribute('data-x', x);
@@ -4787,10 +5922,26 @@ _isTouchGesture(e) {
         interact(elemento).resizable({
             edges: { left: false, right: true, bottom: true, top: false },
             listeners: {
-                move: function (event) {
+                move: (event) => {
+                    const proposta = this.ajustarPropostaTravaBordas(event.target, {
+                        width: event.rect.width,
+                        height: event.rect.height,
+                        left: parseFloat(event.target.style.left) || 0,
+                        top: parseFloat(event.target.style.top) || 0,
+                        x: parseFloat(event.target.getAttribute('data-x')) || 0,
+                        y: parseFloat(event.target.getAttribute('data-y')) || 0,
+                        rotate: parseFloat(event.target.getAttribute('data-rotate')) || 0,
+                        usarTransform: false,
+                        preferirLeftTop: true,
+                        minWidth: 50,
+                        minHeight: 20
+                    });
+
                     Object.assign(event.target.style, {
-                        width: `${event.rect.width}px`,
-                        height: `${event.rect.height}px`
+                        width: `${proposta.width}px`,
+                        height: `${proposta.height}px`,
+                        left: `${proposta.left}px`,
+                        top: `${proposta.top}px`
                     });
                 }
             },
@@ -4848,6 +5999,7 @@ _isTouchGesture(e) {
         this.drawingArea.appendChild(legendaElement);
     }
     
+    this.aplicarTravaBordasElemento(legendaElement, { minWidth: 20, minHeight: 20 });
     this.salvarEstadoHistorico('Adicionar Legenda');
     this.configurarInteratividadeLegenda(legendaElement);
     
@@ -4899,8 +6051,9 @@ _isTouchGesture(e) {
                     move: (event) => {
                         if (event.type.includes('touch')) event.preventDefault();
 
-                        let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                        let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
+                        const deltaLimitado = this.limitarDeltaElementoPorTravaBordas(elemento, event.dx, event.dy);
+                        let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + deltaLimitado.dx;
+                        let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + deltaLimitado.dy;
                         const rotacao = parseFloat(elemento.getAttribute('data-rotacao')) || 0;
 
                         elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotacao}deg)`;
@@ -4980,6 +6133,7 @@ _isTouchGesture(e) {
             const dimensoesRight = document.createElement('div');
             dimensoesRight.className = 'dimensoes dimensoes-right';
             dimensoesRight.textContent = `${peca.largura}`;
+            dimensoesRight.style.left = 'auto';
             dimensoesRight.style.right = `${-35}px`;
             dimensoesRight.style.top = `${height / 2}px`;
 	    dimensoesRight.style.zIndex = '10';            
@@ -5132,41 +6286,41 @@ simboloElement.style.zIndex = '10';
 
         configurarInteratividade(elemento) {
             this.removerInteratividade(elemento);
+
+            if (elemento.classList.contains('dimensoes')) {
+                this.configurarInteratividadeDimensao(elemento);
+                return;
+            }
+
+            if (elemento.classList.contains('simbolo-linha')) {
+                this.configurarInteratividadeSimbolo(elemento);
+                return;
+            }
             
             if (elemento.classList.contains('elemento-selecionado') && !elemento.classList.contains('grupo-temporario')) {
-                
-                if (elemento.classList.contains('simbolo-linha')) {
-                    this.configurarInteratividadeSimbolo(elemento);
-                } else {
-                    interact(elemento).draggable({
-                        listeners: {
-                            start: () => {
-                                elemento.style.zIndex = '1000';
-                            },
-                            move: (event) => {
-                                let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + event.dx;
-                                let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + event.dy;
-                                const rotate = elemento.getAttribute('data-rotate') || 0;
+                interact(elemento).draggable({
+                    ignoreFrom: '.dimensoes, .quantidade-peca, .simbolo-linha, .linha-peca, input, textarea, button, select, .handle, .handle-rotacao',
+                    listeners: {
+                        start: () => {
+                            elemento.style.zIndex = '1000';
+                        },
+                        move: (event) => {
+                            const deltaLimitado = this.limitarDeltaElementoPorTravaBordas(elemento, event.dx, event.dy);
+                            let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + deltaLimitado.dx;
+                            let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + deltaLimitado.dy;
+                            const rotate = elemento.getAttribute('data-rotate') || 0;
 
-                                elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
-                                elemento.setAttribute('data-x', x);
-                                elemento.setAttribute('data-y', y);
-
-                                if (elemento.classList.contains('peca')) {
-                                   
-                                }
-                                
-                                if (!elemento.classList.contains('simbolo-linha')) {
-                                    this.atualizarHandles();
-                                }
-                            },
-                            end: () => {
-                                elemento.style.zIndex = '';
-                                this.salvarEstadoHistorico('Mover Elemento');
-                            }
+                            elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
+                            elemento.setAttribute('data-x', x);
+                            elemento.setAttribute('data-y', y);
+                            this.atualizarHandles();
+                        },
+                        end: () => {
+                            elemento.style.zIndex = '';
+                            this.salvarEstadoHistorico('Mover Elemento');
                         }
-                    });
-                }
+                    }
+                });
             }
         }
 
@@ -5226,7 +6380,8 @@ simboloElement.style.zIndex = '10';
 
         calcularDimensoesPeca(peca, escala) {
             const larguraArea = this.drawingArea.offsetWidth;
-            const larguraMaximaPermitida = larguraArea * 0.85;
+            const margemTrava = this.obterMargemTravaBordaPx ? this.obterMargemTravaBordaPx() : 0;
+            const larguraMaximaPermitida = Math.max(50, larguraArea - (margemTrava * 2));
             
             let width = peca.comprimento * escala;
             let height = peca.largura * escala;
@@ -5696,7 +6851,7 @@ simboloElement.style.zIndex = '10';
         return;
     }
     
-    this.elementoSelecionadoAntesDoModal = this.elementoSelecionado;
+    this.elementoSelecionadoAntesDoModal = elementoAlvo;
     this.modalEstilosAberto = true;
     
     document.body.classList.add('modal-estilos-aberto');
@@ -5938,7 +7093,8 @@ simboloElement.style.zIndex = '10';
     }
     
     let tamanhoFonte = parseInt(estilos.fontSize) || 16;
-    const negrito = estilos.fontWeight === 'bold' || estilos.fontWeight === '700';
+    const pesoFonte = parseInt(estilos.fontWeight, 10);
+    const negrito = estilos.fontWeight === 'bold' || pesoFonte >= 700;
     
     let estiloLinha = 'solid';
     if (elemento.classList.contains('peca') || elemento.classList.contains('cuba')) {
@@ -6025,7 +7181,7 @@ simboloElement.style.zIndex = '10';
         }
 
         aplicarEstilosPreview() {
-            const elementoAlvo = this.elementoSelecionado || this.ultimoElementoClicado;
+            const elementoAlvo = this.elementoSelecionado || this.elementoSelecionadoAntesDoModal || this.ultimoElementoClicado;
             if (!elementoAlvo) return;
             
             this.aplicarEstilosElemento(elementoAlvo, true);
@@ -6108,6 +7264,11 @@ configurarEventosModalEstilos() {
     const textoNegrito = this.modalEstilosAtual.querySelector('#textoNegrito');
     if (textoNegrito) {
         textoNegrito.addEventListener('change', (e) => {
+            e.stopPropagation();
+            this.toggleNegrito(e.target.checked);
+        });
+
+        textoNegrito.addEventListener('click', (e) => {
             e.stopPropagation();
             this.toggleNegrito(e.target.checked);
         });
@@ -6219,12 +7380,22 @@ aplicarEstilosManterModal() {
       aplicarEstilosElemento(elemento, preview = false) {
     const cor = this.corSelecionada;
     const tamanhoFonte = this.tamanhoTextoSelecionado;
-    const negrito = this.negritoAtivo;
+    let negrito = this.negritoAtivo;
     const estiloLinha = this.estiloLinhaSelecionado;
+
+    const checkboxNegrito = this.modalEstilosAtual ? this.modalEstilosAtual.querySelector('#textoNegrito') : null;
+    if (checkboxNegrito && negrito === null) {
+        negrito = checkboxNegrito.checked;
+    }
     
     if (elemento.classList.contains('peca') || elemento.classList.contains('cuba')) {
         if (cor) elemento.style.borderColor = cor;
         if (estiloLinha) elemento.style.borderStyle = estiloLinha;
+        if (negrito !== null) {
+            elemento.querySelectorAll('.dimensoes, .quantidade-peca').forEach((item) => {
+                item.style.fontWeight = negrito ? 'bold' : 'normal';
+            });
+        }
     }
     else if (elemento.classList.contains('texto-legenda') || 
              elemento.classList.contains('legenda-simplificada') ||
