@@ -9915,6 +9915,171 @@ aplicarEstilosManterModal() {
     };
 })();
 
+
+
+/* TRAVA TOTAL DE INTERAÇÃO NORMAL NO MODO BORRACHA
+   Quando a borracha está ativa, nenhum objeto pode iniciar seleção, drag, resize,
+   foco de texto ou edição. A própria borracha assume os eventos na captura. */
+(function() {
+    if (typeof GerenciadorDesenho === 'undefined') return;
+
+    const SELECTOR_EDITAVEIS_BORRACHA = '.texto-legenda, .titulo-grupo, .legenda-descricao-inline, textarea, input, [contenteditable="true"]';
+
+    function getGerenciador() {
+        return window.gerenciadorDesenho || (typeof gerenciadorDesenho !== 'undefined' ? gerenciadorDesenho : null);
+    }
+
+    function eventoDentroArea(ger, ev) {
+        if (!ger || !ger.drawingArea || !ev || !ev.target) return false;
+        return ger.drawingArea === ev.target || ger.drawingArea.contains(ev.target);
+    }
+
+    function bloquearEvento(ev) {
+        if (!ev) return;
+        if (ev.cancelable) ev.preventDefault();
+        ev.stopPropagation();
+        if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+    }
+
+    function tratarEventoBorrachaCaptura(ev) {
+        const ger = getGerenciador();
+        if (!ger || !ger.modoBorrachaAtivo || !eventoDentroArea(ger, ev)) return;
+
+        // Mantém pinça/zoom no mobile quando houver 2 dedos, mas bloqueia interação de objeto/texto.
+        if ((ev.type === 'touchstart' || ev.type === 'touchmove') && ev.touches && ev.touches.length >= 2) {
+            if (ger.borrachaPressionada && typeof ger.pararPinturaBorracha === 'function') {
+                ger.pararPinturaBorracha();
+            }
+            return;
+        }
+
+        const tipo = ev.type;
+
+        if (tipo === 'mousedown') {
+            if (ev.button !== undefined && ev.button !== 0) {
+                bloquearEvento(ev);
+                return;
+            }
+            bloquearEvento(ev);
+            if (typeof ger.atualizarCursorBorracha === 'function') ger.atualizarCursorBorracha(ev);
+            if (typeof ger.iniciarPinturaBorracha === 'function') ger.iniciarPinturaBorracha(ev);
+            return;
+        }
+
+        if (tipo === 'mousemove') {
+            bloquearEvento(ev);
+            if (typeof ger.atualizarCursorBorracha === 'function') ger.atualizarCursorBorracha(ev);
+            if (ger.borrachaPressionada && typeof ger.pintarComBorracha === 'function') ger.pintarComBorracha(ev);
+            return;
+        }
+
+        if (tipo === 'mouseup') {
+            bloquearEvento(ev);
+            if (typeof ger.pararPinturaBorracha === 'function') ger.pararPinturaBorracha();
+            return;
+        }
+
+        if (tipo === 'touchstart') {
+            bloquearEvento(ev);
+            if (typeof ger.atualizarCursorBorracha === 'function') ger.atualizarCursorBorracha(ev);
+            if (typeof ger.iniciarPinturaBorracha === 'function') ger.iniciarPinturaBorracha(ev);
+            return;
+        }
+
+        if (tipo === 'touchmove') {
+            bloquearEvento(ev);
+            if (typeof ger.atualizarCursorBorracha === 'function') ger.atualizarCursorBorracha(ev);
+            if (ger.borrachaPressionada && typeof ger.pintarComBorracha === 'function') ger.pintarComBorracha(ev);
+            return;
+        }
+
+        if (tipo === 'touchend' || tipo === 'touchcancel') {
+            bloquearEvento(ev);
+            if (typeof ger.pararPinturaBorracha === 'function') ger.pararPinturaBorracha();
+            return;
+        }
+
+        // Bloqueia foco, digitação, seleção, edição e menus sobre os objetos.
+        if (
+            tipo === 'click' || tipo === 'dblclick' || tipo === 'contextmenu' ||
+            tipo === 'focusin' || tipo === 'beforeinput' || tipo === 'input' ||
+            tipo === 'keydown' || tipo === 'keyup'
+        ) {
+            bloquearEvento(ev);
+            if (document.activeElement && ger.drawingArea.contains(document.activeElement) && typeof document.activeElement.blur === 'function') {
+                document.activeElement.blur();
+            }
+        }
+    }
+
+    function instalarTravaBorracha() {
+        if (window.__travaTotalBorrachaInstalada) return;
+        window.__travaTotalBorrachaInstalada = true;
+
+        [
+            'mousedown', 'mousemove', 'mouseup',
+            'touchstart', 'touchmove', 'touchend', 'touchcancel',
+            'click', 'dblclick', 'contextmenu',
+            'focusin', 'beforeinput', 'input', 'keydown', 'keyup'
+        ].forEach((tipo) => {
+            document.addEventListener(tipo, tratarEventoBorrachaCaptura, { capture: true, passive: false });
+        });
+    }
+
+    GerenciadorDesenho.prototype.bloquearEdicaoDuranteBorracha = function() {
+        if (!this.drawingArea) return;
+        if (document.activeElement && this.drawingArea.contains(document.activeElement) && typeof document.activeElement.blur === 'function') {
+            document.activeElement.blur();
+        }
+
+        this.drawingArea.querySelectorAll(SELECTOR_EDITAVEIS_BORRACHA).forEach((el) => {
+            if (!el.dataset.borrachaReadOnlyOriginal) {
+                el.dataset.borrachaReadOnlyOriginal = el.readOnly ? '1' : '0';
+            }
+            if (!el.dataset.borrachaContentEditableOriginal && el.hasAttribute('contenteditable')) {
+                el.dataset.borrachaContentEditableOriginal = el.getAttribute('contenteditable') || '';
+            }
+
+            if ('readOnly' in el) el.readOnly = true;
+            if (el.hasAttribute('contenteditable')) el.setAttribute('contenteditable', 'false');
+            el.classList.add('bloqueado-modo-borracha');
+        });
+    };
+
+    GerenciadorDesenho.prototype.restaurarEdicaoAposBorracha = function() {
+        if (!this.drawingArea) return;
+        this.drawingArea.querySelectorAll('.bloqueado-modo-borracha').forEach((el) => {
+            if (el.dataset.borrachaReadOnlyOriginal) {
+                if ('readOnly' in el) el.readOnly = el.dataset.borrachaReadOnlyOriginal === '1';
+                delete el.dataset.borrachaReadOnlyOriginal;
+            }
+            if (el.dataset.borrachaContentEditableOriginal !== undefined) {
+                const original = el.dataset.borrachaContentEditableOriginal;
+                if (original === '') el.removeAttribute('contenteditable');
+                else el.setAttribute('contenteditable', original);
+                delete el.dataset.borrachaContentEditableOriginal;
+            }
+            el.classList.remove('bloqueado-modo-borracha');
+        });
+    };
+
+    const ativarOriginalTravaTotal = GerenciadorDesenho.prototype.ativarModoBorracha;
+    GerenciadorDesenho.prototype.ativarModoBorracha = function() {
+        instalarTravaBorracha();
+        if (typeof ativarOriginalTravaTotal === 'function') ativarOriginalTravaTotal.call(this);
+        if (typeof this.bloquearEdicaoDuranteBorracha === 'function') this.bloquearEdicaoDuranteBorracha();
+        document.body.classList.add('modo-borracha');
+    };
+
+    const desativarOriginalTravaTotal = GerenciadorDesenho.prototype.desativarModoBorracha;
+    GerenciadorDesenho.prototype.desativarModoBorracha = function() {
+        if (typeof this.restaurarEdicaoAposBorracha === 'function') this.restaurarEdicaoAposBorracha();
+        if (typeof desativarOriginalTravaTotal === 'function') desativarOriginalTravaTotal.call(this);
+    };
+
+    document.addEventListener('DOMContentLoaded', instalarTravaBorracha);
+})();
+
 let gerenciadorDesenho;
 
     document.addEventListener('DOMContentLoaded', function() {
