@@ -885,6 +885,44 @@
     z-index: 9 !important;
 }
 
+/* A borracha deve apagar somente o próprio objeto.
+   Ao selecionar/arrastar, a peça não pode subir acima das outras e transformar
+   o recorte branco em uma pintura sobre objetos vizinhos. */
+.peca.elemento-selecionado {
+    z-index: 2 !important;
+}
+
+.cuba.elemento-selecionado {
+    z-index: 8 !important;
+}
+
+.texto-legenda.elemento-selecionado,
+.legenda-simplificada.elemento-selecionado,
+.titulo-grupo.elemento-selecionado,
+.simbolo-linha.elemento-selecionado,
+.dimensoes.elemento-selecionado,
+.quantidade-peca.elemento-selecionado {
+    z-index: 20 !important;
+}
+
+/* Durante a manipulação, o elemento ativo fica acima dos demais.
+   A peça ativa vira uma camada branca opaca apenas durante o arraste.
+   Isso preserva o recorte dela, mas impede que o branco da borracha pinte
+   ou apague visualmente qualquer peça que esteja por baixo. */
+.peca.elemento-em-manipulacao,
+.cuba.elemento-em-manipulacao {
+    z-index: 30000 !important;
+    background-color: #fff !important;
+    isolation: isolate !important;
+}
+
+.elemento-em-manipulacao .recorte-borracha,
+.elemento-em-manipulacao .pintura-borracha {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
 .guia-quebra-impressao {
     position: absolute;
     left: 0;
@@ -1472,6 +1510,107 @@ height: 0px !important;
             pointer-events: auto !important;
         }
     }
+
+/* Correção da borracha durante movimentação:
+   1) recortes passivos continuam visíveis no próprio objeto apagado;
+   2) a peça que está sendo movida fica acima e com fundo branco próprio;
+   3) o recorte da peça ativa continua visível nela, sem atuar como pintura
+      sobre objetos que estejam por baixo. */
+body.manipulando-elemento-borracha .recorte-borracha,
+body.manipulando-elemento-borracha .pintura-borracha {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+}
+
+body.manipulando-elemento-borracha .peca.elemento-em-manipulacao,
+body.manipulando-elemento-borracha .cuba.elemento-em-manipulacao {
+    z-index: 30000 !important;
+    background-color: #fff !important;
+    isolation: isolate !important;
+}
+
+body.manipulando-elemento-borracha .linha-peca.elemento-em-manipulacao,
+body.manipulando-elemento-borracha .peca.elemento-em-manipulacao .linha-peca {
+    z-index: 30001 !important;
+}
+
+body.manipulando-elemento-borracha .peca.elemento-em-manipulacao .recorte-borracha,
+body.manipulando-elemento-borracha .peca.elemento-em-manipulacao .pintura-borracha,
+body.manipulando-elemento-borracha .cuba.elemento-em-manipulacao .recorte-borracha,
+body.manipulando-elemento-borracha .cuba.elemento-em-manipulacao .pintura-borracha {
+    z-index: 30002 !important;
+}
+
+
+
+/* CORREÇÃO REAL DA BORRACHA
+   A borracha não usa mais retângulo branco nem clip-path SVG.
+   Cada lado da peça é desenhado por segmentos pretos; ao apagar, o trecho
+   atingido é removido da própria linha. Assim não existe pintura sobreposta
+   e uma peça nunca apaga visualmente outra durante o arraste. */
+.peca {
+    border-color: transparent !important;
+    background-color: transparent !important;
+}
+
+.peca .linha-peca::before {
+    content: none !important;
+    display: none !important;
+}
+
+.segmento-linha-peca {
+    position: absolute;
+    display: block;
+    background: var(--line-color, #000);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.linha-peca[data-estilo-linha="dashed"] .segmento-linha-peca {
+    background: repeating-linear-gradient(
+        90deg,
+        var(--line-color, #000) 0,
+        var(--line-color, #000) 7px,
+        transparent 7px,
+        transparent 12px
+    );
+}
+
+.linha-peca[data-estilo-linha="dashed"][data-lado="left"] .segmento-linha-peca,
+.linha-peca[data-estilo-linha="dashed"][data-lado="right"] .segmento-linha-peca {
+    background: repeating-linear-gradient(
+        180deg,
+        var(--line-color, #000) 0,
+        var(--line-color, #000) 7px,
+        transparent 7px,
+        transparent 12px
+    );
+}
+
+.linha-peca {
+    overflow: visible !important;
+}
+
+.recorte-borracha,
+.pintura-borracha {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    background: transparent !important;
+    pointer-events: none !important;
+}
+
+.peca.elemento-em-manipulacao,
+.cuba.elemento-em-manipulacao,
+body.manipulando-elemento-borracha .peca.elemento-em-manipulacao,
+body.manipulando-elemento-borracha .cuba.elemento-em-manipulacao {
+    z-index: 30000 !important;
+    background-color: transparent !important;
+    isolation: auto !important;
+}
+
+
 </style>
 
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pilot.css') }}">
@@ -2154,6 +2293,7 @@ adicionarEstilosMobile() {
     
     this.borrachaPressionada = true;
     this.ultimaPosicaoBorracha = null;
+    this.borrachaAplicadaNestaAcao = false;
     
     this.salvarEstadoHistorico('Antes da Borracha');
     
@@ -2167,11 +2307,11 @@ pararPinturaBorracha() {
     this.borrachaPressionada = false;
     this.ultimaPosicaoBorracha = null;
     
-    const elementosPintura = this.drawingArea.querySelectorAll('.recorte-borracha');
-    if (elementosPintura.length > 0) {
+    if (this.borrachaAplicadaNestaAcao) {
         this.salvarEstadoHistorico('Apagar com Borracha');
-        console.log(`Borracha salva: ${elementosPintura.length} recortes aplicados`);
+        console.log('Borracha salva: segmentos de linha atualizados');
     }
+    this.borrachaAplicadaNestaAcao = false;
     
     console.log('Parando pintura com borracha');
 }
@@ -2283,35 +2423,302 @@ salvarEstadoHistoricoForcado(descricao) {
             }
         }
 
+        normalizarIntervalosBorracha(intervalos, comprimento) {
+            const limite = Math.max(0, Number(comprimento) || 0);
+            const lista = (Array.isArray(intervalos) ? intervalos : [])
+                .map((item) => ({
+                    ini: Math.max(0, Math.min(limite, Number(item.ini) || 0)),
+                    fim: Math.max(0, Math.min(limite, Number(item.fim) || 0))
+                }))
+                .filter((item) => item.fim > item.ini)
+                .sort((a, b) => a.ini - b.ini);
+
+            const unidos = [];
+            lista.forEach((item) => {
+                const ultimo = unidos[unidos.length - 1];
+                if (!ultimo || item.ini > ultimo.fim + 0.5) {
+                    unidos.push({ ini: item.ini, fim: item.fim });
+                } else {
+                    ultimo.fim = Math.max(ultimo.fim, item.fim);
+                }
+            });
+
+            return unidos;
+        }
+
+        obterIntervalosBorrachaLinha(linha) {
+            if (!linha) return [];
+            try {
+                const valor = linha.getAttribute('data-borracha-intervalos') || '[]';
+                const intervalos = JSON.parse(valor);
+                return Array.isArray(intervalos) ? intervalos : [];
+            } catch (erro) {
+                return [];
+            }
+        }
+
+        salvarIntervalosBorrachaLinha(linha, intervalos) {
+            if (!linha) return;
+            const comprimento = this.obterComprimentoLinhaPeca(linha);
+            const normalizados = this.normalizarIntervalosBorracha(intervalos, comprimento);
+            linha.setAttribute('data-borracha-intervalos', JSON.stringify(normalizados));
+        }
+
+        capturarEstadoBorrachaLinhasPeca(pecaElement) {
+            const estado = {};
+            if (!pecaElement || !pecaElement.querySelectorAll) return estado;
+
+            pecaElement.querySelectorAll('.linha-peca').forEach((linha) => {
+                const lado = linha.getAttribute('data-lado') || '';
+                if (!lado) return;
+
+                estado[lado] = {
+                    comprimento: this.obterComprimentoLinhaPeca(linha),
+                    intervalos: this.obterIntervalosBorrachaLinha(linha).map((item) => ({
+                        ini: Number(item.ini) || 0,
+                        fim: Number(item.fim) || 0
+                    }))
+                };
+            });
+
+            return estado;
+        }
+
+        aplicarEstadoBorrachaEscaladoPeca(pecaElement, estadoBorracha, larguraNova, alturaNova) {
+            if (!pecaElement || !estadoBorracha || !pecaElement.querySelectorAll) return;
+
+            pecaElement.querySelectorAll('.linha-peca').forEach((linha) => {
+                const lado = linha.getAttribute('data-lado') || '';
+                const base = estadoBorracha[lado];
+                if (!base || !Array.isArray(base.intervalos)) return;
+
+                const horizontal = lado === 'top' || lado === 'bottom';
+                const comprimentoNovo = Math.max(0, horizontal ? (Number(larguraNova) || 0) : (Number(alturaNova) || 0));
+                const comprimentoBase = Math.max(0, Number(base.comprimento) || 0);
+
+                if (!base.intervalos.length || comprimentoNovo <= 0 || comprimentoBase <= 0) {
+                    linha.removeAttribute('data-borracha-intervalos');
+                    this.renderizarLinhaPecaComRecortes(linha);
+                    return;
+                }
+
+                const escala = comprimentoNovo / comprimentoBase;
+                const intervalosEscalados = base.intervalos.map((intervalo) => ({
+                    ini: (Number(intervalo.ini) || 0) * escala,
+                    fim: (Number(intervalo.fim) || 0) * escala
+                }));
+
+                const normalizados = this.normalizarIntervalosBorracha(intervalosEscalados, comprimentoNovo);
+                if (normalizados.length) {
+                    linha.setAttribute('data-borracha-intervalos', JSON.stringify(normalizados));
+                } else {
+                    linha.removeAttribute('data-borracha-intervalos');
+                }
+                this.renderizarLinhaPecaComRecortes(linha);
+            });
+        }
+
+        obterComprimentoLinhaPeca(linha) {
+            if (!linha) return 0;
+            const lado = linha.getAttribute('data-lado') || '';
+            const horizontal = lado === 'top' || lado === 'bottom';
+            const estilo = window.getComputedStyle(linha);
+            const valorEstilo = parseFloat(horizontal ? linha.style.width : linha.style.height) ||
+                parseFloat(horizontal ? estilo.width : estilo.height) ||
+                (horizontal ? linha.offsetWidth : linha.offsetHeight) || 0;
+            return Math.max(0, valorEstilo);
+        }
+
+        renderizarLinhaPecaComRecortes(linha) {
+            if (!linha || !linha.classList || !linha.classList.contains('linha-peca')) return;
+
+            linha.querySelectorAll(':scope > .segmento-linha-peca').forEach((segmento) => segmento.remove());
+
+            const lado = linha.getAttribute('data-lado') || '';
+            const horizontal = lado === 'top' || lado === 'bottom';
+            const comprimento = this.obterComprimentoLinhaPeca(linha);
+            if (comprimento <= 0) return;
+
+            const intervalos = this.normalizarIntervalosBorracha(this.obterIntervalosBorrachaLinha(linha), comprimento);
+            if (intervalos.length) {
+                linha.setAttribute('data-borracha-intervalos', JSON.stringify(intervalos));
+            } else {
+                linha.removeAttribute('data-borracha-intervalos');
+            }
+
+            const partesVisiveis = [];
+            let cursor = 0;
+            intervalos.forEach((intervalo) => {
+                if (intervalo.ini > cursor) {
+                    partesVisiveis.push({ ini: cursor, fim: intervalo.ini });
+                }
+                cursor = Math.max(cursor, intervalo.fim);
+            });
+            if (cursor < comprimento) {
+                partesVisiveis.push({ ini: cursor, fim: comprimento });
+            }
+
+            partesVisiveis.forEach((parte) => {
+                const tamanho = Math.max(0, parte.fim - parte.ini);
+                if (tamanho <= 0.5) return;
+
+                const segmento = document.createElement('span');
+                segmento.className = 'segmento-linha-peca';
+
+                if (horizontal) {
+                    segmento.style.left = `${parte.ini}px`;
+                    segmento.style.top = '3px';
+                    segmento.style.width = `${tamanho}px`;
+                    segmento.style.height = '2px';
+                } else {
+                    segmento.style.left = '3px';
+                    segmento.style.top = `${parte.ini}px`;
+                    segmento.style.width = '2px';
+                    segmento.style.height = `${tamanho}px`;
+                }
+
+                linha.appendChild(segmento);
+            });
+        }
+
+        atualizarMascaraBorrachaElemento(elemento) {
+            if (!elemento) return;
+            if (elemento.classList && elemento.classList.contains('linha-peca')) {
+                this.renderizarLinhaPecaComRecortes(elemento);
+            }
+        }
+
+        atualizarTodasMascarasBorracha() {
+            if (!this.drawingArea) return;
+            this.drawingArea
+                .querySelectorAll('.linha-peca')
+                .forEach((linha) => this.renderizarLinhaPecaComRecortes(linha));
+        }
+
+        obterPontoLocalLinhaPeca(linha, x, y) {
+            const areaRect = this.drawingArea.getBoundingClientRect();
+            const clientX = x - this.drawingArea.scrollLeft + areaRect.left;
+            const clientY = y - this.drawingArea.scrollTop + areaRect.top;
+            const rect = linha.getBoundingClientRect();
+            const lado = linha.getAttribute('data-lado') || '';
+            const horizontal = lado === 'top' || lado === 'bottom';
+            const comprimento = this.obterComprimentoLinhaPeca(linha);
+
+            if (!rect.width && !rect.height) return 0;
+
+            if (horizontal) {
+                const larguraVisual = Math.max(rect.width, 1);
+                return ((clientX - rect.left) / larguraVisual) * comprimento;
+            }
+
+            const alturaVisual = Math.max(rect.height, 1);
+            return ((clientY - rect.top) / alturaVisual) * comprimento;
+        }
+
+        aplicarBorrachaEmLinhaPeca(linha, x, y) {
+            if (!linha || !linha.classList || !linha.classList.contains('linha-peca')) return false;
+
+            const comprimento = this.obterComprimentoLinhaPeca(linha);
+            if (comprimento <= 0) return false;
+
+            const centro = this.obterPontoLocalLinhaPeca(linha, x, y);
+            const metade = Math.max(6, (this.tamanhoBorracha || 10) / 2);
+            const novoIntervalo = {
+                ini: Math.max(0, centro - metade),
+                fim: Math.min(comprimento, centro + metade)
+            };
+
+            if (novoIntervalo.fim <= novoIntervalo.ini) return false;
+
+            const intervalos = this.obterIntervalosBorrachaLinha(linha);
+            intervalos.push(novoIntervalo);
+            this.salvarIntervalosBorrachaLinha(linha, intervalos);
+            this.renderizarLinhaPecaComRecortes(linha);
+            this.borrachaAplicadaNestaAcao = true;
+
+            const pecaPai = linha.closest ? linha.closest('.peca') : null;
+            if (this.elementoSelecionado === linha || this.elementoSelecionado === pecaPai) {
+                this.atualizarHandles();
+            }
+            return true;
+        }
+
+        aplicarBorrachaNasLinhasDaPeca(pecaElement, x, y) {
+            if (!pecaElement) return false;
+
+            const areaRect = this.drawingArea.getBoundingClientRect();
+            const tamanho = this.tamanhoBorracha || 10;
+            const borracha = {
+                left: x - tamanho / 2,
+                right: x + tamanho / 2,
+                top: y - tamanho / 2,
+                bottom: y + tamanho / 2
+            };
+
+            let aplicou = false;
+            const linhas = Array.from(pecaElement.querySelectorAll('.linha-peca'));
+
+            linhas.forEach((linha) => {
+                const rect = linha.getBoundingClientRect();
+                const linhaArea = {
+                    left: rect.left - areaRect.left + this.drawingArea.scrollLeft,
+                    right: rect.right - areaRect.left + this.drawingArea.scrollLeft,
+                    top: rect.top - areaRect.top + this.drawingArea.scrollTop,
+                    bottom: rect.bottom - areaRect.top + this.drawingArea.scrollTop
+                };
+
+                const cruza = !(
+                    borracha.right < linhaArea.left ||
+                    borracha.left > linhaArea.right ||
+                    borracha.bottom < linhaArea.top ||
+                    borracha.top > linhaArea.bottom
+                );
+
+                if (cruza && this.aplicarBorrachaEmLinhaPeca(linha, x, y)) {
+                    aplicou = true;
+                }
+            });
+
+            return aplicou;
+        }
+
         apagarComBorrachaNoAlvo(x, y) {
             const alvo = this.encontrarAlvoBorracha(x, y);
             if (!alvo) return;
 
-            const alvoRect = alvo.getBoundingClientRect();
-            const areaRect = this.drawingArea.getBoundingClientRect();
-            const alvoLeft = alvoRect.left - areaRect.left + this.drawingArea.scrollLeft;
-            const alvoTop = alvoRect.top - areaRect.top + this.drawingArea.scrollTop;
-            const localX = x - alvoLeft;
-            const localY = y - alvoTop;
-
-            const recorte = document.createElement('div');
-            recorte.className = 'recorte-borracha';
-            recorte.style.position = 'absolute';
-            recorte.style.left = `${localX - this.tamanhoBorracha / 2}px`;
-            recorte.style.top = `${localY - this.tamanhoBorracha / 2}px`;
-            recorte.style.width = `${this.tamanhoBorracha}px`;
-            recorte.style.height = `${this.tamanhoBorracha}px`;
-            recorte.style.background = 'white';
-            recorte.style.border = '0';
-            recorte.style.borderRadius = '1px';
-            recorte.style.pointerEvents = 'none';
-            recorte.style.zIndex = '9';
-
-            if (window.getComputedStyle(alvo).position === 'static') {
-                alvo.style.position = 'absolute';
+            if (alvo.classList.contains('linha-peca')) {
+                this.aplicarBorrachaEmLinhaPeca(alvo, x, y);
+                return;
             }
 
-            alvo.appendChild(recorte);
+            if (alvo.classList.contains('peca')) {
+                this.aplicarBorrachaNasLinhasDaPeca(alvo, x, y);
+                return;
+            }
+
+            if (alvo.classList.contains('cuba')) {
+                // Cubas/desenhos ainda usam a regra visual antiga, mas sem afetar peças.
+                const alvoRect = alvo.getBoundingClientRect();
+                const areaRect = this.drawingArea.getBoundingClientRect();
+                const alvoLeft = alvoRect.left - areaRect.left + this.drawingArea.scrollLeft;
+                const alvoTop = alvoRect.top - areaRect.top + this.drawingArea.scrollTop;
+                const localX = x - alvoLeft;
+                const localY = y - alvoTop;
+
+                const recorte = document.createElement('div');
+                recorte.className = 'recorte-borracha';
+                recorte.style.position = 'absolute';
+                recorte.style.left = `${localX - this.tamanhoBorracha / 2}px`;
+                recorte.style.top = `${localY - this.tamanhoBorracha / 2}px`;
+                recorte.style.width = `${this.tamanhoBorracha}px`;
+                recorte.style.height = `${this.tamanhoBorracha}px`;
+                recorte.style.background = 'white';
+                recorte.style.border = '0';
+                recorte.style.borderRadius = '1px';
+                recorte.style.pointerEvents = 'none';
+                recorte.style.zIndex = '9';
+                alvo.appendChild(recorte);
+            }
         }
 
         encontrarAlvoBorracha(x, y) {
@@ -2344,7 +2751,12 @@ salvarEstadoHistoricoForcado(descricao) {
                     y >= item.top - this.tamanhoBorracha &&
                     y <= item.bottom + this.tamanhoBorracha
                 ))
-                .sort((a, b) => a.area - b.area);
+                .sort((a, b) => {
+                    const prioridadeA = a.elemento.classList.contains('linha-peca') ? 0 : 1;
+                    const prioridadeB = b.elemento.classList.contains('linha-peca') ? 0 : 1;
+                    if (prioridadeA !== prioridadeB) return prioridadeA - prioridadeB;
+                    return a.area - b.area;
+                });
 
             return candidatos.length ? candidatos[0].elemento : null;
         }
@@ -2615,7 +3027,9 @@ limparPinturasBorracha() {
                 linha.addEventListener('mouseenter', () => linha.style.backgroundColor = '#4e73df');
                 linha.addEventListener('mouseleave', () => linha.style.backgroundColor = 'transparent');
                 linha.addEventListener('click', (e) => this.manipularCliqueLinha(e, linha));
+                this.atualizarMascaraBorrachaElemento(linha);
             });
+            this.drawingArea.querySelectorAll('.cuba').forEach((cuba) => this.atualizarMascaraBorrachaElemento(cuba));
 
             const titulosEditaveis = this.drawingArea.querySelectorAll('.titulo-grupo');
             titulosEditaveis.forEach(titulo => {
@@ -2955,6 +3369,19 @@ refazer() {
     });
 
     this.drawingArea.addEventListener('click', (e) => {
+        const clicouHandle = !!e.target.closest('.handle, .handle-rotacao, .handles-container');
+        const clicouDentroGrupo = !!e.target.closest('.grupo-temporario, .elemento-em-grupo');
+        const ignorarLimpezaGrupo = this._ignorarCliqueLimpezaGrupoAte && Date.now() < this._ignorarCliqueLimpezaGrupoAte;
+
+        if (this.grupoTemporario && !this.modoLacoAtivo && !ignorarLimpezaGrupo && !clicouHandle && !clicouDentroGrupo) {
+            console.log('Clicou fora do laço dentro da área - removendo grupo temporário');
+            this.limparGrupoTemporario();
+            if (!this.modoInsercaoAtivo && !this.modoSelecaoAtivo) {
+                this.desselecionarElemento();
+                return;
+            }
+        }
+
         if (this.modoInsercaoAtivo) {
             this.manipularCliqueInsercao(e);
         } else if (this.modoSelecaoAtivo) {
@@ -3595,6 +4022,7 @@ refazer() {
             grupo.style.height = `${grupoHeight}px`;
             grupo.style.zIndex = '1000';
             grupo.style.pointerEvents = 'auto';
+            grupo.style.transformOrigin = 'center center';
             
             grupo.setAttribute('data-elementos', JSON.stringify(
                 elementos.map(el => ({
@@ -3607,16 +4035,18 @@ refazer() {
             
             this.drawingArea.appendChild(grupo);
             this.grupoTemporario = grupo;
+            this._ignorarCliqueLimpezaGrupoAte = Date.now() + 250;
             
             this.desselecionarElemento();
             this.elementoSelecionado = grupo;
             grupo.classList.add('elemento-selecionado');
             
             this._configurarInteratividadeGrupo(grupo, elementos);
+            this.criarHandles(grupo);
             
             this.atualizarEstadoBotoes();
             
-            console.log('Grupo temporário criado com sucesso (sem handles)');
+            console.log('Grupo temporário criado com handles de resize/rotação');
         }
 
         _configurarInteratividadeGrupo(grupo, elementos) {
@@ -3691,10 +4121,14 @@ refazer() {
                             event.stopPropagation();
                         }
 
+                        this.iniciarManipulacaoSemPinturaBorracha(grupo);
+                        elementosRaiz.forEach((el) => this.iniciarManipulacaoSemPinturaBorracha(el));
                         grupo.style.zIndex = '1001';
                         
-                        grupo.setAttribute('data-x-inicial', grupo.getAttribute('data-x') || 0);
-                        grupo.setAttribute('data-y-inicial', grupo.getAttribute('data-y') || 0);
+                        grupo.setAttribute('data-left-inicial', `${parseFloat(grupo.style.left) || 0}`);
+                        grupo.setAttribute('data-top-inicial', `${parseFloat(grupo.style.top) || 0}`);
+                        grupo.setAttribute('data-x-inicial', '0');
+                        grupo.setAttribute('data-y-inicial', '0');
                         
                         elementosFilhos.forEach(filho => {
                             filho.setAttribute('data-x-inicial', filho.getAttribute('data-x') || 0);
@@ -3707,17 +4141,23 @@ refazer() {
                             event.stopPropagation();
                         }
 
-                        const deltaLimitado = this.limitarDeltaGrupoPorTravaBordas(elementosRaiz, event.dx, event.dy);
-                        const dxAplicado = deltaLimitado.dx;
-                        const dyAplicado = deltaLimitado.dy;
+                        // Primeiro trava o próprio laço pela caixa visual dele. Depois confirma pelas peças internas.
+                        // Isso impede que a moldura do grupo e qualquer peça laçada passem pelas travas laterais/superior.
+                        const deltaLacoLimitado = this.limitarDeltaLacoPorTravaBordas(grupo, event.dx, event.dy);
+                        const deltaElementosLimitado = this.limitarDeltaGrupoPorTravaBordas(elementosRaiz, deltaLacoLimitado.dx, deltaLacoLimitado.dy);
+                        const dxAplicado = deltaElementosLimitado.dx;
+                        const dyAplicado = deltaElementosLimitado.dy;
 
-                        const x = (parseFloat(grupo.getAttribute('data-x')) || 0) + dxAplicado;
-                        const y = (parseFloat(grupo.getAttribute('data-y')) || 0) + dyAplicado;
-                        const rotate = grupo.getAttribute('data-rotate') || 0;
+                        const novoLeftGrupo = (parseFloat(grupo.style.left) || 0) + dxAplicado;
+                        const novoTopGrupo = (parseFloat(grupo.style.top) || 0) + dyAplicado;
+                        const rotate = parseFloat(grupo.getAttribute('data-rotate')) || 0;
                         
-                        grupo.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
-                        grupo.setAttribute('data-x', x);
-                        grupo.setAttribute('data-y', y);
+                        grupo.style.left = `${novoLeftGrupo}px`;
+                        grupo.style.top = `${novoTopGrupo}px`;
+                        grupo.setAttribute('data-x', '0');
+                        grupo.setAttribute('data-y', '0');
+                        grupo.style.transform = rotate ? `rotate(${rotate}deg)` : '';
+                        this.posicionarHandles(grupo);
                         
                         elementosRaiz.forEach(elemento => {
                             const currentX = (parseFloat(elemento.getAttribute('data-x')) || 0) + dxAplicado;
@@ -3736,11 +4176,14 @@ refazer() {
                         }
                         
                         grupo.style.zIndex = '1000';
+                        this.finalizarManipulacaoSemPinturaBorracha(grupo);
+                        elementosRaiz.forEach((el) => this.finalizarManipulacaoSemPinturaBorracha(el));
                         
-                        const xInicial = parseFloat(grupo.getAttribute('data-x-inicial')) || 0;
-                        const yInicial = parseFloat(grupo.getAttribute('data-y-inicial')) || 0;
-                        const xAtual = parseFloat(grupo.getAttribute('data-x')) || 0;
-                        const yAtual = parseFloat(grupo.getAttribute('data-y')) || 0;
+                        const xInicial = parseFloat(grupo.getAttribute('data-left-inicial')) || 0;
+                        const yInicial = parseFloat(grupo.getAttribute('data-top-inicial')) || 0;
+                        const xAtual = parseFloat(grupo.style.left) || 0;
+                        const yAtual = parseFloat(grupo.style.top) || 0;
+                        this.posicionarHandles(grupo);
                         
                         const movimentoSignificativo = Math.hypot(xAtual - xInicial, yAtual - yInicial) > 1;
                         
@@ -3805,6 +4248,10 @@ refazer() {
 
         limparGrupoTemporario() {
             if (this.grupoTemporario && this.grupoTemporario.parentNode) {
+                this.removerHandles();
+                if (this.elementoSelecionado === this.grupoTemporario) {
+                    this.elementoSelecionado = null;
+                }
                 this.drawingArea.querySelectorAll('.elemento-em-grupo').forEach((elemento) => {
                     elemento.classList.remove('elemento-em-grupo');
                 });
@@ -3893,7 +4340,7 @@ forcarAtualizacaoInteratividade() {
     
     if (e.target.classList.contains('handle')) return;
     
-    const elemento = e.target.closest('.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca, .grupo-temporario');
+    let elemento = e.target.closest('.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca, .grupo-temporario');
     
     if (!elemento) {
         if (this.grupoTemporario) {
@@ -3902,6 +4349,14 @@ forcarAtualizacaoInteratividade() {
         }
         this.desselecionarElemento();
         return;
+    }
+
+    if (this.grupoTemporario && !elemento.classList.contains('grupo-temporario')) {
+        if (elemento.classList.contains('elemento-em-grupo') || elemento.closest('.elemento-em-grupo')) {
+            elemento = this.grupoTemporario;
+        } else {
+            this.limparGrupoTemporario();
+        }
     }
     
     if (elemento.classList.contains('selecionavel') ||
@@ -4218,6 +4673,169 @@ _isTouchGesture(e) {
             return { dx, dy };
         }
 
+
+        calcularCaixaVisualLacoTrava(params) {
+            const left = Number(params.left) || 0;
+            const top = Number(params.top) || 0;
+            const width = Math.max(1, Number(params.width) || 1);
+            const height = Math.max(1, Number(params.height) || 1);
+            const rotate = Number(params.rotate) || 0;
+            const rad = rotate * Math.PI / 180;
+            const visualWidth = Math.abs(width * Math.cos(rad)) + Math.abs(height * Math.sin(rad));
+            const visualHeight = Math.abs(width * Math.sin(rad)) + Math.abs(height * Math.cos(rad));
+            const centerX = left + width / 2;
+            const centerY = top + height / 2;
+
+            return {
+                left: centerX - visualWidth / 2,
+                right: centerX + visualWidth / 2,
+                top: centerY - visualHeight / 2,
+                bottom: centerY + visualHeight / 2,
+                width: visualWidth,
+                height: visualHeight
+            };
+        }
+
+        caixaLacoDentroTravaBordas(params) {
+            const margem = this.obterMargemTravaBordaPx();
+            const limiteDireita = this.obterLarguraAreaTravaBordas() - margem;
+            const caixa = this.calcularCaixaVisualLacoTrava(params);
+            const tolerancia = 0.25;
+
+            return caixa.left >= margem - tolerancia &&
+                   caixa.right <= limiteDireita + tolerancia &&
+                   caixa.top >= margem - tolerancia;
+        }
+
+        obterParametrosLacoTrava(grupo, proposta = {}) {
+            const estilos = window.getComputedStyle(grupo);
+            return {
+                left: proposta.left !== undefined ? proposta.left : (parseFloat(grupo.style.left) || 0),
+                top: proposta.top !== undefined ? proposta.top : (parseFloat(grupo.style.top) || 0),
+                width: proposta.width !== undefined ? proposta.width : (parseFloat(estilos.width) || grupo.offsetWidth || 1),
+                height: proposta.height !== undefined ? proposta.height : (parseFloat(estilos.height) || grupo.offsetHeight || 1),
+                rotate: proposta.rotate !== undefined ? proposta.rotate : (parseFloat(grupo.getAttribute('data-rotate')) || 0)
+            };
+        }
+
+        limitarDeltaLacoPorTravaBordas(grupo, dx, dy) {
+            if (!grupo || !grupo.classList || !grupo.classList.contains('grupo-temporario')) {
+                return { dx, dy };
+            }
+
+            const margem = this.obterMargemTravaBordaPx();
+            const limiteDireita = this.obterLarguraAreaTravaBordas() - margem;
+            const params = this.obterParametrosLacoTrava(grupo);
+            const caixa = this.calcularCaixaVisualLacoTrava(params);
+
+            const minDx = margem - caixa.left;
+            const maxDx = limiteDireita - caixa.right;
+            const minDy = margem - caixa.top;
+
+            return {
+                dx: Math.max(minDx, Math.min(maxDx, dx)),
+                dy: Math.max(minDy, dy)
+            };
+        }
+
+        calcularPropostaResizeLaco(gWidth, gHeight, gCenterX, gCenterY, gRotation, ratio, handleClassList, dx, dy) {
+            const isE = handleClassList.contains('handle-e');
+            const isW = handleClassList.contains('handle-w');
+            const isN = handleClassList.contains('handle-n');
+            const isS = handleClassList.contains('handle-s');
+            const isNE = handleClassList.contains('handle-ne');
+            const isNW = handleClassList.contains('handle-nw');
+            const isSE = handleClassList.contains('handle-se');
+            const isSW = handleClassList.contains('handle-sw');
+            const minSize = 30;
+
+            let newWidth = gWidth;
+            let newHeight = gHeight;
+
+            if (isE) {
+                newWidth = Math.max(minSize, gWidth + dx);
+            } else if (isW) {
+                newWidth = Math.max(minSize, gWidth - dx);
+            } else if (isS) {
+                newHeight = Math.max(minSize, gHeight + dy);
+            } else if (isN) {
+                newHeight = Math.max(minSize, gHeight - dy);
+            } else if (isNE) {
+                newWidth = Math.max(minSize, gWidth + dx);
+                newHeight = Math.max(minSize, newWidth / Math.max(ratio, 0.0001));
+            } else if (isNW) {
+                newWidth = Math.max(minSize, gWidth - dx);
+                newHeight = Math.max(minSize, newWidth / Math.max(ratio, 0.0001));
+            } else if (isSE) {
+                newWidth = Math.max(minSize, gWidth + dx);
+                newHeight = Math.max(minSize, newWidth / Math.max(ratio, 0.0001));
+            } else if (isSW) {
+                newWidth = Math.max(minSize, gWidth - dx);
+                newHeight = Math.max(minSize, newWidth / Math.max(ratio, 0.0001));
+            }
+
+            const deltaWidth = newWidth - gWidth;
+            const deltaHeight = newHeight - gHeight;
+            let shiftLocalX = 0;
+            let shiftLocalY = 0;
+
+            // O lado/canto oposto fica preso. O centro só anda metade do crescimento no eixo local.
+            if (isE || isNE || isSE) shiftLocalX = deltaWidth / 2;
+            if (isW || isNW || isSW) shiftLocalX = -deltaWidth / 2;
+            if (isS || isSE || isSW) shiftLocalY = deltaHeight / 2;
+            if (isN || isNE || isNW) shiftLocalY = -deltaHeight / 2;
+
+            const rad = gRotation * Math.PI / 180;
+            const shiftGlobal = {
+                x: shiftLocalX * Math.cos(rad) - shiftLocalY * Math.sin(rad),
+                y: shiftLocalX * Math.sin(rad) + shiftLocalY * Math.cos(rad)
+            };
+            const newCenterX = gCenterX + shiftGlobal.x;
+            const newCenterY = gCenterY + shiftGlobal.y;
+
+            return {
+                left: newCenterX - newWidth / 2,
+                top: newCenterY - newHeight / 2,
+                width: newWidth,
+                height: newHeight,
+                centerX: newCenterX,
+                centerY: newCenterY,
+                scaleX: newWidth / Math.max(gWidth, 1),
+                scaleY: newHeight / Math.max(gHeight, 1),
+                rotate: gRotation
+            };
+        }
+
+        conterResizeLacoNaTravaBordas(criarProposta, dx, dy) {
+            const propostaCompleta = criarProposta(dx, dy);
+            if (this.caixaLacoDentroTravaBordas(propostaCompleta)) {
+                return propostaCompleta;
+            }
+
+            const propostaInicial = criarProposta(0, 0);
+            if (!this.caixaLacoDentroTravaBordas(propostaInicial)) {
+                // Se o laço já começou fora da trava por arquivo antigo, não piora: retorna a posição inicial.
+                return propostaInicial;
+            }
+
+            let menor = 0;
+            let maior = 1;
+            let melhor = propostaInicial;
+
+            for (let i = 0; i < 30; i++) {
+                const meio = (menor + maior) / 2;
+                const candidata = criarProposta(dx * meio, dy * meio);
+                if (this.caixaLacoDentroTravaBordas(candidata)) {
+                    melhor = candidata;
+                    menor = meio;
+                } else {
+                    maior = meio;
+                }
+            }
+
+            return melhor;
+        }
+
         obterPosicaoComScroll(elemento) {
     const rect = elemento.getBoundingClientRect();
     const drawingAreaRect = this.drawingArea.getBoundingClientRect();
@@ -4331,6 +4949,66 @@ _isTouchGesture(e) {
             });
         }
 
+        iniciarManipulacaoSemPinturaBorracha(elemento) {
+            if (!elemento) return;
+
+            document.body.classList.add('manipulando-elemento-borracha');
+
+            const ativos = new Set();
+            const marcarAtivo = (el) => {
+                if (el && el.classList) {
+                    el.classList.add('elemento-em-manipulacao');
+                    ativos.add(el);
+                }
+            };
+
+            marcarAtivo(elemento);
+
+            const pecaAtiva = elemento.classList && elemento.classList.contains('peca')
+                ? elemento
+                : (elemento.closest ? elemento.closest('.peca') : null);
+
+            if (pecaAtiva) {
+                marcarAtivo(pecaAtiva);
+            }
+
+            // Se o elemento ativo é uma peça, uma linha da peça ou um filho da peça,
+            // todos os recortes internos dessa peça precisam continuar visíveis.
+            const raizAtivaParaRecorte = pecaAtiva || elemento;
+            if (raizAtivaParaRecorte && raizAtivaParaRecorte.querySelectorAll) {
+                raizAtivaParaRecorte
+                    .querySelectorAll('.linha-peca, .recorte-borracha, .pintura-borracha')
+                    .forEach((item) => marcarAtivo(item));
+            }
+
+            if (elemento.classList && elemento.classList.contains('grupo-temporario')) {
+                this.drawingArea
+                    .querySelectorAll('.elemento-em-grupo')
+                    .forEach((el) => {
+                        const raiz = el.closest('.peca, .cuba, .texto-legenda, .legenda-simplificada, .titulo-grupo') || el;
+                        marcarAtivo(raiz);
+                        if (raiz.querySelectorAll) {
+                            raiz.querySelectorAll('.linha-peca').forEach((linha) => marcarAtivo(linha));
+                        }
+                    });
+            }
+
+            // Não esconda recortes passivos. Eles precisam continuar aparecendo
+            // na peça apagada, mesmo enquanto outra peça é arrastada por cima.
+        }
+
+        finalizarManipulacaoSemPinturaBorracha(elemento) {
+            if (elemento && elemento.classList) {
+                elemento.classList.remove('elemento-em-manipulacao');
+            }
+
+            this.drawingArea
+                .querySelectorAll('.elemento-em-manipulacao')
+                .forEach((el) => el.classList.remove('elemento-em-manipulacao'));
+
+            document.body.classList.remove('manipulando-elemento-borracha');
+        }
+
         atualizarOrdemEmpilhamento() {
             const todasPecas = this.drawingArea.querySelectorAll('.peca');
             const todosGrupos = this.drawingArea.querySelectorAll('.area-pecas');
@@ -4351,14 +5029,15 @@ _isTouchGesture(e) {
             this.ultimoElementoClicado = elemento;
             elemento.classList.add('elemento-selecionado');
             
-            elemento.style.zIndex = '1000';
+            if (!elemento.classList.contains('peca') && !elemento.classList.contains('cuba')) {
+                elemento.style.zIndex = '1000';
+            }
             
             console.log('Selecionando elemento:', elemento.className, elemento.classList.contains('simbolo-linha'));
             
             this.desabilitarLinhasPecas();
             
-            if (!elemento.classList.contains('simbolo-linha') &&
-                !elemento.classList.contains('grupo-temporario')) {
+            if (!elemento.classList.contains('simbolo-linha')) {
                 this.criarHandles(elemento);
             }
             
@@ -4464,6 +5143,7 @@ _isTouchGesture(e) {
                         initialX = event.clientX || (event.touches && event.touches[0].clientX);
                         initialY = event.clientY || (event.touches && event.touches[0].clientY);
 
+                        this.iniciarManipulacaoSemPinturaBorracha(elemento);
                         handle.style.cursor = 'grabbing';
                     },
                     move: (event) => {
@@ -4499,6 +5179,10 @@ _isTouchGesture(e) {
                     },
                     end: () => {
                         handle.style.cursor = 'grab';
+                        if (elemento.classList.contains('peca')) {
+                            this.atualizarLinhasESimbolos(elemento);
+                        }
+                        this.finalizarManipulacaoSemPinturaBorracha(elemento);
                         this.salvarEstadoHistorico('Redimensionar Linha');
                     }
                 }
@@ -4515,7 +5199,9 @@ _isTouchGesture(e) {
     this.elementoSelecionado = elemento;
     this.ultimoElementoClicado = elemento;
     elemento.classList.add('elemento-selecionado');
-    elemento.style.zIndex = '9999';
+    if (!elemento.classList.contains('peca') && !elemento.classList.contains('cuba')) {
+        elemento.style.zIndex = '9999';
+    }
 
     const handlesContainer = document.createElement('div');
     handlesContainer.className = 'handles-container';
@@ -4558,12 +5244,333 @@ _isTouchGesture(e) {
     this.posicionarHandles(elemento);
     console.log(`${this.handles.length} handles criados com sucesso`);
 }
+        obterElementosGrupoTemporario(grupo) {
+            if (!grupo || !this.grupoTemporario) return [];
+            return Array.from(this.drawingArea.querySelectorAll('.elemento-em-grupo'))
+                .filter((el) => {
+                    if (!el || !el.classList) return false;
+                    if (el.classList.contains('linha-peca') ||
+                        el.classList.contains('dimensoes') ||
+                        el.classList.contains('quantidade-peca') ||
+                        el.classList.contains('simbolo-linha')) {
+                        return false;
+                    }
+                    const paiPeca = el.closest('.peca');
+                    return !paiPeca || paiPeca === el;
+                });
+        }
+
+        elementoTextoNaoEscalaNoGrupo(elemento) {
+            return elemento && elemento.classList && (
+                elemento.classList.contains('texto-legenda') ||
+                elemento.classList.contains('legenda-simplificada') ||
+                elemento.classList.contains('titulo-grupo')
+            );
+        }
+
+        obterOffsetPaiNaArea(elemento) {
+            const parent = elemento ? elemento.parentElement : null;
+            if (!parent || parent === this.drawingArea) {
+                return { left: 0, top: 0 };
+            }
+
+            const parentRect = parent.getBoundingClientRect();
+            const areaRect = this.drawingArea.getBoundingClientRect();
+            return {
+                left: parentRect.left - areaRect.left + (this.drawingArea.scrollLeft || 0),
+                top: parentRect.top - areaRect.top + (this.drawingArea.scrollTop || 0)
+            };
+        }
+
+        obterEstadoElementoParaGrupo(elemento) {
+            const style = window.getComputedStyle(elemento);
+            const parentOffset = this.obterOffsetPaiNaArea(elemento);
+            const leftLocal = parseFloat(elemento.style.left) || 0;
+            const topLocal = parseFloat(elemento.style.top) || 0;
+            const dataX = parseFloat(elemento.getAttribute('data-x')) || 0;
+            const dataY = parseFloat(elemento.getAttribute('data-y')) || 0;
+            const width = parseFloat(style.width) || elemento.offsetWidth || 20;
+            const height = parseFloat(style.height) || elemento.offsetHeight || 20;
+            const rotate = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+
+            // IMPORTANTE: os elementos podem estar dentro de .area-pecas.
+            // left/top são locais ao pai, enquanto o laço trabalha nas coordenadas da drawingArea.
+            // Guardar absLeft/absTop em coordenada global da drawingArea evita a peça fugir do laço
+            // durante rotação/redimensionamento do grupo.
+            const absLeft = parentOffset.left + leftLocal + dataX;
+            const absTop = parentOffset.top + topLocal + dataY;
+
+            return {
+                elemento,
+                left: leftLocal,
+                top: topLocal,
+                dataX,
+                dataY,
+                parentOffsetLeft: parentOffset.left,
+                parentOffsetTop: parentOffset.top,
+                absLeft,
+                absTop,
+                width,
+                height,
+                rotate,
+                texto: this.elementoTextoNaoEscalaNoGrupo(elemento),
+                estadoBorracha: elemento.classList.contains('peca') ? this.capturarEstadoBorrachaLinhasPeca(elemento) : null
+            };
+        }
+
+        aplicarEstadoElementoGrupo(item, absLeft, absTop, width, height, rotate) {
+            const el = item.elemento;
+            const parentOffset = this.obterOffsetPaiNaArea(el);
+            const localLeft = absLeft - parentOffset.left;
+            const localTop = absTop - parentOffset.top;
+
+            el.style.left = `${localLeft}px`;
+            el.style.top = `${localTop}px`;
+            el.setAttribute('data-x', '0');
+            el.setAttribute('data-y', '0');
+            el.setAttribute('data-rotate', `${rotate}`);
+            el.style.transformOrigin = 'center center';
+            el.style.transform = rotate ? `rotate(${rotate}deg)` : '';
+
+            if (!item.texto) {
+                el.style.width = `${Math.max(1, width)}px`;
+                el.style.height = `${Math.max(1, height)}px`;
+                if (el.classList.contains('peca')) {
+                    this.atualizarLinhasESimbolos(el);
+                    this.aplicarEstadoBorrachaEscaladoPeca(el, item.estadoBorracha, Math.max(1, width), Math.max(1, height));
+                } else if (el.classList.contains('cuba') && el.classList.contains('linha-reta')) {
+                    el.style.height = '0px';
+                }
+            }
+        }
+
+        configurarHandleGrupo(handle, grupo, handleClass) {
+            let initialPoint = { x: 0, y: 0 };
+            let gLeft = 0, gTop = 0, gWidth = 1, gHeight = 1;
+            let gCenterX = 0, gCenterY = 0;
+            let gRotation = 0;
+            let estados = [];
+            let ratio = 1;
+
+            const obterPontoArea = (event) => {
+                const ponto = this.obterPontoEvento(event);
+                const rectArea = this.drawingArea.getBoundingClientRect();
+                return {
+                    x: ponto.x - rectArea.left + (this.drawingArea.scrollLeft || 0),
+                    y: ponto.y - rectArea.top + (this.drawingArea.scrollTop || 0)
+                };
+            };
+
+            const rotacionarVetor = (x, y, anguloGraus) => {
+                const rad = anguloGraus * Math.PI / 180;
+                return {
+                    x: x * Math.cos(rad) - y * Math.sin(rad),
+                    y: x * Math.sin(rad) + y * Math.cos(rad)
+                };
+            };
+
+            interact(handle).draggable({
+                preventDefault: 'always',
+                listeners: {
+                    start: (event) => {
+                        if (event.type.includes('touch')) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+
+                        initialPoint = obterPontoArea(event);
+                        const style = window.getComputedStyle(grupo);
+                        gLeft = parseFloat(grupo.style.left) || 0;
+                        gTop = parseFloat(grupo.style.top) || 0;
+                        gWidth = parseFloat(style.width) || grupo.offsetWidth || 1;
+                        gHeight = parseFloat(style.height) || grupo.offsetHeight || 1;
+                        gCenterX = gLeft + gWidth / 2;
+                        gCenterY = gTop + gHeight / 2;
+                        gRotation = parseFloat(grupo.getAttribute('data-rotate')) || 0;
+                        ratio = gWidth / Math.max(gHeight, 1);
+                        estados = this.obterElementosGrupoTemporario(grupo).map((el) => this.obterEstadoElementoParaGrupo(el));
+                        this.iniciarManipulacaoSemPinturaBorracha(grupo);
+                        estados.forEach((item) => this.iniciarManipulacaoSemPinturaBorracha(item.elemento));
+                        handle.style.cursor = 'grabbing';
+                    },
+                    move: (event) => {
+                        if (event.type.includes('touch')) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+
+                        const ponto = obterPontoArea(event);
+                        const deltaGlobalX = ponto.x - initialPoint.x;
+                        const deltaGlobalY = ponto.y - initialPoint.y;
+                        const deltaLocal = this.transformarCoordenadasParaLocal(deltaGlobalX, deltaGlobalY, gRotation);
+                        const dx = deltaLocal.dx;
+                        const dy = deltaLocal.dy;
+
+                        const cls = handle.classList;
+                        const criarPropostaGrupo = (dxLocal, dyLocal) => this.calcularPropostaResizeLaco(
+                            gWidth,
+                            gHeight,
+                            gCenterX,
+                            gCenterY,
+                            gRotation,
+                            ratio,
+                            cls,
+                            dxLocal,
+                            dyLocal
+                        );
+                        const propostaGrupo = this.conterResizeLacoNaTravaBordas(criarPropostaGrupo, dx, dy);
+
+                        const newWidth = propostaGrupo.width;
+                        const newHeight = propostaGrupo.height;
+                        const newCenterX = propostaGrupo.centerX;
+                        const newCenterY = propostaGrupo.centerY;
+                        const newLeft = propostaGrupo.left;
+                        const newTop = propostaGrupo.top;
+                        const scaleX = propostaGrupo.scaleX;
+                        const scaleY = propostaGrupo.scaleY;
+
+                        grupo.style.left = `${newLeft}px`;
+                        grupo.style.top = `${newTop}px`;
+                        grupo.style.width = `${newWidth}px`;
+                        grupo.style.height = `${newHeight}px`;
+                        grupo.setAttribute('data-x', '0');
+                        grupo.setAttribute('data-y', '0');
+                        grupo.setAttribute('data-rotate', `${gRotation}`);
+                        grupo.style.transform = gRotation ? `rotate(${gRotation}deg)` : '';
+
+                        estados.forEach((item) => {
+                            const itemCenterX = item.absLeft + item.width / 2;
+                            const itemCenterY = item.absTop + item.height / 2;
+                            const relGlobalX = itemCenterX - gCenterX;
+                            const relGlobalY = itemCenterY - gCenterY;
+                            const relLocal = this.transformarCoordenadasParaLocal(relGlobalX, relGlobalY, gRotation);
+                            const relLocalEscaladoX = relLocal.dx * scaleX;
+                            const relLocalEscaladoY = relLocal.dy * scaleY;
+                            const relGlobalEscalado = rotacionarVetor(relLocalEscaladoX, relLocalEscaladoY, gRotation);
+                            const novoCentroX = newCenterX + relGlobalEscalado.x;
+                            const novoCentroY = newCenterY + relGlobalEscalado.y;
+                            const novoW = item.texto ? item.width : item.width * scaleX;
+                            const novoH = item.texto ? item.height : item.height * scaleY;
+                            this.aplicarEstadoElementoGrupo(item, novoCentroX - novoW / 2, novoCentroY - novoH / 2, novoW, novoH, item.rotate);
+                        });
+
+                        this.posicionarHandles(grupo);
+                    },
+                    end: () => {
+                        handle.style.cursor = 'grab';
+                        this.finalizarManipulacaoSemPinturaBorracha(grupo);
+                        estados.forEach((item) => this.finalizarManipulacaoSemPinturaBorracha(item.elemento));
+                        this.posicionarHandles(grupo);
+                        this.salvarEstadoHistorico('Redimensionar Grupo');
+                    }
+                }
+            });
+        }
+
+        configurarHandleRotacaoGrupo(handle, grupo) {
+            let centroX = 0, centroY = 0;
+            let anguloInicialMouse = 0;
+            let rotacaoGrupoInicial = 0;
+            let estados = [];
+            const angulosFixosGrupo = [0, 45, 90, 135, 180, 225, 270, 315, 360];
+            const SNAP_THRESHOLD_GRUPO = 15;
+
+            const obterPontoArea = (event) => {
+                const ponto = this.obterPontoEvento(event);
+                const rectArea = this.drawingArea.getBoundingClientRect();
+                return {
+                    x: ponto.x - rectArea.left + (this.drawingArea.scrollLeft || 0),
+                    y: ponto.y - rectArea.top + (this.drawingArea.scrollTop || 0)
+                };
+            };
+
+            interact(handle).draggable({
+                preventDefault: 'always',
+                listeners: {
+                    start: (event) => {
+                        if (event.type.includes('touch')) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+
+                        const bbox = this._obterBoundingBoxAbsoluta(grupo);
+                        centroX = bbox.left + bbox.width / 2;
+                        centroY = bbox.top + bbox.height / 2;
+                        const ponto = obterPontoArea(event);
+                        anguloInicialMouse = Math.atan2(ponto.y - centroY, ponto.x - centroX) * 180 / Math.PI;
+                        rotacaoGrupoInicial = parseFloat(grupo.getAttribute('data-rotate')) || 0;
+                        estados = this.obterElementosGrupoTemporario(grupo).map((el) => this.obterEstadoElementoParaGrupo(el));
+                        this.iniciarManipulacaoSemPinturaBorracha(grupo);
+                        estados.forEach((item) => this.iniciarManipulacaoSemPinturaBorracha(item.elemento));
+                        handle.style.cursor = 'grabbing';
+                    },
+                    move: (event) => {
+                        if (event.type.includes('touch')) {
+                            event.preventDefault();
+                            event.stopPropagation();
+                        }
+
+                        const ponto = obterPontoArea(event);
+                        const anguloAtualMouse = Math.atan2(ponto.y - centroY, ponto.x - centroX) * 180 / Math.PI;
+                        let deltaAngulo = anguloAtualMouse - anguloInicialMouse;
+                        let novaRotacaoGrupo = rotacaoGrupoInicial + deltaAngulo;
+
+                        novaRotacaoGrupo = ((novaRotacaoGrupo % 360) + 360) % 360;
+
+                        for (const alvo of angulosFixosGrupo) {
+                            const alvoNormalizado = alvo === 360 ? 0 : alvo;
+                            const distancia = Math.min(
+                                Math.abs(novaRotacaoGrupo - alvoNormalizado),
+                                Math.abs(novaRotacaoGrupo - alvoNormalizado + 360),
+                                Math.abs(novaRotacaoGrupo - alvoNormalizado - 360)
+                            );
+                            if (distancia < SNAP_THRESHOLD_GRUPO) {
+                                novaRotacaoGrupo = alvoNormalizado;
+                                deltaAngulo = novaRotacaoGrupo - rotacaoGrupoInicial;
+                                break;
+                            }
+                        }
+
+                        const rad = deltaAngulo * Math.PI / 180;
+                        estados.forEach((item) => {
+                            const itemCenterX = item.absLeft + item.width / 2;
+                            const itemCenterY = item.absTop + item.height / 2;
+                            const relX = itemCenterX - centroX;
+                            const relY = itemCenterY - centroY;
+                            const novoCentroX = centroX + relX * Math.cos(rad) - relY * Math.sin(rad);
+                            const novoCentroY = centroY + relX * Math.sin(rad) + relY * Math.cos(rad);
+                            const novoRotate = item.rotate + deltaAngulo;
+                            this.aplicarEstadoElementoGrupo(item, novoCentroX - item.width / 2, novoCentroY - item.height / 2, item.width, item.height, novoRotate);
+                        });
+
+                        grupo.setAttribute('data-rotate', `${novaRotacaoGrupo}`);
+                        grupo.setAttribute('data-x', '0');
+                        grupo.setAttribute('data-y', '0');
+                        grupo.style.transform = novaRotacaoGrupo ? `rotate(${novaRotacaoGrupo}deg)` : '';
+                        this.posicionarHandles(grupo);
+                    },
+                    end: () => {
+                        handle.style.cursor = 'grab';
+                        this.finalizarManipulacaoSemPinturaBorracha(grupo);
+                        estados.forEach((item) => this.finalizarManipulacaoSemPinturaBorracha(item.elemento));
+                        this.posicionarHandles(grupo);
+                        this.salvarEstadoHistorico('Rotacionar Grupo');
+                    }
+                }
+            });
+        }
+
         configurarHandle(handle, elemento, handleClass) {
+            if (elemento && elemento.classList && elemento.classList.contains('grupo-temporario')) {
+                this.configurarHandleGrupo(handle, elemento, handleClass);
+                return;
+            }
             let initialX, initialY;
             let initialWidth, initialHeight;
             let initialLeft, initialTop;
             let initialRatio;
             let initialDataX, initialDataY;
+            let initialEstadoBorrachaLinhas = null;
 
             handle.addEventListener('touchstart', (e) => {
                 e.preventDefault();
@@ -4612,11 +5619,15 @@ _isTouchGesture(e) {
                         initialDataX = parseFloat(elemento.getAttribute('data-x')) || 0;
                         initialDataY = parseFloat(elemento.getAttribute('data-y')) || 0;
                         initialRatio = initialWidth / Math.max(initialHeight, 1);
+                        initialEstadoBorrachaLinhas = elemento.classList.contains('peca')
+                            ? this.capturarEstadoBorrachaLinhasPeca(elemento)
+                            : null;
 
                         const ponto = this.obterPontoEvento(event);
                         initialX = ponto.x;
                         initialY = ponto.y;
 
+                        this.iniciarManipulacaoSemPinturaBorracha(elemento);
                         handle.style.cursor = 'grabbing';
                         console.log('Iniciando redimensionamento por handle');
                     },
@@ -4750,12 +5761,15 @@ _isTouchGesture(e) {
 
                         if (elemento.classList.contains('peca')) {
                             this.atualizarLinhasESimbolos(elemento);
+                            this.aplicarEstadoBorrachaEscaladoPeca(elemento, initialEstadoBorrachaLinhas, proposta.width, proposta.height);
+                            this.posicionarHandles(elemento);
                         } else {
                             this.posicionarHandles(elemento);
                         }
                     },
                     end: () => {
                         handle.style.cursor = 'grab';
+                        this.finalizarManipulacaoSemPinturaBorracha(elemento);
                         if (this.ehElementoMedida(elemento)) {
                             this.aplicarPosicaoManualDimensao(elemento);
                         }
@@ -4767,7 +5781,11 @@ _isTouchGesture(e) {
             });
         }
         configurarHandleRotacao(handle, elemento) {
-            const angulosFixos = [0, 90, 180, 270];
+            if (elemento && elemento.classList && elemento.classList.contains('grupo-temporario')) {
+                this.configurarHandleRotacaoGrupo(handle, elemento);
+                return;
+            }
+            const angulosFixos = [0, 45, 90, 135, 180, 225, 270, 315];
             const SNAP_THRESHOLD = 15;
 
             interact(handle).draggable({
@@ -4787,6 +5805,7 @@ _isTouchGesture(e) {
                             }
                         }
 
+                        this.iniciarManipulacaoSemPinturaBorracha(elemento);
                         const transform = elemento.style.transform || '';
                         elemento.setAttribute('data-initial-transform', transform);
                         handle.style.cursor = 'grabbing';
@@ -4839,6 +5858,7 @@ _isTouchGesture(e) {
                     end: () => {
                         elemento.removeAttribute('data-initial-transform');
                         handle.style.cursor = 'grab';
+                        this.finalizarManipulacaoSemPinturaBorracha(elemento);
                         if (this.ehElementoMedida(elemento)) {
                             this.aplicarPosicaoManualDimensao(elemento);
                         }
@@ -4971,6 +5991,9 @@ _isTouchGesture(e) {
 
             this.atualizarPosicaoSimbolos(elemento);
             this.atualizarPosicaoDimensoes(elemento);
+            if (elemento.querySelectorAll) {
+                elemento.querySelectorAll('.linha-peca').forEach((linha) => this.atualizarMascaraBorrachaElemento(linha));
+            }
             
             this.atualizarHandles();
         }
@@ -5397,6 +6420,10 @@ _isTouchGesture(e) {
                 clone.id = `peca-${novoPecaId}`;
             }
             
+            const estadoBorrachaClone = clone.classList.contains('peca')
+                ? this.capturarEstadoBorrachaLinhasPeca(clone)
+                : null;
+
             const linhasAntigas = clone.querySelectorAll('.linha-peca');
             linhasAntigas.forEach(linha => linha.remove());
             
@@ -5415,6 +6442,7 @@ _isTouchGesture(e) {
                 const height = parseFloat(clone.style.height);
                 
                 this.criarLinhasPeca(clone, novoPecaId, width, height);
+                this.aplicarEstadoBorrachaEscaladoPeca(clone, estadoBorrachaClone, width, height);
             }
             
             this.configurarInteratividade(clone);
@@ -5676,6 +6704,7 @@ _isTouchGesture(e) {
     interact(elemento).draggable({
         listeners: {
             start: () => {
+                this.iniciarManipulacaoSemPinturaBorracha(elemento);
                 elemento.style.zIndex = '1000';
             },
             move: (event) => {
@@ -5690,6 +6719,7 @@ _isTouchGesture(e) {
             },
             end: () => {
                 elemento.style.zIndex = '8';
+                this.finalizarManipulacaoSemPinturaBorracha(elemento);
                 this.salvarEstadoHistorico('Mover Cuba');
             }
         }
@@ -6206,6 +7236,7 @@ _isTouchGesture(e) {
                 });
 
                 pecaElement.appendChild(linhaElement);
+                this.renderizarLinhaPecaComRecortes(linhaElement);
             });
         }
 
@@ -6302,6 +7333,7 @@ simboloElement.style.zIndex = '10';
                     ignoreFrom: '.dimensoes, .quantidade-peca, .simbolo-linha, .linha-peca, input, textarea, button, select, .handle, .handle-rotacao',
                     listeners: {
                         start: () => {
+                            this.iniciarManipulacaoSemPinturaBorracha(elemento);
                             elemento.style.zIndex = '1000';
                         },
                         move: (event) => {
@@ -6317,6 +7349,7 @@ simboloElement.style.zIndex = '10';
                         },
                         end: () => {
                             elemento.style.zIndex = '';
+                            this.finalizarManipulacaoSemPinturaBorracha(elemento);
                             this.salvarEstadoHistorico('Mover Elemento');
                         }
                     }
@@ -7388,9 +8421,33 @@ aplicarEstilosManterModal() {
         negrito = checkboxNegrito.checked;
     }
     
+    if (elemento.classList.contains('grupo-temporario')) {
+        this.obterElementosGrupoTemporario(elemento).forEach((item) => this.aplicarEstilosElemento(item, preview));
+        return;
+    }
+
     if (elemento.classList.contains('peca') || elemento.classList.contains('cuba')) {
-        if (cor) elemento.style.borderColor = cor;
-        if (estiloLinha) elemento.style.borderStyle = estiloLinha;
+        if (cor) {
+            elemento.style.borderColor = cor;
+            elemento.style.setProperty('--line-color', cor);
+            elemento.querySelectorAll('.linha-peca').forEach((linha) => {
+                linha.style.setProperty('--line-color', cor);
+                linha.querySelectorAll('.segmento-linha-peca').forEach((segmento) => {
+                    segmento.style.setProperty('--line-color', cor);
+                });
+            });
+        }
+        if (estiloLinha) {
+            elemento.style.borderStyle = estiloLinha;
+            elemento.querySelectorAll('.linha-peca').forEach((linha) => {
+                linha.setAttribute('data-estilo-linha', estiloLinha);
+                linha.style.borderStyle = estiloLinha;
+                this.renderizarLinhaPecaComRecortes(linha);
+            });
+            if (elemento.classList.contains('cuba')) {
+                elemento.style.borderStyle = estiloLinha;
+            }
+        }
         if (negrito !== null) {
             elemento.querySelectorAll('.dimensoes, .quantidade-peca').forEach((item) => {
                 item.style.fontWeight = negrito ? 'bold' : 'normal';
@@ -7416,11 +8473,16 @@ aplicarEstilosManterModal() {
         }
     }
     else if (elemento.classList.contains('linha-peca')) {
-        if (cor) elemento.style.backgroundColor = cor;
-        if (estiloLinha === 'dashed') {
-            elemento.style.borderStyle = 'dashed';
-        } else {
-            elemento.style.borderStyle = 'solid';
+        if (cor) {
+            elemento.style.setProperty('--line-color', cor);
+            elemento.querySelectorAll('.segmento-linha-peca').forEach((segmento) => {
+                segmento.style.setProperty('--line-color', cor);
+            });
+        }
+        if (estiloLinha) {
+            elemento.setAttribute('data-estilo-linha', estiloLinha);
+            elemento.style.borderStyle = estiloLinha;
+            this.renderizarLinhaPecaComRecortes(elemento);
         }
     }
 }

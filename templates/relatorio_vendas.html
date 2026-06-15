@@ -266,8 +266,20 @@
         }
 
         @media print {
+            @page {
+                size: A4 landscape;
+                margin: 10mm;
+            }
+
+            html,
             body {
-                background: #fff;
+                width: auto !important;
+                min-width: 0 !important;
+                max-width: none !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                overflow: visible !important;
+                background: #fff !important;
             }
 
             .no-print {
@@ -275,17 +287,51 @@
             }
 
             .report-page {
-                width: 100%;
-                min-height: auto;
-                margin: 0;
-                padding: 0;
-                box-shadow: none;
+                /* Largura segura para A4 paisagem mesmo com a opção
+                   "Margens: Padrão" do Chrome. Usar 100% encostava no
+                   limite da área imprimível e cortava a direita. */
+                width: 270mm !important;
+                max-width: 270mm !important;
+                min-width: 0 !important;
+                min-height: auto !important;
+                margin: 0 auto !important;
+                padding: 0 !important;
+                box-shadow: none !important;
+                overflow: visible !important;
             }
 
-            .section,
             .report-header {
+                grid-template-columns: minmax(0, 1fr) 185px !important;
+                gap: 12px !important;
                 break-inside: avoid;
                 page-break-inside: avoid;
+            }
+
+            .report-meta {
+                min-width: 0 !important;
+                width: 185px !important;
+            }
+
+            /* Não travar seções inteiras na impressão.
+               Quando .section fica com page-break-inside: avoid, o Chrome empurra
+               o próximo bloco completo para a folha seguinte e cria grandes áreas
+               em branco. A quebra deve ocorrer por linha/tabela, não por seção. */
+            .section {
+                break-inside: auto !important;
+                page-break-inside: auto !important;
+            }
+
+            .section h2 {
+                break-after: avoid !important;
+                page-break-after: avoid !important;
+            }
+
+            .summary-table,
+            .report-table {
+                width: 100% !important;
+                max-width: 100% !important;
+                border-collapse: collapse;
+                table-layout: fixed;
             }
 
             .report-table tr {
@@ -294,10 +340,19 @@
             }
 
             .report-title,
-            .summary-table,
+            .summary-table {
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
+            }
+
             .two-column > div {
-                break-inside: avoid;
-                page-break-inside: avoid;
+                break-inside: auto !important;
+                page-break-inside: auto !important;
+            }
+
+            .two-column {
+                grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+                gap: 10px !important;
             }
 
             .report-table {
@@ -305,33 +360,50 @@
                 page-break-inside: auto;
             }
 
+            .section:has(.detail-table),
+            .section:has(.detail-table) .report-table,
+            .section:has(.detail-table) .detail-table {
+                break-inside: auto !important;
+                page-break-inside: auto !important;
+            }
+
+            .section:has(.detail-table) {
+                margin-top: 10px !important;
+            }
+
             .detail-table {
-                font-size: 8.2px;
+                table-layout: fixed !important;
+                font-size: 7.7px;
             }
 
             .detail-table th,
             .detail-table td {
-                padding: 4px 5px;
+                padding: 3px 4px;
+                overflow-wrap: anywhere;
             }
 
-            html,
-            body {
-                width: 297mm;
-                min-width: 0 !important;
-                overflow: visible !important;
-            }
+            .detail-table .col-code { width: 8%; }
+            .detail-table .col-client { width: 19%; }
+            .detail-table .col-status { width: 9%; }
+            .detail-table .col-value { width: 11%; }
+            .detail-table .col-payment { width: 12%; }
+            .detail-table .col-seller { width: 12%; }
+            .detail-table .col-close { width: 10%; }
+            .detail-table .col-notes { width: 19%; }
 
-            .report-header {
-                grid-template-columns: 1fr auto !important;
-            }
-
-            .two-column {
-                grid-template-columns: 1fr 1fr !important;
+            .notes-cell {
+                max-width: none !important;
             }
 
             .report-page,
-            .print-actions {
-                max-width: none !important;
+            .report-page * {
+                max-width: 100%;
+            }
+
+            th,
+            td {
+                overflow: hidden;
+                text-overflow: clip;
             }
         }
 
