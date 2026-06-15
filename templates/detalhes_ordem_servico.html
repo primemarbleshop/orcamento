@@ -1251,6 +1251,7 @@
         }
 
         /* Impressão robusta dos segmentos reais da peça.
+           A espessura foi afinada para 1px para manter aparência próxima da tela.
            Na tela os segmentos usam background, mas o Chrome pode não imprimir
            background quando a opção de gráficos não está aplicada. Para impressão,
            cada segmento vira uma borda real, então as peças aparecem no PDF sem
@@ -1259,7 +1260,7 @@
         .linha-peca[data-lado="bottom"] > .segmento-linha-peca {
             height: 0 !important;
             background: transparent !important;
-            border-top: 2px solid var(--line-color, #000) !important;
+            border-top: 1px solid var(--line-color, #000) !important;
             box-sizing: border-box !important;
         }
 
@@ -1267,7 +1268,7 @@
         .linha-peca[data-lado="right"] > .segmento-linha-peca {
             width: 0 !important;
             background: transparent !important;
-            border-left: 2px solid var(--line-color, #000) !important;
+            border-left: 1px solid var(--line-color, #000) !important;
             box-sizing: border-box !important;
         }
 
@@ -1634,6 +1635,10 @@ body.manipulando-elemento-borracha .cuba.elemento-em-manipulacao .pintura-borrac
     z-index: 1;
 }
 
+/* Espessura visual da borda da peça.
+   A tela usa segmentos de 1px no JS e a impressão usa border de 1px,
+   mantendo a aparência fina e igual nos dois modos. */
+
 .linha-peca[data-estilo-linha="dashed"] .segmento-linha-peca {
     background: repeating-linear-gradient(
         90deg,
@@ -1677,6 +1682,166 @@ body.manipulando-elemento-borracha .cuba.elemento-em-manipulacao {
     isolation: auto !important;
 }
 
+
+
+
+/* DESENHOS COM A MESMA ESPESSURA DAS PEÇAS
+   As peças estão com borda visual de 1px. Os desenhos (.cuba) também precisam
+   usar 1px na tela e na impressão, inclusive desenhos antigos salvos com 2px. */
+.drawing-area .cuba:not(.linha-reta),
+.area-pecas .cuba:not(.linha-reta) {
+    border-width: 1px !important;
+    border-color: var(--line-color, #333) !important;
+}
+
+.drawing-area .cuba.linha-reta,
+.area-pecas .cuba.linha-reta {
+    height: 0 !important;
+    border-top-width: 1px !important;
+    border-top-color: var(--line-color, #333) !important;
+    border-right-width: 0 !important;
+    border-left-width: 0 !important;
+    border-bottom-width: 0 !important;
+    background-color: transparent !important;
+}
+
+@media print {
+    .drawing-area .cuba:not(.linha-reta),
+    .area-pecas .cuba:not(.linha-reta) {
+        border-width: 1px !important;
+        border-color: var(--line-color, #333) !important;
+    }
+
+    .drawing-area .cuba.linha-reta,
+    .area-pecas .cuba.linha-reta {
+        border-top-width: 1px !important;
+        border-top-color: var(--line-color, #333) !important;
+        border-right-width: 0 !important;
+        border-left-width: 0 !important;
+        border-bottom-width: 0 !important;
+        background-color: transparent !important;
+    }
+}
+
+
+
+/* Desenhos com borracha real, igual a peça: a linha do desenho passa a ser
+   desenhada dentro do próprio objeto, sem retângulo branco por cima. */
+.drawing-area .cuba.desenho-svg-real,
+.area-pecas .cuba.desenho-svg-real {
+    border: 0 !important;
+    border-top: 0 !important;
+    border-left: 0 !important;
+    border-right: 0 !important;
+    border-bottom: 0 !important;
+    background: transparent !important;
+    overflow: visible !important;
+}
+
+.drawing-area .cuba.desenho-svg-real.linha-reta,
+.area-pecas .cuba.desenho-svg-real.linha-reta {
+    min-height: 2px !important;
+    height: 2px;
+}
+
+.cuba.desenho-svg-real > .desenho-svg-borracha {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    pointer-events: none;
+    display: block;
+}
+
+.cuba.desenho-svg-real > .recorte-borracha,
+.cuba.desenho-svg-real > .pintura-borracha {
+    display: none !important;
+}
+
+
+/* Desenhos retos segmentados não podem exibir a borda CSS original,
+   senão fica um “fantasma” claro após apagar parte da linha. */
+.drawing-area .cuba.desenho-segmentado-retangular,
+.area-pecas .cuba.desenho-segmentado-retangular {
+    border: none !important;
+    border-width: 0 !important;
+    border-style: none !important;
+    border-color: transparent !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+.drawing-area .cuba.desenho-segmentado-retangular::before,
+.drawing-area .cuba.desenho-segmentado-retangular::after,
+.area-pecas .cuba.desenho-segmentado-retangular::before,
+.area-pecas .cuba.desenho-segmentado-retangular::after {
+    content: none !important;
+    display: none !important;
+}
+
+@media print {
+    .drawing-area .cuba.desenho-svg-real,
+    .area-pecas .cuba.desenho-svg-real {
+        border: 0 !important;
+        background: transparent !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    .cuba.desenho-svg-real > .desenho-svg-borracha {
+        display: block !important;
+        visibility: visible !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+}
+
+
+
+/* CURSOR REAL DA BORRACHA
+   Quando o modo borracha está ativo, a seta do mouse some e o quadrado da
+   borracha vira o cursor visual. Vale na área de desenho, peças, desenhos,
+   textos e também sobre a região da página enquanto o modo estiver ativo. */
+body.modo-borracha,
+body.modo-borracha * {
+    cursor: none !important;
+}
+
+body.modo-borracha .cursor-borracha {
+    position: fixed !important;
+    display: block;
+    pointer-events: none !important;
+    z-index: 2147483647 !important;
+    background-color: rgba(255, 255, 255, 0.85) !important;
+    border: 1px solid #111 !important;
+    border-radius: 3px !important;
+    box-shadow: 0 0 4px rgba(0,0,0,0.55) !important;
+    transform: none !important;
+}
+
+
+
+/* PEÇA COM BORRACHA IGUAL AO RETÂNGULO DO DESENHO
+   A peça também passa a usar a mesma rotina de retângulo segmentado. */
+.drawing-area .peca.desenho-segmentado-retangular,
+.area-pecas .peca.desenho-segmentado-retangular {
+    border: 0 !important;
+    border-width: 0 !important;
+    border-style: none !important;
+    border-color: transparent !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background: transparent !important;
+}
+.drawing-area .peca.desenho-segmentado-retangular::before,
+.drawing-area .peca.desenho-segmentado-retangular::after,
+.area-pecas .peca.desenho-segmentado-retangular::before,
+.area-pecas .peca.desenho-segmentado-retangular::after {
+    content: none !important;
+    display: none !important;
+}
 
 </style>
 
@@ -2634,13 +2799,13 @@ salvarEstadoHistoricoForcado(descricao) {
 
                 if (horizontal) {
                     segmento.style.left = `${parte.ini}px`;
-                    segmento.style.top = '3px';
+                    segmento.style.top = '3.5px';
                     segmento.style.width = `${tamanho}px`;
-                    segmento.style.height = '2px';
+                    segmento.style.height = '1px';
                 } else {
-                    segmento.style.left = '3px';
+                    segmento.style.left = '3.5px';
                     segmento.style.top = `${parte.ini}px`;
-                    segmento.style.width = '2px';
+                    segmento.style.width = '1px';
                     segmento.style.height = `${tamanho}px`;
                 }
 
@@ -2710,8 +2875,59 @@ salvarEstadoHistoricoForcado(descricao) {
             return true;
         }
 
+        aplicarBorrachaExataEmDesenhoRetangular(desenhoElement, x, y) {
+            if (!desenhoElement || !desenhoElement.classList || !desenhoElement.classList.contains('desenho-segmentado-retangular')) return false;
+
+            const width = Math.max(1, parseFloat(desenhoElement.style.width) || desenhoElement.offsetWidth || 1);
+            const height = Math.max(1, parseFloat(desenhoElement.style.height) || desenhoElement.offsetHeight || 1);
+            const half = Math.max(6, (this.tamanhoBorracha || 10) / 2);
+            const localX = x - (parseFloat(desenhoElement.style.left) || 0);
+            const localY = y - (parseFloat(desenhoElement.style.top) || 0);
+            const faixa = 4;
+
+            const defs = [
+                { nome: 'top', horizontal: true, coord: 0, comprimento: width },
+                { nome: 'bottom', horizontal: true, coord: height, comprimento: width },
+                { nome: 'left', horizontal: false, coord: 0, comprimento: height },
+                { nome: 'right', horizontal: false, coord: width, comprimento: height }
+            ];
+
+            let aplicou = false;
+            defs.forEach((def) => {
+                const linha = desenhoElement.querySelector(`:scope > .linha-peca[data-lado="${def.nome}"]`);
+                if (!linha) return;
+
+                const deltaPerp = def.horizontal ? Math.abs(localY - def.coord) : Math.abs(localX - def.coord);
+                if (deltaPerp > (half + faixa)) return;
+
+                const centro = def.horizontal ? localX : localY;
+                const novoIntervalo = {
+                    ini: Math.max(0, centro - half),
+                    fim: Math.min(def.comprimento, centro + half)
+                };
+                if (novoIntervalo.fim <= novoIntervalo.ini) return;
+
+                const intervalos = this.obterIntervalosBorrachaLinha(linha);
+                intervalos.push(novoIntervalo);
+                this.salvarIntervalosBorrachaLinha(linha, intervalos);
+                this.renderizarLinhaPecaComRecortes(linha);
+                aplicou = true;
+            });
+
+            if (aplicou) {
+                this.borrachaAplicadaNestaAcao = true;
+                if (this.elementoSelecionado === desenhoElement) {
+                    this.atualizarHandles();
+                }
+            }
+            return aplicou;
+        }
+
         aplicarBorrachaNasLinhasDaPeca(pecaElement, x, y) {
             if (!pecaElement) return false;
+            if (pecaElement.classList && pecaElement.classList.contains('desenho-segmentado-retangular')) {
+                return this.aplicarBorrachaExataEmDesenhoRetangular(pecaElement, x, y);
+            }
 
             const areaRect = this.drawingArea.getBoundingClientRect();
             const tamanho = this.tamanhoBorracha || 10;
@@ -6822,18 +7038,18 @@ _isTouchGesture(e) {
     if (tipo === 'linha-reta') {
         cubaElement.style.width = `${Math.max(largura, 100)}px`;
         cubaElement.style.height = '0px';
-        cubaElement.style.borderTop = '2px solid #333';
+        cubaElement.style.borderTop = '1px solid #333';
         cubaElement.style.backgroundColor = 'transparent';
     } else if (tipo === 'circulo') {
         const tamanho = Math.max(largura, altura);
         cubaElement.style.width = `${tamanho}px`;
         cubaElement.style.height = `${tamanho}px`;
         cubaElement.style.borderRadius = '50%';
-        cubaElement.style.border = '2px solid #333';
+        cubaElement.style.border = '1px solid #333';
     } else {
         cubaElement.style.width = `${largura}px`;
         cubaElement.style.height = `${altura}px`;
-        cubaElement.style.border = '2px solid #333';
+        cubaElement.style.border = '1px solid #333';
         if (tipo === 'oval') cubaElement.style.borderRadius = '50%';
         else if (tipo === 'elipse') cubaElement.style.borderRadius = '40%';
         else cubaElement.style.borderRadius = '0';
@@ -6937,7 +7153,7 @@ _isTouchGesture(e) {
             this.criarTexto(x, y, '');
             break;
         case 'cuba':
-            this.mostrarSeletorCuba(x, y);
+            this.mostrarSeletorCuba(x, y, { clientX, clientY });
             break;
         case 'legenda':
             this.mostrarSeletorLegenda(x, y);
@@ -7051,22 +7267,11 @@ _isTouchGesture(e) {
         if (!elemento.hasAttribute('data-y')) elemento.setAttribute('data-y', '0');
         if (!elemento.hasAttribute('data-rotate')) elemento.setAttribute('data-rotate', '0');
 
-        if (!elemento.dataset.dragTextoSelecionadoConfigurado) {
-            elemento.dataset.dragTextoSelecionadoConfigurado = '1';
-            elemento.addEventListener('mousedown', (ev) => {
-                if (this.modoSelecaoAtivo && elemento.classList.contains('elemento-selecionado')) {
-                    ev.preventDefault();
-                }
-            });
-        }
-
         let originalBackground = elemento.style.backgroundColor;
         
         interact(elemento).draggable({
             allowFrom: '.texto-legenda',
-            // Texto selecionado precisa poder ser arrastado pelo próprio textarea.
-            // O textarea só volta a se comportar como campo de edição quando não está em seleção.
-            ignoreFrom: 'input:not(.texto-legenda), button, select',
+            ignoreFrom: 'input, textarea, button, select',
             modifiers: [
                 interact.modifiers.restrictRect({
                     restriction: 'parent',
@@ -7102,9 +7307,6 @@ _isTouchGesture(e) {
                     elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotacao}deg)`;
                     elemento.setAttribute('data-x', x);
                     elemento.setAttribute('data-y', y);
-                    if (elemento.classList.contains('elemento-selecionado')) {
-                        this.posicionarHandles(elemento);
-                    }
                 },
                 end: () => {
                     elemento.style.zIndex = '10';
@@ -7297,7 +7499,7 @@ _isTouchGesture(e) {
                             this.criarTexto(x, y, '');
                             break;
                         case 'cuba':
-                            this.mostrarSeletorCuba(x, y);
+                            this.mostrarSeletorCuba(x, y, { clientX: touch.clientX, clientY: touch.clientY });
                             break;
                         case 'legenda':
                             this.mostrarSeletorLegenda(x, y);
@@ -7499,7 +7701,7 @@ simboloElement.style.zIndex = '10';
             
             if (elemento.classList.contains('elemento-selecionado') && !elemento.classList.contains('grupo-temporario')) {
                 interact(elemento).draggable({
-                    ignoreFrom: '.dimensoes, .quantidade-peca, .simbolo-linha, .linha-peca, input, button, select, .handle, .handle-rotacao',
+                    ignoreFrom: '.dimensoes, .quantidade-peca, .simbolo-linha, .linha-peca, input, textarea, button, select, .handle, .handle-rotacao',
                     listeners: {
                         start: () => {
                             this.iniciarManipulacaoSemPinturaBorracha(elemento);
@@ -7624,6 +7826,43 @@ simboloElement.style.zIndex = '10';
             return Math.min(escalaCalculada, 1.8);
         }
 
+
+        calcularPosicaoPopupNoClique(clientX, clientY, larguraPreferida = 320, alturaPreferida = 420, margem = 12, offset = 10) {
+            const viewportWidth = Math.max(window.innerWidth || 0, document.documentElement.clientWidth || 0);
+            const viewportHeight = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0);
+
+            const largura = Math.max(220, Math.min(larguraPreferida, viewportWidth - (margem * 2)));
+            const altura = Math.max(180, Math.min(alturaPreferida, viewportHeight - (margem * 2)));
+
+            let left = clientX + offset;
+            let top = clientY + offset;
+
+            // Padrão: abre à direita e abaixo do ponto clicado.
+            // Se não couber à direita, abre à esquerda do clique.
+            if (left + largura > viewportWidth - margem) {
+                left = clientX - largura - offset;
+            }
+
+            // Se não couber embaixo, abre acima do clique.
+            if (top + altura > viewportHeight - margem) {
+                top = clientY - altura - offset;
+            }
+
+            // Trava final para nunca sair da viewport, tanto no PC quanto no mobile.
+            left = Math.max(margem, Math.min(left, viewportWidth - largura - margem));
+            top = Math.max(margem, Math.min(top, viewportHeight - altura - margem));
+
+            return { left, top, largura, altura };
+        }
+
+        obterPontoViewportPorCoordenadaDaArea(x, y) {
+            const drawingRect = this.drawingArea.getBoundingClientRect();
+            return {
+                clientX: drawingRect.left + x - (this.drawingArea.scrollLeft || 0),
+                clientY: drawingRect.top + y - (this.drawingArea.scrollTop || 0)
+            };
+        }
+
         manipularCliqueLinha(e, linhaElement, simboloExistente = null) {
             e.stopPropagation();
             
@@ -7669,40 +7908,23 @@ simboloElement.style.zIndex = '10';
             modalSimbolos.style.wordWrap = 'break-word';
             modalSimbolos.style.overflowY = 'auto';
 
-            const viewportWidth = window.innerWidth;
-            const viewportHeight = window.innerHeight;
-            
-            if (viewportWidth <= 768) {
-                modalSimbolos.style.width = '95vw';
-                modalSimbolos.style.maxWidth = '95vw';
-                modalSimbolos.style.left = '50%';
-                modalSimbolos.style.top = '50%';
-                modalSimbolos.style.transform = 'translate(-50%, -50%)';
-                modalSimbolos.style.maxHeight = '90vh';
-            } else {
-                modalSimbolos.style.minWidth = '280px';
-                modalSimbolos.style.maxWidth = '320px';
-                
-                let left = event.clientX;
-                let top = event.clientY;
+            const viewportWidth = Math.max(window.innerWidth || 0, document.documentElement.clientWidth || 0);
+            const viewportHeight = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0);
+            const pontoClique = {
+                clientX: event?.touches?.[0]?.clientX ?? event?.changedTouches?.[0]?.clientX ?? event.clientX,
+                clientY: event?.touches?.[0]?.clientY ?? event?.changedTouches?.[0]?.clientY ?? event.clientY
+            };
+            const larguraPopup = viewportWidth <= 768 ? Math.min(360, viewportWidth - 24) : 320;
+            const alturaPopup = viewportWidth <= 768 ? Math.min(520, viewportHeight - 24) : 430;
+            const posPopup = this.calcularPosicaoPopupNoClique(pontoClique.clientX, pontoClique.clientY, larguraPopup, alturaPopup, 12, 10);
 
-                if (left + 320 > viewportWidth) {
-                    left = viewportWidth - 320 - 20;
-                }
-                if (left < 20) {
-                    left = 20;
-                }
-
-                if (top + 400 > viewportHeight) {
-                    top = viewportHeight - 400 - 20;
-                }
-                if (top < 20) {
-                    top = 20;
-                }
-
-                modalSimbolos.style.left = `${left}px`;
-                modalSimbolos.style.top = `${top}px`;
-            }
+            modalSimbolos.style.width = `${posPopup.largura}px`;
+            modalSimbolos.style.minWidth = `${Math.min(260, posPopup.largura)}px`;
+            modalSimbolos.style.maxWidth = `${posPopup.largura}px`;
+            modalSimbolos.style.maxHeight = `${posPopup.altura}px`;
+            modalSimbolos.style.left = `${posPopup.left}px`;
+            modalSimbolos.style.top = `${posPopup.top}px`;
+            modalSimbolos.style.transform = 'none';
 
             modalSimbolos.innerHTML = `
                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -7742,11 +7964,6 @@ simboloElement.style.zIndex = '10';
                 setTimeout(() => {
                     inputSimbolo.focus();
                     
-                    if (viewportWidth <= 768) {
-                        setTimeout(() => {
-                            modalSimbolos.style.top = '30%';
-                        }, 300);
-                    }
                 }, 100);
                 
                 inputSimbolo.addEventListener('keypress', (e) => {
@@ -7939,7 +8156,7 @@ simboloElement.style.zIndex = '10';
             document.body.style.overflow = '';
         }
 
-        mostrarSeletorCuba(x, y) {
+        mostrarSeletorCuba(x, y, pontoClique = null) {
             const botoesCuba = CONFIG.TIPOS_CUBA.map(cuba => 
                 `<button type="button" class="btn btn-outline-primary m-1" onclick="gerenciadorDesenho.selecionarCuba('${cuba.tipo}', ${x}, ${y})" style="min-width: 100px; padding: 8px 4px;">
                     ${cuba.nome}
@@ -7956,40 +8173,21 @@ simboloElement.style.zIndex = '10';
             modalCuba.style.boxShadow = '0 10px 30px rgba(0,0,0,0.3)';
             modalCuba.style.wordWrap = 'break-word';
 
-            const viewportWidth = window.innerWidth;
-            const viewportHeight = window.innerHeight;
-            
-            if (viewportWidth <= 768) {
-                modalCuba.style.width = '95vw';
-                modalCuba.style.maxWidth = '95vw';
-                modalCuba.style.left = '50%';
-                modalCuba.style.top = '50%';
-                modalCuba.style.transform = 'translate(-50%, -50%)';
-            } else {
-                modalCuba.style.minWidth = '250px';
-                modalCuba.style.maxWidth = '300px';
-                
-                const drawingRect = this.drawingArea.getBoundingClientRect();
-                let left = drawingRect.left + x - this.drawingArea.scrollLeft;
-                let top = drawingRect.top + y - this.drawingArea.scrollTop;
-                
-                if (left + 300 > viewportWidth) {
-                    left = viewportWidth - 300 - 20;
-                }
-                if (left < 20) {
-                    left = 20;
-                }
+            const viewportWidth = Math.max(window.innerWidth || 0, document.documentElement.clientWidth || 0);
+            const viewportHeight = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0);
+            const pontoViewport = pontoClique || this.obterPontoViewportPorCoordenadaDaArea(x, y);
+            const larguraPopup = viewportWidth <= 768 ? Math.min(360, viewportWidth - 24) : 300;
+            const alturaPopup = viewportWidth <= 768 ? Math.min(420, viewportHeight - 24) : 300;
+            const posPopup = this.calcularPosicaoPopupNoClique(pontoViewport.clientX, pontoViewport.clientY, larguraPopup, alturaPopup, 12, 10);
 
-                if (top + 300 > viewportHeight) {
-                    top = viewportHeight - 300 - 20;
-                }
-                if (top < 20) {
-                    top = 20;
-                }
-
-                modalCuba.style.left = `${left}px`;
-                modalCuba.style.top = `${top}px`;
-            }
+            modalCuba.style.width = `${posPopup.largura}px`;
+            modalCuba.style.minWidth = `${Math.min(250, posPopup.largura)}px`;
+            modalCuba.style.maxWidth = `${posPopup.largura}px`;
+            modalCuba.style.maxHeight = `${posPopup.altura}px`;
+            modalCuba.style.overflowY = 'auto';
+            modalCuba.style.left = `${posPopup.left}px`;
+            modalCuba.style.top = `${posPopup.top}px`;
+            modalCuba.style.transform = 'none';
 
             modalCuba.innerHTML = `
                 <div class="d-flex justify-content-between align-items-center mb-2">
@@ -8002,16 +8200,17 @@ simboloElement.style.zIndex = '10';
                 </div>
             `;
 
+            this.modalCubaAtual = modalCuba;
             document.body.appendChild(modalCuba);
 
             const backdrop = document.createElement('div');
             backdrop.className = 'modal-backdrop';
             backdrop.style.display = 'block';
+            this.backdropCubaAtual = backdrop;
             document.body.appendChild(backdrop);
 
             backdrop.addEventListener('click', () => {
-                modalCuba.remove();
-                backdrop.remove();
+                this.fecharModalCuba();
             });
         }
 
@@ -8021,11 +8220,14 @@ simboloElement.style.zIndex = '10';
         }
 
         fecharModalCuba() {
-            const modal = document.querySelector('.modal-controles');
-            const backdrop = document.querySelector('.modal-backdrop');
-            
-            if (modal) modal.remove();
-            if (backdrop) backdrop.remove();
+            if (this.modalCubaAtual && this.modalCubaAtual.parentNode) {
+                this.modalCubaAtual.parentNode.removeChild(this.modalCubaAtual);
+            }
+            if (this.backdropCubaAtual && this.backdropCubaAtual.parentNode) {
+                this.backdropCubaAtual.parentNode.removeChild(this.backdropCubaAtual);
+            }
+            this.modalCubaAtual = null;
+            this.backdropCubaAtual = null;
         }
 
         atualizarInteratividadeTextos() {
@@ -8695,7 +8897,1025 @@ aplicarEstilosManterModal() {
 
     }
 
-    let gerenciadorDesenho;
+
+/* ==========================================================
+   Correção estrutural: borracha nos desenhos igual às peças.
+   - Os desenhos deixam de depender de border CSS.
+   - A linha do desenho é desenhada por SVG interno do próprio objeto.
+   - A borracha cria máscara dentro do SVG; não pinta branco sobre outras peças.
+   ========================================================== */
+(function() {
+    const NS = 'http://www.w3.org/2000/svg';
+
+    function numeroSeguro(valor, fallback = 0) {
+        const n = Number.parseFloat(valor);
+        return Number.isFinite(n) ? n : fallback;
+    }
+
+    function corValida(cor, fallback = '#333333') {
+        if (!cor) return fallback;
+        const c = String(cor).trim();
+        if (!c || c === 'transparent' || c === 'rgba(0, 0, 0, 0)') return fallback;
+        return c;
+    }
+
+    GerenciadorDesenho.prototype.obterTipoDesenhoCuba = function(elemento) {
+        if (!elemento || !elemento.classList) return 'retangulo';
+        const salvo = elemento.getAttribute('data-tipo-desenho');
+        if (salvo) return salvo;
+        if (elemento.classList.contains('linha-reta')) return 'linha-reta';
+        if (elemento.classList.contains('circulo')) return 'circulo';
+        if (elemento.classList.contains('oval')) return 'oval';
+        if (elemento.classList.contains('elipse')) return 'elipse';
+        return 'retangulo';
+    };
+
+    GerenciadorDesenho.prototype.obterRetangulosBorrachaDesenho = function(elemento) {
+        if (!elemento) return [];
+        try {
+            const dados = JSON.parse(elemento.getAttribute('data-borracha-desenho-rects') || '[]');
+            return Array.isArray(dados) ? dados
+                .map((r) => ({
+                    x: Math.max(0, Math.min(100, numeroSeguro(r.x, 0))),
+                    y: Math.max(0, Math.min(100, numeroSeguro(r.y, 0))),
+                    w: Math.max(0, Math.min(100, numeroSeguro(r.w, 0))),
+                    h: Math.max(0, Math.min(100, numeroSeguro(r.h, 0)))
+                }))
+                .filter((r) => r.w > 0 && r.h > 0) : [];
+        } catch (e) {
+            return [];
+        }
+    };
+
+    GerenciadorDesenho.prototype.salvarRetangulosBorrachaDesenho = function(elemento, retangulos) {
+        if (!elemento) return;
+        const limpos = (Array.isArray(retangulos) ? retangulos : [])
+            .map((r) => {
+                let x = Math.max(0, Math.min(100, numeroSeguro(r.x, 0)));
+                let y = Math.max(0, Math.min(100, numeroSeguro(r.y, 0)));
+                let w = Math.max(0, Math.min(100 - x, numeroSeguro(r.w, 0)));
+                let h = Math.max(0, Math.min(100 - y, numeroSeguro(r.h, 0)));
+                return { x, y, w, h };
+            })
+            .filter((r) => r.w > 0.05 && r.h > 0.05);
+
+        if (limpos.length) {
+            elemento.setAttribute('data-borracha-desenho-rects', JSON.stringify(limpos));
+        } else {
+            elemento.removeAttribute('data-borracha-desenho-rects');
+        }
+    };
+
+    GerenciadorDesenho.prototype.obterCorLinhaDesenho = function(elemento) {
+        if (!elemento) return '#333333';
+        const direta = elemento.style.getPropertyValue('--line-color') || elemento.getAttribute('data-line-color');
+        if (direta) return corValida(direta);
+        const border = elemento.style.borderColor || elemento.style.borderTopColor;
+        if (border) return corValida(border);
+        const estilos = window.getComputedStyle(elemento);
+        return corValida(estilos.getPropertyValue('--line-color') || estilos.borderColor || estilos.borderTopColor, '#333333');
+    };
+
+    GerenciadorDesenho.prototype.obterEstiloLinhaDesenho = function(elemento) {
+        if (!elemento) return 'solid';
+        return elemento.getAttribute('data-estilo-linha') ||
+            elemento.style.borderStyle ||
+            elemento.style.borderTopStyle ||
+            (window.getComputedStyle(elemento).borderStyle || 'solid') ||
+            'solid';
+    };
+
+    GerenciadorDesenho.prototype.renderizarDesenhoComBorracha = function(elemento) {
+        if (!elemento || !elemento.classList || !elemento.classList.contains('cuba')) return;
+
+        const tipo = this.obterTipoDesenhoCuba(elemento);
+        elemento.classList.add('desenho-svg-real');
+        elemento.setAttribute('data-tipo-desenho', tipo);
+        elemento.style.setProperty('--line-color', this.obterCorLinhaDesenho(elemento));
+        elemento.setAttribute('data-estilo-linha', this.obterEstiloLinhaDesenho(elemento));
+
+        // A linha visual agora é o SVG interno. Border antigo fica zerado para não duplicar.
+        elemento.style.border = '0';
+        elemento.style.borderTop = '0';
+        elemento.style.backgroundColor = 'transparent';
+        elemento.style.overflow = 'visible';
+        if (tipo === 'linha-reta') {
+            const alturaAtual = numeroSeguro(elemento.style.height, elemento.offsetHeight || 0);
+            if (alturaAtual < 2) elemento.style.height = '2px';
+        }
+
+        elemento.querySelectorAll(':scope > .recorte-borracha, :scope > .pintura-borracha').forEach((n) => n.remove());
+
+        let svg = elemento.querySelector(':scope > .desenho-svg-borracha');
+        if (!svg) {
+            svg = document.createElementNS(NS, 'svg');
+            svg.classList.add('desenho-svg-borracha');
+            elemento.insertBefore(svg, elemento.firstChild);
+        }
+
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+        svg.setAttribute('viewBox', '0 0 100 100');
+        svg.setAttribute('preserveAspectRatio', 'none');
+        svg.setAttribute('aria-hidden', 'true');
+
+        const uid = elemento.getAttribute('data-desenho-mask-id') || ('mask-desenho-' + Math.random().toString(36).slice(2));
+        elemento.setAttribute('data-desenho-mask-id', uid);
+
+        const defs = document.createElementNS(NS, 'defs');
+        const mask = document.createElementNS(NS, 'mask');
+        mask.setAttribute('id', uid);
+        mask.setAttribute('maskUnits', 'userSpaceOnUse');
+        mask.setAttribute('x', '-5');
+        mask.setAttribute('y', '-5');
+        mask.setAttribute('width', '110');
+        mask.setAttribute('height', '110');
+
+        const base = document.createElementNS(NS, 'rect');
+        base.setAttribute('x', '-5');
+        base.setAttribute('y', '-5');
+        base.setAttribute('width', '110');
+        base.setAttribute('height', '110');
+        base.setAttribute('fill', 'white');
+        mask.appendChild(base);
+
+        this.obterRetangulosBorrachaDesenho(elemento).forEach((r) => {
+            const hole = document.createElementNS(NS, 'rect');
+            hole.setAttribute('x', String(r.x));
+            hole.setAttribute('y', String(r.y));
+            hole.setAttribute('width', String(r.w));
+            hole.setAttribute('height', String(r.h));
+            hole.setAttribute('fill', 'black');
+            mask.appendChild(hole);
+        });
+        defs.appendChild(mask);
+        svg.appendChild(defs);
+
+        const shape = tipo === 'linha-reta'
+            ? document.createElementNS(NS, 'line')
+            : document.createElementNS(NS, tipo === 'retangulo' ? 'rect' : 'ellipse');
+
+        if (tipo === 'linha-reta') {
+            shape.setAttribute('x1', '0');
+            shape.setAttribute('y1', '50');
+            shape.setAttribute('x2', '100');
+            shape.setAttribute('y2', '50');
+        } else if (tipo === 'retangulo') {
+            shape.setAttribute('x', '0.5');
+            shape.setAttribute('y', '0.5');
+            shape.setAttribute('width', '99');
+            shape.setAttribute('height', '99');
+        } else {
+            shape.setAttribute('cx', '50');
+            shape.setAttribute('cy', '50');
+            shape.setAttribute('rx', '49.5');
+            shape.setAttribute('ry', '49.5');
+        }
+
+        const cor = this.obterCorLinhaDesenho(elemento);
+        const estilo = this.obterEstiloLinhaDesenho(elemento);
+        shape.setAttribute('fill', 'none');
+        shape.setAttribute('stroke', cor);
+        shape.setAttribute('stroke-width', '1');
+        shape.setAttribute('vector-effect', 'non-scaling-stroke');
+        shape.setAttribute('stroke-linecap', 'square');
+        shape.setAttribute('stroke-linejoin', 'miter');
+        shape.setAttribute('mask', `url(#${uid})`);
+        if (estilo === 'dashed') shape.setAttribute('stroke-dasharray', '6 4');
+        else shape.removeAttribute('stroke-dasharray');
+
+        svg.appendChild(shape);
+    };
+
+    GerenciadorDesenho.prototype.obterPontoLocalDesenho = function(elemento, x, y) {
+        const areaRect = this.drawingArea.getBoundingClientRect();
+        const clientX = x - this.drawingArea.scrollLeft + areaRect.left;
+        const clientY = y - this.drawingArea.scrollTop + areaRect.top;
+        const rect = elemento.getBoundingClientRect();
+        const width = Math.max(1, numeroSeguro(elemento.style.width, elemento.offsetWidth || rect.width || 1));
+        const height = Math.max(1, numeroSeguro(elemento.style.height, elemento.offsetHeight || rect.height || 1));
+        const rotacao = numeroSeguro(elemento.getAttribute('data-rotate'), 0) * Math.PI / 180;
+
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = clientX - cx;
+        const dy = clientY - cy;
+        const cos = Math.cos(-rotacao);
+        const sin = Math.sin(-rotacao);
+        const localPxX = width / 2 + (dx * cos - dy * sin);
+        const localPxY = height / 2 + (dx * sin + dy * cos);
+
+        return {
+            x: Math.max(0, Math.min(100, (localPxX / width) * 100)),
+            y: Math.max(0, Math.min(100, (localPxY / height) * 100)),
+            width,
+            height
+        };
+    };
+
+    GerenciadorDesenho.prototype.aplicarBorrachaEmDesenho = function(elemento, x, y) {
+        if (!elemento || !elemento.classList || !elemento.classList.contains('cuba')) return false;
+        this.renderizarDesenhoComBorracha(elemento);
+
+        const ponto = this.obterPontoLocalDesenho(elemento, x, y);
+        const tamanho = Math.max(6, this.tamanhoBorracha || 10);
+        const wNorm = Math.max(0.5, (tamanho / Math.max(1, ponto.width)) * 100);
+        const hNorm = Math.max(0.5, (tamanho / Math.max(1, ponto.height)) * 100);
+        const novo = {
+            x: Math.max(0, Math.min(100, ponto.x - wNorm / 2)),
+            y: Math.max(0, Math.min(100, ponto.y - hNorm / 2)),
+            w: Math.min(wNorm, 100),
+            h: Math.min(hNorm, 100)
+        };
+        if (novo.x + novo.w > 100) novo.w = 100 - novo.x;
+        if (novo.y + novo.h > 100) novo.h = 100 - novo.y;
+
+        const retangulos = this.obterRetangulosBorrachaDesenho(elemento);
+        retangulos.push(novo);
+        this.salvarRetangulosBorrachaDesenho(elemento, retangulos);
+        this.renderizarDesenhoComBorracha(elemento);
+        this.borrachaAplicadaNestaAcao = true;
+        if (this.elementoSelecionado === elemento) this.atualizarHandles();
+        return true;
+    };
+
+    const apagarOriginal = GerenciadorDesenho.prototype.apagarComBorrachaNoAlvo;
+    GerenciadorDesenho.prototype.apagarComBorrachaNoAlvo = function(x, y) {
+        const alvo = this.encontrarAlvoBorracha(x, y);
+        if (!alvo) return;
+
+        if (alvo.classList && alvo.classList.contains('cuba')) {
+            this.aplicarBorrachaEmDesenho(alvo, x, y);
+            return;
+        }
+
+        if (alvo.classList && alvo.classList.contains('linha-peca')) {
+            this.aplicarBorrachaEmLinhaPeca(alvo, x, y);
+            return;
+        }
+
+        if (alvo.classList && alvo.classList.contains('peca')) {
+            this.aplicarBorrachaNasLinhasDaPeca(alvo, x, y);
+            return;
+        }
+
+        if (typeof apagarOriginal === 'function') apagarOriginal.call(this, x, y);
+    };
+
+    const atualizarMascaraOriginal = GerenciadorDesenho.prototype.atualizarMascaraBorrachaElemento;
+    GerenciadorDesenho.prototype.atualizarMascaraBorrachaElemento = function(elemento) {
+        if (elemento && elemento.classList && elemento.classList.contains('cuba')) {
+            this.renderizarDesenhoComBorracha(elemento);
+            return;
+        }
+        if (typeof atualizarMascaraOriginal === 'function') return atualizarMascaraOriginal.call(this, elemento);
+    };
+
+    const atualizarTodasOriginal = GerenciadorDesenho.prototype.atualizarTodasMascarasBorracha;
+    GerenciadorDesenho.prototype.atualizarTodasMascarasBorracha = function() {
+        if (typeof atualizarTodasOriginal === 'function') atualizarTodasOriginal.call(this);
+        if (!this.drawingArea) return;
+        this.drawingArea.querySelectorAll('.cuba').forEach((el) => this.renderizarDesenhoComBorracha(el));
+    };
+
+    GerenciadorDesenho.prototype.criarCuba = function(x, y, tipo, largura = 80, altura = 50) {
+        const cubaElement = document.createElement('div');
+        cubaElement.className = `cuba ${tipo}`;
+        cubaElement.setAttribute('data-tipo-desenho', tipo);
+        cubaElement.setAttribute('data-estilo-linha', 'solid');
+        cubaElement.setAttribute('data-line-color', '#333333');
+        cubaElement.style.setProperty('--line-color', '#333333');
+        cubaElement.style.position = 'absolute';
+        cubaElement.style.left = `${x}px`;
+        cubaElement.style.top = `${y}px`;
+        cubaElement.style.transform = 'none';
+        cubaElement.setAttribute('data-x', '0');
+        cubaElement.setAttribute('data-y', '0');
+        cubaElement.setAttribute('data-rotate', '0');
+
+        if (tipo === 'linha-reta') {
+            cubaElement.style.width = `${Math.max(largura, 100)}px`;
+            cubaElement.style.height = '2px';
+        } else if (tipo === 'circulo') {
+            const tamanho = Math.max(largura, altura);
+            cubaElement.style.width = `${tamanho}px`;
+            cubaElement.style.height = `${tamanho}px`;
+        } else {
+            cubaElement.style.width = `${largura}px`;
+            cubaElement.style.height = `${altura}px`;
+        }
+
+        cubaElement.style.border = '0';
+        cubaElement.style.backgroundColor = 'transparent';
+        cubaElement.style.boxSizing = 'border-box';
+        cubaElement.style.zIndex = '8';
+        cubaElement.style.overflow = 'visible';
+
+        if (this.modoSelecaoAtivo) cubaElement.classList.add('selecionavel');
+
+        this.renderizarDesenhoComBorracha(cubaElement);
+        this.drawingArea.appendChild(cubaElement);
+        this.aplicarTravaBordasElemento(cubaElement, { minWidth: tipo === 'linha-reta' ? 1 : 10, minHeight: tipo === 'linha-reta' ? 2 : 10 });
+        this.configurarInteratividadeCuba(cubaElement, tipo);
+        this.salvarEstadoHistorico('Adicionar Desenho');
+        return cubaElement;
+    };
+
+    const reconfigurarOriginal = GerenciadorDesenho.prototype.reconfigurarElementosAposHistorico;
+    GerenciadorDesenho.prototype.reconfigurarElementosAposHistorico = function() {
+        if (this.drawingArea) {
+            this.drawingArea.querySelectorAll('.cuba').forEach((el) => this.renderizarDesenhoComBorracha(el));
+        }
+        const retorno = typeof reconfigurarOriginal === 'function' ? reconfigurarOriginal.call(this) : undefined;
+        if (this.drawingArea) {
+            this.drawingArea.querySelectorAll('.cuba').forEach((el) => this.renderizarDesenhoComBorracha(el));
+        }
+        return retorno;
+    };
+
+    const estilosOriginal = GerenciadorDesenho.prototype.aplicarEstilosElemento;
+    GerenciadorDesenho.prototype.aplicarEstilosElemento = function(elemento, preview = false) {
+        const retorno = estilosOriginal.call(this, elemento, preview);
+        const aplicarEmCuba = (el) => {
+            if (!el || !el.classList || !el.classList.contains('cuba')) return;
+            if (this.corSelecionada) {
+                el.setAttribute('data-line-color', this.corSelecionada);
+                el.style.setProperty('--line-color', this.corSelecionada);
+            }
+            if (this.estiloLinhaSelecionado) {
+                el.setAttribute('data-estilo-linha', this.estiloLinhaSelecionado);
+            }
+            this.renderizarDesenhoComBorracha(el);
+        };
+
+        if (elemento && elemento.classList && elemento.classList.contains('grupo-temporario')) {
+            this.obterElementosGrupoTemporario(elemento).forEach(aplicarEmCuba);
+        } else {
+            aplicarEmCuba(elemento);
+        }
+        return retorno;
+    };
+
+    const obterEstilosOriginal = GerenciadorDesenho.prototype.obterEstilosAtuais;
+    GerenciadorDesenho.prototype.obterEstilosAtuais = function(elemento) {
+        const estilos = obterEstilosOriginal.call(this, elemento);
+        if (elemento && elemento.classList && elemento.classList.contains('cuba')) {
+            estilos.cor = this.rgbParaHex ? this.rgbParaHex(this.obterCorLinhaDesenho(elemento)) : this.obterCorLinhaDesenho(elemento);
+            estilos.estiloLinha = this.obterEstiloLinhaDesenho(elemento);
+        }
+        return estilos;
+    };
+})();
+
+
+/* CORREÇÃO FINAL: BORRACHA DOS DESENHOS POR SEGMENTOS REAIS
+   Regra unificada com as peças: o desenho deixa de usar máscara/retângulo branco.
+   A linha visual do desenho é quebrada em segmentos SVG reais, mantendo intervalos apagados
+   proporcionais ao tamanho do objeto. */
+(function() {
+    if (typeof GerenciadorDesenho === 'undefined') return;
+
+    const NS_DESENHO_SEGMENTOS = 'http://www.w3.org/2000/svg';
+
+    function numeroDesenhoSeguro(valor, padrao = 0) {
+        const n = parseFloat(valor);
+        return Number.isFinite(n) ? n : padrao;
+    }
+
+    function limitarValor(valor, min, max) {
+        return Math.max(min, Math.min(max, valor));
+    }
+
+    function obterDimensoesReaisDesenho(elemento) {
+        const rect = elemento.getBoundingClientRect ? elemento.getBoundingClientRect() : { width: 0, height: 0 };
+        let width = numeroDesenhoSeguro(elemento.style.width, elemento.offsetWidth || rect.width || 1);
+        let height = numeroDesenhoSeguro(elemento.style.height, elemento.offsetHeight || rect.height || 1);
+        const tipo = (elemento.getAttribute('data-tipo-desenho') || '').toLowerCase();
+        if (tipo === 'linha-reta' || elemento.classList.contains('linha-reta')) {
+            height = Math.max(height, 2);
+        }
+        return {
+            width: Math.max(1, width),
+            height: Math.max(1, height)
+        };
+    }
+
+    function unirIntervalosNormalizadosDesenho(intervalos) {
+        const lista = (Array.isArray(intervalos) ? intervalos : [])
+            .map((item) => ({
+                ini: limitarValor(numeroDesenhoSeguro(item.ini, 0), 0, 1),
+                fim: limitarValor(numeroDesenhoSeguro(item.fim, 0), 0, 1)
+            }))
+            .filter((item) => item.fim > item.ini)
+            .sort((a, b) => a.ini - b.ini);
+
+        const unidos = [];
+        lista.forEach((item) => {
+            const ultimo = unidos[unidos.length - 1];
+            if (!ultimo || item.ini > ultimo.fim + 0.001) {
+                unidos.push({ ini: item.ini, fim: item.fim });
+            } else {
+                ultimo.fim = Math.max(ultimo.fim, item.fim);
+            }
+        });
+        return unidos;
+    }
+
+    function distanciaPontos(a, b) {
+        const dx = b.x - a.x;
+        const dy = b.y - a.y;
+        return Math.sqrt(dx * dx + dy * dy);
+    }
+
+    function criarCaminhoPoligonalDesenho(elemento) {
+        const tipo = (elemento.getAttribute('data-tipo-desenho') || '').toLowerCase() ||
+            (elemento.classList.contains('linha-reta') ? 'linha-reta' :
+             elemento.classList.contains('circulo') ? 'circulo' :
+             elemento.classList.contains('oval') ? 'oval' :
+             elemento.classList.contains('elipse') ? 'elipse' : 'retangulo');
+
+        const { width, height } = obterDimensoesReaisDesenho(elemento);
+        const pontos = [];
+        const m = 0.5;
+
+        if (tipo === 'linha-reta') {
+            pontos.push({ x: 0, y: height / 2 });
+            pontos.push({ x: width, y: height / 2 });
+        } else if (tipo === 'retangulo') {
+            pontos.push({ x: m, y: m });
+            pontos.push({ x: Math.max(m, width - m), y: m });
+            pontos.push({ x: Math.max(m, width - m), y: Math.max(m, height - m) });
+            pontos.push({ x: m, y: Math.max(m, height - m) });
+            pontos.push({ x: m, y: m });
+        } else {
+            const cx = width / 2;
+            const cy = height / 2;
+            const rx = Math.max(0.5, width / 2 - m);
+            const ry = Math.max(0.5, height / 2 - m);
+            const perimetroAprox = 2 * Math.PI * Math.sqrt((rx * rx + ry * ry) / 2);
+            const passos = Math.max(96, Math.min(288, Math.ceil(perimetroAprox / 2.5)));
+            for (let i = 0; i <= passos; i++) {
+                const ang = (Math.PI * 2 * i) / passos;
+                pontos.push({
+                    x: cx + Math.cos(ang) * rx,
+                    y: cy + Math.sin(ang) * ry
+                });
+            }
+        }
+
+        const acumulado = [0];
+        let total = 0;
+        for (let i = 1; i < pontos.length; i++) {
+            total += distanciaPontos(pontos[i - 1], pontos[i]);
+            acumulado.push(total);
+        }
+        return { tipo, width, height, pontos, acumulado, total: Math.max(1, total) };
+    }
+
+    function pontoNoCaminho(caminho, s) {
+        const total = caminho.total;
+        const alvo = limitarValor(s, 0, total);
+        const pontos = caminho.pontos;
+        const acumulado = caminho.acumulado;
+        for (let i = 1; i < pontos.length; i++) {
+            if (alvo <= acumulado[i] || i === pontos.length - 1) {
+                const segIni = acumulado[i - 1];
+                const segFim = acumulado[i];
+                const t = segFim > segIni ? (alvo - segIni) / (segFim - segIni) : 0;
+                return {
+                    x: pontos[i - 1].x + (pontos[i].x - pontos[i - 1].x) * t,
+                    y: pontos[i - 1].y + (pontos[i].y - pontos[i - 1].y) * t
+                };
+            }
+        }
+        return pontos[pontos.length - 1] || { x: 0, y: 0 };
+    }
+
+    function caminhoSvgPorIntervalo(caminho, iniNorm, fimNorm) {
+        const total = caminho.total;
+        const ini = limitarValor(iniNorm, 0, 1) * total;
+        const fim = limitarValor(fimNorm, 0, 1) * total;
+        if (fim <= ini) return '';
+
+        const pontosSvg = [pontoNoCaminho(caminho, ini)];
+        for (let i = 1; i < caminho.pontos.length - 1; i++) {
+            const s = caminho.acumulado[i];
+            if (s > ini && s < fim) pontosSvg.push(caminho.pontos[i]);
+        }
+        pontosSvg.push(pontoNoCaminho(caminho, fim));
+
+        return pontosSvg.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x.toFixed(3)} ${p.y.toFixed(3)}`).join(' ');
+    }
+
+    function pontoMaisProximoNoCaminho(caminho, ponto) {
+        let melhor = { dist: Infinity, s: 0 };
+        const pontos = caminho.pontos;
+        const acumulado = caminho.acumulado;
+        for (let i = 1; i < pontos.length; i++) {
+            const a = pontos[i - 1];
+            const b = pontos[i];
+            const vx = b.x - a.x;
+            const vy = b.y - a.y;
+            const len2 = vx * vx + vy * vy;
+            if (len2 <= 0.0001) continue;
+            const t = limitarValor(((ponto.x - a.x) * vx + (ponto.y - a.y) * vy) / len2, 0, 1);
+            const px = a.x + vx * t;
+            const py = a.y + vy * t;
+            const dx = ponto.x - px;
+            const dy = ponto.y - py;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < melhor.dist) {
+                melhor = {
+                    dist,
+                    s: acumulado[i - 1] + Math.sqrt(len2) * t
+                };
+            }
+        }
+        return melhor;
+    }
+
+    GerenciadorDesenho.prototype.obterIntervalosBorrachaDesenhoSegmentado = function(elemento) {
+        if (!elemento) return [];
+        try {
+            const valor = elemento.getAttribute('data-borracha-intervalos-desenho') || '[]';
+            const intervalos = JSON.parse(valor);
+            return unirIntervalosNormalizadosDesenho(intervalos);
+        } catch (e) {
+            return [];
+        }
+    };
+
+    GerenciadorDesenho.prototype.salvarIntervalosBorrachaDesenhoSegmentado = function(elemento, intervalos) {
+        if (!elemento) return;
+        const normalizados = unirIntervalosNormalizadosDesenho(intervalos);
+        if (normalizados.length) {
+            elemento.setAttribute('data-borracha-intervalos-desenho', JSON.stringify(normalizados));
+        } else {
+            elemento.removeAttribute('data-borracha-intervalos-desenho');
+        }
+    };
+
+    GerenciadorDesenho.prototype.renderizarDesenhoComBorracha = function(elemento) {
+        if (!elemento || !elemento.classList || !elemento.classList.contains('cuba')) return;
+
+        const tipo = this.obterTipoDesenhoCuba ? this.obterTipoDesenhoCuba(elemento) :
+            (elemento.classList.contains('linha-reta') ? 'linha-reta' : 'retangulo');
+        elemento.classList.add('desenho-svg-real', 'desenho-segmentos-reais');
+        elemento.setAttribute('data-tipo-desenho', tipo);
+
+        const cor = this.obterCorLinhaDesenho ? this.obterCorLinhaDesenho(elemento) :
+            (elemento.getAttribute('data-line-color') || '#333333');
+        const estilo = this.obterEstiloLinhaDesenho ? this.obterEstiloLinhaDesenho(elemento) :
+            (elemento.getAttribute('data-estilo-linha') || 'solid');
+
+        elemento.setAttribute('data-line-color', cor);
+        elemento.setAttribute('data-estilo-linha', estilo);
+        elemento.style.setProperty('--line-color', cor);
+        elemento.style.border = '0';
+        elemento.style.borderTop = '0';
+        elemento.style.backgroundColor = 'transparent';
+        elemento.style.overflow = 'visible';
+        elemento.querySelectorAll(':scope > .recorte-borracha, :scope > .pintura-borracha').forEach((n) => n.remove());
+
+        if (tipo === 'linha-reta') {
+            const alturaAtual = numeroDesenhoSeguro(elemento.style.height, elemento.offsetHeight || 0);
+            if (alturaAtual < 2) elemento.style.height = '2px';
+        }
+
+        let svg = elemento.querySelector(':scope > .desenho-svg-borracha');
+        if (!svg) {
+            svg = document.createElementNS(NS_DESENHO_SEGMENTOS, 'svg');
+            svg.classList.add('desenho-svg-borracha');
+            elemento.insertBefore(svg, elemento.firstChild);
+        }
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+        const caminho = criarCaminhoPoligonalDesenho(elemento);
+        svg.setAttribute('viewBox', `0 0 ${caminho.width} ${caminho.height}`);
+        svg.setAttribute('preserveAspectRatio', 'none');
+        svg.setAttribute('aria-hidden', 'true');
+        svg.style.pointerEvents = 'none';
+
+        const apagados = this.obterIntervalosBorrachaDesenhoSegmentado(elemento);
+        const visiveis = [];
+        let cursor = 0;
+        apagados.forEach((intervalo) => {
+            if (intervalo.ini > cursor) visiveis.push({ ini: cursor, fim: intervalo.ini });
+            cursor = Math.max(cursor, intervalo.fim);
+        });
+        if (cursor < 1) visiveis.push({ ini: cursor, fim: 1 });
+
+        visiveis.forEach((intervalo) => {
+            if (intervalo.fim - intervalo.ini <= 0.001) return;
+            const d = caminhoSvgPorIntervalo(caminho, intervalo.ini, intervalo.fim);
+            if (!d) return;
+            const path = document.createElementNS(NS_DESENHO_SEGMENTOS, 'path');
+            path.setAttribute('d', d);
+            path.setAttribute('fill', 'none');
+            path.setAttribute('stroke', cor);
+            path.setAttribute('stroke-width', '1');
+            path.setAttribute('vector-effect', 'non-scaling-stroke');
+            path.setAttribute('stroke-linecap', 'square');
+            path.setAttribute('stroke-linejoin', 'miter');
+            if (estilo === 'dashed') path.setAttribute('stroke-dasharray', '6 4');
+            else if (estilo === 'dotted') path.setAttribute('stroke-dasharray', '1.5 4');
+            svg.appendChild(path);
+        });
+    };
+
+    GerenciadorDesenho.prototype.obterPontoLocalDesenho = function(elemento, x, y) {
+        const areaRect = this.drawingArea.getBoundingClientRect();
+        const clientX = x - this.drawingArea.scrollLeft + areaRect.left;
+        const clientY = y - this.drawingArea.scrollTop + areaRect.top;
+        const rect = elemento.getBoundingClientRect();
+        const { width, height } = obterDimensoesReaisDesenho(elemento);
+        const rotacao = numeroDesenhoSeguro(elemento.getAttribute('data-rotate'), 0) * Math.PI / 180;
+
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = clientX - cx;
+        const dy = clientY - cy;
+        const cos = Math.cos(-rotacao);
+        const sin = Math.sin(-rotacao);
+        const localX = width / 2 + (dx * cos - dy * sin);
+        const localY = height / 2 + (dx * sin + dy * cos);
+
+        return {
+            x: limitarValor(localX, 0, width),
+            y: limitarValor(localY, 0, height),
+            width,
+            height
+        };
+    };
+
+    GerenciadorDesenho.prototype.aplicarBorrachaEmDesenho = function(elemento, x, y) {
+        if (!elemento || !elemento.classList || !elemento.classList.contains('cuba')) return false;
+        this.renderizarDesenhoComBorracha(elemento);
+
+        const caminho = criarCaminhoPoligonalDesenho(elemento);
+        if (!caminho || caminho.total <= 0) return false;
+
+        const ponto = this.obterPontoLocalDesenho(elemento, x, y);
+        const proximo = pontoMaisProximoNoCaminho(caminho, ponto);
+        const tamanho = Math.max(6, this.tamanhoBorracha || 10);
+        const limiteDistancia = Math.max(8, tamanho * 0.75);
+
+        // Igual na peça: a borracha só altera a linha se o cursor realmente cruzar a linha visual.
+        // Isso evita apagar a borda de um círculo/retângulo quando o usuário passa no miolo vazio.
+        if (proximo.dist > limiteDistancia) return false;
+
+        const raioNoCaminho = Math.max(4, tamanho / 2);
+        const centroNorm = limitarValor(proximo.s / caminho.total, 0, 1);
+        const meiaNorm = limitarValor(raioNoCaminho / caminho.total, 0.003, 0.25);
+        const novo = {
+            ini: limitarValor(centroNorm - meiaNorm, 0, 1),
+            fim: limitarValor(centroNorm + meiaNorm, 0, 1)
+        };
+        if (novo.fim <= novo.ini) return false;
+
+        const intervalos = this.obterIntervalosBorrachaDesenhoSegmentado(elemento);
+        intervalos.push(novo);
+        this.salvarIntervalosBorrachaDesenhoSegmentado(elemento, intervalos);
+        this.renderizarDesenhoComBorracha(elemento);
+        this.borrachaAplicadaNestaAcao = true;
+        if (this.elementoSelecionado === elemento) this.atualizarHandles();
+        return true;
+    };
+
+    // O alvo continua sendo a .cuba, mas a aplicação agora quebra a linha do desenho em segmentos,
+    // exatamente como acontece na peça com .linha-peca.
+    const apagarSegmentosOriginal = GerenciadorDesenho.prototype.apagarComBorrachaNoAlvo;
+    GerenciadorDesenho.prototype.apagarComBorrachaNoAlvo = function(x, y) {
+        const alvo = this.encontrarAlvoBorracha(x, y);
+        if (!alvo) return;
+
+        if (alvo.classList && alvo.classList.contains('cuba')) {
+            this.aplicarBorrachaEmDesenho(alvo, x, y);
+            return;
+        }
+        if (alvo.classList && alvo.classList.contains('linha-peca')) {
+            this.aplicarBorrachaEmLinhaPeca(alvo, x, y);
+            return;
+        }
+        if (alvo.classList && alvo.classList.contains('peca')) {
+            this.aplicarBorrachaNasLinhasDaPeca(alvo, x, y);
+            return;
+        }
+        if (typeof apagarSegmentosOriginal === 'function') apagarSegmentosOriginal.call(this, x, y);
+    };
+
+    const atualizarTodasSegmentosOriginal = GerenciadorDesenho.prototype.atualizarTodasMascarasBorracha;
+    GerenciadorDesenho.prototype.atualizarTodasMascarasBorracha = function() {
+        if (typeof atualizarTodasSegmentosOriginal === 'function') atualizarTodasSegmentosOriginal.call(this);
+        if (!this.drawingArea) return;
+        this.drawingArea.querySelectorAll('.cuba').forEach((el) => this.renderizarDesenhoComBorracha(el));
+    };
+})();
+
+    
+(function() {
+    if (typeof GerenciadorDesenho === 'undefined') return;
+
+    function ehDesenhoComSegmentosRetos(elemento, inst) {
+        if (!elemento || !elemento.classList || !elemento.classList.contains('cuba')) return false;
+        const tipo = inst.obterTipoDesenhoCuba ? inst.obterTipoDesenhoCuba(elemento) : 'retangulo';
+        return tipo === 'retangulo' || tipo === 'linha-reta';
+    }
+
+    GerenciadorDesenho.prototype.sincronizarLinhasDesenhoRetangular = function(elemento) {
+        if (!ehDesenhoComSegmentosRetos(elemento, this)) return false;
+
+        const tipo = this.obterTipoDesenhoCuba(elemento);
+        const width = Math.max(1, parseFloat(elemento.style.width) || elemento.offsetWidth || 1);
+        const height = Math.max(1, parseFloat(elemento.style.height) || elemento.offsetHeight || 1);
+        const cor = this.obterCorLinhaDesenho ? this.obterCorLinhaDesenho(elemento) : '#333333';
+        const estiloLinha = this.obterEstiloLinhaDesenho ? this.obterEstiloLinhaDesenho(elemento) : 'solid';
+
+        elemento.classList.add('desenho-segmentado-retangular', 'desenho-svg-real');
+        elemento.style.border = '0';
+        elemento.style.borderTop = '0';
+        elemento.style.borderRight = '0';
+        elemento.style.borderBottom = '0';
+        elemento.style.borderLeft = '0';
+        elemento.style.borderStyle = 'none';
+        elemento.style.borderColor = 'transparent';
+        elemento.style.outline = 'none';
+        elemento.style.boxShadow = 'none';
+        elemento.style.background = 'transparent';
+        elemento.style.backgroundImage = 'none';
+        elemento.style.overflow = 'visible';
+        elemento.style.setProperty('--line-color', cor);
+        elemento.setAttribute('data-line-color', cor);
+        elemento.setAttribute('data-estilo-linha', estiloLinha);
+
+        const svg = elemento.querySelector(':scope > .desenho-svg-borracha');
+        if (svg) svg.remove();
+        elemento.querySelectorAll(':scope > .recorte-borracha, :scope > .pintura-borracha').forEach((n) => n.remove());
+
+        const lados = (tipo === 'linha-reta')
+            ? [
+                { tipo: 'top', estilo: { top: '0px', left: '0px', width: width + 'px', height: '8px', transform: 'translateY(-4px)' }, rotacao: 0 }
+              ]
+            : [
+                { tipo: 'top', estilo: { top: '0px', left: '0px', width: width + 'px', height: '8px', transform: 'translateY(-4px)' }, rotacao: 0 },
+                { tipo: 'bottom', estilo: { top: height + 'px', left: '0px', width: width + 'px', height: '8px', transform: 'translateY(-4px)' }, rotacao: 0 },
+                { tipo: 'left', estilo: { top: '0px', left: '0px', width: '8px', height: height + 'px', transform: 'translateX(-4px)' }, rotacao: 90 },
+                { tipo: 'right', estilo: { top: '0px', left: width + 'px', width: '8px', height: height + 'px', transform: 'translateX(-4px)' }, rotacao: 90 }
+              ];
+        const permitidos = new Set(lados.map((l) => l.tipo));
+
+        Array.from(elemento.querySelectorAll(':scope > .linha-peca.desenho-linha-peca')).forEach((extra) => {
+            const lado = extra.getAttribute('data-lado') || '';
+            if (!permitidos.has(lado)) extra.remove();
+        });
+
+        lados.forEach((lado) => {
+            let linha = elemento.querySelector(`:scope > .linha-peca.desenho-linha-peca[data-lado="${lado.tipo}"]`);
+            if (!linha) {
+                linha = document.createElement('div');
+                linha.className = `linha-peca desenho-linha-peca linha-${lado.tipo}`;
+                linha.setAttribute('data-lado', lado.tipo);
+                elemento.appendChild(linha);
+            }
+
+            linha.setAttribute('data-rotacao', String(lado.rotacao));
+            linha.setAttribute('data-estilo-linha', estiloLinha);
+            linha.style.position = 'absolute';
+            linha.style.backgroundColor = 'transparent';
+            linha.style.cursor = 'default';
+            linha.style.pointerEvents = 'none';
+            linha.style.zIndex = '2';
+            linha.style.transition = 'none';
+            Object.assign(linha.style, lado.estilo);
+            this.renderizarLinhaPecaComRecortes(linha);
+        });
+
+        return true;
+    };
+
+    const renderOriginal = GerenciadorDesenho.prototype.renderizarDesenhoComBorracha;
+    GerenciadorDesenho.prototype.renderizarDesenhoComBorracha = function(elemento) {
+        if (this.sincronizarLinhasDesenhoRetangular && this.sincronizarLinhasDesenhoRetangular(elemento)) {
+            return;
+        }
+        if (typeof renderOriginal === 'function') {
+            return renderOriginal.call(this, elemento);
+        }
+    };
+
+    const aplicarOriginal = GerenciadorDesenho.prototype.aplicarBorrachaEmDesenho;
+    GerenciadorDesenho.prototype.aplicarBorrachaEmDesenho = function(elemento, x, y) {
+        if (this.sincronizarLinhasDesenhoRetangular && this.sincronizarLinhasDesenhoRetangular(elemento)) {
+            const aplicou = this.aplicarBorrachaNasLinhasDaPeca(elemento, x, y);
+            if (aplicou && this.elementoSelecionado === elemento) this.atualizarHandles();
+            return aplicou;
+        }
+        if (typeof aplicarOriginal === 'function') {
+            return aplicarOriginal.call(this, elemento, x, y);
+        }
+        return false;
+    };
+
+    const atualizarOriginal = GerenciadorDesenho.prototype.atualizarTodasMascarasBorracha;
+    GerenciadorDesenho.prototype.atualizarTodasMascarasBorracha = function() {
+        if (typeof atualizarOriginal === 'function') atualizarOriginal.call(this);
+        if (!this.drawingArea) return;
+        this.drawingArea.querySelectorAll('.cuba').forEach((el) => {
+            if (this.sincronizarLinhasDesenhoRetangular && this.sincronizarLinhasDesenhoRetangular(el)) return;
+            if (typeof renderOriginal === 'function') renderOriginal.call(this, el);
+        });
+    };
+})();
+
+
+(function() {
+    if (typeof GerenciadorDesenho === 'undefined') return;
+
+    function numeroSeguroLocal(v, fallback = 0) {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : fallback;
+    }
+
+    function intervaloValido(ini, fim, limite) {
+        const a = Math.max(0, Math.min(limite, ini));
+        const b = Math.max(0, Math.min(limite, fim));
+        if (b <= a) return null;
+        return { ini: a, fim: b };
+    }
+
+    GerenciadorDesenho.prototype.aplicarBorrachaExataEmDesenhoRetangular = function(desenhoElement, x, y) {
+        if (!desenhoElement || !desenhoElement.classList || !desenhoElement.classList.contains('desenho-segmentado-retangular')) return false;
+
+        if (typeof this.sincronizarLinhasDesenhoRetangular === 'function') {
+            this.sincronizarLinhasDesenhoRetangular(desenhoElement);
+        }
+
+        const tipo = this.obterTipoDesenhoCuba ? this.obterTipoDesenhoCuba(desenhoElement) : 'retangulo';
+        const width = Math.max(1, parseFloat(desenhoElement.style.width) || desenhoElement.offsetWidth || 1);
+        const height = Math.max(1, parseFloat(desenhoElement.style.height) || desenhoElement.offsetHeight || 1);
+        const half = Math.max(6, (this.tamanhoBorracha || 10) / 2);
+
+        let local;
+        if (typeof this.obterPontoLocalDesenho === 'function') {
+            local = this.obterPontoLocalDesenho(desenhoElement, x, y);
+        } else {
+            local = {
+                x: x - numeroSeguroLocal(desenhoElement.style.left, 0),
+                y: y - numeroSeguroLocal(desenhoElement.style.top, 0)
+            };
+        }
+
+        const localX = numeroSeguroLocal(local.x, 0);
+        const localY = numeroSeguroLocal(local.y, 0);
+        const lados = (tipo === 'linha-reta')
+            ? [
+                { nome: 'top', fixo: 0, limite: width, centro: localX, perpendicular: localY }
+              ]
+            : [
+                { nome: 'top', fixo: 0, limite: width, centro: localX, perpendicular: localY },
+                { nome: 'bottom', fixo: height, limite: width, centro: localX, perpendicular: localY },
+                { nome: 'left', fixo: 0, limite: height, centro: localY, perpendicular: localX },
+                { nome: 'right', fixo: width, limite: height, centro: localY, perpendicular: localX }
+              ];
+
+        let aplicou = false;
+        lados.forEach((lado) => {
+            if ((lado.perpendicular - half) > lado.fixo || (lado.perpendicular + half) < lado.fixo) return;
+
+            const linha = desenhoElement.querySelector(`:scope > .linha-peca.desenho-linha-peca[data-lado="${lado.nome}"]`) ||
+                desenhoElement.querySelector(`:scope > .linha-peca[data-lado="${lado.nome}"]`);
+            if (!linha) return;
+
+            const intervalo = intervaloValido(lado.centro - half, lado.centro + half, lado.limite);
+            if (!intervalo) return;
+
+            const intervalos = this.obterIntervalosBorrachaLinha(linha);
+            intervalos.push(intervalo);
+            this.salvarIntervalosBorrachaLinha(linha, intervalos);
+            this.renderizarLinhaPecaComRecortes(linha);
+            aplicou = true;
+        });
+
+        if (aplicou) {
+            this.borrachaAplicadaNestaAcao = true;
+            if (this.elementoSelecionado === desenhoElement) {
+                this.atualizarHandles();
+            }
+        }
+        return aplicou;
+    };
+
+    const apagarAnteriorRetanguloExato = GerenciadorDesenho.prototype.apagarComBorrachaNoAlvo;
+    GerenciadorDesenho.prototype.apagarComBorrachaNoAlvo = function(x, y) {
+        const alvo = this.encontrarAlvoBorracha ? this.encontrarAlvoBorracha(x, y) : null;
+        if (!alvo) return;
+
+        const desenhoSegmentado = alvo.closest ? alvo.closest('.cuba.desenho-segmentado-retangular') : null;
+        if (desenhoSegmentado) {
+            this.aplicarBorrachaExataEmDesenhoRetangular(desenhoSegmentado, x, y);
+            return;
+        }
+
+        if (typeof apagarAnteriorRetanguloExato === 'function') {
+            apagarAnteriorRetanguloExato.call(this, x, y);
+        }
+    };
+})();
+
+
+(function() {
+    if (typeof GerenciadorDesenho === 'undefined') return;
+
+    function obterClienteCursor(e) {
+        if (e && e.touches && e.touches[0]) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+        if (e && e.changedTouches && e.changedTouches[0]) return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+        return {
+            x: e && typeof e.clientX === 'number' ? e.clientX : 0,
+            y: e && typeof e.clientY === 'number' ? e.clientY : 0
+        };
+    }
+
+    function garantirCursorBorrachaGlobal(inst) {
+        if (!inst.borrachaCursor) {
+            inst.borrachaCursor = document.createElement('div');
+            inst.borrachaCursor.className = 'cursor-borracha';
+        }
+        if (inst.borrachaCursor.parentNode !== document.body) {
+            document.body.appendChild(inst.borrachaCursor);
+        }
+        const tamanho = Math.max(8, Number(inst.tamanhoBorracha) || 10);
+        inst.borrachaCursor.style.width = tamanho + 'px';
+        inst.borrachaCursor.style.height = tamanho + 'px';
+        return inst.borrachaCursor;
+    }
+
+    const atualizarCursorOriginal = GerenciadorDesenho.prototype.atualizarCursorBorracha;
+    GerenciadorDesenho.prototype.atualizarCursorBorracha = function(e) {
+        if (!this.modoBorrachaAtivo) {
+            if (typeof atualizarCursorOriginal === 'function') return atualizarCursorOriginal.call(this, e);
+            return;
+        }
+
+        if (this.ehDispositivoMobile && this.ehDispositivoMobile()) {
+            if (e && e.touches && e.touches.length >= 2) {
+                if (this.borrachaCursor) this.borrachaCursor.style.display = 'none';
+                return;
+            }
+            if (!this.borrachaPressionada && e && e.touches) {
+                if (this.borrachaCursor) this.borrachaCursor.style.display = 'none';
+                return;
+            }
+        }
+
+        const cursor = garantirCursorBorrachaGlobal(this);
+        const pos = obterClienteCursor(e);
+        const tamanho = Math.max(8, Number(this.tamanhoBorracha) || 10);
+        cursor.style.left = (pos.x - tamanho / 2) + 'px';
+        cursor.style.top = (pos.y - tamanho / 2) + 'px';
+        cursor.style.display = 'block';
+        cursor.style.visibility = 'visible';
+        document.body.classList.add('modo-borracha');
+    };
+
+    const ativarOriginal = GerenciadorDesenho.prototype.ativarModoBorracha;
+    GerenciadorDesenho.prototype.ativarModoBorracha = function() {
+        if (typeof ativarOriginal === 'function') ativarOriginal.call(this);
+        document.body.classList.add('modo-borracha');
+        garantirCursorBorrachaGlobal(this);
+
+        if (!this._cursorBorrachaGlobalMoveHandler) {
+            this._cursorBorrachaGlobalMoveHandler = (ev) => {
+                if (this.modoBorrachaAtivo) this.atualizarCursorBorracha(ev);
+            };
+        }
+        document.addEventListener('mousemove', this._cursorBorrachaGlobalMoveHandler, true);
+        document.addEventListener('touchmove', this._cursorBorrachaGlobalMoveHandler, { passive: true, capture: true });
+        document.addEventListener('touchstart', this._cursorBorrachaGlobalMoveHandler, { passive: true, capture: true });
+    };
+
+    const desativarOriginal = GerenciadorDesenho.prototype.desativarModoBorracha;
+    GerenciadorDesenho.prototype.desativarModoBorracha = function() {
+        if (this._cursorBorrachaGlobalMoveHandler) {
+            document.removeEventListener('mousemove', this._cursorBorrachaGlobalMoveHandler, true);
+            document.removeEventListener('touchmove', this._cursorBorrachaGlobalMoveHandler, true);
+            document.removeEventListener('touchstart', this._cursorBorrachaGlobalMoveHandler, true);
+        }
+        if (typeof desativarOriginal === 'function') desativarOriginal.call(this);
+        document.body.classList.remove('modo-borracha');
+        document.body.style.cursor = '';
+        if (this.drawingArea) this.drawingArea.style.cursor = '';
+        if (this.borrachaCursor && this.borrachaCursor.parentNode) this.borrachaCursor.parentNode.removeChild(this.borrachaCursor);
+        this.borrachaCursor = null;
+    };
+
+    const ocultarOriginal = GerenciadorDesenho.prototype.ocultarCursorBorracha;
+    GerenciadorDesenho.prototype.ocultarCursorBorracha = function() {
+        if (this.modoBorrachaAtivo) return;
+        if (typeof ocultarOriginal === 'function') return ocultarOriginal.call(this);
+        if (this.borrachaCursor) this.borrachaCursor.style.display = 'none';
+    };
+})();
+
+let gerenciadorDesenho;
 
     document.addEventListener('DOMContentLoaded', function() {
         console.log('Iniciando aplicação...');
@@ -8711,6 +9931,100 @@ aplicarEstilosManterModal() {
 
 
 
+
+
+(function() {
+    if (typeof GerenciadorDesenho === 'undefined') return;
+
+    function marcarPecaComoRetanguloSegmentado(peca) {
+        if (!peca || !peca.classList || !peca.classList.contains('peca')) return null;
+        peca.classList.add('desenho-segmentado-retangular');
+        peca.setAttribute('data-tipo-desenho', 'retangulo');
+        peca.style.border = '0';
+        peca.style.borderTop = '0';
+        peca.style.borderRight = '0';
+        peca.style.borderBottom = '0';
+        peca.style.borderLeft = '0';
+        peca.style.borderStyle = 'none';
+        peca.style.borderColor = 'transparent';
+        peca.style.outline = 'none';
+        peca.style.boxShadow = 'none';
+        peca.style.background = 'transparent';
+        peca.style.backgroundImage = 'none';
+        return peca;
+    }
+
+    function aplicarRegraRetanguloDoDesenhoNaPeca(instancia, peca, x, y) {
+        if (!instancia || !peca) return false;
+        marcarPecaComoRetanguloSegmentado(peca);
+
+        // Usa a mesma função que já está funcionando no retângulo do desenho.
+        if (typeof instancia.aplicarBorrachaExataEmDesenhoRetangular === 'function') {
+            return instancia.aplicarBorrachaExataEmDesenhoRetangular(peca, x, y);
+        }
+        return false;
+    }
+
+    const apagarAnterior = GerenciadorDesenho.prototype.apagarComBorrachaNoAlvo;
+    GerenciadorDesenho.prototype.apagarComBorrachaNoAlvo = function(x, y) {
+        const alvo = this.encontrarAlvoBorracha ? this.encontrarAlvoBorracha(x, y) : null;
+        if (!alvo) return;
+
+        const peca = alvo.closest ? alvo.closest('.peca') : null;
+        if (peca) {
+            aplicarRegraRetanguloDoDesenhoNaPeca(this, peca, x, y);
+            return;
+        }
+
+        const desenhoRetangular = alvo.closest ? alvo.closest('.cuba.desenho-segmentado-retangular') : null;
+        if (desenhoRetangular && typeof this.aplicarBorrachaExataEmDesenhoRetangular === 'function') {
+            this.aplicarBorrachaExataEmDesenhoRetangular(desenhoRetangular, x, y);
+            return;
+        }
+
+        if (typeof apagarAnterior === 'function') apagarAnterior.call(this, x, y);
+    };
+
+    GerenciadorDesenho.prototype.aplicarBorrachaNasLinhasDaPeca = function(pecaElement, x, y) {
+        if (!pecaElement) return false;
+        if (pecaElement.classList && pecaElement.classList.contains('peca')) {
+            return aplicarRegraRetanguloDoDesenhoNaPeca(this, pecaElement, x, y);
+        }
+        if (pecaElement.classList && pecaElement.classList.contains('desenho-segmentado-retangular') && typeof this.aplicarBorrachaExataEmDesenhoRetangular === 'function') {
+            return this.aplicarBorrachaExataEmDesenhoRetangular(pecaElement, x, y);
+        }
+        return false;
+    };
+
+    const atualizarTodasAnterior = GerenciadorDesenho.prototype.atualizarTodasMascarasBorracha;
+    GerenciadorDesenho.prototype.atualizarTodasMascarasBorracha = function() {
+        if (this.drawingArea) {
+            this.drawingArea.querySelectorAll('.peca').forEach((peca) => marcarPecaComoRetanguloSegmentado(peca));
+        }
+        if (typeof atualizarTodasAnterior === 'function') atualizarTodasAnterior.call(this);
+    };
+
+    const carregarAnterior = GerenciadorDesenho.prototype.carregarDesenhoSalvo;
+    if (typeof carregarAnterior === 'function') {
+        GerenciadorDesenho.prototype.carregarDesenhoSalvo = function() {
+            const retorno = carregarAnterior.apply(this, arguments);
+            if (this.drawingArea) {
+                this.drawingArea.querySelectorAll('.peca').forEach((peca) => marcarPecaComoRetanguloSegmentado(peca));
+            }
+            return retorno;
+        };
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(function() {
+            const inst = window.gerenciadorDesenho;
+            if (inst && inst.drawingArea) {
+                inst.drawingArea.querySelectorAll('.peca').forEach((peca) => marcarPecaComoRetanguloSegmentado(peca));
+            }
+        }, 0);
+    });
+})();
+
 </script>
 
 
@@ -8719,3 +10033,271 @@ aplicarEstilosManterModal() {
 
 
 
+
+
+(function() {
+    if (typeof GerenciadorDesenho === 'undefined') return;
+
+    function clampLocal(valor, minimo, maximo) {
+        const n = Number(valor);
+        if (!Number.isFinite(n)) return minimo;
+        return Math.max(minimo, Math.min(maximo, n));
+    }
+
+    GerenciadorDesenho.prototype.obterPontoLocalPecaRetangular = function(pecaElement, x, y) {
+        if (!pecaElement) {
+            return { x: 0, y: 0, width: 0, height: 0 };
+        }
+
+        const areaRect = this.drawingArea.getBoundingClientRect();
+        const clientX = x - this.drawingArea.scrollLeft + areaRect.left;
+        const clientY = y - this.drawingArea.scrollTop + areaRect.top;
+        const rect = pecaElement.getBoundingClientRect();
+        const width = Math.max(1, parseFloat(pecaElement.style.width) || pecaElement.offsetWidth || 1);
+        const height = Math.max(1, parseFloat(pecaElement.style.height) || pecaElement.offsetHeight || 1);
+        const rotacao = (this.obterRotacaoElemento ? this.obterRotacaoElemento(pecaElement) : (parseFloat(pecaElement.getAttribute('data-rotate')) || 0)) * Math.PI / 180;
+
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = clientX - cx;
+        const dy = clientY - cy;
+        const cos = Math.cos(-rotacao);
+        const sin = Math.sin(-rotacao);
+        const localX = width / 2 + (dx * cos - dy * sin);
+        const localY = height / 2 + (dx * sin + dy * cos);
+
+        return {
+            x: clampLocal(localX, 0, width),
+            y: clampLocal(localY, 0, height),
+            width,
+            height
+        };
+    };
+
+    GerenciadorDesenho.prototype.aplicarBorrachaExataEmPecaRetangular = function(pecaElement, x, y) {
+        if (!pecaElement || !pecaElement.classList || !pecaElement.classList.contains('peca')) return false;
+
+        const ponto = this.obterPontoLocalPecaRetangular(pecaElement, x, y);
+        const width = Math.max(1, ponto.width || 1);
+        const height = Math.max(1, ponto.height || 1);
+        const half = Math.max(6, (this.tamanhoBorracha || 10) / 2);
+        const localX = clampLocal(ponto.x, 0, width);
+        const localY = clampLocal(ponto.y, 0, height);
+
+        const lados = [
+            { nome: 'top', fixo: 0, limite: width, centro: localX, perpendicular: localY },
+            { nome: 'bottom', fixo: height, limite: width, centro: localX, perpendicular: localY },
+            { nome: 'left', fixo: 0, limite: height, centro: localY, perpendicular: localX },
+            { nome: 'right', fixo: width, limite: height, centro: localY, perpendicular: localX }
+        ];
+
+        let aplicou = false;
+        lados.forEach((lado) => {
+            if ((lado.perpendicular - half) > lado.fixo || (lado.perpendicular + half) < lado.fixo) return;
+
+            const linha = pecaElement.querySelector(`:scope > .linha-peca[data-lado="${lado.nome}"]`) ||
+                          pecaElement.querySelector(`:scope > .linha-${lado.nome}`) ||
+                          pecaElement.querySelector(`:scope > .linha-peca.linha-${lado.nome}`);
+            if (!linha) return;
+
+            const novoIntervalo = {
+                ini: Math.max(0, lado.centro - half),
+                fim: Math.min(lado.limite, lado.centro + half)
+            };
+            if (novoIntervalo.fim <= novoIntervalo.ini) return;
+
+            const intervalos = this.obterIntervalosBorrachaLinha(linha);
+            intervalos.push(novoIntervalo);
+            this.salvarIntervalosBorrachaLinha(linha, intervalos);
+            this.renderizarLinhaPecaComRecortes(linha);
+            aplicou = true;
+        });
+
+        if (aplicou) {
+            this.borrachaAplicadaNestaAcao = true;
+            if (this.elementoSelecionado === pecaElement) {
+                this.atualizarHandles();
+            }
+        }
+        return aplicou;
+    };
+
+    const aplicarBorrachaNasLinhasDaPecaAnterior = GerenciadorDesenho.prototype.aplicarBorrachaNasLinhasDaPeca;
+    GerenciadorDesenho.prototype.aplicarBorrachaNasLinhasDaPeca = function(pecaElement, x, y) {
+        if (!pecaElement) return false;
+        if (pecaElement.classList && pecaElement.classList.contains('peca')) {
+            return this.aplicarBorrachaExataEmPecaRetangular(pecaElement, x, y);
+        }
+        if (pecaElement.classList && pecaElement.classList.contains('desenho-segmentado-retangular') && typeof this.aplicarBorrachaExataEmDesenhoRetangular === 'function') {
+            return this.aplicarBorrachaExataEmDesenhoRetangular(pecaElement, x, y);
+        }
+        if (typeof aplicarBorrachaNasLinhasDaPecaAnterior === 'function') {
+            return aplicarBorrachaNasLinhasDaPecaAnterior.call(this, pecaElement, x, y);
+        }
+        return false;
+    };
+
+    const apagarComBorrachaNoAlvoAnteriorPecas = GerenciadorDesenho.prototype.apagarComBorrachaNoAlvo;
+    GerenciadorDesenho.prototype.apagarComBorrachaNoAlvo = function(x, y) {
+        const alvo = this.encontrarAlvoBorracha ? this.encontrarAlvoBorracha(x, y) : null;
+        if (!alvo) return;
+
+        const pecaPai = alvo.closest ? alvo.closest('.peca') : null;
+        if (pecaPai) {
+            this.aplicarBorrachaExataEmPecaRetangular(pecaPai, x, y);
+            return;
+        }
+
+        const desenhoSegmentado = alvo.closest ? alvo.closest('.cuba.desenho-segmentado-retangular') : null;
+        if (desenhoSegmentado && typeof this.aplicarBorrachaExataEmDesenhoRetangular === 'function') {
+            this.aplicarBorrachaExataEmDesenhoRetangular(desenhoSegmentado, x, y);
+            return;
+        }
+
+        if (typeof apagarComBorrachaNoAlvoAnteriorPecas === 'function') {
+            apagarComBorrachaNoAlvoAnteriorPecas.call(this, x, y);
+        }
+    };
+})();
+
+
+/* REGRA FINAL DA BORRACHA EM RETÂNGULOS SEGMENTADOS
+   Peça e retângulo de desenho usam a mesma regra final: a borracha é convertida
+   para coordenada local do retângulo e apaga a projeção real em cada lado. */
+(function() {
+    if (typeof GerenciadorDesenho === 'undefined') return;
+
+    function clamp(v, min, max) {
+        const n = Number(v);
+        if (!Number.isFinite(n)) return min;
+        return Math.max(min, Math.min(max, n));
+    }
+
+    function numero(v, fallback = 0) {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : fallback;
+    }
+
+    function getRotacao(inst, el) {
+        if (inst && typeof inst.obterRotacaoElemento === 'function') {
+            return numero(inst.obterRotacaoElemento(el), 0);
+        }
+        return numero(el.getAttribute('data-rotate'), 0) || numero(el.getAttribute('data-rotacao'), 0);
+    }
+
+    function getDimensoesRetangulo(el) {
+        const cs = window.getComputedStyle(el);
+        const width = Math.max(1, parseFloat(el.style.width) || parseFloat(cs.width) || el.offsetWidth || 1);
+        const height = Math.max(1, parseFloat(el.style.height) || parseFloat(cs.height) || el.offsetHeight || 1);
+        return { width, height };
+    }
+
+    function pontoDrawingParaLocal(inst, el, px, py, width, height, rotacaoGraus) {
+        const areaRect = inst.drawingArea.getBoundingClientRect();
+        const clientX = px - (inst.drawingArea.scrollLeft || 0) + areaRect.left;
+        const clientY = py - (inst.drawingArea.scrollTop || 0) + areaRect.top;
+        const rect = el.getBoundingClientRect();
+        const cx = rect.left + rect.width / 2;
+        const cy = rect.top + rect.height / 2;
+        const dx = clientX - cx;
+        const dy = clientY - cy;
+        const rad = -rotacaoGraus * Math.PI / 180;
+        const cos = Math.cos(rad);
+        const sin = Math.sin(rad);
+        return {
+            x: width / 2 + (dx * cos - dy * sin),
+            y: height / 2 + (dx * sin + dy * cos)
+        };
+    }
+
+    GerenciadorDesenho.prototype.aplicarBorrachaRetanguloSegmentadoFinal = function(retangulo, x, y) {
+        if (!retangulo || !retangulo.classList) return false;
+        const ehPeca = retangulo.classList.contains('peca');
+        const ehDesenhoRetangular = retangulo.classList.contains('cuba') && retangulo.classList.contains('desenho-segmentado-retangular');
+        if (!ehPeca && !ehDesenhoRetangular) return false;
+
+        if (ehDesenhoRetangular && typeof this.sincronizarLinhasDesenhoRetangular === 'function') {
+            this.sincronizarLinhasDesenhoRetangular(retangulo);
+        }
+
+        const dims = getDimensoesRetangulo(retangulo);
+        const width = dims.width;
+        const height = dims.height;
+        const rotacao = getRotacao(this, retangulo);
+        const half = Math.max(6, (this.tamanhoBorracha || 10) / 2);
+
+        const cantos = [
+            pontoDrawingParaLocal(this, retangulo, x - half, y - half, width, height, rotacao),
+            pontoDrawingParaLocal(this, retangulo, x + half, y - half, width, height, rotacao),
+            pontoDrawingParaLocal(this, retangulo, x + half, y + half, width, height, rotacao),
+            pontoDrawingParaLocal(this, retangulo, x - half, y + half, width, height, rotacao)
+        ];
+
+        const minX = Math.min(...cantos.map(p => p.x));
+        const maxX = Math.max(...cantos.map(p => p.x));
+        const minY = Math.min(...cantos.map(p => p.y));
+        const maxY = Math.max(...cantos.map(p => p.y));
+
+        const lados = [
+            { nome: 'top', ini: minX, fim: maxX, cruza: minY <= 0 && maxY >= 0, limite: width },
+            { nome: 'bottom', ini: minX, fim: maxX, cruza: minY <= height && maxY >= height, limite: width },
+            { nome: 'left', ini: minY, fim: maxY, cruza: minX <= 0 && maxX >= 0, limite: height },
+            { nome: 'right', ini: minY, fim: maxY, cruza: minX <= width && maxX >= width, limite: height }
+        ];
+
+        let aplicou = false;
+        lados.forEach((lado) => {
+            if (!lado.cruza) return;
+            const linha = retangulo.querySelector(`:scope > .linha-peca[data-lado="${lado.nome}"]`) ||
+                          retangulo.querySelector(`:scope > .linha-${lado.nome}`) ||
+                          retangulo.querySelector(`:scope > .linha-peca.linha-${lado.nome}`);
+            if (!linha) return;
+
+            const intervalo = {
+                ini: clamp(lado.ini, 0, lado.limite),
+                fim: clamp(lado.fim, 0, lado.limite)
+            };
+            if (intervalo.fim <= intervalo.ini) return;
+
+            const intervalos = this.obterIntervalosBorrachaLinha(linha);
+            intervalos.push(intervalo);
+            this.salvarIntervalosBorrachaLinha(linha, intervalos);
+            this.renderizarLinhaPecaComRecortes(linha);
+            aplicou = true;
+        });
+
+        if (aplicou) {
+            this.borrachaAplicadaNestaAcao = true;
+            if (this.elementoSelecionado === retangulo) this.atualizarHandles();
+        }
+        return aplicou;
+    };
+
+    GerenciadorDesenho.prototype.apagarComBorrachaNoAlvo = function(x, y) {
+        const alvo = this.encontrarAlvoBorracha ? this.encontrarAlvoBorracha(x, y) : null;
+        if (!alvo) return;
+
+        const peca = alvo.closest ? alvo.closest('.peca') : null;
+        if (peca) {
+            this.aplicarBorrachaRetanguloSegmentadoFinal(peca, x, y);
+            return;
+        }
+
+        const desenhoRetangular = alvo.closest ? alvo.closest('.cuba.desenho-segmentado-retangular') : null;
+        if (desenhoRetangular) {
+            this.aplicarBorrachaRetanguloSegmentadoFinal(desenhoRetangular, x, y);
+            return;
+        }
+
+        if (alvo.classList && alvo.classList.contains('cuba') && typeof this.aplicarBorrachaEmDesenho === 'function') {
+            this.aplicarBorrachaEmDesenho(alvo, x, y);
+        }
+    };
+
+    GerenciadorDesenho.prototype.aplicarBorrachaNasLinhasDaPeca = function(elemento, x, y) {
+        if (elemento && elemento.classList && (elemento.classList.contains('peca') || elemento.classList.contains('desenho-segmentado-retangular'))) {
+            return this.aplicarBorrachaRetanguloSegmentadoFinal(elemento, x, y);
+        }
+        return false;
+    };
+})();
