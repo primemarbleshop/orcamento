@@ -1191,7 +1191,6 @@
         .handles-container,
         .handle,
         .handle-rotacao,
-        .elemento-selecionado,
         .modal-controles,
         .modal-backdrop,
         .guia-quebra-impressao { 
@@ -1223,6 +1222,43 @@
             position: absolute !important;
             page-break-inside: avoid;
             break-inside: avoid;
+        }
+
+        /* Impressão: não esconder a peça selecionada.
+           A classe .elemento-selecionado é usada para seleção na tela,
+           mas na impressão ela precisa continuar aparecendo. */
+        .elemento-selecionado {
+            display: block !important;
+            visibility: visible !important;
+            outline: none !important;
+            box-shadow: none !important;
+        }
+
+        /* Impressão da borracha por segmentos reais.
+           Depois que a borda da peça passou a ser segmentada, a impressão
+           precisa forçar os segmentos e as linhas internas a ficarem visíveis. */
+        .linha-peca,
+        .segmento-linha-peca {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+
+        .segmento-linha-peca {
+            background-color: var(--line-color, #000) !important;
+        }
+
+        .laco-overlay,
+        .laco-polygon,
+        .grupo-temporario,
+        .grupo-handle,
+        .grupo-handle-rotacao,
+        .laco-handle,
+        .laco-handle-rotacao {
+            display: none !important;
+            visibility: hidden !important;
         }
 
         .logo-empresa {
