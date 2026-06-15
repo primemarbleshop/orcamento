@@ -1250,6 +1250,37 @@
             background-color: var(--line-color, #000) !important;
         }
 
+        /* Impressão robusta dos segmentos reais da peça.
+           Na tela os segmentos usam background, mas o Chrome pode não imprimir
+           background quando a opção de gráficos não está aplicada. Para impressão,
+           cada segmento vira uma borda real, então as peças aparecem no PDF sem
+           depender de pintura de fundo e sem voltar a desenhar a borda inteira. */
+        .linha-peca[data-lado="top"] > .segmento-linha-peca,
+        .linha-peca[data-lado="bottom"] > .segmento-linha-peca {
+            height: 0 !important;
+            background: transparent !important;
+            border-top: 2px solid var(--line-color, #000) !important;
+            box-sizing: border-box !important;
+        }
+
+        .linha-peca[data-lado="left"] > .segmento-linha-peca,
+        .linha-peca[data-lado="right"] > .segmento-linha-peca {
+            width: 0 !important;
+            background: transparent !important;
+            border-left: 2px solid var(--line-color, #000) !important;
+            box-sizing: border-box !important;
+        }
+
+        .linha-peca[data-estilo-linha="dashed"] > .segmento-linha-peca,
+        .linha-peca[style*="dashed"] > .segmento-linha-peca {
+            border-style: dashed !important;
+        }
+
+        .linha-peca[data-estilo-linha="dotted"] > .segmento-linha-peca,
+        .linha-peca[style*="dotted"] > .segmento-linha-peca {
+            border-style: dotted !important;
+        }
+
         .laco-overlay,
         .laco-polygon,
         .grupo-temporario,
@@ -3352,10 +3383,21 @@ refazer() {
             
             this.salvarEstadoHistorico('Antes da Impressão');
             this.desselecionarElemento();
+
+            // Garante que todas as bordas por segmentos reais estejam materializadas
+            // antes de abrir o diálogo de impressão. Sem isso, peças salvas antes da
+            // borracha por segmentos podem aparecer na tela, mas sumir no PDF.
+            if (typeof this.atualizarTodasMascarasBorracha === 'function') {
+                this.atualizarTodasMascarasBorracha();
+            }
+
             const infoImpressao = this.prepararAlturaParaImpressaoAtual();
             console.log(`Impressão recalculada: ${infoImpressao.paginas} página(s), altura ${infoImpressao.alturaTotal}px`);
             
             setTimeout(() => {
+                if (typeof this.atualizarTodasMascarasBorracha === 'function') {
+                    this.atualizarTodasMascarasBorracha();
+                }
                 window.print();
             }, 500);
         }
@@ -7009,11 +7051,22 @@ _isTouchGesture(e) {
         if (!elemento.hasAttribute('data-y')) elemento.setAttribute('data-y', '0');
         if (!elemento.hasAttribute('data-rotate')) elemento.setAttribute('data-rotate', '0');
 
+        if (!elemento.dataset.dragTextoSelecionadoConfigurado) {
+            elemento.dataset.dragTextoSelecionadoConfigurado = '1';
+            elemento.addEventListener('mousedown', (ev) => {
+                if (this.modoSelecaoAtivo && elemento.classList.contains('elemento-selecionado')) {
+                    ev.preventDefault();
+                }
+            });
+        }
+
         let originalBackground = elemento.style.backgroundColor;
         
         interact(elemento).draggable({
             allowFrom: '.texto-legenda',
-            ignoreFrom: 'input, textarea, button, select',
+            // Texto selecionado precisa poder ser arrastado pelo próprio textarea.
+            // O textarea só volta a se comportar como campo de edição quando não está em seleção.
+            ignoreFrom: 'input:not(.texto-legenda), button, select',
             modifiers: [
                 interact.modifiers.restrictRect({
                     restriction: 'parent',
@@ -7049,6 +7102,9 @@ _isTouchGesture(e) {
                     elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotacao}deg)`;
                     elemento.setAttribute('data-x', x);
                     elemento.setAttribute('data-y', y);
+                    if (elemento.classList.contains('elemento-selecionado')) {
+                        this.posicionarHandles(elemento);
+                    }
                 },
                 end: () => {
                     elemento.style.zIndex = '10';
@@ -7443,7 +7499,7 @@ simboloElement.style.zIndex = '10';
             
             if (elemento.classList.contains('elemento-selecionado') && !elemento.classList.contains('grupo-temporario')) {
                 interact(elemento).draggable({
-                    ignoreFrom: '.dimensoes, .quantidade-peca, .simbolo-linha, .linha-peca, input, textarea, button, select, .handle, .handle-rotacao',
+                    ignoreFrom: '.dimensoes, .quantidade-peca, .simbolo-linha, .linha-peca, input, button, select, .handle, .handle-rotacao',
                     listeners: {
                         start: () => {
                             this.iniciarManipulacaoSemPinturaBorracha(elemento);
@@ -8645,6 +8701,12 @@ aplicarEstilosManterModal() {
         console.log('Iniciando aplicação...');
         gerenciadorDesenho = new GerenciadorDesenho();
         window.gerenciadorDesenho = gerenciadorDesenho;
+
+        window.addEventListener('beforeprint', function() {
+            if (window.gerenciadorDesenho && typeof window.gerenciadorDesenho.atualizarTodasMascarasBorracha === 'function') {
+                window.gerenciadorDesenho.atualizarTodasMascarasBorracha();
+            }
+        });
     });
 
 
