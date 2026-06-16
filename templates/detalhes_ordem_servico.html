@@ -5525,6 +5525,14 @@ _isTouchGesture(e) {
                         elemento.setAttribute('data-rotate', `${initialRotate}`);
                         elemento.style.transform = `translate(${initialDataX}px, ${initialDataY}px) rotate(${initialRotate}deg)`;
 
+                        if (elemento.classList.contains('cuba')) {
+                            if (typeof this.sincronizarLinhasDesenhoRetangular === 'function') {
+                                this.sincronizarLinhasDesenhoRetangular(elemento);
+                            } else if (typeof this.renderizarDesenhoComBorracha === 'function') {
+                                this.renderizarDesenhoComBorracha(elemento);
+                            }
+                        }
+
                         this.posicionarHandles(elemento);
                     },
                     end: () => {
@@ -5967,7 +5975,13 @@ _isTouchGesture(e) {
                         initialDataX = parseFloat(elemento.getAttribute('data-x')) || 0;
                         initialDataY = parseFloat(elemento.getAttribute('data-y')) || 0;
                         initialRatio = initialWidth / Math.max(initialHeight, 1);
-                        initialEstadoBorrachaLinhas = elemento.classList.contains('peca')
+                        if (elemento.classList.contains('cuba') && typeof this.sincronizarLinhasDesenhoRetangular === 'function') {
+                            this.sincronizarLinhasDesenhoRetangular(elemento);
+                        } else if (elemento.classList.contains('cuba') && typeof this.renderizarDesenhoComBorracha === 'function') {
+                            this.renderizarDesenhoComBorracha(elemento);
+                        }
+
+                        initialEstadoBorrachaLinhas = (elemento.classList.contains('peca') || elemento.classList.contains('cuba'))
                             ? this.capturarEstadoBorrachaLinhasPeca(elemento)
                             : null;
 
@@ -6132,6 +6146,14 @@ _isTouchGesture(e) {
 
                         if (elemento.classList.contains('peca')) {
                             this.atualizarLinhasESimbolos(elemento);
+                            this.aplicarEstadoBorrachaEscaladoPeca(elemento, initialEstadoBorrachaLinhas, proposta.width, proposta.height);
+                            this.posicionarHandles(elemento);
+                        } else if (elemento.classList.contains('cuba')) {
+                            if (typeof this.sincronizarLinhasDesenhoRetangular === 'function') {
+                                this.sincronizarLinhasDesenhoRetangular(elemento);
+                            } else if (typeof this.renderizarDesenhoComBorracha === 'function') {
+                                this.renderizarDesenhoComBorracha(elemento);
+                            }
                             this.aplicarEstadoBorrachaEscaladoPeca(elemento, initialEstadoBorrachaLinhas, proposta.width, proposta.height);
                             this.posicionarHandles(elemento);
                         } else {
@@ -7102,7 +7124,7 @@ _isTouchGesture(e) {
         interact(elemento).resizable({
             edges: { left: true, right: true, bottom: true, top: true },
             listeners: {
-                move: function (event) {
+                move: (event) => {
                     let { x, y } = event.deltaRect;
 
                     Object.assign(event.target.style, {
@@ -7117,6 +7139,13 @@ _isTouchGesture(e) {
                     event.target.style.transform = `translate(${currentX + x}px, ${currentY + y}px) rotate(${currentRotate}deg)`;
                     event.target.setAttribute('data-x', currentX + x);
                     event.target.setAttribute('data-y', currentY + y);
+                    if (event.target.classList.contains('cuba')) {
+                        if (typeof this.sincronizarLinhasDesenhoRetangular === 'function') {
+                            this.sincronizarLinhasDesenhoRetangular(event.target);
+                        } else if (typeof this.renderizarDesenhoComBorracha === 'function') {
+                            this.renderizarDesenhoComBorracha(event.target);
+                        }
+                    }
                 }
             }
         });
@@ -9955,7 +9984,7 @@ aplicarEstilosManterModal() {
 
         const tipo = ev.type;
 
-        if (tipo === 'mousedown') {
+        if (tipo === 'mousedown' || tipo === 'pointerdown') {
             if (ev.button !== undefined && ev.button !== 0) {
                 bloquearEvento(ev);
                 return;
@@ -9966,14 +9995,14 @@ aplicarEstilosManterModal() {
             return;
         }
 
-        if (tipo === 'mousemove') {
+        if (tipo === 'mousemove' || tipo === 'pointermove') {
             bloquearEvento(ev);
             if (typeof ger.atualizarCursorBorracha === 'function') ger.atualizarCursorBorracha(ev);
             if (ger.borrachaPressionada && typeof ger.pintarComBorracha === 'function') ger.pintarComBorracha(ev);
             return;
         }
 
-        if (tipo === 'mouseup') {
+        if (tipo === 'mouseup' || tipo === 'pointerup' || tipo === 'pointercancel') {
             bloquearEvento(ev);
             if (typeof ger.pararPinturaBorracha === 'function') ger.pararPinturaBorracha();
             return;
@@ -10017,6 +10046,7 @@ aplicarEstilosManterModal() {
         window.__travaTotalBorrachaInstalada = true;
 
         [
+            'pointerdown', 'pointermove', 'pointerup', 'pointercancel',
             'mousedown', 'mousemove', 'mouseup',
             'touchstart', 'touchmove', 'touchend', 'touchcancel',
             'click', 'dblclick', 'contextmenu',
