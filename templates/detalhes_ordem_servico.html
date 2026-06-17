@@ -1,12 +1,13 @@
 ﻿<!DOCTYPE html>
+
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=1400, initial-scale=1.0">
-    <title>Ordem de Serviço - {{ codigo_orcamento }}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-   <style>
+<meta charset="utf-8"/>
+<meta content="width=1400, initial-scale=1.0" name="viewport"/>
+<title>Ordem de Serviço - {{ codigo_orcamento }}</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
+<style>
     .modal-backdrop {
         pointer-events: none !important;
         touch-action: none !important;
@@ -2106,10 +2107,7 @@ body.modo-borracha .cursor-borracha {
     }
 }
 </style>
-
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/pilot.css') }}">
-
-
+<link href="{{ url_for('static', filename='css/pilot.css') }}" rel="stylesheet"/>
 <style id="bloqueio-linha-simbolo-modos-final-css">
 /* Quando qualquer modo/botão principal está ativo, a linha de símbolo volta a
    ser apenas desenho: sem cursor, sem faixa azul e sem clique. */
@@ -2150,99 +2148,86 @@ body.linhas-simbolo-bloqueadas .linha-peca.linha-visivel-hover[data-estilo-linha
     background: repeating-linear-gradient(180deg, var(--line-color, #000) 0, var(--line-color, #000) 2px, transparent 2px, transparent 6px) !important;
 }
 </style>
-
 </head>
 <body>
-    <div class="main-container">
-        <div class="top-buttons-container">
-            <a href="/ordens_servico" class="btn btn-custom-primary">
-                <i class="fas fa-arrow-left me-1"></i> Voltar
+<div class="main-container">
+<div class="top-buttons-container">
+<a class="btn btn-custom-primary" href="/ordens_servico">
+<i class="fas fa-arrow-left me-1"></i> Voltar
             </a>
-        </div>
-
-        <div class="header-container">
-            <img src="{{ logo_url }}" alt="Logo da Empresa" class="logo-empresa">
-        </div>
-
-        <div class="cliente-header">
-            <h1>Prime Marble Shop</h1>
-            <p><strong>Endereço:</strong> Estrada do Engenho, 1800 - Bangu</p>
-            <p><strong>CNPJ:</strong> 39.903.780/0001-15</p>
-        </div>
-
-        <div class="cliente-header">
-            <h2>
-                <strong>Cliente:</strong>
-                <span class="wrap-text">{{ cliente_nome }}</span>
-            </h2>
-            <p>
-                <strong>Endereço:</strong>
-                <span class="wrap-text info-normal">{{ orcamentos[0].cliente.endereco }}</span>
-            </p>
-            <p>
-                <strong>Telefone:</strong>
-                <span class="info-normal">{{ orcamentos[0].cliente.telefone }}</span>
-            </p>
-        </div>
-
-        <h2>Ordem de Serviço - {{ codigo_orcamento }}</h2>
-        <p class="orcamento-info">
-            <strong>Data:</strong> {{ data_salvo.strftime('%d/%m/%Y') }}
+</div>
+<div class="header-container">
+<img alt="Logo da Empresa" class="logo-empresa" src="{{ logo_url }}"/>
+</div>
+<div class="cliente-header">
+<h1>Prime Marble Shop</h1>
+<p><strong>Endereço:</strong> Estrada do Engenho, 1800 - Bangu</p>
+<p><strong>CNPJ:</strong> 39.903.780/0001-15</p>
+</div>
+<div class="cliente-header">
+<h2>
+<strong>Cliente:</strong>
+<span class="wrap-text">{{ cliente_nome }}</span>
+</h2>
+<p>
+<strong>Endereço:</strong>
+<span class="wrap-text info-normal">{{ orcamentos[0].cliente.endereco }}</span>
+</p>
+<p>
+<strong>Telefone:</strong>
+<span class="info-normal">{{ orcamentos[0].cliente.telefone }}</span>
+</p>
+</div>
+<h2>Ordem de Serviço - {{ codigo_orcamento }}</h2>
+<p class="orcamento-info">
+<strong>Data:</strong> {{ data_salvo.strftime('%d/%m/%Y') }}
         </p>
-
-        <div class="action-buttons-container">
-<button id="btnDesfazer" class="btn btn-custom-primary" title="Desfazer (Ctrl+Z)">
-                <i class="fas fa-undo me-1"></i> <span class="btn-text"></span>
-            </button>
-            <button id="btnRefazer" class="btn btn-custom-primary" title="Refazer (Ctrl+Y)">
-                <i class="fas fa-redo me-1"></i> <span class="btn-text"></span>
-            </button>
-
-            <button id="btnEstilos" class="btn btn-custom-primary" title="Estilos (Cores, Texto, Linhas)">
-                <i class="fas fa-bars me-1"></i> <span class="btn-text"></span>
-            </button>
-			
-            <button id="btnSelecionar" class="btn btn-custom-primary" title="Selecionar Objeto">
-                <i class="fas fa-mouse-pointer me-1"></i> <span class="btn-text">Selecionar</span>
-            </button>
-            <button id="btnBorracha" class="btn btn-custom-primary" title="Borracha (Pintar de branco)">
-                <i class="fas fa-eraser me-1"></i> <span class="btn-text">Borracha</span>
-            </button>
-            <button id="btnLaco" class="btn btn-custom-primary" title="Laço (Selecionar área)">
-                <i class="fas fa-draw-polygon me-1"></i> <span class="btn-text">Laço</span>
-            </button>
-            
-            <button id="btnAdicionarTexto" class="btn btn-custom-primary">
-                <i class="fas fa-font me-1"></i> <span class="btn-text">Texto</span>
-            </button>
-            <button id="btnAdicionarCuba" class="btn btn-custom-primary">
-                <i class="fas fa-pencil-ruler me-1"></i> <span class="btn-text">Desenhos</span>
-            </button>
-            
-            <button id="btnDuplicar" class="btn btn-custom-primary" disabled title="Duplicar Elemento Selecionado">
-                <i class="fas fa-copy me-1"></i> <span class="btn-text">Duplicar</span>
-            </button>
-            <button id="btnExcluir" class="btn btn-custom-danger" disabled title="Excluir Elemento Selecionado">
-                <i class="fas fa-trash me-1"></i> <span class="btn-text">Excluir</span>
-            </button>
-            <button id="btnSalvar" class="btn btn-custom-success">
-                <i class="fas fa-save me-1"></i> <span class="btn-text">Salvar</span>
-            </button>
-            <button id="btnImprimir" class="btn btn-custom-success">
-                <i class="fas fa-print me-1"></i> <span class="btn-text">Imprimir</span>
-            </button>
-        </div>
-
-        <div id="drawingArea" class="drawing-area">
-        </div>
-    </div>
-
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.11/dist/interact.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
-    <script>
+<div class="action-buttons-container">
+<button class="btn btn-custom-primary" id="btnDesfazer" title="Desfazer (Ctrl+Z)">
+<i class="fas fa-undo me-1"></i> <span class="btn-text"></span>
+</button>
+<button class="btn btn-custom-primary" id="btnRefazer" title="Refazer (Ctrl+Y)">
+<i class="fas fa-redo me-1"></i> <span class="btn-text"></span>
+</button>
+<button class="btn btn-custom-primary" id="btnEstilos" title="Estilos (Cores, Texto, Linhas)">
+<i class="fas fa-bars me-1"></i> <span class="btn-text"></span>
+</button>
+<button class="btn btn-custom-primary" id="btnSelecionar" title="Selecionar Objeto">
+<i class="fas fa-mouse-pointer me-1"></i> <span class="btn-text">Selecionar</span>
+</button>
+<button class="btn btn-custom-primary" id="btnBorracha" title="Borracha (Pintar de branco)">
+<i class="fas fa-eraser me-1"></i> <span class="btn-text">Borracha</span>
+</button>
+<button class="btn btn-custom-primary" id="btnLaco" title="Laço (Selecionar área)">
+<i class="fas fa-draw-polygon me-1"></i> <span class="btn-text">Laço</span>
+</button>
+<button class="btn btn-custom-primary" id="btnAdicionarTexto">
+<i class="fas fa-font me-1"></i> <span class="btn-text">Texto</span>
+</button>
+<button class="btn btn-custom-primary" id="btnAdicionarCuba">
+<i class="fas fa-pencil-ruler me-1"></i> <span class="btn-text">Desenhos</span>
+</button>
+<button class="btn btn-custom-primary" disabled="" id="btnDuplicar" title="Duplicar Elemento Selecionado">
+<i class="fas fa-copy me-1"></i> <span class="btn-text">Duplicar</span>
+</button>
+<button class="btn btn-custom-danger" disabled="" id="btnExcluir" title="Excluir Elemento Selecionado">
+<i class="fas fa-trash me-1"></i> <span class="btn-text">Excluir</span>
+</button>
+<button class="btn btn-custom-success" id="btnSalvar">
+<i class="fas fa-save me-1"></i> <span class="btn-text">Salvar</span>
+</button>
+<button class="btn btn-custom-success" id="btnImprimir">
+<i class="fas fa-print me-1"></i> <span class="btn-text">Imprimir</span>
+</button>
+</div>
+<div class="drawing-area" id="drawingArea">
+</div>
+</div>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/interactjs@1.10.11/dist/interact.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
     const CONFIG = {
         ESCALA_PADRAO: 1.5, 
         TAMANHO_MINIMO_CM: 20,
@@ -12365,101 +12350,118 @@ aplicarEstilosManterModal() {
     }, 150);
 })();
 </script>
-
-<style id="linha-azul-hitbox-segmento-css">
+<style id="linha-azul-overlay-rotacao-correta-css">
+/* Linha preta: geometria original preservada. A faixa azul/clicável é uma camada
+   filha do segmento visível, então herda a mesma posição/rotação da peça/desenho. */
 @media screen {
-    /* A linha preta não muda. A faixa azul fica em uma hitbox filha do segmento real. */
-    html body .drawing-area .linha-peca,
-    html body .area-pecas .linha-peca,
-    html body .drawing-area .linha-peca:hover,
-    html body .area-pecas .linha-peca:hover,
-    html body .drawing-area .linha-peca.linha-visivel-hover,
-    html body .area-pecas .linha-peca.linha-visivel-hover {
+    html body .linha-peca,
+    html body .linha-peca:hover,
+    html body .linha-peca.linha-visivel-hover,
+    html body .linha-peca.linha-visivel-hover:hover {
         background: transparent !important;
         background-color: transparent !important;
         opacity: 1 !important;
-        overflow: visible !important;
     }
 
     html body .linha-peca > .segmento-linha-peca {
         position: absolute !important;
         overflow: visible !important;
         opacity: 1 !important;
-        box-shadow: none !important;
+        border: 0 !important;
         outline: none !important;
+        box-shadow: none !important;
+        box-sizing: border-box !important;
+        pointer-events: none !important;
+    }
+
+    html body .linha-peca[data-lado="top"] > .segmento-linha-peca,
+    html body .linha-peca[data-lado="bottom"] > .segmento-linha-peca {
+        height: 1px !important;
+        min-height: 1px !important;
+        max-height: 1px !important;
+    }
+
+    html body .linha-peca[data-lado="left"] > .segmento-linha-peca,
+    html body .linha-peca[data-lado="right"] > .segmento-linha-peca {
+        width: 1px !important;
+        min-width: 1px !important;
+        max-width: 1px !important;
     }
 
     html body .linha-peca > .segmento-linha-peca::after,
-    html body .linha-peca > .segmento-linha-peca.linha-azul-rotacao-exata::after,
-    html body .linha-peca > .segmento-linha-peca.linha-area-azul-final::after,
-    html body .linha-peca > .segmento-linha-peca.linha-segmento-hover-estavel::after {
+    html body .linha-peca > .segmento-linha-peca.linha-segmento-hover-estavel::after,
+    html body .linha-peca > .segmento-linha-peca.linha-area-azul-final::after {
         content: none !important;
         display: none !important;
     }
 
-    html body .linha-peca .linha-azul-hitbox-segmento {
+    html body .linha-peca > .segmento-linha-peca > .area-clique-linha-simbolo {
         position: absolute !important;
         display: block !important;
         background: transparent !important;
-        opacity: .72 !important;
+        background-color: transparent !important;
+        opacity: 1 !important;
+        border: 0 !important;
+        outline: none !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+        margin: 0 !important;
         pointer-events: auto !important;
         cursor: pointer !important;
         z-index: 9999 !important;
-        box-shadow: none !important;
-        outline: none !important;
-        border: 0 !important;
-        padding: 0 !important;
-        margin: 0 !important;
     }
 
-    html body .linha-peca .linha-azul-hitbox-segmento.horizontal {
+    html body .linha-peca[data-lado="top"] > .segmento-linha-peca > .area-clique-linha-simbolo,
+    html body .linha-peca[data-lado="bottom"] > .segmento-linha-peca > .area-clique-linha-simbolo {
         left: 0 !important;
-        top: -3px !important;
+        top: -7px !important;
         width: 100% !important;
-        height: 7px !important;
+        height: 15px !important;
     }
 
-    html body .linha-peca .linha-azul-hitbox-segmento.vertical {
-        left: -3px !important;
+    html body .linha-peca[data-lado="left"] > .segmento-linha-peca > .area-clique-linha-simbolo,
+    html body .linha-peca[data-lado="right"] > .segmento-linha-peca > .area-clique-linha-simbolo {
+        left: -7px !important;
         top: 0 !important;
-        width: 7px !important;
+        width: 15px !important;
         height: 100% !important;
     }
 
-    html body .linha-peca .linha-azul-hitbox-segmento:hover {
-        background: #4e73df !important;
-        background-color: #4e73df !important;
+    html body .linha-peca > .segmento-linha-peca > .area-clique-linha-simbolo:hover {
+        background: rgba(78, 115, 223, 0.72) !important;
+        background-color: rgba(78, 115, 223, 0.72) !important;
     }
 
-    html body.linhas-simbolo-bloqueadas .linha-peca .linha-azul-hitbox-segmento,
-    html body.modo-borracha .linha-peca .linha-azul-hitbox-segmento,
-    html body.modo-laco .linha-peca .linha-azul-hitbox-segmento {
-        display: none !important;
+    html body.linhas-simbolo-bloqueadas .linha-peca > .segmento-linha-peca > .area-clique-linha-simbolo,
+    html body.modo-borracha .linha-peca > .segmento-linha-peca > .area-clique-linha-simbolo,
+    html body.modo-laco .linha-peca > .segmento-linha-peca > .area-clique-linha-simbolo {
         pointer-events: none !important;
+        cursor: default !important;
         background: transparent !important;
+        background-color: transparent !important;
+        display: block !important;
     }
 }
 
 @media print {
-    .linha-azul-hitbox-segmento {
+    .area-clique-linha-simbolo {
         display: none !important;
         visibility: hidden !important;
     }
 }
 </style>
-
-<script id="linha-azul-hitbox-segmento-js">
+<script id="linha-azul-overlay-rotacao-correta-js">
 (function() {
-    if (window.__linhaAzulHitboxSegmentoInstalada) return;
-    window.__linhaAzulHitboxSegmentoInstalada = true;
+    if (window.__linhaAzulOverlayRotacaoCorreta) return;
+    window.__linhaAzulOverlayRotacaoCorreta = true;
 
-    const HITBOX = 'linha-azul-hitbox-segmento';
+    function obterInstancia() {
+        return window.gerenciadorDesenho || null;
+    }
 
-    function inst() { return window.gerenciadorDesenho || null; }
-
-    function modoBloqueado(i) {
+    function modoBloqueado(inst) {
         return !!(
-            (i && (i.modoSelecaoAtivo || i.modoBorrachaAtivo || i.modoLacoAtivo || i.modoInsercaoAtivo)) ||
+            (inst && (inst.modoSelecaoAtivo || inst.modoBorrachaAtivo || inst.modoLacoAtivo || inst.modoInsercaoAtivo)) ||
             document.body.classList.contains('modo-borracha') ||
             document.body.classList.contains('modo-laco') ||
             document.body.classList.contains('linhas-simbolo-bloqueadas') ||
@@ -12467,93 +12469,767 @@ aplicarEstilosManterModal() {
         );
     }
 
-    function numeroCss(v) {
-        const n = parseFloat(v);
-        return Number.isFinite(n) ? n : 0;
+    function aplicarBloqueioBody() {
+        const inst = obterInstancia();
+        const bloqueado = modoBloqueado(inst);
+        document.body.classList.toggle('linhas-simbolo-bloqueadas', bloqueado);
+        return bloqueado;
     }
 
-    function orientacaoSegmento(segmento) {
-        const sw = numeroCss(segmento.style.width) || segmento.offsetWidth || 0;
-        const sh = numeroCss(segmento.style.height) || segmento.offsetHeight || 0;
-        if (sh > sw) return 'vertical';
-        return 'horizontal';
-    }
-
-    function prepararSegmento(segmento) {
-        if (!segmento || !segmento.classList || !segmento.classList.contains('segmento-linha-peca')) return;
-        segmento.classList.remove('linha-azul-rotacao-exata', 'linha-area-azul-final', 'linha-segmento-hover-estavel');
-        segmento.style.overflow = 'visible';
-
-        let hit = segmento.querySelector(':scope > .' + HITBOX);
-        if (!hit) {
-            hit = document.createElement('span');
-            hit.className = HITBOX;
-            segmento.appendChild(hit);
-        }
-
-        const orientacao = orientacaoSegmento(segmento);
-        hit.classList.toggle('horizontal', orientacao === 'horizontal');
-        hit.classList.toggle('vertical', orientacao === 'vertical');
-        hit.setAttribute('aria-hidden', 'true');
-    }
-
-    function prepararLinha(linha) {
-        if (!linha || !linha.classList || !linha.classList.contains('linha-peca')) return;
-        linha.classList.remove('linha-visivel-hover');
-        linha.style.setProperty('background', 'transparent', 'important');
-        linha.style.setProperty('background-color', 'transparent', 'important');
-        linha.querySelectorAll(':scope > .segmento-linha-peca').forEach(prepararSegmento);
-    }
-
-    function prepararTodas() {
-        const i = inst();
-        const raiz = (i && i.drawingArea) || document;
-        raiz.querySelectorAll('.linha-peca').forEach(prepararLinha);
-    }
-
-    const renderAnterior = GerenciadorDesenho.prototype.renderizarLinhaPecaComRecortes;
-    GerenciadorDesenho.prototype.renderizarLinhaPecaComRecortes = function(linha) {
-        const r = typeof renderAnterior === 'function' ? renderAnterior.call(this, linha) : undefined;
-        prepararLinha(linha);
-        return r;
-    };
-
-    const configurarAnterior = GerenciadorDesenho.prototype.configurarCliqueNosSegmentosVisiveisLinha;
-    GerenciadorDesenho.prototype.configurarCliqueNosSegmentosVisiveisLinha = function(linha) {
-        const r = typeof configurarAnterior === 'function' ? configurarAnterior.call(this, linha) : undefined;
-        prepararLinha(linha);
-        return r;
-    };
-
-    document.addEventListener('mousemove', function() {
-        document.querySelectorAll('.segmento-linha-peca.linha-azul-rotacao-exata, .segmento-linha-peca.linha-area-azul-final, .segmento-linha-peca.linha-segmento-hover-estavel').forEach((seg) => {
-            seg.classList.remove('linha-azul-rotacao-exata', 'linha-area-azul-final', 'linha-segmento-hover-estavel');
+    function limparClassesAntigas(root) {
+        const base = root || document;
+        base.querySelectorAll('.linha-peca.linha-visivel-hover').forEach((linha) => {
+            linha.classList.remove('linha-visivel-hover');
+            linha.style.setProperty('background', 'transparent', 'important');
+            linha.style.setProperty('background-color', 'transparent', 'important');
         });
-        document.querySelectorAll('.linha-peca.linha-visivel-hover').forEach((linha) => linha.classList.remove('linha-visivel-hover'));
-    }, true);
+        base.querySelectorAll('.segmento-linha-peca.linha-segmento-hover-estavel, .segmento-linha-peca.linha-area-azul-final').forEach((seg) => {
+            seg.classList.remove('linha-segmento-hover-estavel', 'linha-area-azul-final');
+        });
+    }
 
-    document.addEventListener('click', function(ev) {
-        const hit = ev.target && ev.target.closest ? ev.target.closest('.' + HITBOX) : null;
-        if (!hit) return;
-        const i = inst();
-        if (!i || modoBloqueado(i)) return;
-        const linha = hit.closest('.linha-peca');
-        if (!linha || typeof i.manipularCliqueLinha !== 'function') return;
+    function reforcarGrossuraLinha(seg) {
+        if (!seg) return;
+        const linha = seg.closest('.linha-peca');
+        if (!linha) return;
+        const lado = linha.getAttribute('data-lado') || '';
+        seg.style.opacity = '1';
+        seg.style.border = '0';
+        seg.style.outline = 'none';
+        seg.style.boxShadow = 'none';
+        seg.style.overflow = 'visible';
+        seg.style.pointerEvents = 'none';
+        if (lado === 'top' || lado === 'bottom') {
+            seg.style.height = '1px';
+            seg.style.minHeight = '1px';
+            seg.style.maxHeight = '1px';
+        } else if (lado === 'left' || lado === 'right') {
+            seg.style.width = '1px';
+            seg.style.minWidth = '1px';
+            seg.style.maxWidth = '1px';
+        }
+    }
+
+    function aplicarAreaCliqueSegmento(seg) {
+        if (!seg || !seg.classList || !seg.classList.contains('segmento-linha-peca')) return;
+        reforcarGrossuraLinha(seg);
+        let area = seg.querySelector(':scope > .area-clique-linha-simbolo');
+        if (!area) {
+            area = document.createElement('span');
+            area.className = 'area-clique-linha-simbolo';
+            area.setAttribute('aria-hidden', 'true');
+            seg.appendChild(area);
+        }
+    }
+
+    function aplicarAreas(root) {
+        const base = root || document;
+        limparClassesAntigas(base);
+        base.querySelectorAll('.linha-peca').forEach((linha) => {
+            linha.style.setProperty('background', 'transparent', 'important');
+            linha.style.setProperty('background-color', 'transparent', 'important');
+            linha.style.opacity = '1';
+        });
+        base.querySelectorAll('.segmento-linha-peca').forEach(aplicarAreaCliqueSegmento);
+        aplicarBloqueioBody();
+    }
+
+    function encontrarAreaClique(target) {
+        return target && target.closest ? target.closest('.area-clique-linha-simbolo') : null;
+    }
+
+    function clicarNaLinha(ev) {
+        const inst = obterInstancia();
+        const area = encontrarAreaClique(ev.target);
+        if (!area) return;
+        if (modoBloqueado(inst)) return;
+
+        const linha = area.closest('.linha-peca');
+        if (!linha || !inst || typeof inst.manipularCliqueLinha !== 'function') return;
+
         ev.preventDefault();
         ev.stopPropagation();
         if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
-        i.manipularCliqueLinha(ev, linha);
+        inst.manipularCliqueLinha(ev, linha);
+    }
+
+    document.addEventListener('click', clicarNaLinha, true);
+    document.addEventListener('pointerdown', function(ev) {
+        const area = encontrarAreaClique(ev.target);
+        if (!area) return;
+        if (modoBloqueado(obterInstancia())) return;
+        ev.stopPropagation();
     }, true);
 
-    const interval = setInterval(() => {
-        const i = inst();
-        if (i && i.drawingArea) prepararTodas();
-    }, 500);
+    const iniciar = function() {
+        const inst = obterInstancia();
+        aplicarAreas((inst && inst.drawingArea) || document);
+    };
 
-    document.addEventListener('DOMContentLoaded', () => setTimeout(prepararTodas, 0));
-    window.addEventListener('load', () => setTimeout(prepararTodas, 0));
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', iniciar);
+    } else {
+        iniciar();
+    }
+
+    const tentarPatch = setInterval(function() {
+        const inst = obterInstancia();
+        if (!inst || !inst.drawingArea) {
+            aplicarBloqueioBody();
+            return;
+        }
+        if (!inst.__patchLinhaAzulOverlayRotacao) {
+            inst.__patchLinhaAzulOverlayRotacao = true;
+
+            const renderOriginal = inst.renderizarLinhaPecaComRecortes ? inst.renderizarLinhaPecaComRecortes.bind(inst) : null;
+            if (renderOriginal) {
+                inst.renderizarLinhaPecaComRecortes = function(linha) {
+                    const resultado = renderOriginal(linha);
+                    if (linha) aplicarAreas(linha.parentElement || linha);
+                    return resultado;
+                };
+            }
+
+            const bloqueioOriginal = inst.atualizarBloqueioLinhaSimboloPorModo ? inst.atualizarBloqueioLinhaSimboloPorModo.bind(inst) : null;
+            inst.atualizarBloqueioLinhaSimboloPorModo = function() {
+                let resultado = false;
+                if (bloqueioOriginal) resultado = !!bloqueioOriginal();
+                const bloqueado = aplicarBloqueioBody();
+                aplicarAreas(this.drawingArea || document);
+                return resultado || bloqueado;
+            };
+        }
+        aplicarAreas(inst.drawingArea);
+    }, 300);
+
+    window.addEventListener('beforeprint', function() {
+        aplicarAreas((obterInstancia() && obterInstancia().drawingArea) || document);
+        document.querySelectorAll('.area-clique-linha-simbolo').forEach((el) => el.style.display = 'none');
+    });
 })();
 </script>
 
-</body>
+
+
+
+
+
+
+
+
+
+<style id="ajuste-print-performance-v2-css">
+/* ============================================================
+   Ajuste final de paginação + desempenho
+   - O site pode manter páginas inteiras e guias.
+   - A impressão usa a ALTURA REAL ocupada pelos objetos, não a altura
+     cheia da última página. Isso remove folha final vazia.
+   - Durante arraste/laço, guias e transições são suspensas para reduzir lag.
+   ============================================================ */
+.linha-peca,
+.segmento-linha-peca,
+.guia-quebra-impressao,
+.grupo-temporario,
+.elemento-selecionado {
+    transition: none !important;
+}
+
+.drawing-area.em-manipulacao-rapida .guia-quebra-impressao,
+.drawing-area.em-manipulacao-rapida .guia-quebra-impressao * {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+}
+
+@media print {
+    @page {
+        size: A4 portrait;
+        margin: 10mm;
+    }
+
+    html,
+    body {
+        height: auto !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        background: #fff !important;
+    }
+
+    body * {
+        visibility: hidden;
+    }
+
+    .main-container,
+    .main-container * {
+        visibility: visible;
+    }
+
+    .main-container {
+        position: absolute !important;
+        left: 0 !important;
+        top: 0 !important;
+        width: 1000px !important;
+        max-width: 1000px !important;
+        min-height: 0 !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        overflow: visible !important;
+        background: #fff !important;
+        box-shadow: none !important;
+        font-size: 18px !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+    }
+
+    .top-buttons-container,
+    .action-buttons-container,
+    .mobile-buttons-container,
+    .zoom-controls,
+    .handles-container,
+    .handle,
+    .handle-rotacao,
+    .modal-controles,
+    .modal-estilos,
+    .modal-backdrop,
+    .cursor-borracha,
+    #laco-selecao,
+    .laco-overlay,
+    .laco-overlay *,
+    .laco-polygon,
+    .laco-temporario,
+    .linha-temporaria,
+    .preview-laco,
+    .grupo-temporario,
+    .grupo-temporario *,
+    .grupo-handle,
+    .grupo-handle-rotacao,
+    .laco-handle,
+    .laco-handle-rotacao,
+    .guia-quebra-impressao,
+    .guia-quebra-impressao *,
+    .area-clique-linha-simbolo {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        border: 0 !important;
+        outline: 0 !important;
+        box-shadow: none !important;
+        background: transparent !important;
+    }
+
+    .drawing-area {
+        width: 1000px !important;
+        border: 0 !important;
+        background: #fff !important;
+        margin: 0 auto !important;
+        padding: 0 !important;
+        box-shadow: none !important;
+        position: relative !important;
+        page-break-inside: auto !important;
+        break-inside: auto !important;
+        page-break-after: avoid !important;
+        break-after: avoid !important;
+    }
+
+    .drawing-area[data-print-exato="1"] {
+        height: var(--altura-print-exata) !important;
+        min-height: var(--altura-print-exata) !important;
+        max-height: var(--altura-print-exata) !important;
+        overflow: hidden !important;
+        margin-bottom: 0 !important;
+        padding-bottom: 0 !important;
+    }
+
+    .peca,
+    .cuba,
+    .texto-legenda,
+    .legenda-simplificada,
+    .simbolo-linha,
+    .titulo-grupo,
+    .dimensoes,
+    .quantidade-peca {
+        position: absolute !important;
+        page-break-inside: avoid !important;
+        break-inside: avoid !important;
+    }
+
+    .elemento-selecionado,
+    .elemento-em-grupo {
+        filter: none !important;
+        outline: 0 !important;
+        box-shadow: none !important;
+    }
+
+    .elemento-selecionado::before,
+    .elemento-selecionado::after,
+    .elemento-em-grupo::before,
+    .elemento-em-grupo::after {
+        content: none !important;
+        display: none !important;
+    }
+}
+</style><script id="ajuste-print-performance-v2-js">
+(function() {
+    if (window.__ordemServicoPrintPerformanceV2) return;
+    window.__ordemServicoPrintPerformanceV2 = true;
+
+    var DEBUG_OS = false;
+    var consoleLogOriginal = console.log ? console.log.bind(console) : function(){};
+    if (!window.OS_DEBUG) {
+        console.log = function() {
+            if (window.OS_DEBUG || DEBUG_OS) consoleLogOriginal.apply(console, arguments);
+        };
+    }
+
+    function obterInstancia() {
+        return window.gerenciadorDesenho || null;
+    }
+
+    function numero(valor, fallback) {
+        var n = Number(valor);
+        return Number.isFinite(n) ? n : (fallback || 0);
+    }
+
+    function elementoIgnoradoNaImpressao(el) {
+        if (!el || !el.classList) return true;
+        if (el.classList.contains('guia-quebra-impressao')) return true;
+        if (el.classList.contains('grupo-temporario')) return true;
+        if (el.classList.contains('laco-temporario')) return true;
+        if (el.classList.contains('preview-laco')) return true;
+        if (el.classList.contains('linha-temporaria')) return true;
+        if (el.classList.contains('handle')) return true;
+        if (el.classList.contains('handle-rotacao')) return true;
+        if (el.classList.contains('cursor-borracha')) return true;
+        if (el.classList.contains('linha-peca')) return true;
+        if (el.classList.contains('segmento-linha-peca')) return true;
+        if (el.classList.contains('recorte-borracha')) return true;
+        if (el.classList.contains('pintura-borracha')) return true;
+        if (el.classList.contains('area-clique-linha-simbolo')) return true;
+        if (el.closest && el.closest('.handles-container, .top-buttons-container, .action-buttons-container, .mobile-buttons-container, .zoom-controls, .modal-controles, .modal-estilos, .modal-backdrop, .laco-overlay, .grupo-temporario')) return true;
+        return false;
+    }
+
+    function seletorObjetosReais() {
+        return '.peca, .cuba, .texto-legenda, .legenda-simplificada, .simbolo-linha, .titulo-grupo, .dimensoes, .quantidade-peca';
+    }
+
+    function visivel(el) {
+        if (!el || elementoIgnoradoNaImpressao(el)) return false;
+        var cs = window.getComputedStyle(el);
+        if (cs.display === 'none' || cs.visibility === 'hidden' || Number(cs.opacity) === 0) return false;
+        var r = el.getBoundingClientRect();
+        return Number.isFinite(r.bottom) && (r.width > 0 || r.height > 0);
+    }
+
+    function limparArtefatos(area) {
+        if (!area) return;
+        area.querySelectorAll('.guia-quebra-impressao, .laco-temporario, #laco-selecao, .preview-laco, .linha-temporaria, .handles-container, .cursor-borracha, .area-clique-linha-simbolo').forEach(function(el) {
+            if (!el) return;
+            if (el.classList && (el.classList.contains('guia-quebra-impressao') || el.classList.contains('handles-container') || el.classList.contains('cursor-borracha'))) {
+                if (el.parentNode) el.parentNode.removeChild(el);
+                return;
+            }
+            el.style.display = 'none';
+            el.style.visibility = 'hidden';
+            el.style.opacity = '0';
+        });
+    }
+
+    function obterDimensoes(inst) {
+        if (inst && typeof inst.obterDimensoesPaginaImpressao === 'function') {
+            try {
+                var d = inst.obterDimensoesPaginaImpressao();
+                var primeira = Math.max(1, numero(d.alturaPrimeiraPagina || d.alturaPagina, 1120));
+                var pagina = Math.max(1, numero(d.alturaPagina || primeira, 1320));
+                return { primeira: primeira, pagina: pagina };
+            } catch (e) {}
+        }
+        return { primeira: 1120, pagina: 1320 };
+    }
+
+    function alturaConteudoReal(inst, margem) {
+        var area = inst && inst.drawingArea;
+        if (!area) return 1;
+        var areaRect = area.getBoundingClientRect();
+        var scrollTop = area.scrollTop || 0;
+        var maiorBottom = 0;
+        margem = Number.isFinite(margem) ? margem : 18;
+
+        Array.prototype.forEach.call(area.querySelectorAll(seletorObjetosReais()), function(el) {
+            if (!visivel(el)) return;
+            var r = el.getBoundingClientRect();
+            var bottom = r.bottom - areaRect.top + scrollTop;
+            if (Number.isFinite(bottom)) maiorBottom = Math.max(maiorBottom, bottom);
+        });
+
+        return Math.max(1, Math.ceil(maiorBottom + margem));
+    }
+
+    function calcularPaginas(inst) {
+        var d = obterDimensoes(inst);
+        var conteudo = alturaConteudoReal(inst, 24);
+        var paginas = conteudo <= d.primeira ? 1 : 1 + Math.ceil((conteudo - d.primeira) / d.pagina);
+        var alturaSite = paginas <= 1 ? d.primeira : d.primeira + ((paginas - 1) * d.pagina);
+        return { paginas: paginas, alturaSite: alturaSite, conteudo: conteudo, primeira: d.primeira, pagina: d.pagina };
+    }
+
+    function aplicarAlturaSite(inst) {
+        if (!inst || !inst.drawingArea) return null;
+        var info = calcularPaginas(inst);
+        var area = inst.drawingArea;
+        area.removeAttribute('data-print-exato');
+        area.style.removeProperty('--altura-print-exata');
+        area.style.height = info.alturaSite + 'px';
+        area.style.minHeight = info.alturaSite + 'px';
+        area.style.maxHeight = 'none';
+        area.style.overflow = 'auto';
+        area.style.setProperty('--altura-impressao-desenho', info.alturaSite + 'px');
+        area.setAttribute('data-paginas-impressao', String(info.paginas));
+        area.setAttribute('data-altura-conteudo-real', String(info.conteudo));
+        return info;
+    }
+
+    function prepararPrint(inst) {
+        inst = inst || obterInstancia();
+        if (!inst || !inst.drawingArea) return null;
+        var area = inst.drawingArea;
+
+        document.body.classList.add('preparando-impressao-os');
+        area.classList.remove('em-manipulacao-rapida');
+        limparArtefatos(area);
+
+        if (typeof inst.atualizarTodasMascarasBorracha === 'function') {
+            try { inst.atualizarTodasMascarasBorracha(); } catch (e) {}
+        }
+
+        var info = calcularPaginas(inst);
+        // Impressão: altura real dos objetos, e não a altura cheia da página visual.
+        // A folga pequena evita cortar borda/texto; a altura não é arredondada para página inteira,
+        // por isso o Chrome não cria a última folha vazia.
+        var alturaPrint = Math.max(1, info.conteudo + 2);
+
+        area.setAttribute('data-print-exato', '1');
+        area.setAttribute('data-paginas-impressao', String(info.paginas));
+        area.setAttribute('data-altura-conteudo-real', String(info.conteudo));
+        area.style.setProperty('--altura-print-exata', alturaPrint + 'px');
+        area.style.setProperty('--altura-impressao-desenho', alturaPrint + 'px');
+        area.style.height = alturaPrint + 'px';
+        area.style.minHeight = alturaPrint + 'px';
+        area.style.maxHeight = alturaPrint + 'px';
+        area.style.overflow = 'hidden';
+        area.style.marginBottom = '0';
+        area.style.paddingBottom = '0';
+
+        window.__ultimaInfoPrintOS = { paginas: info.paginas, alturaPrint: alturaPrint, conteudo: info.conteudo, primeira: info.primeira, pagina: info.pagina };
+        return window.__ultimaInfoPrintOS;
+    }
+
+    function depoisPrint() {
+        document.body.classList.remove('preparando-impressao-os');
+        var inst = obterInstancia();
+        if (!inst || !inst.drawingArea) return;
+        inst.drawingArea.removeAttribute('data-print-exato');
+        inst.drawingArea.style.removeProperty('--altura-print-exata');
+        inst.drawingArea.style.marginBottom = '';
+        inst.drawingArea.style.paddingBottom = '';
+        aplicarAlturaSite(inst);
+        if (typeof inst.atualizarGuiasQuebraImpressao === 'function') {
+            try { inst.atualizarGuiasQuebraImpressao(); } catch (e) {}
+        }
+    }
+
+    function agendarAlturaSite(inst, atraso) {
+        inst = inst || obterInstancia();
+        if (!inst || !inst.drawingArea) return;
+        clearTimeout(inst.__timerAlturaSitePerfOS);
+        inst.__timerAlturaSitePerfOS = setTimeout(function() {
+            if (!inst || !inst.drawingArea) return;
+            aplicarAlturaSite(inst);
+            if (typeof inst.atualizarGuiasQuebraImpressao === 'function') {
+                try { inst.atualizarGuiasQuebraImpressao(); } catch (e) {}
+            }
+        }, Number.isFinite(atraso) ? atraso : 80);
+    }
+
+    function instalarPrototipos() {
+        if (typeof GerenciadorDesenho === 'undefined') return false;
+        var p = GerenciadorDesenho.prototype;
+        if (p.__patchPrintPerformanceV2) return true;
+        p.__patchPrintPerformanceV2 = true;
+
+        p.obterElementosImprimiveis = function() {
+            var area = this.drawingArea;
+            if (!area) return [];
+            return Array.prototype.filter.call(area.querySelectorAll(seletorObjetosReais()), visivel);
+        };
+
+        p.obterAlturaOcupadaImpressao = function() {
+            var d = obterDimensoes(this);
+            return Math.max(d.primeira, alturaConteudoReal(this, 24));
+        };
+
+        p.obterQuantidadePaginasImpressao = function() {
+            return calcularPaginas(this).paginas;
+        };
+
+        p.obterAlturaTotalDesenhoParaPaginas = function(paginas) {
+            var d = obterDimensoes(this);
+            var total = paginas || calcularPaginas(this).paginas;
+            return total <= 1 ? d.primeira : d.primeira + ((total - 1) * d.pagina);
+        };
+
+        p.atualizarAlturaDesenhoParaPaginas = function() {
+            return aplicarAlturaSite(this);
+        };
+
+        p.prepararAlturaParaImpressaoAtual = function() {
+            return prepararPrint(this);
+        };
+
+
+        p.obterLarguraAreaTravaBordas = function() {
+            if (!this.drawingArea) return 1000;
+            if (this.__modoManipulacaoPerformance && Number.isFinite(this.__cacheLarguraAreaTrava)) {
+                return this.__cacheLarguraAreaTrava;
+            }
+            var largura = this.drawingArea.clientWidth || this.drawingArea.offsetWidth || 1000;
+            if (this.__modoManipulacaoPerformance) this.__cacheLarguraAreaTrava = largura;
+            return largura;
+        };
+
+        p.obterOffsetPaiNoDrawing = function(elemento) {
+            var parent = elemento ? (elemento.parentElement || this.drawingArea) : this.drawingArea;
+            if (!parent || parent === this.drawingArea) return { left: 0, top: 0 };
+            if (this.__modoManipulacaoPerformance) {
+                if (!this.__cacheOffsetPaiDrawing) this.__cacheOffsetPaiDrawing = new WeakMap();
+                var cached = this.__cacheOffsetPaiDrawing.get(parent);
+                if (cached) return cached;
+            }
+            var drawingRect = this.__cacheDrawingRectTrava || this.drawingArea.getBoundingClientRect();
+            if (this.__modoManipulacaoPerformance) this.__cacheDrawingRectTrava = drawingRect;
+            var parentRect = parent.getBoundingClientRect();
+            var valor = {
+                left: parentRect.left - drawingRect.left + (this.drawingArea.scrollLeft || 0),
+                top: parentRect.top - drawingRect.top + (this.drawingArea.scrollTop || 0)
+            };
+            if (this.__modoManipulacaoPerformance) this.__cacheOffsetPaiDrawing.set(parent, valor);
+            return valor;
+        };
+
+        p.obterParametrosTravaBordas = function(elemento, proposta) {
+            proposta = proposta || {};
+            var widthAtual = parseFloat(elemento.style.width) || elemento.offsetWidth || 20;
+            var heightAtual = parseFloat(elemento.style.height) || elemento.offsetHeight || 20;
+            return {
+                left: proposta.left !== undefined ? proposta.left : (parseFloat(elemento.style.left) || 0),
+                top: proposta.top !== undefined ? proposta.top : (parseFloat(elemento.style.top) || 0),
+                width: proposta.width !== undefined ? proposta.width : widthAtual,
+                height: proposta.height !== undefined ? proposta.height : heightAtual,
+                x: proposta.x !== undefined ? proposta.x : (parseFloat(elemento.getAttribute('data-x')) || 0),
+                y: proposta.y !== undefined ? proposta.y : (parseFloat(elemento.getAttribute('data-y')) || 0),
+                rotate: proposta.rotate !== undefined ? proposta.rotate : (this.obterRotacaoElemento ? this.obterRotacaoElemento(elemento) : (parseFloat(elemento.getAttribute('data-rotate')) || 0))
+            };
+        };
+
+        p.imprimirDesenho = function() {
+            this.desselecionarElemento && this.desselecionarElemento();
+            var info = prepararPrint(this);
+            var self = this;
+            requestAnimationFrame(function() {
+                if (self && typeof self.atualizarTodasMascarasBorracha === 'function') {
+                    try { self.atualizarTodasMascarasBorracha(); } catch (e) {}
+                }
+                window.print();
+            });
+            return info;
+        };
+
+        var atualizarHandlesOriginal = p.atualizarHandles;
+        p.atualizarHandles = function() {
+            var self = this;
+            if (self.__modoManipulacaoPerformance) {
+                if (self.__rafAtualizarHandles) return;
+                self.__rafAtualizarHandles = requestAnimationFrame(function() {
+                    self.__rafAtualizarHandles = 0;
+                    if (typeof atualizarHandlesOriginal === 'function') atualizarHandlesOriginal.call(self);
+                });
+                return;
+            }
+            if (typeof atualizarHandlesOriginal === 'function') return atualizarHandlesOriginal.apply(this, arguments);
+        };
+
+        var iniciarOriginal = p.iniciarManipulacaoSemPinturaBorracha;
+        p.iniciarManipulacaoSemPinturaBorracha = function(elemento) {
+            this.__manipulacaoDepth = (this.__manipulacaoDepth || 0) + 1;
+            this.__modoManipulacaoPerformance = true;
+            this.__cacheDrawingRectTrava = null;
+            this.__cacheOffsetPaiDrawing = null;
+            this.__cacheLarguraAreaTrava = NaN;
+            if (this.drawingArea) this.drawingArea.classList.add('em-manipulacao-rapida');
+            if (typeof iniciarOriginal === 'function') return iniciarOriginal.apply(this, arguments);
+        };
+
+        var finalizarOriginal = p.finalizarManipulacaoSemPinturaBorracha;
+        p.finalizarManipulacaoSemPinturaBorracha = function(elemento) {
+            var r;
+            if (typeof finalizarOriginal === 'function') r = finalizarOriginal.apply(this, arguments);
+            this.__manipulacaoDepth = Math.max(0, (this.__manipulacaoDepth || 1) - 1);
+            if (this.__manipulacaoDepth === 0) {
+                var self = this;
+                requestAnimationFrame(function() {
+                    self.__modoManipulacaoPerformance = false;
+                    self.__cacheDrawingRectTrava = null;
+                    self.__cacheOffsetPaiDrawing = null;
+                    self.__cacheLarguraAreaTrava = NaN;
+                    if (self.drawingArea) self.drawingArea.classList.remove('em-manipulacao-rapida');
+                    if (typeof atualizarHandlesOriginal === 'function' && self.elementoSelecionado) {
+                        atualizarHandlesOriginal.call(self);
+                    }
+                    agendarAlturaSite(self, 60);
+                });
+            }
+            return r;
+        };
+
+        var iniciarLacoOriginal = p._iniciarLaco;
+        p._iniciarLaco = function(e) {
+            var r = iniciarLacoOriginal ? iniciarLacoOriginal.apply(this, arguments) : undefined;
+            this.__lacoPointsString = this.lacoPontos && this.lacoPontos[0] ? (this.lacoPontos[0].x + ',' + this.lacoPontos[0].y) : '';
+            if (this.drawingArea) this.drawingArea.classList.add('em-manipulacao-rapida');
+            return r;
+        };
+
+        p._atualizarLaco = function(e) {
+            if (!this.modoLacoAtivo || !this._lacoPolygonElement) return;
+            if (e && e.preventDefault) e.preventDefault();
+            if (e && e.stopPropagation) e.stopPropagation();
+            var coords = this._obterCoordenadasLaco(e);
+            var ultimo = this.lacoPontos[this.lacoPontos.length - 1];
+            if (!ultimo || Math.hypot(coords.x - ultimo.x, coords.y - ultimo.y) > 7) {
+                this.lacoPontos.push(coords);
+                this.__lacoPointsString = (this.__lacoPointsString ? this.__lacoPointsString + ' ' : '') + coords.x + ',' + coords.y;
+                var self = this;
+                if (!self.__rafLacoPontos) {
+                    self.__rafLacoPontos = requestAnimationFrame(function() {
+                        self.__rafLacoPontos = 0;
+                        if (self._lacoPolygonElement) self._lacoPolygonElement.setAttribute('points', self.__lacoPointsString || '');
+                    });
+                }
+            }
+        };
+
+        var finalizarLacoOriginal = p._finalizarLaco;
+        p._finalizarLaco = function(e) {
+            if (this.__rafLacoPontos) {
+                cancelAnimationFrame(this.__rafLacoPontos);
+                this.__rafLacoPontos = 0;
+            }
+            if (this._lacoPolygonElement && this.__lacoPointsString) {
+                this._lacoPolygonElement.setAttribute('points', this.__lacoPointsString);
+            }
+            var r = finalizarLacoOriginal ? finalizarLacoOriginal.apply(this, arguments) : undefined;
+            if (this.drawingArea) this.drawingArea.classList.remove('em-manipulacao-rapida');
+            agendarAlturaSite(this, 60);
+            return r;
+        };
+
+        p._buscarElementosPorPoligono = function(polygon) {
+            if (!polygon || polygon.length < 3 || !this.drawingArea) return [];
+            var minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+            polygon.forEach(function(pt) {
+                minX = Math.min(minX, pt.x); minY = Math.min(minY, pt.y);
+                maxX = Math.max(maxX, pt.x); maxY = Math.max(maxY, pt.y);
+            });
+            var areaRect = this.drawingArea.getBoundingClientRect();
+            var scrollLeft = this.drawingArea.scrollLeft || 0;
+            var scrollTop = this.drawingArea.scrollTop || 0;
+            var self = this;
+            var selecionados = [];
+            Array.prototype.forEach.call(this.drawingArea.querySelectorAll('.peca, .cuba, .texto-legenda, .legenda-simplificada, .titulo-grupo, .simbolo-linha'), function(el) {
+                if (!visivel(el)) return;
+                var r = el.getBoundingClientRect();
+                var bbox = {
+                    left: r.left - areaRect.left + scrollLeft,
+                    top: r.top - areaRect.top + scrollTop,
+                    right: r.right - areaRect.left + scrollLeft,
+                    bottom: r.bottom - areaRect.top + scrollTop,
+                    width: r.width,
+                    height: r.height
+                };
+                if (bbox.right < minX || bbox.left > maxX || bbox.bottom < minY || bbox.top > maxY) return;
+                if (self._elementoIntersectaPoligonoPorBBox ? self._elementoIntersectaPoligonoPorBBox(bbox, polygon) : self._elementoIntersectaPoligono(el, polygon)) {
+                    selecionados.push(el);
+                }
+            });
+            return selecionados;
+        };
+
+
+        var salvarEstadoHistoricoOriginal = p.salvarEstadoHistorico;
+        p.salvarEstadoHistorico = function(descricao, forcarSalvamento) {
+            if (typeof salvarEstadoHistoricoOriginal !== 'function') return;
+            var atualizarGuiasOriginal = this.atualizarGuiasQuebraImpressao;
+            var self = this;
+            // Evita recalcular todas as guias dentro do snapshot do histórico.
+            // A paginação é recalculada uma vez, depois que o gesto termina.
+            if (typeof atualizarGuiasOriginal === 'function') {
+                this.atualizarGuiasQuebraImpressao = function() { return null; };
+            }
+            try {
+                return salvarEstadoHistoricoOriginal.apply(this, arguments);
+            } finally {
+                if (typeof atualizarGuiasOriginal === 'function') this.atualizarGuiasQuebraImpressao = atualizarGuiasOriginal;
+                agendarAlturaSite(self, 80);
+            }
+        };
+
+        p._elementoIntersectaPoligonoPorBBox = function(bbox, polygon) {
+            var vertices = [
+                { x: bbox.left, y: bbox.top },
+                { x: bbox.right, y: bbox.top },
+                { x: bbox.right, y: bbox.bottom },
+                { x: bbox.left, y: bbox.bottom }
+            ];
+            for (var i = 0; i < vertices.length; i++) {
+                if (this._pontoDentroPoligono(vertices[i], polygon)) return true;
+            }
+            for (var j = 0; j < polygon.length - 1; j++) {
+                if (this._segmentoIntersectaRetangulo(polygon[j], polygon[j + 1], bbox)) return true;
+            }
+            var centro = this._calcularCentroPoligono(polygon);
+            return this._pontoDentroRetangulo(centro, bbox);
+        };
+
+        return true;
+    }
+
+    function instalarInstancia() {
+        instalarPrototipos();
+        var inst = obterInstancia();
+        if (!inst || !inst.drawingArea || inst.__eventosPerfInstalados) return;
+        inst.__eventosPerfInstalados = true;
+        ['pointerup', 'mouseup', 'touchend', 'keyup'].forEach(function(evt) {
+            document.addEventListener(evt, function() { agendarAlturaSite(inst, 80); }, { passive: true });
+        });
+        ['resize', 'orientationchange'].forEach(function(evt) {
+            window.addEventListener(evt, function() { agendarAlturaSite(inst, 120); }, { passive: true });
+        });
+        agendarAlturaSite(inst, 0);
+    }
+
+    window.addEventListener('beforeprint', function() { prepararPrint(); });
+    window.addEventListener('afterprint', depoisPrint);
+    document.addEventListener('DOMContentLoaded', function() {
+        instalarPrototipos();
+        var tentativas = 0;
+        var timer = setInterval(function() {
+            instalarInstancia();
+            if (obterInstancia() || ++tentativas > 40) clearInterval(timer);
+        }, 50);
+    });
+})();
+</script></body>
 </html>
