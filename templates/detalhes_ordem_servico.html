@@ -1843,9 +1843,314 @@ body.modo-borracha .cursor-borracha {
     display: none !important;
 }
 
+
+
+/* Correção final de impressão: remover qualquer artefato de laço/seleção/borracha.
+   Isso impede a linha pontilhada da moldura temporária/grupo aparecer no PDF. */
+@media print {
+    #laco-selecao,
+    .laco-overlay,
+    .laco-overlay *,
+    .laco-polygon,
+    .laco-temporario,
+    .linha-temporaria,
+    .preview-laco,
+    .grupo-temporario,
+    .grupo-temporario *,
+    .grupo-handle,
+    .grupo-handle-rotacao,
+    .laco-handle,
+    .laco-handle-rotacao,
+    .handles-container,
+    .handle,
+    .handle-rotacao,
+    .cursor-borracha,
+    .guia-quebra-impressao {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+        border: 0 !important;
+        outline: 0 !important;
+        box-shadow: none !important;
+        background: transparent !important;
+    }
+
+    .elemento-em-grupo,
+    .elemento-selecionado {
+        filter: none !important;
+        outline: 0 !important;
+        box-shadow: none !important;
+    }
+
+    .elemento-em-grupo::before,
+    .elemento-em-grupo::after,
+    .elemento-selecionado::before,
+    .elemento-selecionado::after {
+        content: none !important;
+        display: none !important;
+    }
+}
+
+
+
+/* IMPRESSÃO - remover a borda CSS original da linha reta/desenho segmentado.
+   Quando o estilo é pontilhado/tracejado, o Chrome imprime a borda original
+   da .cuba.linha-reta por cima dos segmentos reais. Só os segmentos internos
+   devem ir para o PDF. */
+@media print {
+    .drawing-area .cuba.linha-reta.desenho-segmentado-retangular,
+    .area-pecas .cuba.linha-reta.desenho-segmentado-retangular,
+    .drawing-area .cuba.linha-reta.desenho-svg-real,
+    .area-pecas .cuba.linha-reta.desenho-svg-real {
+        border: 0 !important;
+        border-top: 0 !important;
+        border-right: 0 !important;
+        border-bottom: 0 !important;
+        border-left: 0 !important;
+        border-style: none !important;
+        border-color: transparent !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        outline: none !important;
+    }
+
+    .drawing-area .cuba.linha-reta.desenho-segmentado-retangular::before,
+    .drawing-area .cuba.linha-reta.desenho-segmentado-retangular::after,
+    .area-pecas .cuba.linha-reta.desenho-segmentado-retangular::before,
+    .area-pecas .cuba.linha-reta.desenho-segmentado-retangular::after,
+    .drawing-area .cuba.linha-reta.desenho-svg-real::before,
+    .drawing-area .cuba.linha-reta.desenho-svg-real::after,
+    .area-pecas .cuba.linha-reta.desenho-svg-real::before,
+    .area-pecas .cuba.linha-reta.desenho-svg-real::after {
+        content: none !important;
+        display: none !important;
+        border: 0 !important;
+    }
+}
+
+
+/* CORREÇÃO DEFINITIVA DA IMPRESSÃO DA LINHA RETA
+   A linha reta antiga era uma .cuba com borda superior. Quando o estilo virava
+   pontilhado/tracejado, essa borda original voltava na impressão como linha
+   preta. No PDF, a .cuba.linha-reta nunca deve imprimir border/background; só
+   os segmentos internos reais podem aparecer. */
+@media print {
+    html body .main-container .drawing-area .cuba.linha-reta,
+    html body .main-container .area-pecas .cuba.linha-reta,
+    html body .main-container .drawing-area .cuba.linha-reta[style],
+    html body .main-container .area-pecas .cuba.linha-reta[style],
+    html body .main-container .drawing-area .cuba.linha-reta.linha-tracejada-elemento,
+    html body .main-container .area-pecas .cuba.linha-reta.linha-tracejada-elemento,
+    html body .main-container .drawing-area .cuba.linha-reta[style*="border-style"],
+    html body .main-container .area-pecas .cuba.linha-reta[style*="border-style"] {
+        border: 0 none transparent !important;
+        border-top: 0 none transparent !important;
+        border-right: 0 none transparent !important;
+        border-bottom: 0 none transparent !important;
+        border-left: 0 none transparent !important;
+        border-width: 0 !important;
+        border-style: none !important;
+        border-color: transparent !important;
+        background: none !important;
+        background-image: none !important;
+        background-color: transparent !important;
+        box-shadow: none !important;
+        outline: none !important;
+        filter: none !important;
+    }
+
+    html body .main-container .drawing-area .cuba.linha-reta::before,
+    html body .main-container .drawing-area .cuba.linha-reta::after,
+    html body .main-container .area-pecas .cuba.linha-reta::before,
+    html body .main-container .area-pecas .cuba.linha-reta::after {
+        content: none !important;
+        display: none !important;
+        border: 0 none transparent !important;
+        background: none !important;
+        background-image: none !important;
+    }
+
+    html body .main-container .drawing-area .cuba.linha-reta > .linha-peca,
+    html body .main-container .area-pecas .cuba.linha-reta > .linha-peca,
+    html body .main-container .drawing-area .cuba.linha-reta > .linha-peca > .segmento-linha-peca,
+    html body .main-container .area-pecas .cuba.linha-reta > .linha-peca > .segmento-linha-peca {
+        visibility: visible !important;
+        display: block !important;
+        opacity: 1 !important;
+    }
+}
+
+
+
+/* IMPRESSÃO FINAL - LINHA RETA IGUAL AO SITE
+   A linha reta antiga é a própria .cuba.linha-reta com border-top.
+   Os segmentos internos adicionados para borracha estavam imprimindo uma segunda linha.
+   No PDF da linha reta deve sair apenas uma fonte visual: a borda superior da cuba,
+   exatamente como aparece na tela. */
+@media print {
+    .cuba.linha-reta.linha-reta-print-usar-borda > .linha-peca,
+    .cuba.linha-reta.linha-reta-print-usar-borda > .linha-peca > .segmento-linha-peca,
+    .cuba.linha-reta.linha-reta-print-usar-borda > .desenho-svg-borracha,
+    .drawing-area .cuba.linha-reta.linha-reta-print-usar-borda > .linha-peca,
+    .drawing-area .cuba.linha-reta.linha-reta-print-usar-borda > .linha-peca > .segmento-linha-peca,
+    .drawing-area .cuba.linha-reta.linha-reta-print-usar-borda > .desenho-svg-borracha,
+    .area-pecas .cuba.linha-reta.linha-reta-print-usar-borda > .linha-peca,
+    .area-pecas .cuba.linha-reta.linha-reta-print-usar-borda > .linha-peca > .segmento-linha-peca,
+    .area-pecas .cuba.linha-reta.linha-reta-print-usar-borda > .desenho-svg-borracha {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+    }
+
+    .cuba.linha-reta.linha-reta-print-usar-borda,
+    .drawing-area .cuba.linha-reta.linha-reta-print-usar-borda,
+    .area-pecas .cuba.linha-reta.linha-reta-print-usar-borda {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        max-height: 0 !important;
+        border-left: 0 none transparent !important;
+        border-right: 0 none transparent !important;
+        border-bottom: 0 none transparent !important;
+        border-top-width: 1px !important;
+        border-top-color: var(--print-line-color, var(--line-color, #333)) !important;
+        border-top-style: solid !important;
+        background: none !important;
+        background-image: none !important;
+        background-color: transparent !important;
+        box-shadow: none !important;
+        outline: none !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    .cuba.linha-reta.linha-reta-print-usar-borda[data-print-line-style="dashed"] {
+        border-top-style: dashed !important;
+    }
+
+    .cuba.linha-reta.linha-reta-print-usar-borda[data-print-line-style="dotted"] {
+        border-top-style: dotted !important;
+    }
+
+    .cuba.linha-reta.linha-reta-print-usar-borda::before,
+    .cuba.linha-reta.linha-reta-print-usar-borda::after {
+        content: none !important;
+        display: none !important;
+    }
+}
+
+
+/* PRINT DEFINITIVO: linha reta deve sair igual no site, com UMA única linha.
+   Mantém a borda superior da própria .cuba.linha-reta e desliga qualquer
+   linha interna/segmento que possa virar segunda linha no PDF. */
+@media print {
+    html body .main-container .drawing-area .cuba.linha-reta.linha-reta-print-final,
+    html body .main-container .drawing-area .cuba.linha-reta.linha-reta-print-final[style],
+    html body .main-container .area-pecas .cuba.linha-reta.linha-reta-print-final,
+    html body .main-container .area-pecas .cuba.linha-reta.linha-reta-print-final[style],
+    html body .cuba.linha-reta.linha-reta-print-final,
+    html body .cuba.linha-reta.linha-reta-print-final[style] {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        height: 0 !important;
+        min-height: 0 !important;
+        max-height: 0 !important;
+        overflow: visible !important;
+        background: none !important;
+        background-color: transparent !important;
+        background-image: none !important;
+        box-shadow: none !important;
+        outline: none !important;
+        filter: none !important;
+        border-left: 0 none transparent !important;
+        border-right: 0 none transparent !important;
+        border-bottom: 0 none transparent !important;
+        border-top: 1px solid var(--print-line-color, var(--line-color, #333)) !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    html body .cuba.linha-reta.linha-reta-print-final[data-print-line-style="dashed"],
+    html body .main-container .drawing-area .cuba.linha-reta.linha-reta-print-final[data-print-line-style="dashed"],
+    html body .main-container .area-pecas .cuba.linha-reta.linha-reta-print-final[data-print-line-style="dashed"] {
+        border-top-style: dashed !important;
+    }
+
+    html body .cuba.linha-reta.linha-reta-print-final[data-print-line-style="dotted"],
+    html body .main-container .drawing-area .cuba.linha-reta.linha-reta-print-final[data-print-line-style="dotted"],
+    html body .main-container .area-pecas .cuba.linha-reta.linha-reta-print-final[data-print-line-style="dotted"] {
+        border-top-style: dotted !important;
+    }
+
+    html body .cuba.linha-reta.linha-reta-print-final > .linha-peca,
+    html body .cuba.linha-reta.linha-reta-print-final > .linha-peca > .segmento-linha-peca,
+    html body .cuba.linha-reta.linha-reta-print-final > .desenho-svg-borracha,
+    html body .main-container .drawing-area .cuba.linha-reta.linha-reta-print-final > .linha-peca,
+    html body .main-container .drawing-area .cuba.linha-reta.linha-reta-print-final > .linha-peca > .segmento-linha-peca,
+    html body .main-container .drawing-area .cuba.linha-reta.linha-reta-print-final > .desenho-svg-borracha,
+    html body .main-container .area-pecas .cuba.linha-reta.linha-reta-print-final > .linha-peca,
+    html body .main-container .area-pecas .cuba.linha-reta.linha-reta-print-final > .linha-peca > .segmento-linha-peca,
+    html body .main-container .area-pecas .cuba.linha-reta.linha-reta-print-final > .desenho-svg-borracha {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+    }
+
+    html body .cuba.linha-reta.linha-reta-print-final::before,
+    html body .cuba.linha-reta.linha-reta-print-final::after {
+        content: none !important;
+        display: none !important;
+    }
+}
 </style>
 
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pilot.css') }}">
+
+
+<style id="bloqueio-linha-simbolo-modos-final-css">
+/* Quando qualquer modo/botão principal está ativo, a linha de símbolo volta a
+   ser apenas desenho: sem cursor, sem faixa azul e sem clique. */
+body.linhas-simbolo-bloqueadas .linha-peca,
+body.linhas-simbolo-bloqueadas .linha-peca > .segmento-linha-peca {
+    cursor: default !important;
+    pointer-events: none !important;
+}
+body.linhas-simbolo-bloqueadas .linha-peca.linha-visivel-hover > .segmento-linha-peca {
+    background: var(--line-color, #000) !important;
+}
+body.linhas-simbolo-bloqueadas .linha-peca.linha-visivel-hover[data-lado="top"] > .segmento-linha-peca,
+body.linhas-simbolo-bloqueadas .linha-peca.linha-visivel-hover[data-lado="bottom"] > .segmento-linha-peca {
+    top: 3.5px !important;
+    height: 1px !important;
+    border: 0 !important;
+    box-sizing: border-box !important;
+}
+body.linhas-simbolo-bloqueadas .linha-peca.linha-visivel-hover[data-lado="left"] > .segmento-linha-peca,
+body.linhas-simbolo-bloqueadas .linha-peca.linha-visivel-hover[data-lado="right"] > .segmento-linha-peca {
+    left: 3.5px !important;
+    width: 1px !important;
+    border: 0 !important;
+    box-sizing: border-box !important;
+}
+body.linhas-simbolo-bloqueadas .linha-peca.linha-visivel-hover[data-estilo-linha="dashed"] > .segmento-linha-peca {
+    background: repeating-linear-gradient(90deg, var(--line-color, #000) 0, var(--line-color, #000) 7px, transparent 7px, transparent 12px) !important;
+}
+body.linhas-simbolo-bloqueadas .linha-peca.linha-visivel-hover[data-estilo-linha="dashed"][data-lado="left"] > .segmento-linha-peca,
+body.linhas-simbolo-bloqueadas .linha-peca.linha-visivel-hover[data-estilo-linha="dashed"][data-lado="right"] > .segmento-linha-peca {
+    background: repeating-linear-gradient(180deg, var(--line-color, #000) 0, var(--line-color, #000) 7px, transparent 7px, transparent 12px) !important;
+}
+body.linhas-simbolo-bloqueadas .linha-peca.linha-visivel-hover[data-estilo-linha="dotted"] > .segmento-linha-peca {
+    background: repeating-linear-gradient(90deg, var(--line-color, #000) 0, var(--line-color, #000) 2px, transparent 2px, transparent 6px) !important;
+}
+body.linhas-simbolo-bloqueadas .linha-peca.linha-visivel-hover[data-estilo-linha="dotted"][data-lado="left"] > .segmento-linha-peca,
+body.linhas-simbolo-bloqueadas .linha-peca.linha-visivel-hover[data-estilo-linha="dotted"][data-lado="right"] > .segmento-linha-peca {
+    background: repeating-linear-gradient(180deg, var(--line-color, #000) 0, var(--line-color, #000) 2px, transparent 2px, transparent 6px) !important;
+}
+</style>
+
 </head>
 <body>
     <div class="main-container">
@@ -1955,7 +2260,8 @@ body.modo-borracha .cursor-borracha {
             { simbolo: "Cp", descricao: "Acabamento/Pingadeira" },
             { simbolo: "//*", descricao: "Editável" },
             { simbolo: "///*", descricao: "Editável" },
-            { simbolo: "V", descricao: "Meia Esquadria" }
+            { simbolo: "V", descricao: "Meia Esquadria" },
+            { simbolo: "Λ", descricao: "Meia Esquadria" }
         ]
     };
 
@@ -2144,41 +2450,47 @@ adicionarEstilosMobile() {
             if (!pecaId) return;
 
             const simbolos = elemento.querySelectorAll(`.simbolo-linha[data-peca-id="${pecaId}"]`);
-            
-            const pecaWidth = parseFloat(elemento.style.width);
-            const pecaHeight = parseFloat(elemento.style.height);
-            
+            const pecaWidth = parseFloat(elemento.style.width) || elemento.offsetWidth || 0;
+            const pecaHeight = parseFloat(elemento.style.height) || elemento.offsetHeight || 0;
+
             simbolos.forEach(simbolo => {
                 const lado = simbolo.getAttribute('data-lado');
-                const rotacaoSimbolo = simbolo.getAttribute('data-rotacao') || 0;
-                
-                let left, top;
-                const centerX = pecaWidth / 2;
-                const centerY = pecaHeight / 2;
-                
+                const rotacaoSimbolo = parseFloat(simbolo.getAttribute('data-rotacao') || simbolo.getAttribute('data-rotate')) || 0;
+
+                let left = pecaWidth / 2;
+                let top = pecaHeight / 2;
+
                 switch(lado) {
                     case 'top':
-                        left = centerX;
+                        left = pecaWidth / 2;
                         top = 0;
                         break;
                     case 'bottom':
-                        left = centerX;
+                        left = pecaWidth / 2;
                         top = pecaHeight;
                         break;
                     case 'left':
                         left = 0;
-                        top = centerY;
+                        top = pecaHeight / 2;
                         break;
                     case 'right':
                         left = pecaWidth;
-                        top = centerY;
+                        top = pecaHeight / 2;
                         break;
                 }
-                
+
+                // O símbolo pode ter sido deslocado manualmente pelo usuário.
+                // Ao atualizar linhas/entrar no modo selecionar, a posição base do lado pode ser recalculada,
+                // mas o deslocamento manual data-x/data-y precisa ser preservado.
+                const offsetX = parseFloat(simbolo.getAttribute('data-x')) || 0;
+                const offsetY = parseFloat(simbolo.getAttribute('data-y')) || 0;
+
                 simbolo.style.left = `${left}px`;
                 simbolo.style.top = `${top}px`;
-                simbolo.style.transform = `translate(-50%, -50%) rotate(${rotacaoSimbolo}deg)`;
+                simbolo.style.transform = `translate(-50%, -50%) translate(${offsetX}px, ${offsetY}px) rotate(${rotacaoSimbolo}deg)`;
                 simbolo.style.transformOrigin = 'center center';
+                simbolo.setAttribute('data-rotate', rotacaoSimbolo);
+                simbolo.setAttribute('data-rotacao', rotacaoSimbolo);
             });
         }
 
@@ -7296,11 +7608,16 @@ _isTouchGesture(e) {
         if (!elemento.hasAttribute('data-y')) elemento.setAttribute('data-y', '0');
         if (!elemento.hasAttribute('data-rotate')) elemento.setAttribute('data-rotate', '0');
 
+        if (!this.modoBorrachaAtivo) {
+            if ('readOnly' in elemento) elemento.readOnly = false;
+            elemento.classList.remove('bloqueado-modo-borracha');
+        }
+
         let originalBackground = elemento.style.backgroundColor;
         
         interact(elemento).draggable({
             allowFrom: '.texto-legenda',
-            ignoreFrom: 'input, textarea, button, select',
+            ignoreFrom: 'button, select, input:not(.texto-legenda), textarea:not(.texto-legenda)',
             modifiers: [
                 interact.modifiers.restrictRect({
                     restriction: 'parent',
@@ -7785,6 +8102,7 @@ simboloElement.style.zIndex = '10';
                         elemento.style.transform = `translate(-50%, -50%) translate(${x}px, ${y}px) rotate(${rotate}deg)`;
                         elemento.setAttribute('data-x', x);
                         elemento.setAttribute('data-y', y);
+                        elemento.setAttribute('data-posicao-manual', '1');
                         
                         console.log(`Movendo símbolo - dx=${event.dx}, dy=${event.dy} | Pos: x=${x}, y=${y}`);
                     },
@@ -7800,8 +8118,9 @@ simboloElement.style.zIndex = '10';
                 e.stopPropagation();
                 elemento.setAttribute('data-x', 0);
                 elemento.setAttribute('data-y', 0);
+                elemento.removeAttribute('data-posicao-manual');
                 const rotate = parseFloat(elemento.getAttribute('data-rotate')) || 0;
-                elemento.style.transform = `translate(-50%, -50%) rotate(${rotate}deg)`;
+                elemento.style.transform = `translate(-50%, -50%) translate(0px, 0px) rotate(${rotate}deg)`;
                 this.salvarEstadoHistorico('Resetar Posição do Símbolo');
                 console.log('Posição do símbolo resetada');
             });
@@ -10110,7 +10429,146 @@ aplicarEstilosManterModal() {
     document.addEventListener('DOMContentLoaded', instalarTravaBorracha);
 })();
 
-let gerenciadorDesenho;
+
+
+(function() {
+    if (typeof GerenciadorDesenho === 'undefined') return;
+
+    function ehCuba(el) {
+        return !!(el && el.classList && el.classList.contains('cuba'));
+    }
+
+    function ehObjetoComLinhasSegmentadas(el) {
+        return !!(el && el.classList && (
+            el.classList.contains('peca') ||
+            el.classList.contains('cuba')
+        ));
+    }
+
+    function atualizarVisualDesenhoDepoisDoResize(inst, el, estadoBorracha, width, height) {
+        if (!inst || !ehCuba(el)) return;
+
+        const w = Math.max(1, Number(width) || parseFloat(el.style.width) || el.offsetWidth || 1);
+        const h = Math.max(1, Number(height) || parseFloat(el.style.height) || el.offsetHeight || 1);
+
+        el.style.width = `${w}px`;
+
+        // Linha reta é desenhada pela linha interna; o elemento raiz precisa ter altura mínima
+        // para handles/posição, mas a linha visual continua 1px pelo segmento interno.
+        if (el.classList.contains('linha-reta')) {
+            el.style.height = '2px';
+        } else {
+            el.style.height = `${h}px`;
+        }
+
+        if (typeof inst.sincronizarLinhasDesenhoRetangular === 'function') {
+            inst.sincronizarLinhasDesenhoRetangular(el);
+        } else if (typeof inst.renderizarDesenhoComBorracha === 'function') {
+            inst.renderizarDesenhoComBorracha(el);
+        }
+
+        if (estadoBorracha && typeof inst.aplicarEstadoBorrachaEscaladoPeca === 'function') {
+            inst.aplicarEstadoBorrachaEscaladoPeca(el, estadoBorracha, w, el.classList.contains('linha-reta') ? 2 : h);
+        }
+
+        if (typeof inst.renderizarDesenhoComBorracha === 'function' && !el.classList.contains('desenho-segmentado-retangular')) {
+            inst.renderizarDesenhoComBorracha(el);
+        }
+    }
+
+    const obterEstadoGrupoAnterior = GerenciadorDesenho.prototype.obterEstadoElementoParaGrupo;
+    GerenciadorDesenho.prototype.obterEstadoElementoParaGrupo = function(elemento) {
+        if (ehCuba(elemento)) {
+            if (typeof this.sincronizarLinhasDesenhoRetangular === 'function') {
+                this.sincronizarLinhasDesenhoRetangular(elemento);
+            } else if (typeof this.renderizarDesenhoComBorracha === 'function') {
+                this.renderizarDesenhoComBorracha(elemento);
+            }
+        }
+
+        const estado = typeof obterEstadoGrupoAnterior === 'function'
+            ? obterEstadoGrupoAnterior.call(this, elemento)
+            : { elemento };
+
+        if (ehObjetoComLinhasSegmentadas(elemento) && typeof this.capturarEstadoBorrachaLinhasPeca === 'function') {
+            estado.estadoBorracha = this.capturarEstadoBorrachaLinhasPeca(elemento);
+        }
+
+        return estado;
+    };
+
+    const aplicarEstadoGrupoAnterior = GerenciadorDesenho.prototype.aplicarEstadoElementoGrupo;
+    GerenciadorDesenho.prototype.aplicarEstadoElementoGrupo = function(item, absLeft, absTop, width, height, rotate) {
+        if (typeof aplicarEstadoGrupoAnterior === 'function') {
+            aplicarEstadoGrupoAnterior.call(this, item, absLeft, absTop, width, height, rotate);
+        }
+
+        const el = item && item.elemento;
+        if (!el) return;
+
+        if (ehCuba(el)) {
+            atualizarVisualDesenhoDepoisDoResize(this, el, item.estadoBorracha, width, height);
+        }
+    };
+
+    // Segurança extra: qualquer resize individual ou em grupo que alterar desenho força
+    // reconstrução visual dos segmentos antes de reposicionar handles/salvar/imprimir.
+    const posicionarHandlesAnterior = GerenciadorDesenho.prototype.posicionarHandles;
+    GerenciadorDesenho.prototype.posicionarHandles = function(elemento) {
+        const alvo = elemento || this.elementoSelecionado;
+        if (ehCuba(alvo)) {
+            atualizarVisualDesenhoDepoisDoResize(
+                this,
+                alvo,
+                null,
+                parseFloat(alvo.style.width) || alvo.offsetWidth || 1,
+                parseFloat(alvo.style.height) || alvo.offsetHeight || 2
+            );
+        } else if (alvo && alvo.classList && alvo.classList.contains('grupo-temporario')) {
+            this.drawingArea.querySelectorAll('.elemento-em-grupo.cuba').forEach((el) => {
+                atualizarVisualDesenhoDepoisDoResize(
+                    this,
+                    el,
+                    null,
+                    parseFloat(el.style.width) || el.offsetWidth || 1,
+                    parseFloat(el.style.height) || el.offsetHeight || 2
+                );
+            });
+        }
+
+        if (typeof posicionarHandlesAnterior === 'function') {
+            return posicionarHandlesAnterior.call(this, elemento);
+        }
+    };
+
+    function prepararImpressaoOrdemServico() {
+        document.body.classList.add('preparando-impressao-os');
+        if (window.gerenciadorDesenho) {
+            const g = window.gerenciadorDesenho;
+            if (g.drawingArea) {
+                g.drawingArea.querySelectorAll('.cuba').forEach((el) => {
+                    atualizarVisualDesenhoDepoisDoResize(
+                        g,
+                        el,
+                        null,
+                        parseFloat(el.style.width) || el.offsetWidth || 1,
+                        parseFloat(el.style.height) || el.offsetHeight || 2
+                    );
+                });
+            }
+            if (typeof g.atualizarTodasMascarasBorracha === 'function') {
+                g.atualizarTodasMascarasBorracha();
+            }
+        }
+    }
+
+    window.addEventListener('beforeprint', prepararImpressaoOrdemServico);
+    window.addEventListener('afterprint', function() {
+        document.body.classList.remove('preparando-impressao-os');
+    });
+})();
+
+    let gerenciadorDesenho;
 
     document.addEventListener('DOMContentLoaded', function() {
         console.log('Iniciando aplicação...');
@@ -10490,8 +10948,1612 @@ let gerenciadorDesenho;
     };
 })();
 
+
+
+(function() {
+    if (typeof GerenciadorDesenho === 'undefined') return;
+
+    const configurarTextoOriginalFinal = GerenciadorDesenho.prototype.configurarInteratividadeTexto;
+    GerenciadorDesenho.prototype.configurarInteratividadeTexto = function(elemento) {
+        if (!elemento || !elemento.classList || !elemento.classList.contains('texto-legenda')) {
+            if (typeof configurarTextoOriginalFinal === 'function') return configurarTextoOriginalFinal.call(this, elemento);
+            return;
+        }
+
+        // Fora do modo borracha, texto selecionado precisa poder ser arrastado.
+        // O bug era o ignoreFrom antigo incluir "textarea", que bloqueava o próprio .texto-legenda.
+        if (!this.modoBorrachaAtivo) {
+            if ('readOnly' in elemento) elemento.readOnly = false;
+            elemento.classList.remove('bloqueado-modo-borracha');
+        }
+
+        if (typeof configurarTextoOriginalFinal === 'function') {
+            configurarTextoOriginalFinal.call(this, elemento);
+        }
+
+        try {
+            const inter = interact(elemento);
+            inter.draggable({
+                allowFrom: '.texto-legenda',
+                ignoreFrom: 'button, select, input:not(.texto-legenda), textarea:not(.texto-legenda)',
+                modifiers: [
+                    interact.modifiers.restrictRect({ restriction: 'parent', endOnly: true })
+                ],
+                preventDefault: 'always',
+                listeners: {
+                    start: (event) => {
+                        if (this.modoBorrachaAtivo) {
+                            if (event && event.cancelable) event.preventDefault();
+                            return;
+                        }
+                        elemento.style.zIndex = '1000';
+                        elemento.setAttribute('data-initial-x', String(parseFloat(elemento.getAttribute('data-x')) || 0));
+                        elemento.setAttribute('data-initial-y', String(parseFloat(elemento.getAttribute('data-y')) || 0));
+                    },
+                    move: (event) => {
+                        if (this.modoBorrachaAtivo) return;
+                        const delta = this.limitarDeltaElementoPorTravaBordas ?
+                            this.limitarDeltaElementoPorTravaBordas(elemento, event.dx, event.dy) :
+                            { dx: event.dx, dy: event.dy };
+                        const rotacao = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+                        const x = (parseFloat(elemento.getAttribute('data-x')) || 0) + delta.dx;
+                        const y = (parseFloat(elemento.getAttribute('data-y')) || 0) + delta.dy;
+                        elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotacao}deg)`;
+                        elemento.setAttribute('data-x', String(x));
+                        elemento.setAttribute('data-y', String(y));
+                        if (this.elementoSelecionado === elemento && typeof this.atualizarHandles === 'function') {
+                            this.atualizarHandles();
+                        }
+                    },
+                    end: () => {
+                        if (this.modoBorrachaAtivo) return;
+                        elemento.style.zIndex = '10';
+                        elemento.removeAttribute('data-initial-x');
+                        elemento.removeAttribute('data-initial-y');
+                        if (typeof this.salvarEstadoHistorico === 'function') this.salvarEstadoHistorico('Mover Texto');
+                    }
+                }
+            });
+        } catch (e) {
+            console.warn('Falha ao reforçar drag do texto:', e);
+        }
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const ger = window.gerenciadorDesenho;
+        if (!ger || !ger.drawingArea) return;
+        ger.drawingArea.querySelectorAll('.texto-legenda').forEach((el) => ger.configurarInteratividadeTexto(el));
+    });
+})();
+
+
+
+(function() {
+    if (typeof GerenciadorDesenho === 'undefined') return;
+
+    function ehTexto(el) {
+        return !!(el && el.classList && el.classList.contains('texto-legenda'));
+    }
+
+    function ehCuba(el) {
+        return !!(el && el.classList && el.classList.contains('cuba'));
+    }
+
+    function numero(v, fallback = 0) {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : fallback;
+    }
+
+    function atualizarDesenhoVisual(inst, el) {
+        if (!inst || !ehCuba(el)) return;
+        const w = Math.max(1, parseFloat(el.style.width) || el.offsetWidth || 1);
+        const hBase = el.classList.contains('linha-reta') ? 2 : Math.max(1, parseFloat(el.style.height) || el.offsetHeight || 1);
+
+        el.style.width = `${w}px`;
+        if (el.classList.contains('linha-reta')) {
+            el.style.height = '2px';
+            el.style.minHeight = '2px';
+        } else {
+            el.style.height = `${hBase}px`;
+        }
+
+        if (typeof inst.sincronizarLinhasDesenhoRetangular === 'function') {
+            inst.sincronizarLinhasDesenhoRetangular(el);
+        } else if (typeof inst.renderizarDesenhoComBorracha === 'function') {
+            inst.renderizarDesenhoComBorracha(el);
+        }
+
+        el.querySelectorAll(':scope > .linha-peca').forEach((linha) => {
+            if (typeof inst.renderizarLinhaPecaComRecortes === 'function') {
+                inst.renderizarLinhaPecaComRecortes(linha);
+            }
+        });
+    }
+
+    /* 1) Texto selecionado: não depender mais do interact do textarea.
+       O textarea selecionado arrasta por listener próprio, exceto no modo borracha. */
+    function instalarDragTextoSelecionado(inst) {
+        if (!inst || !inst.drawingArea || inst.__dragTextoSelecionadoInstalado) return;
+        inst.__dragTextoSelecionadoInstalado = true;
+
+        let ativo = null;
+
+        const iniciar = (ev) => {
+            if (inst.modoBorrachaAtivo) return;
+            if (ev.target && ev.target.closest && ev.target.closest('.handle, .handle-rotacao, .handles-container, .modal-controles, .modal-estilos')) return;
+
+            const alvo = ev.target && ev.target.closest ? ev.target.closest('.texto-legenda') : null;
+            if (!alvo || !inst.drawingArea.contains(alvo)) return;
+
+            const podeMover = inst.modoSelecaoAtivo || alvo.classList.contains('elemento-selecionado') || alvo.classList.contains('selecionavel');
+            if (!podeMover) return;
+
+            ev.preventDefault();
+            ev.stopPropagation();
+            if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+
+            if (document.activeElement && document.activeElement !== document.body && typeof document.activeElement.blur === 'function') {
+                document.activeElement.blur();
+            }
+
+            if (typeof inst.selecionarElemento === 'function' && inst.elementoSelecionado !== alvo) {
+                inst.selecionarElemento(alvo);
+            } else {
+                alvo.classList.add('elemento-selecionado');
+                inst.elementoSelecionado = alvo;
+                if (typeof inst.criarHandles === 'function') inst.criarHandles(alvo);
+            }
+
+            ativo = {
+                el: alvo,
+                startX: ev.clientX,
+                startY: ev.clientY,
+                dataX: numero(alvo.getAttribute('data-x'), 0),
+                dataY: numero(alvo.getAttribute('data-y'), 0),
+                rot: numero(alvo.getAttribute('data-rotate'), 0)
+            };
+            alvo.style.zIndex = '1000';
+            document.addEventListener('mousemove', mover, true);
+            document.addEventListener('mouseup', finalizar, true);
+            document.addEventListener('touchmove', moverTouch, { capture: true, passive: false });
+            document.addEventListener('touchend', finalizar, true);
+            document.addEventListener('touchcancel', finalizar, true);
+        };
+
+        const moverComCliente = (clientX, clientY, ev) => {
+            if (!ativo || inst.modoBorrachaAtivo) return;
+            if (ev && ev.cancelable) ev.preventDefault();
+            if (ev) ev.stopPropagation();
+            const brutoDx = clientX - ativo.startX;
+            const brutoDy = clientY - ativo.startY;
+            let delta = { dx: brutoDx, dy: brutoDy };
+            if (typeof inst.limitarDeltaElementoPorTravaBordas === 'function') {
+                delta = inst.limitarDeltaElementoPorTravaBordas(ativo.el, brutoDx, brutoDy);
+            }
+            const x = ativo.dataX + delta.dx;
+            const y = ativo.dataY + delta.dy;
+            ativo.el.setAttribute('data-x', `${x}`);
+            ativo.el.setAttribute('data-y', `${y}`);
+            ativo.el.style.transform = `translate(${x}px, ${y}px) rotate(${ativo.rot}deg)`;
+            if (inst.elementoSelecionado === ativo.el && typeof inst.atualizarHandles === 'function') inst.atualizarHandles();
+        };
+
+        const mover = (ev) => moverComCliente(ev.clientX, ev.clientY, ev);
+        const moverTouch = (ev) => {
+            if (!ev.touches || !ev.touches.length) return;
+            moverComCliente(ev.touches[0].clientX, ev.touches[0].clientY, ev);
+        };
+
+        const finalizar = (ev) => {
+            if (!ativo) return;
+            if (ev && ev.cancelable) ev.preventDefault();
+            if (ev) ev.stopPropagation();
+            ativo.el.style.zIndex = '10';
+            if (typeof inst.atualizarHandles === 'function') inst.atualizarHandles();
+            if (typeof inst.salvarEstadoHistorico === 'function') inst.salvarEstadoHistorico('Mover Texto');
+            ativo = null;
+            document.removeEventListener('mousemove', mover, true);
+            document.removeEventListener('mouseup', finalizar, true);
+            document.removeEventListener('touchmove', moverTouch, true);
+            document.removeEventListener('touchend', finalizar, true);
+            document.removeEventListener('touchcancel', finalizar, true);
+        };
+
+        inst.drawingArea.addEventListener('mousedown', iniciar, true);
+        inst.drawingArea.addEventListener('touchstart', (ev) => {
+            if (!ev.touches || !ev.touches.length) return;
+            const t = ev.touches[0];
+            Object.defineProperty(ev, 'clientX', { value: t.clientX, configurable: true });
+            Object.defineProperty(ev, 'clientY', { value: t.clientY, configurable: true });
+            iniciar(ev);
+        }, { capture: true, passive: false });
+    }
+
+    const initOriginal = GerenciadorDesenho.prototype.inicializarEventos;
+    GerenciadorDesenho.prototype.inicializarEventos = function() {
+        if (typeof initOriginal === 'function') initOriginal.call(this);
+        instalarDragTextoSelecionado(this);
+    };
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const g = window.gerenciadorDesenho;
+        if (g) instalarDragTextoSelecionado(g);
+    });
+
+    /* 2) Resize de grupo/laço: forçar reconstrução visual de todo desenho após qualquer
+       aplicação de estado, principalmente linha reta. */
+    const aplicarEstadoAnteriorFinal = GerenciadorDesenho.prototype.aplicarEstadoElementoGrupo;
+    GerenciadorDesenho.prototype.aplicarEstadoElementoGrupo = function(item, absLeft, absTop, width, height, rotate) {
+        if (typeof aplicarEstadoAnteriorFinal === 'function') {
+            aplicarEstadoAnteriorFinal.call(this, item, absLeft, absTop, width, height, rotate);
+        }
+        const el = item && item.elemento;
+        if (ehCuba(el)) {
+            const w = Math.max(1, Number(width) || parseFloat(el.style.width) || el.offsetWidth || 1);
+            const h = el.classList.contains('linha-reta') ? 2 : Math.max(1, Number(height) || parseFloat(el.style.height) || el.offsetHeight || 1);
+            el.style.width = `${w}px`;
+            el.style.height = `${h}px`;
+            atualizarDesenhoVisual(this, el);
+        }
+    };
+
+    const posicionarHandlesAnteriorFinal = GerenciadorDesenho.prototype.posicionarHandles;
+    GerenciadorDesenho.prototype.posicionarHandles = function(elemento) {
+        const alvo = elemento || this.elementoSelecionado;
+        if (ehCuba(alvo)) atualizarDesenhoVisual(this, alvo);
+        if (alvo && alvo.classList && alvo.classList.contains('grupo-temporario') && this.drawingArea) {
+            this.obterElementosGrupoTemporario(alvo).forEach((el) => {
+                if (ehCuba(el)) atualizarDesenhoVisual(this, el);
+            });
+        }
+        if (typeof posicionarHandlesAnteriorFinal === 'function') return posicionarHandlesAnteriorFinal.call(this, elemento);
+    };
+
+    /* 3) Impressão: remover de verdade o laço/grupo/handles antes do print.
+       CSS sozinho não é confiável porque .main-container * volta visibility:visible. */
+    function limparArtefatosDeImpressao() {
+        const g = window.gerenciadorDesenho;
+        if (!g || !g.drawingArea) return;
+
+        g.drawingArea.querySelectorAll('#laco-selecao, .laco-overlay, .laco-polygon, .laco-temporario, .linha-temporaria, .preview-laco, .grupo-temporario, .handles-container, .handle, .handle-rotacao, .cursor-borracha, .guia-quebra-impressao').forEach((el) => {
+            if (el && el.parentNode) el.parentNode.removeChild(el);
+        });
+        g.grupoTemporario = null;
+        g.handles = [];
+        g.handlesContainer = null;
+        g.elementoSelecionado = null;
+        g.drawingArea.querySelectorAll('.elemento-em-grupo, .elemento-selecionado').forEach((el) => {
+            el.classList.remove('elemento-em-grupo', 'elemento-selecionado');
+            if (el.style) {
+                el.style.outline = '';
+                el.style.boxShadow = '';
+                el.style.filter = '';
+            }
+        });
+        g.drawingArea.querySelectorAll('.cuba').forEach((el) => atualizarDesenhoVisual(g, el));
+        if (typeof g.atualizarTodasMascarasBorracha === 'function') g.atualizarTodasMascarasBorracha();
+    }
+
+    window.addEventListener('beforeprint', limparArtefatosDeImpressao);
+})();
+
+
+(function() {
+    if (typeof GerenciadorDesenho === 'undefined') return;
+
+    function numero(v, fallback = 0) {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : fallback;
+    }
+
+    function ehTexto(el) {
+        return !!(el && el.classList && el.classList.contains('texto-legenda'));
+    }
+
+    function limparBordaOriginalLinhaRetaParaImpressao(inst) {
+        if (!inst || !inst.drawingArea) return;
+        inst.drawingArea.querySelectorAll('.cuba.linha-reta, .cuba.desenho-segmentado-retangular.linha-reta, .cuba.desenho-svg-real.linha-reta').forEach((el) => {
+            if (typeof inst.sincronizarLinhasDesenhoRetangular === 'function') {
+                inst.sincronizarLinhasDesenhoRetangular(el);
+            } else if (typeof inst.renderizarDesenhoComBorracha === 'function') {
+                inst.renderizarDesenhoComBorracha(el);
+            }
+            el.classList.add('desenho-segmentado-retangular', 'desenho-svg-real');
+            el.style.border = '0';
+            el.style.borderTop = '0';
+            el.style.borderRight = '0';
+            el.style.borderBottom = '0';
+            el.style.borderLeft = '0';
+            el.style.borderStyle = 'none';
+            el.style.borderColor = 'transparent';
+            el.style.background = 'transparent';
+            el.style.boxShadow = 'none';
+            el.style.outline = 'none';
+            el.querySelectorAll(':scope > .linha-peca').forEach((linha) => {
+                if (typeof inst.renderizarLinhaPecaComRecortes === 'function') {
+                    inst.renderizarLinhaPecaComRecortes(linha);
+                }
+            });
+        });
+    }
+
+    window.addEventListener('beforeprint', function() {
+        limparBordaOriginalLinhaRetaParaImpressao(window.gerenciadorDesenho);
+    });
+
+    function instalarMoverTextoDireto(inst) {
+        if (!inst || !inst.drawingArea || inst.__moverTextoDiretoFinalInstalado) return;
+        inst.__moverTextoDiretoFinalInstalado = true;
+
+        let arraste = null;
+
+        function getTextoDoEvento(ev) {
+            const alvo = ev.target && ev.target.closest ? ev.target.closest('.texto-legenda') : null;
+            if (!alvo || !inst.drawingArea.contains(alvo)) return null;
+            return alvo;
+        }
+
+        function podeMoverTexto(texto) {
+            if (!texto || inst.modoBorrachaAtivo) return false;
+            return texto.classList.contains('elemento-selecionado') || texto.classList.contains('selecionavel') || inst.modoSelecaoAtivo;
+        }
+
+        function selecionarTexto(texto) {
+            if (typeof inst.selecionarElemento === 'function' && inst.elementoSelecionado !== texto) {
+                inst.selecionarElemento(texto);
+            } else {
+                texto.classList.add('elemento-selecionado');
+                inst.elementoSelecionado = texto;
+                if (typeof inst.criarHandles === 'function') inst.criarHandles(texto);
+                else if (typeof inst.atualizarHandles === 'function') inst.atualizarHandles();
+            }
+        }
+
+        function iniciarArrasteTexto(ev) {
+            if (inst.modoBorrachaAtivo) return;
+            if (ev.target && ev.target.closest && ev.target.closest('.handle, .handle-rotacao, .handles-container, .modal, .modal-controles, .modal-estilos, button, select')) return;
+
+            const texto = getTextoDoEvento(ev);
+            if (!texto || !podeMoverTexto(texto)) return;
+
+            ev.preventDefault();
+            ev.stopPropagation();
+            if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+
+            if (document.activeElement && document.activeElement !== document.body && typeof document.activeElement.blur === 'function') {
+                document.activeElement.blur();
+            }
+
+            selecionarTexto(texto);
+
+            arraste = {
+                el: texto,
+                pointerId: ev.pointerId,
+                startX: ev.clientX,
+                startY: ev.clientY,
+                baseX: numero(texto.getAttribute('data-x'), 0),
+                baseY: numero(texto.getAttribute('data-y'), 0),
+                rot: numero(texto.getAttribute('data-rotate'), 0),
+                z: texto.style.zIndex || ''
+            };
+
+            texto.style.zIndex = '30000';
+            texto.style.cursor = 'move';
+            try { texto.setPointerCapture && texto.setPointerCapture(ev.pointerId); } catch (_) {}
+        }
+
+        function moverArrasteTexto(ev) {
+            if (!arraste || inst.modoBorrachaAtivo) return;
+            if (arraste.pointerId !== undefined && ev.pointerId !== undefined && ev.pointerId !== arraste.pointerId) return;
+
+            ev.preventDefault();
+            ev.stopPropagation();
+            if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+
+            const brutoDx = ev.clientX - arraste.startX;
+            const brutoDy = ev.clientY - arraste.startY;
+            let delta = { dx: brutoDx, dy: brutoDy };
+            if (typeof inst.limitarDeltaElementoPorTravaBordas === 'function') {
+                delta = inst.limitarDeltaElementoPorTravaBordas(arraste.el, brutoDx, brutoDy) || delta;
+            }
+
+            const x = arraste.baseX + delta.dx;
+            const y = arraste.baseY + delta.dy;
+            arraste.el.setAttribute('data-x', String(x));
+            arraste.el.setAttribute('data-y', String(y));
+            arraste.el.style.transform = `translate(${x}px, ${y}px) rotate(${arraste.rot}deg)`;
+
+            if (inst.elementoSelecionado === arraste.el && typeof inst.atualizarHandles === 'function') {
+                inst.atualizarHandles();
+            }
+        }
+
+        function finalizarArrasteTexto(ev) {
+            if (!arraste) return;
+            if (ev) {
+                ev.preventDefault();
+                ev.stopPropagation();
+                if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+            }
+            try { arraste.el.releasePointerCapture && arraste.el.releasePointerCapture(arraste.pointerId); } catch (_) {}
+            arraste.el.style.zIndex = arraste.z || '20';
+            arraste.el.style.cursor = '';
+            if (typeof inst.atualizarHandles === 'function') inst.atualizarHandles();
+            if (typeof inst.salvarEstadoHistorico === 'function') inst.salvarEstadoHistorico('Mover Texto');
+            arraste = null;
+        }
+
+        document.addEventListener('pointerdown', iniciarArrasteTexto, true);
+        document.addEventListener('pointermove', moverArrasteTexto, true);
+        document.addEventListener('pointerup', finalizarArrasteTexto, true);
+        document.addEventListener('pointercancel', finalizarArrasteTexto, true);
+
+        // Segurança: quando um texto é selecionado, garanta que ele não fique readOnly do modo borracha
+        // e mantenha cursor de movimento para deixar claro que arrasta pelo próprio texto.
+        const selecionarAnterior = inst.selecionarElemento ? inst.selecionarElemento.bind(inst) : null;
+        if (selecionarAnterior && !inst.__selecionarTextoDiretoFinalPatch) {
+            inst.__selecionarTextoDiretoFinalPatch = true;
+            inst.selecionarElemento = function(elemento, evento) {
+                const r = selecionarAnterior(elemento, evento);
+                if (ehTexto(elemento) && !this.modoBorrachaAtivo) {
+                    if ('readOnly' in elemento) elemento.readOnly = false;
+                    elemento.classList.remove('bloqueado-modo-borracha');
+                    elemento.style.cursor = 'move';
+                }
+                return r;
+            };
+        }
+    }
+
+    function instalarQuandoPossivel() {
+        if (window.gerenciadorDesenho) instalarMoverTextoDireto(window.gerenciadorDesenho);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        instalarQuandoPossivel();
+        setTimeout(instalarQuandoPossivel, 200);
+        setTimeout(instalarQuandoPossivel, 1000);
+    });
+    window.addEventListener('load', instalarQuandoPossivel);
+})();
+
+
+(function() {
+    if (typeof GerenciadorDesenho === 'undefined') return;
+
+    function prepararLinhaRetaSemBordaOriginal(inst) {
+        if (!inst || !inst.drawingArea) return;
+        inst.drawingArea.querySelectorAll('.cuba.linha-reta').forEach((el) => {
+            // Materializa a linha como segmentos internos antes de matar a borda original.
+            if (typeof inst.sincronizarLinhasDesenhoRetangular === 'function') {
+                inst.sincronizarLinhasDesenhoRetangular(el);
+            } else if (typeof inst.renderizarDesenhoComBorracha === 'function') {
+                inst.renderizarDesenhoComBorracha(el);
+            }
+
+            el.classList.add('desenho-segmentado-retangular', 'desenho-svg-real', 'linha-reta-print-sem-borda');
+
+            // Guardar o style original só para restaurar depois da impressão.
+            if (!el.hasAttribute('data-style-antes-print-linha-reta')) {
+                el.setAttribute('data-style-antes-print-linha-reta', el.getAttribute('style') || '');
+            }
+
+            ['border','border-top','border-right','border-bottom','border-left','border-width','border-style','border-color','outline','box-shadow','filter'].forEach((prop) => {
+                el.style.setProperty(prop, prop === 'border' ? '0 none transparent' : (prop.indexOf('border') === 0 ? '0 none transparent' : 'none'), 'important');
+            });
+            el.style.setProperty('background', 'none', 'important');
+            el.style.setProperty('background-image', 'none', 'important');
+            el.style.setProperty('background-color', 'transparent', 'important');
+
+            el.querySelectorAll(':scope > .linha-peca').forEach((linha) => {
+                linha.style.setProperty('visibility', 'visible', 'important');
+                linha.style.setProperty('display', 'block', 'important');
+                if (typeof inst.renderizarLinhaPecaComRecortes === 'function') {
+                    inst.renderizarLinhaPecaComRecortes(linha);
+                }
+            });
+        });
+    }
+
+    function restaurarLinhaRetaDepoisPrint(inst) {
+        if (!inst || !inst.drawingArea) return;
+        inst.drawingArea.querySelectorAll('.cuba.linha-reta[data-style-antes-print-linha-reta]').forEach((el) => {
+            const antigo = el.getAttribute('data-style-antes-print-linha-reta') || '';
+            el.setAttribute('style', antigo);
+            el.removeAttribute('data-style-antes-print-linha-reta');
+            if (typeof inst.sincronizarLinhasDesenhoRetangular === 'function') {
+                inst.sincronizarLinhasDesenhoRetangular(el);
+            } else if (typeof inst.renderizarDesenhoComBorracha === 'function') {
+                inst.renderizarDesenhoComBorracha(el);
+            }
+        });
+    }
+
+    window.addEventListener('beforeprint', function() {
+        prepararLinhaRetaSemBordaOriginal(window.gerenciadorDesenho);
+    });
+    window.addEventListener('afterprint', function() {
+        restaurarLinhaRetaDepoisPrint(window.gerenciadorDesenho);
+    });
+
+    // Garante que novas linhas retas também sejam convertidas na tela, sem depender do print.
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(() => prepararLinhaRetaSemBordaOriginal(window.gerenciadorDesenho), 300);
+        setTimeout(() => prepararLinhaRetaSemBordaOriginal(window.gerenciadorDesenho), 1200);
+    });
+})();
+
+(function() {
+    if (typeof GerenciadorDesenho === 'undefined') return;
+
+    function n(v, f = 0) {
+        const x = Number(v);
+        return Number.isFinite(x) ? x : f;
+    }
+
+    function instalarArrasteTextoFinal(inst) {
+        if (!inst || !inst.drawingArea || inst.__arrasteTextoFinalSemInteract) return;
+        inst.__arrasteTextoFinalSemInteract = true;
+        let drag = null;
+
+        function alvoTexto(ev) {
+            return ev.target && ev.target.closest ? ev.target.closest('.texto-legenda') : null;
+        }
+
+        function selecionar(texto, ev) {
+            if (typeof inst.selecionarElemento === 'function' && inst.elementoSelecionado !== texto) {
+                inst.selecionarElemento(texto, ev || null);
+            } else {
+                inst.elementoSelecionado = texto;
+                texto.classList.add('elemento-selecionado');
+                if (typeof inst.criarHandles === 'function') inst.criarHandles(texto);
+                else if (typeof inst.atualizarHandles === 'function') inst.atualizarHandles();
+            }
+        }
+
+        function podeArrastar(texto) {
+            if (!texto || inst.modoBorrachaAtivo) return false;
+            const btnSelecionar = document.getElementById('btnSelecionar');
+            const selecionarAtivo = !!(inst.modoSelecaoAtivo || (btnSelecionar && btnSelecionar.classList.contains('btn-selecao-ativo')));
+            return selecionarAtivo || inst.elementoSelecionado === texto || texto.classList.contains('elemento-selecionado') || texto.classList.contains('selecionavel');
+        }
+
+        function inicio(ev) {
+            const texto = alvoTexto(ev);
+            if (!texto || !inst.drawingArea.contains(texto) || !podeArrastar(texto)) return;
+            if (ev.target && ev.target.closest && ev.target.closest('.handle,.handle-rotacao,.handles-container,button,select,.modal,.modal-controles,.modal-estilos')) return;
+
+            ev.preventDefault();
+            ev.stopPropagation();
+            if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+
+            selecionar(texto, ev);
+            if (document.activeElement && document.activeElement.blur) document.activeElement.blur();
+
+            drag = {
+                el: texto,
+                id: ev.pointerId,
+                sx: ev.clientX,
+                sy: ev.clientY,
+                bx: n(texto.getAttribute('data-x'), 0),
+                by: n(texto.getAttribute('data-y'), 0),
+                rot: n(texto.getAttribute('data-rotate'), 0),
+                z: texto.style.zIndex || ''
+            };
+            texto.style.cursor = 'move';
+            texto.style.zIndex = '30000';
+            try { texto.setPointerCapture && texto.setPointerCapture(ev.pointerId); } catch (_) {}
+        }
+
+        function move(ev) {
+            if (!drag || inst.modoBorrachaAtivo) return;
+            if (drag.id !== undefined && ev.pointerId !== undefined && drag.id !== ev.pointerId) return;
+
+            ev.preventDefault();
+            ev.stopPropagation();
+            if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+
+            let dx = ev.clientX - drag.sx;
+            let dy = ev.clientY - drag.sy;
+            if (typeof inst.limitarDeltaElementoPorTravaBordas === 'function') {
+                const limitado = inst.limitarDeltaElementoPorTravaBordas(drag.el, dx, dy);
+                if (limitado) { dx = limitado.dx; dy = limitado.dy; }
+            }
+            const nx = drag.bx + dx;
+            const ny = drag.by + dy;
+            drag.el.setAttribute('data-x', String(nx));
+            drag.el.setAttribute('data-y', String(ny));
+            drag.el.style.transform = `translate(${nx}px, ${ny}px) rotate(${drag.rot}deg)`;
+            if (typeof inst.atualizarHandles === 'function') inst.atualizarHandles();
+        }
+
+        function fim(ev) {
+            if (!drag) return;
+            if (ev) {
+                ev.preventDefault();
+                ev.stopPropagation();
+                if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+            }
+            try { drag.el.releasePointerCapture && drag.el.releasePointerCapture(drag.id); } catch (_) {}
+            drag.el.style.zIndex = drag.z || '20';
+            drag.el.style.cursor = 'move';
+            if (typeof inst.atualizarHandles === 'function') inst.atualizarHandles();
+            if (typeof inst.salvarEstadoHistorico === 'function') inst.salvarEstadoHistorico('Mover texto');
+            drag = null;
+        }
+
+        document.addEventListener('pointerdown', inicio, true);
+        document.addEventListener('pointermove', move, true);
+        document.addEventListener('pointerup', fim, true);
+        document.addEventListener('pointercancel', fim, true);
+    }
+
+    function tentar() {
+        if (window.gerenciadorDesenho) instalarArrasteTextoFinal(window.gerenciadorDesenho);
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        tentar();
+        setTimeout(tentar, 250);
+        setTimeout(tentar, 1200);
+    });
+    window.addEventListener('load', tentar);
+})();
+
+
+
+(function() {
+    if (typeof GerenciadorDesenho === 'undefined') return;
+
+    function corValidaPrint(cor) {
+        const c = String(cor || '').trim();
+        if (!c || c === 'transparent' || c === 'rgba(0, 0, 0, 0)') return '';
+        return c;
+    }
+
+    function estiloLinhaPrint(el, cs) {
+        const dado = (el.getAttribute('data-estilo-linha') || '').toLowerCase();
+        const inline = ((el.style && (el.style.borderTopStyle || el.style.borderStyle)) || '').toLowerCase();
+        const computado = ((cs && (cs.borderTopStyle || cs.borderStyle)) || '').toLowerCase();
+        const texto = `${dado} ${inline} ${computado} ${el.getAttribute('style') || ''}`.toLowerCase();
+        if (texto.includes('dotted') || texto.includes('pont')) return 'dotted';
+        if (texto.includes('dashed') || texto.includes('trace')) return 'dashed';
+        return 'solid';
+    }
+
+    function prepararLinhaRetaPrintIgualSite(inst) {
+        if (!inst || !inst.drawingArea) return;
+        inst.drawingArea.querySelectorAll('.cuba.linha-reta').forEach((el) => {
+            const cs = window.getComputedStyle(el);
+            const cor = corValidaPrint(el.style.borderTopColor) ||
+                        corValidaPrint(el.style.borderColor) ||
+                        corValidaPrint(el.getAttribute('data-line-color')) ||
+                        corValidaPrint(cs.borderTopColor) ||
+                        corValidaPrint(cs.borderColor) ||
+                        '#333';
+            const estilo = estiloLinhaPrint(el, cs);
+
+            el.classList.add('linha-reta-print-usar-borda');
+            el.setAttribute('data-print-line-style', estilo);
+            el.style.setProperty('--print-line-color', cor, 'important');
+            el.style.setProperty('--line-color', cor, 'important');
+            el.style.setProperty('height', '0px', 'important');
+            el.style.setProperty('min-height', '0px', 'important');
+            el.style.setProperty('max-height', '0px', 'important');
+            el.style.setProperty('border-left', '0 none transparent', 'important');
+            el.style.setProperty('border-right', '0 none transparent', 'important');
+            el.style.setProperty('border-bottom', '0 none transparent', 'important');
+            el.style.setProperty('border-top-width', '1px', 'important');
+            el.style.setProperty('border-top-color', cor, 'important');
+            el.style.setProperty('border-top-style', estilo, 'important');
+            el.style.setProperty('background', 'none', 'important');
+            el.style.setProperty('background-image', 'none', 'important');
+            el.style.setProperty('background-color', 'transparent', 'important');
+            el.style.setProperty('box-shadow', 'none', 'important');
+            el.style.setProperty('outline', 'none', 'important');
+
+            // A segunda linha vinha destes filhos gerados pela lógica nova.
+            // Na impressão da linha reta eles ficam desligados para sobrar só a linha visual da tela.
+            el.querySelectorAll(':scope > .linha-peca, :scope > .desenho-svg-borracha').forEach((filho) => {
+                filho.setAttribute('data-print-hide-linha-reta-interna', '1');
+                filho.style.setProperty('display', 'none', 'important');
+                filho.style.setProperty('visibility', 'hidden', 'important');
+                filho.style.setProperty('opacity', '0', 'important');
+            });
+        });
+    }
+
+    function restaurarLinhaRetaDepoisPrintIgualSite(inst) {
+        if (!inst || !inst.drawingArea) return;
+        inst.drawingArea.querySelectorAll('.cuba.linha-reta').forEach((el) => {
+            el.classList.remove('linha-reta-print-usar-borda');
+            el.removeAttribute('data-print-line-style');
+            el.querySelectorAll('[data-print-hide-linha-reta-interna="1"]').forEach((filho) => {
+                filho.removeAttribute('data-print-hide-linha-reta-interna');
+                filho.style.removeProperty('display');
+                filho.style.removeProperty('visibility');
+                filho.style.removeProperty('opacity');
+            });
+            if (typeof inst.sincronizarLinhasDesenhoRetangular === 'function') {
+                inst.sincronizarLinhasDesenhoRetangular(el);
+            } else if (typeof inst.renderizarDesenhoComBorracha === 'function') {
+                inst.renderizarDesenhoComBorracha(el);
+            }
+        });
+    }
+
+    const imprimirAnteriorLinhaRetaUnica = GerenciadorDesenho.prototype.imprimirDesenho;
+    GerenciadorDesenho.prototype.imprimirDesenho = function() {
+        prepararLinhaRetaPrintIgualSite(this);
+        return imprimirAnteriorLinhaRetaUnica.apply(this, arguments);
+    };
+
+    window.addEventListener('beforeprint', function() {
+        prepararLinhaRetaPrintIgualSite(window.gerenciadorDesenho);
+    });
+    window.addEventListener('afterprint', function() {
+        restaurarLinhaRetaDepoisPrintIgualSite(window.gerenciadorDesenho);
+    });
+})();
+
+
+(function() {
+    function valorCorLinha(el) {
+        const cs = window.getComputedStyle(el);
+        const candidatos = [
+            el.getAttribute('data-line-color'),
+            el.style.getPropertyValue('--line-color'),
+            el.style.borderTopColor,
+            el.style.borderColor,
+            cs.getPropertyValue('--line-color'),
+            cs.borderTopColor,
+            cs.borderColor
+        ];
+        for (const c of candidatos) {
+            const v = String(c || '').trim();
+            if (v && v !== 'transparent' && v !== 'rgba(0, 0, 0, 0)') return v;
+        }
+        return '#333';
+    }
+
+    function estiloLinhaRetaPrint(el) {
+        const cs = window.getComputedStyle(el);
+        const origem = [
+            el.getAttribute('data-estilo-linha'),
+            el.getAttribute('data-print-line-style'),
+            el.getAttribute('data-style-antes-print-linha-reta'),
+            el.className,
+            el.getAttribute('style'),
+            el.style.borderTopStyle,
+            el.style.borderStyle,
+            cs.borderTopStyle,
+            cs.borderStyle
+        ].join(' ').toLowerCase();
+
+        if (origem.includes('dotted') || origem.includes('pontilh')) return 'dotted';
+        if (origem.includes('dashed') || origem.includes('tracej')) return 'dashed';
+        return 'solid';
+    }
+
+    function prepararLinhaRetaPrintUmaLinha() {
+        const root = (window.gerenciadorDesenho && window.gerenciadorDesenho.drawingArea) || document;
+        root.querySelectorAll('.cuba.linha-reta').forEach((el) => {
+            const cor = valorCorLinha(el);
+            const estilo = estiloLinhaRetaPrint(el);
+
+            el.classList.add('linha-reta-print-final');
+            el.setAttribute('data-print-line-style', estilo);
+            el.style.setProperty('--print-line-color', cor, 'important');
+            el.style.setProperty('--line-color', cor, 'important');
+
+            // Limpa a herança problemática do retângulo antigo, mas recria só a borda superior.
+            el.style.setProperty('border', '0 none transparent', 'important');
+            el.style.setProperty('border-left', '0 none transparent', 'important');
+            el.style.setProperty('border-right', '0 none transparent', 'important');
+            el.style.setProperty('border-bottom', '0 none transparent', 'important');
+            el.style.setProperty('border-top', `1px ${estilo} ${cor}`, 'important');
+            el.style.setProperty('height', '0px', 'important');
+            el.style.setProperty('min-height', '0px', 'important');
+            el.style.setProperty('max-height', '0px', 'important');
+            el.style.setProperty('background', 'none', 'important');
+            el.style.setProperty('background-image', 'none', 'important');
+            el.style.setProperty('background-color', 'transparent', 'important');
+            el.style.setProperty('box-shadow', 'none', 'important');
+            el.style.setProperty('outline', 'none', 'important');
+            el.style.setProperty('overflow', 'visible', 'important');
+
+            // Desliga a segunda fonte visual somente na linha reta.
+            el.querySelectorAll(':scope > .linha-peca, :scope > .desenho-svg-borracha').forEach((filho) => {
+                filho.setAttribute('data-print-linha-reta-final-hide', '1');
+                filho.style.setProperty('display', 'none', 'important');
+                filho.style.setProperty('visibility', 'hidden', 'important');
+                filho.style.setProperty('opacity', '0', 'important');
+            });
+        });
+    }
+
+    function restaurarLinhaRetaPrintUmaLinha() {
+        const root = (window.gerenciadorDesenho && window.gerenciadorDesenho.drawingArea) || document;
+        root.querySelectorAll('.cuba.linha-reta.linha-reta-print-final').forEach((el) => {
+            el.classList.remove('linha-reta-print-final');
+            el.querySelectorAll('[data-print-linha-reta-final-hide="1"]').forEach((filho) => {
+                filho.removeAttribute('data-print-linha-reta-final-hide');
+                filho.style.removeProperty('display');
+                filho.style.removeProperty('visibility');
+                filho.style.removeProperty('opacity');
+            });
+        });
+    }
+
+    // Registrado por último para sobrescrever os patches antigos de impressão.
+    window.addEventListener('beforeprint', prepararLinhaRetaPrintUmaLinha);
+    window.addEventListener('afterprint', restaurarLinhaRetaPrintUmaLinha);
+
+    // Também cobre o botão interno de imprimir, caso ele prepare o DOM antes do window.print().
+    document.addEventListener('click', function(ev) {
+        const btn = ev.target && ev.target.closest ? ev.target.closest('#btnImprimir, .btn-imprimir, [onclick*="imprimir"]') : null;
+        if (btn) setTimeout(prepararLinhaRetaPrintUmaLinha, 0);
+    }, true);
+})();
+
+
+/* CORREÇÃO FINAL: símbolos em linhas de desenhos e linhas clicáveis somente no trecho visível */
+(function() {
+    if (typeof GerenciadorDesenho === 'undefined') return;
+
+    function numero(v, fallback = 0) {
+        const n = Number(v);
+        return Number.isFinite(n) ? n : fallback;
+    }
+
+    function obterOwnerLinha(linha) {
+        if (!linha || !linha.closest) return null;
+        return linha.closest('.peca, .cuba');
+    }
+
+    function garantirIdOwner(owner) {
+        if (!owner) return '';
+        let id = owner.getAttribute('data-peca-id') || owner.getAttribute('data-desenho-id') || owner.id || '';
+        if (!id) {
+            id = `obj-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+        }
+        if (!owner.id) owner.id = id.startsWith('peca-') || id.startsWith('desenho-') || id.startsWith('obj-') ? id : `obj-${id}`;
+        owner.setAttribute('data-peca-id', id);
+        owner.setAttribute('data-desenho-id', id);
+        return id;
+    }
+
+    function garantirDadosLinha(linha) {
+        const owner = obterOwnerLinha(linha);
+        if (!owner) return '';
+        const id = garantirIdOwner(owner);
+        linha.setAttribute('data-peca-id', id);
+        if (!linha.getAttribute('data-lado')) {
+            if (linha.classList.contains('linha-top')) linha.setAttribute('data-lado', 'top');
+            else if (linha.classList.contains('linha-bottom')) linha.setAttribute('data-lado', 'bottom');
+            else if (linha.classList.contains('linha-left')) linha.setAttribute('data-lado', 'left');
+            else if (linha.classList.contains('linha-right')) linha.setAttribute('data-lado', 'right');
+        }
+        if (!linha.getAttribute('data-rotacao')) {
+            const lado = linha.getAttribute('data-lado');
+            linha.setAttribute('data-rotacao', (lado === 'left' || lado === 'right') ? '90' : '0');
+        }
+        return id;
+    }
+
+    function obterComprimentoLinha(inst, linha) {
+        if (!linha) return 0;
+        if (inst && typeof inst.obterComprimentoLinhaPeca === 'function') {
+            return Math.max(0, inst.obterComprimentoLinhaPeca(linha));
+        }
+        const lado = linha.getAttribute('data-lado') || '';
+        const horizontal = lado === 'top' || lado === 'bottom';
+        return Math.max(0, parseFloat(horizontal ? linha.style.width : linha.style.height) || (horizontal ? linha.offsetWidth : linha.offsetHeight) || 0);
+    }
+
+    function obterPartesVisiveis(inst, linha) {
+        const comprimento = obterComprimentoLinha(inst, linha);
+        if (comprimento <= 0) return [];
+        let intervalos = [];
+        try {
+            intervalos = JSON.parse(linha.getAttribute('data-borracha-intervalos') || '[]');
+        } catch (e) {
+            intervalos = [];
+        }
+        if (inst && typeof inst.normalizarIntervalosBorracha === 'function') {
+            intervalos = inst.normalizarIntervalosBorracha(intervalos, comprimento);
+        }
+        const visiveis = [];
+        let cursor = 0;
+        intervalos.forEach((i) => {
+            const ini = Math.max(0, Math.min(comprimento, numero(i.ini, 0)));
+            const fim = Math.max(0, Math.min(comprimento, numero(i.fim, 0)));
+            if (ini > cursor) visiveis.push({ ini: cursor, fim: ini });
+            cursor = Math.max(cursor, fim);
+        });
+        if (cursor < comprimento) visiveis.push({ ini: cursor, fim: comprimento });
+        return visiveis.filter((p) => p.fim - p.ini > 0.5);
+    }
+
+    function centroMaiorTrechoVisivel(inst, linha) {
+        const partes = obterPartesVisiveis(inst, linha);
+        if (!partes.length) return null;
+        let maior = partes[0];
+        partes.forEach((p) => {
+            if ((p.fim - p.ini) > (maior.fim - maior.ini)) maior = p;
+        });
+        return (maior.ini + maior.fim) / 2;
+    }
+
+    GerenciadorDesenho.prototype.atualizarSimboloDaLinhaVisivel = function(linha) {
+        if (!linha || !linha.classList || !linha.classList.contains('linha-peca')) return;
+        const owner = obterOwnerLinha(linha);
+        if (!owner) return;
+        const id = garantirDadosLinha(linha);
+        const lado = linha.getAttribute('data-lado') || '';
+        const simbolos = owner.querySelectorAll(`:scope > .simbolo-linha[data-peca-id="${id}"][data-lado="${lado}"]`);
+        if (!simbolos.length) return;
+
+        const centro = centroMaiorTrechoVisivel(this, linha);
+        const ownerWidth = Math.max(1, parseFloat(owner.style.width) || owner.offsetWidth || 1);
+        const ownerHeight = Math.max(1, parseFloat(owner.style.height) || owner.offsetHeight || 1);
+
+        simbolos.forEach((simbolo) => {
+            if (centro === null) {
+                simbolo.style.display = 'none';
+                return;
+            }
+            simbolo.style.display = '';
+            let left = ownerWidth / 2;
+            let top = ownerHeight / 2;
+            if (lado === 'top') { left = centro; top = 0; }
+            else if (lado === 'bottom') { left = centro; top = ownerHeight; }
+            else if (lado === 'left') { left = 0; top = centro; }
+            else if (lado === 'right') { left = ownerWidth; top = centro; }
+
+            const offsetX = parseFloat(simbolo.getAttribute('data-x')) || 0;
+            const offsetY = parseFloat(simbolo.getAttribute('data-y')) || 0;
+            const rot = parseFloat(simbolo.getAttribute('data-rotacao') || simbolo.getAttribute('data-rotate')) || 0;
+            simbolo.style.left = `${left}px`;
+            simbolo.style.top = `${top}px`;
+            simbolo.style.transform = `translate(-50%, -50%) translate(${offsetX}px, ${offsetY}px) rotate(${rot}deg)`;
+            simbolo.style.transformOrigin = 'center center';
+            simbolo.setAttribute('data-rotate', rot);
+            simbolo.setAttribute('data-rotacao', rot);
+        });
+    };
+
+    GerenciadorDesenho.prototype.configurarCliqueNosSegmentosVisiveisLinha = function(linha) {
+        if (!linha || !linha.classList || !linha.classList.contains('linha-peca')) return;
+        garantirDadosLinha(linha);
+        linha.style.pointerEvents = 'none';
+        linha.style.cursor = 'default';
+
+        linha.querySelectorAll(':scope > .segmento-linha-peca').forEach((segmento) => {
+            segmento.style.pointerEvents = 'auto';
+            segmento.style.cursor = 'pointer';
+            segmento.style.zIndex = '3';
+            if (segmento.getAttribute('data-click-simbolo-ok') === '1') return;
+            segmento.setAttribute('data-click-simbolo-ok', '1');
+
+            const abrir = (ev) => {
+                if (this.modoBorrachaAtivo || document.body.classList.contains('modo-borracha')) return;
+                ev.preventDefault();
+                ev.stopPropagation();
+                if (typeof this.manipularCliqueLinha === 'function') {
+                    this.manipularCliqueLinha(ev, linha);
+                }
+            };
+
+            segmento.addEventListener('click', abrir);
+            segmento.addEventListener('touchstart', abrir, { passive: false });
+        });
+    };
+
+    const renderLinhaOriginalSimboloVisivel = GerenciadorDesenho.prototype.renderizarLinhaPecaComRecortes;
+    GerenciadorDesenho.prototype.renderizarLinhaPecaComRecortes = function(linha) {
+        const r = renderLinhaOriginalSimboloVisivel ? renderLinhaOriginalSimboloVisivel.call(this, linha) : undefined;
+        if (linha && linha.classList && linha.classList.contains('linha-peca')) {
+            this.configurarCliqueNosSegmentosVisiveisLinha(linha);
+            this.atualizarSimboloDaLinhaVisivel(linha);
+        }
+        return r;
+    };
+
+    const syncDesenhoOriginalSimbolo = GerenciadorDesenho.prototype.sincronizarLinhasDesenhoRetangular;
+    if (typeof syncDesenhoOriginalSimbolo === 'function') {
+        GerenciadorDesenho.prototype.sincronizarLinhasDesenhoRetangular = function(elemento) {
+            const r = syncDesenhoOriginalSimbolo.call(this, elemento);
+            if (elemento && elemento.classList && elemento.classList.contains('cuba')) {
+                const id = garantirIdOwner(elemento);
+                elemento.querySelectorAll(':scope > .linha-peca.desenho-linha-peca').forEach((linha) => {
+                    linha.setAttribute('data-peca-id', id);
+                    linha.style.pointerEvents = 'none';
+                    this.configurarCliqueNosSegmentosVisiveisLinha(linha);
+                    this.atualizarSimboloDaLinhaVisivel(linha);
+                });
+            }
+            return r;
+        };
+    }
+
+    const criarSimboloOriginal = GerenciadorDesenho.prototype.criarSimboloLinha;
+    GerenciadorDesenho.prototype.criarSimboloLinha = function(linhaElement, simboloData, simboloExistente = null) {
+        const owner = obterOwnerLinha(linhaElement);
+        if (owner && owner.classList && owner.classList.contains('cuba')) {
+            const id = garantirDadosLinha(linhaElement);
+            const lado = linhaElement.getAttribute('data-lado') || 'top';
+            const angulo = Number(simboloData && simboloData.rotacao) || Number(linhaElement.getAttribute('data-rotacao')) || 0;
+            let simboloElement = simboloExistente && simboloExistente.parentNode ? simboloExistente : null;
+            if (!simboloElement) {
+                simboloElement = document.createElement('div');
+                simboloElement.className = 'simbolo-linha';
+                owner.appendChild(simboloElement);
+            }
+            simboloElement.textContent = (simboloData && (simboloData.texto || simboloData.simbolo)) || '//';
+            simboloElement.style.position = 'absolute';
+            simboloElement.style.zIndex = '10';
+            simboloElement.setAttribute('data-peca-id', id);
+            simboloElement.setAttribute('data-lado', lado);
+            simboloElement.setAttribute('data-rotacao', angulo);
+            simboloElement.setAttribute('data-rotate', angulo);
+            if (!simboloElement.hasAttribute('data-x')) simboloElement.setAttribute('data-x', '0');
+            if (!simboloElement.hasAttribute('data-y')) simboloElement.setAttribute('data-y', '0');
+            if (this.modoSelecaoAtivo) simboloElement.classList.add('selecionavel');
+            this.atualizarSimboloDaLinhaVisivel(linhaElement);
+            if (typeof this.configurarInteratividadeSimbolo === 'function') this.configurarInteratividadeSimbolo(simboloElement);
+            if (simboloExistente && simboloExistente !== simboloElement && simboloExistente.parentNode) simboloExistente.remove();
+            this.salvarEstadoHistorico(simboloExistente ? 'Editar Símbolo' : 'Adicionar Símbolo');
+            return simboloElement;
+        }
+        return criarSimboloOriginal ? criarSimboloOriginal.call(this, linhaElement, simboloData, simboloExistente) : null;
+    };
+
+    const atualizarSimbolosOriginal = GerenciadorDesenho.prototype.atualizarPosicaoSimbolos;
+    GerenciadorDesenho.prototype.atualizarPosicaoSimbolos = function(elemento) {
+        const r = atualizarSimbolosOriginal ? atualizarSimbolosOriginal.call(this, elemento) : undefined;
+        if (!elemento || !elemento.querySelectorAll) return r;
+        elemento.querySelectorAll(':scope > .linha-peca').forEach((linha) => {
+            garantirDadosLinha(linha);
+            this.configurarCliqueNosSegmentosVisiveisLinha(linha);
+            this.atualizarSimboloDaLinhaVisivel(linha);
+        });
+        return r;
+    };
+
+    function aplicarTudo(inst) {
+        if (!inst || !inst.drawingArea) return;
+        inst.drawingArea.querySelectorAll('.peca, .cuba').forEach((obj) => {
+            garantirIdOwner(obj);
+            if (obj.classList.contains('cuba') && typeof inst.sincronizarLinhasDesenhoRetangular === 'function') {
+                inst.sincronizarLinhasDesenhoRetangular(obj);
+            }
+            obj.querySelectorAll(':scope > .linha-peca').forEach((linha) => {
+                garantirDadosLinha(linha);
+                if (typeof inst.configurarCliqueNosSegmentosVisiveisLinha === 'function') inst.configurarCliqueNosSegmentosVisiveisLinha(linha);
+                if (typeof inst.atualizarSimboloDaLinhaVisivel === 'function') inst.atualizarSimboloDaLinhaVisivel(linha);
+            });
+        });
+    }
+
+    const initInterval = setInterval(() => {
+        if (window.gerenciadorDesenho && window.gerenciadorDesenho.drawingArea) {
+            aplicarTudo(window.gerenciadorDesenho);
+            clearInterval(initInterval);
+        }
+    }, 200);
+
+    document.addEventListener('click', function() {
+        if (window.gerenciadorDesenho) setTimeout(() => aplicarTudo(window.gerenciadorDesenho), 0);
+    }, true);
+})();
+
+
+
+(function() {
+    if (typeof GerenciadorDesenho === 'undefined') return;
+
+    function limparLinhaInteira(linha) {
+        if (!linha || !linha.style) return;
+        linha.style.setProperty('background-color', 'transparent', 'important');
+    }
+
+    function aplicarHoverVisivel(linha, ativo) {
+        if (!linha || !linha.classList) return;
+        limparLinhaInteira(linha);
+        linha.classList.toggle('linha-visivel-hover', !!ativo);
+    }
+
+    function configurarHoverLinhaVisivel(inst, linha) {
+        if (!linha || !linha.classList || !linha.classList.contains('linha-peca')) return;
+        if (linha.getAttribute('data-hover-visivel-ok') !== '1') {
+            linha.setAttribute('data-hover-visivel-ok', '1');
+            linha.addEventListener('mouseenter', function() {
+                aplicarHoverVisivel(linha, true);
+            });
+            linha.addEventListener('mouseleave', function() {
+                aplicarHoverVisivel(linha, false);
+            });
+        }
+
+        limparLinhaInteira(linha);
+        linha.querySelectorAll(':scope > .segmento-linha-peca').forEach((segmento) => {
+            if (segmento.getAttribute('data-hover-visivel-seg-ok') === '1') return;
+            segmento.setAttribute('data-hover-visivel-seg-ok', '1');
+            segmento.addEventListener('mouseenter', function(ev) {
+                aplicarHoverVisivel(linha, true);
+            });
+            segmento.addEventListener('mouseleave', function(ev) {
+                aplicarHoverVisivel(linha, false);
+            });
+        });
+    }
+
+    const configurarCliqueOriginalLinhaVisivel = GerenciadorDesenho.prototype.configurarCliqueNosSegmentosVisiveisLinha;
+    GerenciadorDesenho.prototype.configurarCliqueNosSegmentosVisiveisLinha = function(linha) {
+        const r = typeof configurarCliqueOriginalLinhaVisivel === 'function'
+            ? configurarCliqueOriginalLinhaVisivel.call(this, linha)
+            : undefined;
+        configurarHoverLinhaVisivel(this, linha);
+        return r;
+    };
+
+    const renderOriginalLinhaVisivelHover = GerenciadorDesenho.prototype.renderizarLinhaPecaComRecortes;
+    GerenciadorDesenho.prototype.renderizarLinhaPecaComRecortes = function(linha) {
+        const r = typeof renderOriginalLinhaVisivelHover === 'function'
+            ? renderOriginalLinhaVisivelHover.call(this, linha)
+            : undefined;
+        if (linha && linha.classList && linha.classList.contains('linha-peca')) {
+            limparLinhaInteira(linha);
+            configurarHoverLinhaVisivel(this, linha);
+        }
+        return r;
+    };
+
+    const reabilitarOriginalLinhaVisivel = GerenciadorDesenho.prototype.reabilitarLinhasPecas;
+    GerenciadorDesenho.prototype.reabilitarLinhasPecas = function() {
+        const r = typeof reabilitarOriginalLinhaVisivel === 'function'
+            ? reabilitarOriginalLinhaVisivel.call(this)
+            : undefined;
+        if (this.drawingArea) {
+            this.drawingArea.querySelectorAll('.linha-peca').forEach((linha) => {
+                limparLinhaInteira(linha);
+                configurarHoverLinhaVisivel(this, linha);
+            });
+        }
+        return r;
+    };
+
+    const carregarOriginalLinhaVisivel = GerenciadorDesenho.prototype.carregarDesenhoSalvo;
+    if (typeof carregarOriginalLinhaVisivel === 'function') {
+        GerenciadorDesenho.prototype.carregarDesenhoSalvo = function() {
+            const r = carregarOriginalLinhaVisivel.apply(this, arguments);
+            setTimeout(() => {
+                if (!this.drawingArea) return;
+                this.drawingArea.querySelectorAll('.linha-peca').forEach((linha) => {
+                    limparLinhaInteira(linha);
+                    configurarHoverLinhaVisivel(this, linha);
+                });
+            }, 0);
+            return r;
+        };
+    }
+
+    document.addEventListener('mouseover', function(ev) {
+        const linha = ev.target && ev.target.closest ? ev.target.closest('.linha-peca') : null;
+        if (linha) limparLinhaInteira(linha);
+    }, true);
+})();
+
+
+(function() {
+    if (typeof GerenciadorDesenho === 'undefined') return;
+
+    function botaoPrincipalAtivo() {
+        return !!document.querySelector(
+            '.toolbar .btn-selecao-ativo, .toolbar .btn-borracha-ativo, .toolbar .btn-modo-ativo, ' +
+            '.btn-selecao-ativo, .btn-borracha-ativo, .btn-modo-ativo'
+        );
+    }
+
+    GerenciadorDesenho.prototype.podeAbrirSimboloLinha = function() {
+        if (this.modoSelecaoAtivo) return false;
+        if (this.modoBorrachaAtivo) return false;
+        if (this.modoLacoAtivo) return false;
+        if (this.modoInsercaoAtivo) return false;
+        if (document.body.classList.contains('modo-borracha')) return false;
+        if (document.body.classList.contains('modo-laco')) return false;
+        if (botaoPrincipalAtivo()) return false;
+        return true;
+    };
+
+    const manipularCliqueLinhaOriginalModo = GerenciadorDesenho.prototype.manipularCliqueLinha;
+    GerenciadorDesenho.prototype.manipularCliqueLinha = function(e, linhaElement, simboloExistente = null) {
+        if (!this.podeAbrirSimboloLinha || !this.podeAbrirSimboloLinha()) {
+            // Não interrompe o clique: no modo Selecionar, o evento pode continuar
+            // para a peça/texto/desenho ser selecionado normalmente.
+            return;
+        }
+        if (typeof manipularCliqueLinhaOriginalModo === 'function') {
+            return manipularCliqueLinhaOriginalModo.call(this, e, linhaElement, simboloExistente);
+        }
+    };
+
+    const configurarCliqueOriginalModo = GerenciadorDesenho.prototype.configurarCliqueNosSegmentosVisiveisLinha;
+    GerenciadorDesenho.prototype.configurarCliqueNosSegmentosVisiveisLinha = function(linha) {
+        const r = typeof configurarCliqueOriginalModo === 'function'
+            ? configurarCliqueOriginalModo.call(this, linha)
+            : undefined;
+
+        if (!linha || !linha.querySelectorAll) return r;
+        linha.querySelectorAll(':scope > .segmento-linha-peca').forEach((segmento) => {
+            if (segmento.getAttribute('data-bloqueio-modo-simbolo-ok') === '1') return;
+            segmento.setAttribute('data-bloqueio-modo-simbolo-ok', '1');
+
+            segmento.addEventListener('click', (ev) => {
+                if (!this.podeAbrirSimboloLinha || !this.podeAbrirSimboloLinha()) {
+                    // Captura antes dos handlers antigos para não abrir popup.
+                    // Não chama preventDefault/stopPropagation para não matar seleção.
+                    ev.stopImmediatePropagation();
+                    return;
+                }
+            }, true);
+
+            segmento.addEventListener('touchstart', (ev) => {
+                if (!this.podeAbrirSimboloLinha || !this.podeAbrirSimboloLinha()) {
+                    ev.stopImmediatePropagation();
+                    return;
+                }
+            }, { capture: true, passive: false });
+        });
+        return r;
+    };
+
+    const renderOriginalModoSimbolo = GerenciadorDesenho.prototype.renderizarLinhaPecaComRecortes;
+    GerenciadorDesenho.prototype.renderizarLinhaPecaComRecortes = function(linha) {
+        const r = typeof renderOriginalModoSimbolo === 'function'
+            ? renderOriginalModoSimbolo.call(this, linha)
+            : undefined;
+        if (linha && typeof this.configurarCliqueNosSegmentosVisiveisLinha === 'function') {
+            this.configurarCliqueNosSegmentosVisiveisLinha(linha);
+        }
+        return r;
+    };
+})();
+
+
+(function() {
+    if (typeof GerenciadorDesenho === 'undefined') return;
+
+    function existeBotaoModoAtivo() {
+        return !!document.querySelector('.btn-selecao-ativo, .btn-borracha-ativo, .btn-modo-ativo');
+    }
+
+    function modoBloqueiaLinha(inst) {
+        if (!inst) return existeBotaoModoAtivo();
+        return !!(
+            inst.modoSelecaoAtivo ||
+            inst.modoBorrachaAtivo ||
+            inst.modoLacoAtivo ||
+            inst.modoInsercaoAtivo ||
+            document.body.classList.contains('modo-borracha') ||
+            document.body.classList.contains('modo-laco') ||
+            existeBotaoModoAtivo()
+        );
+    }
+
+    GerenciadorDesenho.prototype.linhaSimboloBloqueadaPorModo = function() {
+        return modoBloqueiaLinha(this);
+    };
+
+    GerenciadorDesenho.prototype.atualizarBloqueioLinhaSimboloPorModo = function() {
+        const bloqueado = modoBloqueiaLinha(this);
+        document.body.classList.toggle('linhas-simbolo-bloqueadas', bloqueado);
+
+        if (!this.drawingArea) return bloqueado;
+        this.drawingArea.querySelectorAll('.linha-peca').forEach((linha) => {
+            linha.classList.remove('linha-visivel-hover');
+            linha.style.backgroundColor = 'transparent';
+            linha.style.cursor = bloqueado ? 'default' : 'pointer';
+            linha.style.pointerEvents = 'none';
+            linha.querySelectorAll(':scope > .segmento-linha-peca').forEach((segmento) => {
+                segmento.style.cursor = bloqueado ? 'default' : 'pointer';
+                segmento.style.pointerEvents = bloqueado ? 'none' : 'auto';
+            });
+        });
+        return bloqueado;
+    };
+
+    const podeAbrirAnteriorFinal = GerenciadorDesenho.prototype.podeAbrirSimboloLinha;
+    GerenciadorDesenho.prototype.podeAbrirSimboloLinha = function() {
+        if (this.linhaSimboloBloqueadaPorModo && this.linhaSimboloBloqueadaPorModo()) return false;
+        if (typeof podeAbrirAnteriorFinal === 'function') return !!podeAbrirAnteriorFinal.call(this);
+        return true;
+    };
+
+    const manipularCliqueLinhaAnteriorFinal = GerenciadorDesenho.prototype.manipularCliqueLinha;
+    GerenciadorDesenho.prototype.manipularCliqueLinha = function(e, linhaElement, simboloExistente = null) {
+        if (this.atualizarBloqueioLinhaSimboloPorModo && this.atualizarBloqueioLinhaSimboloPorModo()) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+            }
+            return false;
+        }
+        return manipularCliqueLinhaAnteriorFinal ? manipularCliqueLinhaAnteriorFinal.call(this, e, linhaElement, simboloExistente) : undefined;
+    };
+
+    const configurarCliqueAnteriorFinal = GerenciadorDesenho.prototype.configurarCliqueNosSegmentosVisiveisLinha;
+    GerenciadorDesenho.prototype.configurarCliqueNosSegmentosVisiveisLinha = function(linha) {
+        const r = typeof configurarCliqueAnteriorFinal === 'function' ? configurarCliqueAnteriorFinal.call(this, linha) : undefined;
+        if (!linha || !linha.querySelectorAll) return r;
+
+        const bloqueado = this.atualizarBloqueioLinhaSimboloPorModo ? this.atualizarBloqueioLinhaSimboloPorModo() : modoBloqueiaLinha(this);
+        linha.style.pointerEvents = 'none';
+        linha.style.cursor = bloqueado ? 'default' : 'pointer';
+        linha.classList.remove('linha-visivel-hover');
+
+        linha.querySelectorAll(':scope > .segmento-linha-peca').forEach((segmento) => {
+            segmento.style.pointerEvents = bloqueado ? 'none' : 'auto';
+            segmento.style.cursor = bloqueado ? 'default' : 'pointer';
+            if (segmento.getAttribute('data-bloqueio-total-modos-ok') === '1') return;
+            segmento.setAttribute('data-bloqueio-total-modos-ok', '1');
+
+            const bloquear = (ev) => {
+                if (this.atualizarBloqueioLinhaSimboloPorModo && this.atualizarBloqueioLinhaSimboloPorModo()) {
+                    ev.preventDefault();
+                    ev.stopPropagation();
+                    if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+                    return false;
+                }
+            };
+            segmento.addEventListener('click', bloquear, true);
+            segmento.addEventListener('mousedown', bloquear, true);
+            segmento.addEventListener('pointerdown', bloquear, true);
+            segmento.addEventListener('touchstart', bloquear, { capture: true, passive: false });
+            segmento.addEventListener('mouseenter', () => {
+                if (this.atualizarBloqueioLinhaSimboloPorModo && this.atualizarBloqueioLinhaSimboloPorModo()) {
+                    linha.classList.remove('linha-visivel-hover');
+                }
+            }, true);
+        });
+        return r;
+    };
+
+    const renderLinhaAnteriorFinal = GerenciadorDesenho.prototype.renderizarLinhaPecaComRecortes;
+    GerenciadorDesenho.prototype.renderizarLinhaPecaComRecortes = function(linha) {
+        const r = typeof renderLinhaAnteriorFinal === 'function' ? renderLinhaAnteriorFinal.call(this, linha) : undefined;
+        if (linha && typeof this.configurarCliqueNosSegmentosVisiveisLinha === 'function') {
+            this.configurarCliqueNosSegmentosVisiveisLinha(linha);
+        }
+        if (this.atualizarBloqueioLinhaSimboloPorModo) this.atualizarBloqueioLinhaSimboloPorModo();
+        return r;
+    };
+
+    document.addEventListener('mouseover', function(ev) {
+        const inst = window.gerenciadorDesenho;
+        if (!inst || !(inst.atualizarBloqueioLinhaSimboloPorModo && inst.atualizarBloqueioLinhaSimboloPorModo())) return;
+        const linha = ev.target && ev.target.closest ? ev.target.closest('.linha-peca') : null;
+        if (linha) linha.classList.remove('linha-visivel-hover');
+    }, true);
+
+    document.addEventListener('click', function(ev) {
+        const inst = window.gerenciadorDesenho;
+        if (!inst) return;
+        setTimeout(() => {
+            if (inst.atualizarBloqueioLinhaSimboloPorModo) inst.atualizarBloqueioLinhaSimboloPorModo();
+        }, 0);
+    }, true);
+
+    ['mousedown', 'pointerdown', 'touchstart'].forEach((evt) => {
+        document.addEventListener(evt, function(ev) {
+            const inst = window.gerenciadorDesenho;
+            if (!inst || !(inst.atualizarBloqueioLinhaSimboloPorModo && inst.atualizarBloqueioLinhaSimboloPorModo())) return;
+            const segmento = ev.target && ev.target.closest ? ev.target.closest('.segmento-linha-peca') : null;
+            if (segmento) {
+                ev.preventDefault();
+                ev.stopPropagation();
+                if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+            }
+        }, { capture: true, passive: false });
+    });
+
+    const intervalBloqueioLinha = setInterval(() => {
+        const inst = window.gerenciadorDesenho;
+        if (!inst || !inst.drawingArea) return;
+        if (inst.atualizarBloqueioLinhaSimboloPorModo) inst.atualizarBloqueioLinhaSimboloPorModo();
+    }, 150);
+})();
 </script>
 
+<style id="linha-azul-hitbox-segmento-css">
+@media screen {
+    /* A linha preta não muda. A faixa azul fica em uma hitbox filha do segmento real. */
+    html body .drawing-area .linha-peca,
+    html body .area-pecas .linha-peca,
+    html body .drawing-area .linha-peca:hover,
+    html body .area-pecas .linha-peca:hover,
+    html body .drawing-area .linha-peca.linha-visivel-hover,
+    html body .area-pecas .linha-peca.linha-visivel-hover {
+        background: transparent !important;
+        background-color: transparent !important;
+        opacity: 1 !important;
+        overflow: visible !important;
+    }
+
+    html body .linha-peca > .segmento-linha-peca {
+        position: absolute !important;
+        overflow: visible !important;
+        opacity: 1 !important;
+        box-shadow: none !important;
+        outline: none !important;
+    }
+
+    html body .linha-peca > .segmento-linha-peca::after,
+    html body .linha-peca > .segmento-linha-peca.linha-azul-rotacao-exata::after,
+    html body .linha-peca > .segmento-linha-peca.linha-area-azul-final::after,
+    html body .linha-peca > .segmento-linha-peca.linha-segmento-hover-estavel::after {
+        content: none !important;
+        display: none !important;
+    }
+
+    html body .linha-peca .linha-azul-hitbox-segmento {
+        position: absolute !important;
+        display: block !important;
+        background: transparent !important;
+        opacity: .72 !important;
+        pointer-events: auto !important;
+        cursor: pointer !important;
+        z-index: 9999 !important;
+        box-shadow: none !important;
+        outline: none !important;
+        border: 0 !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+
+    html body .linha-peca .linha-azul-hitbox-segmento.horizontal {
+        left: 0 !important;
+        top: -3px !important;
+        width: 100% !important;
+        height: 7px !important;
+    }
+
+    html body .linha-peca .linha-azul-hitbox-segmento.vertical {
+        left: -3px !important;
+        top: 0 !important;
+        width: 7px !important;
+        height: 100% !important;
+    }
+
+    html body .linha-peca .linha-azul-hitbox-segmento:hover {
+        background: #4e73df !important;
+        background-color: #4e73df !important;
+    }
+
+    html body.linhas-simbolo-bloqueadas .linha-peca .linha-azul-hitbox-segmento,
+    html body.modo-borracha .linha-peca .linha-azul-hitbox-segmento,
+    html body.modo-laco .linha-peca .linha-azul-hitbox-segmento {
+        display: none !important;
+        pointer-events: none !important;
+        background: transparent !important;
+    }
+}
+
+@media print {
+    .linha-azul-hitbox-segmento {
+        display: none !important;
+        visibility: hidden !important;
+    }
+}
+</style>
+
+<script id="linha-azul-hitbox-segmento-js">
+(function() {
+    if (window.__linhaAzulHitboxSegmentoInstalada) return;
+    window.__linhaAzulHitboxSegmentoInstalada = true;
+
+    const HITBOX = 'linha-azul-hitbox-segmento';
+
+    function inst() { return window.gerenciadorDesenho || null; }
+
+    function modoBloqueado(i) {
+        return !!(
+            (i && (i.modoSelecaoAtivo || i.modoBorrachaAtivo || i.modoLacoAtivo || i.modoInsercaoAtivo)) ||
+            document.body.classList.contains('modo-borracha') ||
+            document.body.classList.contains('modo-laco') ||
+            document.body.classList.contains('linhas-simbolo-bloqueadas') ||
+            document.querySelector('.btn-selecao-ativo, .btn-borracha-ativo, .btn-modo-ativo')
+        );
+    }
+
+    function numeroCss(v) {
+        const n = parseFloat(v);
+        return Number.isFinite(n) ? n : 0;
+    }
+
+    function orientacaoSegmento(segmento) {
+        const sw = numeroCss(segmento.style.width) || segmento.offsetWidth || 0;
+        const sh = numeroCss(segmento.style.height) || segmento.offsetHeight || 0;
+        if (sh > sw) return 'vertical';
+        return 'horizontal';
+    }
+
+    function prepararSegmento(segmento) {
+        if (!segmento || !segmento.classList || !segmento.classList.contains('segmento-linha-peca')) return;
+        segmento.classList.remove('linha-azul-rotacao-exata', 'linha-area-azul-final', 'linha-segmento-hover-estavel');
+        segmento.style.overflow = 'visible';
+
+        let hit = segmento.querySelector(':scope > .' + HITBOX);
+        if (!hit) {
+            hit = document.createElement('span');
+            hit.className = HITBOX;
+            segmento.appendChild(hit);
+        }
+
+        const orientacao = orientacaoSegmento(segmento);
+        hit.classList.toggle('horizontal', orientacao === 'horizontal');
+        hit.classList.toggle('vertical', orientacao === 'vertical');
+        hit.setAttribute('aria-hidden', 'true');
+    }
+
+    function prepararLinha(linha) {
+        if (!linha || !linha.classList || !linha.classList.contains('linha-peca')) return;
+        linha.classList.remove('linha-visivel-hover');
+        linha.style.setProperty('background', 'transparent', 'important');
+        linha.style.setProperty('background-color', 'transparent', 'important');
+        linha.querySelectorAll(':scope > .segmento-linha-peca').forEach(prepararSegmento);
+    }
+
+    function prepararTodas() {
+        const i = inst();
+        const raiz = (i && i.drawingArea) || document;
+        raiz.querySelectorAll('.linha-peca').forEach(prepararLinha);
+    }
+
+    const renderAnterior = GerenciadorDesenho.prototype.renderizarLinhaPecaComRecortes;
+    GerenciadorDesenho.prototype.renderizarLinhaPecaComRecortes = function(linha) {
+        const r = typeof renderAnterior === 'function' ? renderAnterior.call(this, linha) : undefined;
+        prepararLinha(linha);
+        return r;
+    };
+
+    const configurarAnterior = GerenciadorDesenho.prototype.configurarCliqueNosSegmentosVisiveisLinha;
+    GerenciadorDesenho.prototype.configurarCliqueNosSegmentosVisiveisLinha = function(linha) {
+        const r = typeof configurarAnterior === 'function' ? configurarAnterior.call(this, linha) : undefined;
+        prepararLinha(linha);
+        return r;
+    };
+
+    document.addEventListener('mousemove', function() {
+        document.querySelectorAll('.segmento-linha-peca.linha-azul-rotacao-exata, .segmento-linha-peca.linha-area-azul-final, .segmento-linha-peca.linha-segmento-hover-estavel').forEach((seg) => {
+            seg.classList.remove('linha-azul-rotacao-exata', 'linha-area-azul-final', 'linha-segmento-hover-estavel');
+        });
+        document.querySelectorAll('.linha-peca.linha-visivel-hover').forEach((linha) => linha.classList.remove('linha-visivel-hover'));
+    }, true);
+
+    document.addEventListener('click', function(ev) {
+        const hit = ev.target && ev.target.closest ? ev.target.closest('.' + HITBOX) : null;
+        if (!hit) return;
+        const i = inst();
+        if (!i || modoBloqueado(i)) return;
+        const linha = hit.closest('.linha-peca');
+        if (!linha || typeof i.manipularCliqueLinha !== 'function') return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+        i.manipularCliqueLinha(ev, linha);
+    }, true);
+
+    const interval = setInterval(() => {
+        const i = inst();
+        if (i && i.drawingArea) prepararTodas();
+    }, 500);
+
+    document.addEventListener('DOMContentLoaded', () => setTimeout(prepararTodas, 0));
+    window.addEventListener('load', () => setTimeout(prepararTodas, 0));
+})();
+</script>
 
 </body>
 </html>
