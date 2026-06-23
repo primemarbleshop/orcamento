@@ -12,10 +12,11 @@ if (
 ):
     os.execv(VENV_PYTHON, [VENV_PYTHON, __file__, *sys.argv[1:]])
 
-from flask import Flask, render_template, make_response, request, redirect, url_for, jsonify, flash, session, send_file
+from flask import Flask, render_template, make_response, request, redirect, url_for, jsonify, flash, session, send_file, abort
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from datetime import datetime
 from pytz import timezone
 from sqlalchemy import or_, text
@@ -23,9 +24,12 @@ import io
 import fitz  # PyMuPDF
 import requests
 import base64
+import json
+import subprocess
 from itsdangerous import URLSafeSerializer
 
 from models import db, Orcamento, OrcamentoSalvo, Usuario  # Modelos do SQLAlchemy
+from pricing import CUBA_VALORES_PADRAO, calcular_valor_item
 
 # 📌 Importa Configuração Externa
 from config import Config
@@ -122,6 +126,215 @@ def _get_weasyprint_html():
             "WeasyPrint precisa das bibliotecas nativas GTK/Pango instaladas para gerar PDF no Windows."
         ) from exc
 
+def _hex_para_rgb01(cor_hex):
+    cor = (cor_hex or "#4e73df").strip().lstrip("#")
+    if len(cor) != 6:
+        cor = "4e73df"
+    try:
+        return tuple(int(cor[i:i + 2], 16) / 255 for i in (0, 2, 4))
+    except ValueError:
+        return (0.305, 0.451, 0.875)
+
+def _moeda(valor):
+    return "R$ {:,.2f}".format(float(valor or 0)).replace(",", "X").replace(".", ",").replace("X", ".")
+
+def _criar_pdf_orcamento_fallback(
+    orcamento_salvo,
+    orcamentos,
+    ambientes_agrupados,
+    valor_total_final,
+    telefone_usuario,
+    prazo_entrega,
+    desconto_avista,
+    desconto_parcelado,
+    observacoes,
+    exclude_payments=None,
+    max_parcelas=None,
+):
+    import fitz
+
+    empresa = empresa_config_dict()
+    brand = _hex_para_rgb01(empresa.get("cor_primaria"))
+    exclude_payments = exclude_payments or []
+    doc = fitz.open()
+    page = None
+    width, height = fitz.paper_size("a4")
+    margin = 42
+    y = 0
+
+    def nova_pagina():
+        nonlocal page, y
+        page = doc.new_page(width=width, height=height)
+        y = margin
+        page.draw_rect(fitz.Rect(0, 0, width, 72), color=brand, fill=brand)
+        logo_path = empresa_logo_path()
+        if os.path.exists(logo_path):
+            try:
+                page.insert_image(fitz.Rect(margin, 12, margin + 72, 60), filename=logo_path, keep_proportion=True)
+            except Exception:
+                pass
+        x_titulo = margin + 86
+        page.insert_text((x_titulo, 31), empresa.get("nome_empresa") or "Sistema de Orçamento", fontsize=16, fontname="helv", color=(1, 1, 1))
+        page.insert_text((x_titulo, 52), f"Orçamento {orcamento_salvo.codigo}", fontsize=10, fontname="helv", color=(1, 1, 1))
+        y = 96
+
+    def texto(txt, x=None, size=9, color=(0.12, 0.14, 0.17), bold=False, gap=14):
+        nonlocal y
+        if y > height - 64:
+            nova_pagina()
+        font = "helv"
+        page.insert_text((x or margin, y), str(txt), fontsize=size, fontname=font, color=color)
+        y += gap
+
+    def linha():
+        nonlocal y
+        if y > height - 64:
+            nova_pagina()
+        page.draw_line((margin, y), (width - margin, y), color=(0.82, 0.85, 0.9), width=0.7)
+        y += 12
+
+    nova_pagina()
+
+    cliente_nome = orcamentos[0].cliente.nome if orcamentos and orcamentos[0].cliente else orcamento_salvo.cliente_nome or "Desconhecido"
+    data_txt = orcamento_salvo.data_salvo.strftime("%d/%m/%Y") if orcamento_salvo.data_salvo else ""
+    texto(f"Cliente: {cliente_nome}", size=11, color=brand, gap=17)
+    texto(f"Data: {data_txt}    Prazo de entrega: {prazo_entrega} dias    Telefone: {telefone_usuario or '-'}", gap=18)
+    linha()
+
+    texto("Itens do orçamento", size=12, color=brand, gap=18)
+    for ambiente_nome, descricoes in ambientes_agrupados.items():
+        texto(ambiente_nome, size=10, color=(0.05, 0.08, 0.14), gap=15)
+        for descricao_nome, tipos in descricoes.items():
+            texto(f"  {descricao_nome}", size=9, color=(0.25, 0.29, 0.36), gap=14)
+            for tipo_produto, itens in tipos.items():
+                for item in itens:
+                    material = item.material.nome if item.material else "-"
+                    qtd = item.quantidade or 1
+                    medidas = f"{item.comprimento or 0:g} x {item.largura or 0:g} cm"
+                    desc = f"    {tipo_produto} | {material} | {medidas} | Qtd {qtd}"
+                    texto(desc[:105], gap=12)
+                    texto(f"    Valor: {_moeda(item.valor_total)}", x=margin + 18, color=(0.25, 0.29, 0.36), gap=13)
+        y += 4
+
+    linha()
+    texto(f"Total: {_moeda(valor_total_final)}", size=14, color=brand, gap=22)
+
+    texto("Condições de pagamento", size=11, color=brand, gap=17)
+    total = float(valor_total_final or 0)
+    if "1" not in exclude_payments:
+        valor = total * (1 - float(desconto_avista or 0) / 100)
+        texto(f"50% entrada / 50% entrega: {_moeda(valor)} ({desconto_avista:g}% de desconto)", gap=13)
+    if "2" not in exclude_payments:
+        valor = total * (1 - float(desconto_parcelado or 0) / 100)
+        texto(f"80% entrada / 20% entrega: {_moeda(valor)} ({desconto_parcelado:g}% de desconto)", gap=13)
+    if "3" not in exclude_payments:
+        parcelas = max_parcelas
+        if parcelas is None:
+            parcelas = max(1, min(10, int(total / 100) if total else 1))
+        texto(f"Parcelado: até {parcelas}x de {_moeda(total / max(int(parcelas), 1))}", gap=16)
+
+    if observacoes:
+        linha()
+        texto("Observações", size=11, color=brand, gap=17)
+        for parte in str(observacoes).splitlines() or [str(observacoes)]:
+            texto(parte[:110], gap=13)
+
+    pdf_bytes = doc.tobytes()
+    doc.close()
+    return pdf_bytes
+
+def _localizar_navegador_pdf():
+    candidatos = [
+        os.path.join(os.environ.get("PROGRAMFILES", ""), "Google", "Chrome", "Application", "chrome.exe"),
+        os.path.join(os.environ.get("PROGRAMFILES(X86)", ""), "Google", "Chrome", "Application", "chrome.exe"),
+        os.path.join(os.environ.get("LOCALAPPDATA", ""), "Google", "Chrome", "Application", "chrome.exe"),
+        os.path.join(os.environ.get("PROGRAMFILES", ""), "Microsoft", "Edge", "Application", "msedge.exe"),
+        os.path.join(os.environ.get("PROGRAMFILES(X86)", ""), "Microsoft", "Edge", "Application", "msedge.exe"),
+    ]
+    for caminho in candidatos:
+        if caminho and os.path.exists(caminho):
+            return caminho
+    return None
+
+def _absolutizar_assets_html(html, base_url):
+    static_url = "file:///" + os.path.join(PROJECT_DIR, "static").replace("\\", "/") + "/"
+    html = (
+        html
+        .replace('href="/static/', f'href="{static_url}')
+        .replace("href='/static/", f"href='{static_url}")
+        .replace('src="/static/', f'src="{static_url}')
+        .replace("src='/static/", f"src='{static_url}")
+    )
+    base = (base_url or "").rstrip("/")
+    if not base:
+        return html
+    return (
+        html
+        .replace('href="/static/', f'href="{base}/static/')
+        .replace("href='/static/", f"href='{base}/static/")
+        .replace('src="/static/', f'src="{base}/static/')
+        .replace("src='/static/", f"src='{base}/static/")
+    )
+
+def _gerar_pdf_html_com_chrome(rendered_html, base_url):
+    navegador = _localizar_navegador_pdf()
+    if not navegador:
+        raise RuntimeError("Chrome/Edge não encontrado para gerar PDF.")
+
+    import tempfile
+    html = _absolutizar_assets_html(rendered_html, base_url)
+    temp_html_path = None
+    temp_pdf_path = None
+    user_data_dir = None
+    try:
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".html", mode="w", encoding="utf-8") as temp_html:
+            temp_html.write(html)
+            temp_html_path = temp_html.name
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_pdf:
+            temp_pdf_path = temp_pdf.name
+
+        user_data_dir = tempfile.mkdtemp(prefix="chrome-pdf-")
+        file_url = "file:///" + temp_html_path.replace("\\", "/")
+        comando = [
+            navegador,
+            "--headless=new",
+            "--disable-gpu",
+            "--disable-software-rasterizer",
+            "--disable-dev-shm-usage",
+            "--disable-extensions",
+            "--no-sandbox",
+            "--disable-setuid-sandbox",
+            "--no-first-run",
+            "--no-default-browser-check",
+            "--disable-features=UseSkiaRenderer,VizDisplayCompositor,CanvasOopRasterization",
+            f"--user-data-dir={user_data_dir}",
+            "--print-to-pdf-no-header",
+            f"--print-to-pdf={temp_pdf_path}",
+            file_url,
+        ]
+        resultado = subprocess.run(comando, capture_output=True, text=True, timeout=60)
+        if resultado.returncode != 0:
+            raise RuntimeError((resultado.stderr or resultado.stdout or "Falha ao gerar PDF com Chrome.").strip())
+        with open(temp_pdf_path, "rb") as pdf_file:
+            pdf_bytes = pdf_file.read()
+        if not pdf_bytes.startswith(b"%PDF-"):
+            raise RuntimeError("Chrome não retornou um PDF válido.")
+        return pdf_bytes
+    finally:
+        for caminho in (temp_html_path, temp_pdf_path):
+            if caminho and os.path.exists(caminho):
+                try:
+                    os.unlink(caminho)
+                except OSError:
+                    pass
+        if user_data_dir and os.path.exists(user_data_dir):
+            try:
+                import shutil
+                shutil.rmtree(user_data_dir, ignore_errors=True)
+            except Exception:
+                pass
+
 # 📌 Inicializa o Flask
 app = Flask(__name__)
 app.config.from_object(Config)  # Aplica configurações do config.py
@@ -134,15 +347,20 @@ _url_serializer = URLSafeSerializer(app.config['SECRET_KEY'], salt='orcamento-li
 
 @app.context_processor
 def dados_usuario_layout():
+    config_empresa = empresa_config_dict()
+    empresa_nome = config_empresa.get("nome_empresa") or "Sistema de Orçamento"
+    dados_layout = {
+        "empresa_config": config_empresa,
+        "empresa_nome": empresa_nome,
+        "empresa_logo_url": empresa_logo_url(),
+    }
     cpf = session.get('user_cpf')
     if not cpf:
-        return {}
-
-    if cpf == "39903780000115":
-        return {"usuario_display_nome": "Prime Marble Shop"}
+        return dados_layout
 
     usuario = Usuario.query.filter_by(cpf=cpf).first()
-    return {"usuario_display_nome": usuario.nome if usuario and usuario.nome else cpf}
+    dados_layout["usuario_display_nome"] = usuario.nome if usuario and usuario.nome else cpf
+    return dados_layout
 
 @app.after_request
 def injetar_ordenacao_tabelas(response):
@@ -220,6 +438,138 @@ def download_db():
 
 br_tz = timezone('America/Sao_Paulo')
 
+UPLOADS_DIR = os.path.join(app.root_path, 'static', 'uploads')
+ALLOWED_LOGO_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
+
+
+def _logo_permitida(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_LOGO_EXTENSIONS
+
+
+def formatar_telefone_br(valor):
+    digitos = re.sub(r'\D', '', str(valor or ''))
+    if len(digitos) == 10:
+        return f"({digitos[:2]}) {digitos[2:6]}-{digitos[6:]}"
+    if len(digitos) == 11:
+        return f"({digitos[:2]}) {digitos[2:7]}-{digitos[7:]}"
+    return str(valor or '').strip()
+
+
+def _config_empresa_fallback():
+    return {
+        'nome_empresa': '',
+        'razao_social': '',
+        'documento': '',
+        'telefone': '',
+        'whatsapp': '',
+        'endereco': '',
+        'logo_filename': '',
+        'cor_primaria': '#4e73df',
+        'prazo_entrega_padrao': 15,
+        'desconto_avista_padrao': 5,
+        'desconto_parcelado_padrao': 10,
+        'observacoes_padrao': 'Medidas sujeitas a confirmação no local. Valores válidos por 7 dias.',
+        'cooktop_valor': 50,
+        'nicho_mao_obra': 150,
+        'nicho_sem_fundo_mao_obra': 150,
+        'rt_percentual_padrao': 10,
+        'minimo_medida_cm': 10,
+        'pedra_simples_margem': 0,
+        'soleira_margem': 0,
+        'ilharga_margem': 0,
+        'bancada_margem_ate_1000': 30,
+        'bancada_margem_ate_2000': 15,
+        'bancada_margem_acima_2000': 10,
+        'ilharga_bipolida_margem': 15,
+        'pedra_box_adicional': 30,
+        'nicho_folga_cm': 4,
+        'saia_margem': 0,
+        'fronte_margem': 0,
+        'alisar_margem': 0,
+        'cuba_valores_json': '',
+    }
+
+
+def obter_config_empresa():
+    try:
+        config = EmpresaConfig.query.first()
+        if config:
+            return config
+    except Exception:
+        return None
+
+    try:
+        config = EmpresaConfig()
+        db.session.add(config)
+        db.session.commit()
+        return config
+    except Exception:
+        db.session.rollback()
+        return None
+
+
+def empresa_config_dict():
+    config = obter_config_empresa()
+    dados = _config_empresa_fallback()
+    if config:
+        for chave in dados:
+            dados[chave] = getattr(config, chave, dados[chave])
+    dados['telefone'] = formatar_telefone_br(dados.get('telefone'))
+    return dados
+
+
+def empresa_logo_url(config=None):
+    config = config or obter_config_empresa()
+    if config and config.logo_filename:
+        return url_for('static', filename=f'uploads/{config.logo_filename}')
+    return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="1" height="1"%3E%3C/svg%3E'
+
+
+def empresa_logo_path(config=None):
+    config = config or obter_config_empresa()
+    if config and config.logo_filename:
+        caminho = os.path.join(UPLOADS_DIR, config.logo_filename)
+        if os.path.exists(caminho):
+            return caminho
+    return ''
+
+
+def empresa_cuba_valores(config=None):
+    valores = dict(CUBA_VALORES_PADRAO)
+    config = config or obter_config_empresa()
+    if config and config.cuba_valores_json:
+        try:
+            salvos = json.loads(config.cuba_valores_json)
+            if isinstance(salvos, dict):
+                valores.update({str(nome): float(valor or 0) for nome, valor in salvos.items() if str(nome).strip()})
+        except (TypeError, ValueError):
+            pass
+    return valores
+
+
+def opcoes_precificacao_empresa(config=None):
+    config = config or obter_config_empresa()
+    dados = empresa_config_dict()
+    return {
+        'cuba_valores': empresa_cuba_valores(config),
+        'cooktop_valor': float(dados.get('cooktop_valor') or 50),
+        'nicho_mao_obra': float(dados.get('nicho_mao_obra') or 150),
+        'nicho_sem_fundo_mao_obra': float(dados.get('nicho_sem_fundo_mao_obra') or 150),
+        'minimo_medida_cm': float(dados.get('minimo_medida_cm') or 10),
+        'pedra_simples_margem': float(dados.get('pedra_simples_margem') or 0),
+        'soleira_margem': float(dados.get('soleira_margem') or 0),
+        'ilharga_margem': float(dados.get('ilharga_margem') or 0),
+        'bancada_margem_ate_1000': float(dados.get('bancada_margem_ate_1000') or 30),
+        'bancada_margem_ate_2000': float(dados.get('bancada_margem_ate_2000') or 15),
+        'bancada_margem_acima_2000': float(dados.get('bancada_margem_acima_2000') or 10),
+        'ilharga_bipolida_margem': float(dados.get('ilharga_bipolida_margem') or 15),
+        'pedra_box_adicional': float(dados.get('pedra_box_adicional') or 30),
+        'nicho_folga_cm': float(dados.get('nicho_folga_cm') or 4),
+        'saia_margem': float(dados.get('saia_margem') or 0),
+        'fronte_margem': float(dados.get('fronte_margem') or 0),
+        'alisar_margem': float(dados.get('alisar_margem') or 0),
+    }
+
 class Usuario(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
@@ -227,6 +577,7 @@ class Usuario(db.Model):
     telefone = db.Column(db.String(20), nullable=True)
     senha = db.Column(db.String(200), nullable=False)
     is_admin = db.Column(db.Boolean, default=False)
+    ativo = db.Column(db.Boolean, default=True, nullable=False)
 
     def set_senha(self, senha):
         self.senha = generate_password_hash(senha)
@@ -248,6 +599,45 @@ class Material(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     nome = db.Column(db.String(100), nullable=False)
     valor = db.Column(db.Float, nullable=False)
+
+class EmpresaConfig(db.Model):
+    __tablename__ = 'empresa_config'
+
+    id = db.Column(db.Integer, primary_key=True)
+    nome_empresa = db.Column(db.String(150), default='', nullable=False)
+    razao_social = db.Column(db.String(180), default='')
+    documento = db.Column(db.String(30), default='')
+    telefone = db.Column(db.String(30), default='')
+    whatsapp = db.Column(db.String(30), default='')
+    endereco = db.Column(db.String(250), default='')
+    logo_filename = db.Column(db.String(180), default='')
+    cor_primaria = db.Column(db.String(20), default='#4e73df')
+    prazo_entrega_padrao = db.Column(db.Integer, default=15, nullable=False)
+    desconto_avista_padrao = db.Column(db.Float, default=5, nullable=False)
+    desconto_parcelado_padrao = db.Column(db.Float, default=10, nullable=False)
+    observacoes_padrao = db.Column(
+        db.Text,
+        default='Medidas sujeitas a confirmação no local. Valores válidos por 7 dias.',
+        nullable=False
+    )
+    cooktop_valor = db.Column(db.Float, default=50, nullable=False)
+    nicho_mao_obra = db.Column(db.Float, default=150, nullable=False)
+    nicho_sem_fundo_mao_obra = db.Column(db.Float, default=150, nullable=False)
+    rt_percentual_padrao = db.Column(db.Float, default=10, nullable=False)
+    minimo_medida_cm = db.Column(db.Float, default=10, nullable=False)
+    pedra_simples_margem = db.Column(db.Float, default=0, nullable=False)
+    soleira_margem = db.Column(db.Float, default=0, nullable=False)
+    ilharga_margem = db.Column(db.Float, default=0, nullable=False)
+    bancada_margem_ate_1000 = db.Column(db.Float, default=30, nullable=False)
+    bancada_margem_ate_2000 = db.Column(db.Float, default=15, nullable=False)
+    bancada_margem_acima_2000 = db.Column(db.Float, default=10, nullable=False)
+    ilharga_bipolida_margem = db.Column(db.Float, default=15, nullable=False)
+    pedra_box_adicional = db.Column(db.Float, default=30, nullable=False)
+    nicho_folga_cm = db.Column(db.Float, default=4, nullable=False)
+    saia_margem = db.Column(db.Float, default=0, nullable=False)
+    fronte_margem = db.Column(db.Float, default=0, nullable=False)
+    alisar_margem = db.Column(db.Float, default=0, nullable=False)
+    cuba_valores_json = db.Column(db.Text, default='')
 
 class Ambiente(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -378,7 +768,7 @@ class DesenhoOrdemServico(db.Model):
 
 
 def _eh_imagem_configurador(desenho_data):
-    """Identifica imagens geradas pelo configurador 3D, que não são HTML editável da OS."""
+    """Identifica imagens data URI legadas, que não são HTML editável da OS."""
     if not desenho_data:
         return False
     return str(desenho_data).lstrip().lower().startswith('data:image/')
@@ -396,6 +786,8 @@ def criar_banco():
     with app.app_context():
         db.create_all()
         _garantir_colunas_orcamento_salvo()
+        _garantir_colunas_empresa_config()
+        _garantir_colunas_usuario()
 
 def _garantir_coluna(tabela, coluna, definicao):
     colunas = [
@@ -418,6 +810,31 @@ def _garantir_colunas_orcamento_salvo():
     }
     for coluna, definicao in colunas.items():
         _garantir_coluna("orcamento_salvo", coluna, definicao)
+
+
+def _garantir_colunas_empresa_config():
+    colunas = {
+        "minimo_medida_cm": "FLOAT DEFAULT 10 NOT NULL",
+        "pedra_simples_margem": "FLOAT DEFAULT 0 NOT NULL",
+        "soleira_margem": "FLOAT DEFAULT 0 NOT NULL",
+        "ilharga_margem": "FLOAT DEFAULT 0 NOT NULL",
+        "bancada_margem_ate_1000": "FLOAT DEFAULT 30 NOT NULL",
+        "bancada_margem_ate_2000": "FLOAT DEFAULT 15 NOT NULL",
+        "bancada_margem_acima_2000": "FLOAT DEFAULT 10 NOT NULL",
+        "ilharga_bipolida_margem": "FLOAT DEFAULT 15 NOT NULL",
+        "pedra_box_adicional": "FLOAT DEFAULT 30 NOT NULL",
+        "nicho_folga_cm": "FLOAT DEFAULT 4 NOT NULL",
+        "nicho_sem_fundo_mao_obra": "FLOAT DEFAULT 150 NOT NULL",
+        "saia_margem": "FLOAT DEFAULT 0 NOT NULL",
+        "fronte_margem": "FLOAT DEFAULT 0 NOT NULL",
+        "alisar_margem": "FLOAT DEFAULT 0 NOT NULL",
+    }
+    for coluna, definicao in colunas.items():
+        _garantir_coluna("empresa_config", coluna, definicao)
+
+
+def _garantir_colunas_usuario():
+    _garantir_coluna("usuario", "ativo", "BOOLEAN DEFAULT 1 NOT NULL")
 
 @app.route('/orcamento')
 def configurador_3d():
@@ -514,6 +931,7 @@ def api_configurador_orcamento():
         if not material:
             return jsonify({'success': False, 'error': 'Material não encontrado'}), 400
 
+        pricing_opts = opcoes_precificacao_empresa()
         dono_cpf = session.get('user_cpf', '12233344441')
 
         cliente = Cliente.query.filter_by(telefone=telefone, dono=dono_cpf).first()
@@ -521,14 +939,6 @@ def api_configurador_orcamento():
             cliente = Cliente(nome=nome, telefone=telefone, endereco=endereco, dono=dono_cpf)
             db.session.add(cliente)
             db.session.flush()
-
-        cuba_valores = {
-            'Embutida': 225, 'Sobreposta': 125, 'Esculpida': 175,
-            'Tradicional Inox': 225, 'Tanque Inox': 500,
-            'Apoio Cliente': 125, 'Embutida Cliente': 125,
-            'Gourmet Cliente': 225, 'Sobrepor Cliente': 125,
-            'Tanque Inox Cliente': 225
-        }
 
         orcamento_ids = []
 
@@ -611,19 +1021,46 @@ def api_configurador_orcamento():
                     lf_cal = max(larg_fronte, 10)
                     valor_total += cf_cal * lf_cal * mat.valor / 10000
 
-                tipo_cuba_cap = tipo_cuba.capitalize() if tipo_cuba else ''
+                cubas_configuradas = pricing_opts.get('cuba_valores', {})
+                tipo_cuba_cap = ''
+                if tipo_cuba:
+                    tipo_cuba_cap = next(
+                        (nome for nome in cubas_configuradas if nome.lower() == str(tipo_cuba).lower()),
+                        str(tipo_cuba).strip()
+                    )
                 if tipo_cuba_cap:
-                    vc = cuba_valores.get(tipo_cuba_cap, 0)
+                    vc = cubas_configuradas.get(tipo_cuba_cap, 0)
                     valor_total += vc * max(qtd_cubas, 1)
                     if tipo_cuba_cap == 'Esculpida' and comp_cuba > 0:
                         m2_cuba = ((comp_cuba*larg_cuba*2)+(comp_cuba*2+larg_cuba*2)*prof_cuba)/10000
                         valor_total += m2_cuba * mat.valor * max(qtd_cubas, 1)
 
                 if tem_cooktop == 'Sim':
-                    valor_total += 50
+                    valor_total += pricing_opts.get('cooktop_valor', 50)
 
-                valor_total = round(valor_total, 2)
-                valor_total = valor_total * max(quantidade, 1)
+                valor_total = calcular_valor_item(
+                    tipo_produto=tipo_produto,
+                    valor_material=mat.valor,
+                    quantidade=max(quantidade, 1),
+                    comprimento=comprimento,
+                    largura=largura,
+                    comprimento_saia=comp_saia,
+                    largura_saia=larg_saia,
+                    comprimento_fronte=comp_fronte,
+                    largura_fronte=larg_fronte,
+                    tipo_cuba=tipo_cuba_cap,
+                    quantidade_cubas=max(qtd_cubas, 1) if tipo_cuba_cap else 0,
+                    comprimento_cuba=comp_cuba,
+                    largura_cuba=larg_cuba,
+                    profundidade_cuba=prof_cuba,
+                    modelo_cuba='Normal',
+                    tem_cooktop=tem_cooktop,
+                    profundidade_nicho=prof_nicho,
+                    tem_fundo=tem_fundo,
+                    tem_alisar=tem_alisar,
+                    largura_alisar=larg_alisar,
+                    **pricing_opts,
+                )
 
                 prod_id = get_or_create_produto(produto_nome) if produto_nome else None
 
@@ -1028,8 +1465,8 @@ def whatsapp_webhook_verify():
 def whatsapp_webhook_receive():
     return jsonify({'status': 'ok'}), 200
 
-@app.route('/ver_desenho/<codigo>')
-def ver_desenho(codigo):
+def _ver_desenho_legado_desativado(codigo):
+    abort(404)
     desenhos = [
         d for d in DesenhoOrdemServico.query.filter_by(
             orcamento_salvo_codigo=codigo
@@ -1037,7 +1474,7 @@ def ver_desenho(codigo):
         if _eh_imagem_configurador(d.desenho_data)
     ]
     if not desenhos:
-        return 'Desenho do configurador 3D nao encontrado', 404
+        return 'Desenho legado nao encontrado', 404
 
     orc_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
     header_html = ''
@@ -1435,9 +1872,7 @@ def relatorio_vendas():
     ticket_vendas = aprovados["valor"] / aprovados["quantidade"] if aprovados["quantidade"] else 0
     observacoes_count = sum(1 for o in orcamentos if getattr(o, "observacao_vendas", None))
     usuario_atual = Usuario.query.filter_by(cpf=session.get("user_cpf")).first()
-    responsavel_relatorio = "Prime Marble Shop" if session.get("user_cpf") == "39903780000115" else (
-        usuario_atual.nome if usuario_atual and usuario_atual.nome else session.get("user_cpf", "")
-    )
+    responsavel_relatorio = usuario_atual.nome if usuario_atual and usuario_atual.nome else session.get("user_cpf", "")
     resumo_executivo = {
         "periodo": periodo_label,
         "emitido_em": hoje.strftime("%d/%m/%Y %H:%M"),
@@ -1539,111 +1974,39 @@ def listar_orcamentos():
 
         tem_cooktop = request.form.get('tem_cooktop', 'Não')
 
-        cuba_valores = {
-            'Embutida': 225,
-            'Esculpida': 175,
-            'Tradicional Inox': 225,
-            'Tanque Inox': 500,
-            'Apoio Cliente': 125,
-            'Embutida Cliente': 125,
-            'Gourmet Cliente': 225,
-            'Sobrepor Cliente': 125,
-            'Tanque Inox Cliente': 225
-        }
-
-        cooktop_valor = 50
-
         material = Material.query.get(material_id)
-        valor_total = 0
-        valor_total_criar = 0
-
-        comprimento_cal = max(comprimento, 10)
-        largura_cal = max(largura, 10)
-        valor_base = material.valor * (comprimento_cal * largura_cal / 10000)
-
-        if tipo_produto in ['Bancada', 'Lavatorio']:
-            if material.valor < 1000:
-                valor_base *= 1.3
-            elif material.valor < 2000:
-                valor_base *= 1.15
-            elif material.valor < 1000000:
-                valor_base *= 1.1
-
-        if tipo_produto == 'Ilharga Bipolida' and valor_base < 1000000:
-            valor_base *= 1.15
-
-        valor_total_criar += valor_base
-
-        if tipo_produto == 'Nicho':
-            comprimento_cal = 10 if 0 < comprimento < 10 else comprimento
-            largura_cal = 10 if 0 < largura < 10 else largura
-            profundidade_nicho_cal = 10 if 0 < profundidade_nicho < 10 else profundidade_nicho
-            
-            if tem_fundo == 'Sim':
-                area_nicho = ((comprimento_cal + 4) * (largura_cal + 4)) + (((comprimento_cal + 4) * profundidade_nicho_cal) * 2) + (((largura_cal + 4) * profundidade_nicho_cal) * 2)
-            else:
-                area_nicho = ((comprimento_cal + 4) + (largura_cal + 4)) * profundidade_nicho_cal * 2
-
-            if tem_alisar == 'Sim' and largura_alisar > 0:
-                largura_alisar_cal = 10 if 0 < largura_alisar < 10 else largura_alisar
-                area_nicho += ((comprimento_cal + (largura_alisar_cal * 2)) * largura_alisar_cal * 2) + \
-                              ((largura_cal + (largura_alisar_cal * 2)) * largura_alisar_cal * 2)
-
-            valor_nicho = ((area_nicho / 10000) * material.valor) + 150
-            valor_total_criar = valor_nicho
-                                       
-        if tipo_produto in ['Ilharga', 'Ilharga Bipolida', 'Bancada', 'Lavatorio']:
-            comprimento_saia_cal = 10 if 0 < comprimento_saia < 10 else comprimento_saia
-            largura_saia_cal = 10 if 0 < largura_saia < 10 else largura_saia
-            valor_saia = comprimento_saia_cal * largura_saia_cal * material.valor / 10000
-            valor_total_criar += valor_saia
-
-        if tipo_produto in ['Bancada', 'Lavatorio']:
-            comprimento_fronte_cal = 10 if 0 < comprimento_fronte < 10 else comprimento_fronte
-            largura_fronte_cal = 10 if 0 < largura_fronte < 10 else largura_fronte
-            valor_fronte = comprimento_fronte_cal * largura_fronte_cal * material.valor / 10000
-            valor_total_criar += valor_fronte
-
-        if tipo_produto == 'Pedra de Box':
-            valor_pedra_box = (valor_base) + 30
-            valor_total_criar += valor_pedra_box
-
-        if tipo_cuba:
-            valor_cuba = cuba_valores.get(tipo_cuba, 0)
-            valor_total_criar += valor_cuba * quantidade_cubas
-
-            if tipo_cuba == 'Esculpida':
-                modelo_cuba = request.form.get('modelo_cuba', 'Normal')
-                comprimento_cuba = float(request.form.get('comprimento_cuba', 0))
-                largura_cuba = float(request.form.get('largura_cuba', 0))
-                profundidade_cuba = float(request.form.get('profundidade_cuba', 0))
-            
-                if modelo_cuba == 'Prainha':
-                    m2_cuba = ((comprimento_cuba * largura_cuba) + (largura_cuba * 2) * profundidade_cuba) / 10000
-                else:
-                    m2_cuba = ((comprimento_cuba * largura_cuba * 2) +
-                               (comprimento_cuba * 2 + largura_cuba * 2) * profundidade_cuba) / 10000
-
-                valor_cuba_esculpida = m2_cuba * material.valor * quantidade_cubas
-                valor_total_criar += valor_cuba_esculpida
-
-        if tem_cooktop == 'Sim':
-            valor_total_criar += cooktop_valor
-
-        if instalacao == 'Sim':
-            valor_total_criar += instalacao_valor
-
-        valor_total_criar *= quantidade
-
-        valor_rt = 0.0
-        if rt == 'Sim' and rt_percentual > 0:
-            valor_rt = valor_total_criar / (1 - rt_percentual / 100) - valor_total_criar
-
-        valor_total = round(valor_total_criar + valor_rt, 2)
 
         modelo_cuba = request.form.get("modelo_cuba", "").strip()
         if not modelo_cuba:  
             modelo_cuba = "Normal"
+
+        valor_total = calcular_valor_item(
+            tipo_produto=tipo_produto,
+            valor_material=material.valor,
+            quantidade=quantidade,
+            comprimento=comprimento,
+            largura=largura,
+            instalacao=instalacao,
+            instalacao_valor=instalacao_valor,
+            rt=rt,
+            rt_percentual=rt_percentual,
+            comprimento_saia=comprimento_saia,
+            largura_saia=largura_saia,
+            comprimento_fronte=comprimento_fronte,
+            largura_fronte=largura_fronte,
+            tipo_cuba=tipo_cuba,
+            quantidade_cubas=quantidade_cubas,
+            comprimento_cuba=comprimento_cuba,
+            largura_cuba=largura_cuba,
+            profundidade_cuba=profundidade_cuba,
+            modelo_cuba=modelo_cuba,
+            tem_cooktop=tem_cooktop,
+            profundidade_nicho=profundidade_nicho,
+            tem_fundo=tem_fundo,
+            tem_alisar=tem_alisar,
+            largura_alisar=largura_alisar,
+            **opcoes_precificacao_empresa(),
+        )
 
         if cliente_id and material_id and ambiente_id:
             novo_orcamento = Orcamento(
@@ -1762,7 +2125,8 @@ def listar_orcamentos():
         filtro_cliente_atual=filtro_cliente,
         filtro_data_inicio_atual=filtro_data_inicio,
         filtro_data_fim_atual=filtro_data_fim,
-        limite_atual=limite_int
+        limite_atual=limite_int,
+        cuba_valores=empresa_cuba_valores()
     )
 
     
@@ -1846,6 +2210,79 @@ def materiais():
 
     materiais = Material.query.order_by(db.func.lower(Material.nome)).all()
     return render_template('materiais.html', materiais=materiais)
+
+
+@app.route('/configuracoes', methods=['GET', 'POST'])
+def configuracoes():
+    if not session.get('admin'):
+        flash("Acesso restrito a administradores.", "error")
+        return redirect(url_for('index'))
+
+    config = obter_config_empresa()
+    if not config:
+        flash("Não foi possível carregar as configurações da empresa.", "error")
+        return redirect(url_for('index'))
+
+    if request.method == 'POST':
+        config.nome_empresa = request.form.get('nome_empresa', config.nome_empresa).strip() or config.nome_empresa
+        config.razao_social = request.form.get('razao_social', '').strip()
+        config.documento = request.form.get('documento', '').strip()
+        config.telefone = request.form.get('telefone', '').strip()
+        config.whatsapp = request.form.get('whatsapp', '').strip()
+        config.endereco = request.form.get('endereco', '').strip()
+        config.cor_primaria = request.form.get('cor_primaria', '#4e73df').strip() or '#4e73df'
+        config.prazo_entrega_padrao = int(float(request.form.get('prazo_entrega_padrao', 15) or 15))
+        config.desconto_avista_padrao = float(request.form.get('desconto_avista_padrao', 5) or 5)
+        config.desconto_parcelado_padrao = float(request.form.get('desconto_parcelado_padrao', 10) or 10)
+        config.observacoes_padrao = request.form.get('observacoes_padrao', '').strip() or _config_empresa_fallback()['observacoes_padrao']
+        config.cooktop_valor = float(request.form.get('cooktop_valor', 50) or 50)
+        config.nicho_mao_obra = float(request.form.get('nicho_mao_obra', 150) or 150)
+        config.nicho_sem_fundo_mao_obra = float(request.form.get('nicho_sem_fundo_mao_obra', 150) or 150)
+        config.rt_percentual_padrao = float(request.form.get('rt_percentual_padrao', 10) or 10)
+        config.minimo_medida_cm = float(request.form.get('minimo_medida_cm', 10) or 10)
+        config.pedra_simples_margem = float(request.form.get('pedra_simples_margem', 0) or 0)
+        config.soleira_margem = float(request.form.get('soleira_margem', 0) or 0)
+        config.ilharga_margem = float(request.form.get('ilharga_margem', 0) or 0)
+        config.bancada_margem_ate_1000 = float(request.form.get('bancada_margem_ate_1000', 30) or 30)
+        config.bancada_margem_ate_2000 = float(request.form.get('bancada_margem_ate_2000', 15) or 15)
+        config.bancada_margem_acima_2000 = float(request.form.get('bancada_margem_acima_2000', 10) or 10)
+        config.ilharga_bipolida_margem = float(request.form.get('ilharga_bipolida_margem', 15) or 15)
+        config.pedra_box_adicional = float(request.form.get('pedra_box_adicional', 30) or 30)
+        config.nicho_folga_cm = float(request.form.get('nicho_folga_cm', 4) or 4)
+        config.saia_margem = float(request.form.get('saia_margem', 0) or 0)
+        config.fronte_margem = float(request.form.get('fronte_margem', 0) or 0)
+        config.alisar_margem = float(request.form.get('alisar_margem', 0) or 0)
+
+        cuba_valores = {}
+        cuba_nomes = request.form.getlist('cuba_nome[]')
+        cuba_precos = request.form.getlist('cuba_valor[]')
+        for nome_cuba, valor_cuba in zip(cuba_nomes, cuba_precos):
+            nome_limpo = (nome_cuba or '').strip()
+            if nome_limpo:
+                cuba_valores[nome_limpo] = float(valor_cuba or 0)
+        if not cuba_valores:
+            cuba_valores = dict(CUBA_VALORES_PADRAO)
+        config.cuba_valores_json = json.dumps(cuba_valores, ensure_ascii=False)
+
+        logo = request.files.get('logo')
+        if logo and logo.filename and _logo_permitida(logo.filename):
+            os.makedirs(UPLOADS_DIR, exist_ok=True)
+            ext = secure_filename(logo.filename).rsplit('.', 1)[1].lower()
+            filename = f"empresa_logo.{ext}"
+            logo.save(os.path.join(UPLOADS_DIR, filename))
+            config.logo_filename = filename
+
+        db.session.commit()
+        flash("Configurações salvas com sucesso.", "success")
+        return redirect(url_for('configuracoes'))
+
+    return render_template(
+        'configuracoes.html',
+        config=config,
+        cuba_valores=empresa_cuba_valores(config),
+        cuba_padrao=CUBA_VALORES_PADRAO,
+        logo_url=empresa_logo_url(config),
+    )
 
 @app.route('/clientes/edit/<int:id>', methods=['GET', 'POST'])
 def editar_cliente(id):
@@ -2073,7 +2510,33 @@ def editar_orcamento(id):
             valor_rt = valor_total_criar / (1 - orcamento.rt_percentual / 100) - valor_total_criar
 
         # Arredonda apenas o valor final
-        orcamento.valor_total = round(valor_total_criar + valor_rt, 2)
+        orcamento.valor_total = calcular_valor_item(
+            tipo_produto=orcamento.tipo_produto,
+            valor_material=material.valor,
+            quantidade=orcamento.quantidade,
+            comprimento=orcamento.comprimento,
+            largura=orcamento.largura,
+            instalacao=orcamento.instalacao,
+            instalacao_valor=orcamento.instalacao_valor,
+            rt=orcamento.rt,
+            rt_percentual=orcamento.rt_percentual,
+            comprimento_saia=orcamento.comprimento_saia,
+            largura_saia=orcamento.largura_saia,
+            comprimento_fronte=orcamento.comprimento_fronte,
+            largura_fronte=orcamento.largura_fronte,
+            tipo_cuba=orcamento.tipo_cuba,
+            quantidade_cubas=orcamento.quantidade_cubas,
+            comprimento_cuba=orcamento.comprimento_cuba,
+            largura_cuba=orcamento.largura_cuba,
+            profundidade_cuba=orcamento.profundidade_cuba,
+            modelo_cuba=orcamento.modelo_cuba,
+            tem_cooktop=orcamento.tem_cooktop,
+            profundidade_nicho=orcamento.profundidade_nicho,
+            tem_fundo=orcamento.tem_fundo,
+            tem_alisar=orcamento.tem_alisar,
+            largura_alisar=orcamento.largura_alisar,
+            **opcoes_precificacao_empresa(),
+        )
         
         orcamento_salvo = OrcamentoSalvo.query.filter(OrcamentoSalvo.orcamentos_ids.contains(str(orcamento.id))).first()
         if orcamento_salvo:
@@ -2115,7 +2578,8 @@ def editar_orcamento(id):
         produtos=produtos,
         clientes=clientes,
         materiais=materiais,
-        orcamentos_salvos=orcamentos_salvos
+        orcamentos_salvos=orcamentos_salvos,
+        cuba_valores=empresa_cuba_valores()
     )
 
 @app.route('/clientes/delete/<int:id>', methods=['POST'])
@@ -2261,6 +2725,7 @@ def detalhes_orcamento():
         # Obter informações do usuário logado
         usuario = Usuario.query.filter_by(cpf=session.get('user_cpf')).first()
         telefone_usuario = usuario.telefone if usuario else ""
+        vendedor_nome = usuario.nome if usuario else ""
 
         return render_template(
             'detalhes_orcamento.html',
@@ -2270,6 +2735,7 @@ def detalhes_orcamento():
             valor_total_final=valor_total_formatado,
             valor_total_float=valor_total_float,
             telefone_usuario=telefone_usuario,
+            vendedor_nome=vendedor_nome,
             # Adicionar valores padrão para manter compatibilidade com o template
             prazo_entrega=15,
             desconto_avista=5,
@@ -2319,6 +2785,10 @@ def login():
             usuario = Usuario.query.filter_by(cpf=cpf_formatado).first()
 
         if usuario:
+            if not usuario.ativo:
+                flash("Usuário desativado. Fale com o administrador.", "error")
+                return render_template('login.html')
+
             if usuario.check_senha(senha):
                 session['user_cpf'] = usuario.cpf
                 session['admin'] = usuario.is_admin
@@ -2351,7 +2821,7 @@ def criar_usuario():
             return redirect(url_for('criar_usuario'))
 
         try:
-            novo_usuario = Usuario(nome=nome, cpf=cpf, telefone=telefone, is_admin=False)
+            novo_usuario = Usuario(nome=nome, cpf=cpf, telefone=telefone, is_admin=False, ativo=True)
             novo_usuario.set_senha(senha)
 
             db.session.add(novo_usuario)
@@ -2416,7 +2886,7 @@ def gerenciar_usuarios():
     if not session.get('admin'):
         return redirect(url_for('index'))
 
-    usuarios = Usuario.query.filter_by(is_admin=False).all()
+    usuarios = Usuario.query.filter_by(is_admin=False).order_by(Usuario.nome).all()
 
     print("Usuários carregados:", usuarios)  # Depuração
 
@@ -2452,11 +2922,28 @@ def deletar_usuario(cpf):
 
     usuario = Usuario.query.filter_by(cpf=cpf).first()
     if usuario:
-        db.session.delete(usuario)
+        usuario.ativo = False
         db.session.commit()
-        flash("Usuário deletado com sucesso!", "success")
+        flash("Usuário desativado com sucesso!", "success")
     else:
         flash("Erro: Usuário não encontrado!", "error")
+
+    return redirect(url_for('gerenciar_usuarios'))
+
+
+@app.route('/alternar_usuario/<cpf>', methods=['POST'])
+def alternar_usuario(cpf):
+    if not session.get('admin'):
+        return redirect(url_for('index'))
+
+    usuario = Usuario.query.filter_by(cpf=cpf, is_admin=False).first()
+    if not usuario:
+        flash("Erro: Usuário não encontrado!", "error")
+        return redirect(url_for('gerenciar_usuarios'))
+
+    usuario.ativo = not usuario.ativo
+    db.session.commit()
+    flash(f"Usuário {'ativado' if usuario.ativo else 'desativado'} com sucesso!", "success")
 
     return redirect(url_for('gerenciar_usuarios'))
 
@@ -2493,6 +2980,7 @@ def salvar_orcamento():
         # 🔹 Calcular o valor total dos orçamentos selecionados
         valor_total = db.session.query(db.func.sum(Orcamento.valor_total)).filter(Orcamento.id.in_(ids)).scalar()
         valor_total = valor_total if valor_total else 0.0
+        empresa = empresa_config_dict()
         
         # 🔹 Criar o novo orçamento salvo
         novo_orcamento = OrcamentoSalvo(
@@ -2500,7 +2988,11 @@ def salvar_orcamento():
             data_salvo=data_salvamento,
             orcamentos_ids=",".join(map(str, ids)),  # IDs dos orçamentos vinculados
             valor_total=valor_total,
-            criado_por=criado_por  # 🔹 Agora pega o nome diretamente do banco de dados
+            criado_por=criado_por,
+            prazo_entrega=int(empresa.get('prazo_entrega_padrao') or 15),
+            desconto_avista=float(empresa.get('desconto_avista_padrao') or 5),
+            desconto_parcelado=float(empresa.get('desconto_parcelado_padrao') or 10),
+            observacoes=empresa.get('observacoes_padrao') or _config_empresa_fallback()['observacoes_padrao'],
         )
 
         db.session.add(novo_orcamento)
@@ -2558,20 +3050,10 @@ def listar_orcamentos_salvos():
 
     usuarios = Usuario.query.all()
 
-    codigos_com_desenho = set(
-        d.orcamento_salvo_codigo
-        for d in DesenhoOrdemServico.query.with_entities(
-            DesenhoOrdemServico.orcamento_salvo_codigo,
-            DesenhoOrdemServico.desenho_data
-        ).all()
-        if _eh_imagem_configurador(d.desenho_data)
-    )
-
     return render_template("orcamentos_salvos.html",
                            clientes=clientes,
                            usuarios=usuarios,
-                           orcamentos=resultado,
-                           codigos_com_desenho=codigos_com_desenho)
+                           orcamentos=resultado)
 
 
 
@@ -2642,11 +3124,13 @@ def detalhes_orcamento_salvo(codigo):
     valor_total_float = valor_total_final
     
     # Configurar logo URL
-    logo_url = url_for('static', filename='logo.jpg')
+    logo_url = empresa_logo_url()
     
     # Obter informações do usuário
-    usuario = Usuario.query.filter_by(cpf=session.get('user_cpf')).first()
-    telefone_usuario = usuario.telefone if usuario else ""
+    usuario_logado = Usuario.query.filter_by(cpf=session.get('user_cpf')).first()
+    vendedor_nome = orcamento_salvo.criado_por or (usuario_logado.nome if usuario_logado else "")
+    usuario_vendedor = Usuario.query.filter_by(nome=vendedor_nome).first() if vendedor_nome else usuario_logado
+    telefone_usuario = usuario_vendedor.telefone if usuario_vendedor else ""
     
     # Obter informações do cliente do primeiro orçamento
     cliente_nome = orcamentos[0].cliente.nome if orcamentos else "Desconhecido"
@@ -2676,6 +3160,7 @@ def detalhes_orcamento_salvo(codigo):
         valor_total_final="R$ {:,.2f}".format(valor_total_final).replace(",", "X").replace(".", ",").replace("X", "."),
         valor_total_float=valor_total_float,
         telefone_usuario=telefone_usuario,
+        vendedor_nome=vendedor_nome,
         prazo_entrega=prazo_entrega,
         desconto_avista=desconto_avista,
         desconto_parcelado=desconto_parcelado,
@@ -2684,7 +3169,7 @@ def detalhes_orcamento_salvo(codigo):
         # Passar parâmetro para saber se estamos em modo PDF ou não
         pdf=False,
         # Passar o usuário atual para verificar permissões no template
-        usuario_atual=usuario,
+        usuario_atual=usuario_logado,
         is_admin=is_admin,
         max_parcelas = orcamento_salvo.max_parcelas
     )
@@ -2809,16 +3294,7 @@ def orcamentos_salvos():
         OrcamentoSalvo.id, Cliente.nome, Cliente.dono
     ).all()
 
-    codigos_com_desenho = set(
-        d.orcamento_salvo_codigo
-        for d in DesenhoOrdemServico.query.with_entities(
-            DesenhoOrdemServico.orcamento_salvo_codigo,
-            DesenhoOrdemServico.desenho_data
-        ).all()
-        if _eh_imagem_configurador(d.desenho_data)
-    )
-
-    return render_template('orcamentos_salvos.html', orcamentos=orcamentos, codigos_com_desenho=codigos_com_desenho)
+    return render_template('orcamentos_salvos.html', orcamentos=orcamentos)
 
 
 
@@ -2930,16 +3406,21 @@ def orcamento_preview(token):
     if not orc:
         return "Orçamento não encontrado", 404
     valor = "R$ {:,.2f}".format(orc.valor_total).replace(",", "X").replace(".", ",").replace("X", ".")
+    empresa = empresa_config_dict()
+    nome_empresa = empresa.get('nome_empresa') or 'Sistema de Orçamento'
+    dominio = request.url_root.rstrip('/')
+    logo_url = empresa_logo_url()
+    logo_absoluta = logo_url if logo_url.startswith('data:') else request.url_root.rstrip('/') + logo_url
     return f'''<!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
-<meta property="og:title" content="Orçamento - Prime Marble Shop">
+<meta property="og:title" content="Orçamento - {nome_empresa}">
 <meta property="og:description" content="Orçamento em mármore e granito - Valor: {valor}">
-<meta property="og:image" content="https://orcamento-t9w2.onrender.com/static/logo.jpg">
-<meta property="og:url" content="https://primemarbleshop.com.br/orcamento/{token}">
+<meta property="og:image" content="{logo_absoluta}">
+<meta property="og:url" content="{dominio}/orcamento/{token}">
 <meta property="og:type" content="website">
-<title>Orçamento - Prime Marble Shop</title>
+<title>Orçamento - {nome_empresa}</title>
 <meta http-equiv="refresh" content="2;url=/gerar_pdf_orcamento/{token}">
 <style>
 body{{font-family:Arial,sans-serif;display:flex;justify-content:center;align-items:center;min-height:100vh;margin:0;background:#1a1a2e;color:#fff}}
@@ -2957,8 +3438,8 @@ a:hover{{background:#d4a017;color:#1a1a2e}}
 </head>
 <body>
 <div class="card">
-<img class="logo" src="https://orcamento-t9w2.onrender.com/static/logo.png" alt="Prime Marble Shop">
-<p class="brand">Prime Marble Shop</p>
+{f'<img class="logo" src="{logo_absoluta}" alt="{nome_empresa}">' if not logo_absoluta.startswith('data:') else ''}
+<p class="brand">{nome_empresa}</p>
 <p class="sub">Mármores &amp; Granitos</p>
 <div class="divider"></div>
 <h2>Orçamento</h2>
@@ -3003,12 +3484,14 @@ def gerar_pdf_orcamento(codigo_ou_token):
     valor_total_final = sum(o.valor_total for o in orcamentos)
     valor_total_float = valor_total_final
 
-    logo_url = url_for('static', filename='logo.jpg')
+    logo_url = empresa_logo_url()
     
-    usuario = Usuario.query.filter_by(cpf=session.get('user_cpf')).first()
-    if not usuario:
-        usuario = Usuario.query.filter_by(cpf='12233344441').first()
-    telefone_usuario = usuario.telefone if usuario else ""
+    usuario_logado = Usuario.query.filter_by(cpf=session.get('user_cpf')).first()
+    vendedor_nome = orcamento_salvo.criado_por or (usuario_logado.nome if usuario_logado else "")
+    usuario_vendedor = Usuario.query.filter_by(nome=vendedor_nome).first() if vendedor_nome else usuario_logado
+    if not usuario_vendedor:
+        usuario_vendedor = Usuario.query.filter_by(cpf='12233344441').first()
+    telefone_usuario = usuario_vendedor.telefone if usuario_vendedor else ""
 
     # ✅ Valores do rodapé (com fallback)
     prazo_entrega = orcamento_salvo.prazo_entrega if orcamento_salvo.prazo_entrega is not None else 15
@@ -3037,6 +3520,7 @@ def gerar_pdf_orcamento(codigo_ou_token):
         valor_total_final="R$ {:,.2f}".format(valor_total_final).replace(",", "X").replace(".", ",").replace("X", "."),
         valor_total_float=valor_total_float,
         telefone_usuario=telefone_usuario,
+        vendedor_nome=vendedor_nome,
         prazo_entrega=prazo_entrega,
         desconto_avista=desconto_avista,
         desconto_parcelado=desconto_parcelado,
@@ -3054,11 +3538,22 @@ def gerar_pdf_orcamento(codigo_ou_token):
     with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as final_pdf:
         final_pdf_path = final_pdf.name
 
-    _get_weasyprint_html()(string=rendered_html, base_url=request.url_root).write_pdf(temp_pdf_path)
+    try:
+        _get_weasyprint_html()(string=rendered_html, base_url=request.url_root).write_pdf(temp_pdf_path)
+    except RuntimeError:
+        if os.path.exists(temp_pdf_path):
+            os.unlink(temp_pdf_path)
+        if os.path.exists(final_pdf_path):
+            os.unlink(final_pdf_path)
+        pdf_bytes = _gerar_pdf_html_com_chrome(rendered_html, request.url_root)
+        response = make_response(pdf_bytes)
+        response.headers["Content-Type"] = "application/pdf"
+        response.headers["Content-Disposition"] = f"inline; filename=orcamento_{orcamento_salvo.codigo}.pdf"
+        return response
 
     # Adicionar logo (se existir)
     import fitz  # PyMuPDF
-    logo_path = os.path.join(app.root_path, "static", "logo.jpg")
+    logo_path = empresa_logo_path()
     doc = fitz.open(temp_pdf_path)
     if os.path.exists(logo_path):
         page = doc[0]
@@ -3275,7 +3770,33 @@ def editar_material_rt_selecionados():
         else:
             valor_total_final = valor_total_criar
 
-        orcamento.valor_total = round(valor_total_final, 2)
+        orcamento.valor_total = calcular_valor_item(
+            tipo_produto=orcamento.tipo_produto,
+            valor_material=material_para_calculo.valor,
+            quantidade=orcamento.quantidade,
+            comprimento=orcamento.comprimento,
+            largura=orcamento.largura,
+            instalacao=orcamento.instalacao,
+            instalacao_valor=orcamento.instalacao_valor,
+            rt=rt_para_calculo,
+            rt_percentual=rt_percentual_para_calculo,
+            comprimento_saia=orcamento.comprimento_saia,
+            largura_saia=orcamento.largura_saia,
+            comprimento_fronte=orcamento.comprimento_fronte,
+            largura_fronte=orcamento.largura_fronte,
+            tipo_cuba=orcamento.tipo_cuba,
+            quantidade_cubas=orcamento.quantidade_cubas,
+            comprimento_cuba=orcamento.comprimento_cuba,
+            largura_cuba=orcamento.largura_cuba,
+            profundidade_cuba=orcamento.profundidade_cuba,
+            modelo_cuba=orcamento.modelo_cuba,
+            tem_cooktop=orcamento.tem_cooktop,
+            profundidade_nicho=orcamento.profundidade_nicho,
+            tem_fundo=orcamento.tem_fundo,
+            tem_alisar=orcamento.tem_alisar,
+            largura_alisar=orcamento.largura_alisar,
+            **opcoes_precificacao_empresa(),
+        )
 
     db.session.commit()
 
@@ -3304,6 +3825,35 @@ def duplicar_selecionados():
         for id in orcamento_ids:
             original = Orcamento.query.get(id)
             if original:
+                material = Material.query.get(original.material_id)
+                valor_total = calcular_valor_item(
+                    tipo_produto=original.tipo_produto,
+                    valor_material=material.valor if material else 0,
+                    quantidade=original.quantidade,
+                    comprimento=original.comprimento,
+                    largura=original.largura,
+                    instalacao=original.instalacao or "Não",
+                    instalacao_valor=original.instalacao_valor or 0,
+                    rt=original.rt,
+                    rt_percentual=original.rt_percentual,
+                    comprimento_saia=original.comprimento_saia,
+                    largura_saia=original.largura_saia,
+                    comprimento_fronte=original.comprimento_fronte,
+                    largura_fronte=original.largura_fronte,
+                    tipo_cuba=original.tipo_cuba,
+                    quantidade_cubas=original.quantidade_cubas,
+                    comprimento_cuba=original.comprimento_cuba,
+                    largura_cuba=original.largura_cuba,
+                    profundidade_cuba=original.profundidade_cuba,
+                    modelo_cuba=original.modelo_cuba or "Normal",
+                    tem_cooktop=original.tem_cooktop,
+                    profundidade_nicho=original.profundidade_nicho,
+                    tem_fundo=original.tem_fundo,
+                    tem_alisar=original.tem_alisar,
+                    largura_alisar=original.largura_alisar,
+                    **opcoes_precificacao_empresa(),
+                )
+
                 novo_orcamento = Orcamento(
                     cliente_id=original.cliente_id,
                     ambiente_id=original.ambiente_id,
@@ -3333,7 +3883,7 @@ def duplicar_selecionados():
                     tem_fundo=original.tem_fundo,
                     tem_alisar=original.tem_alisar,
                     largura_alisar=original.largura_alisar,
-                    valor_total=original.valor_total,
+                    valor_total=valor_total,
                     dono=original.dono,
                     data=datetime.now(br_tz)
                 )
@@ -3843,7 +4393,7 @@ def detalhes_ordem_servico(codigo):
                 'profundidade_nicho': produto.profundidade_nicho or 0
             })
 
-    logo_url = url_for('static', filename='logo.jpg')
+    logo_url = empresa_logo_url()
 
     usuario = Usuario.query.filter_by(cpf=user_cpf).first()
     telefone_usuario = usuario.telefone if usuario else ""

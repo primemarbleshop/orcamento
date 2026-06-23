@@ -1,9 +1,10 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerenciar Usuários</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pilot.css') }}">
     <style>
         body {
             position: relative;
@@ -13,70 +14,123 @@
         body::before {
             content: "";
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-image: url("{{ url_for('static', filename='logo.jpg') }}");
+            inset: 0;
+            background-image: url("{{ empresa_logo_url }}");
             background-size: contain;
             background-position: center;
             background-repeat: no-repeat;
-            background-attachment: fixed;
-            opacity: 0.1;
+            opacity: 0.08;
             z-index: -1;
         }
 
         .container {
-            text-align: center;
-            margin-top: 50px;
+            max-width: 980px;
+            margin: 36px auto;
+            padding: 0 20px;
+        }
+
+        .page-actions {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 18px;
         }
 
         .titulo-centralizado {
+            margin: 0;
             font-size: 24px;
-            font-weight: bold;
+            font-weight: 700;
         }
 
-        table {
-            width: 80%;
-            margin: auto;
-            border-collapse: collapse;
-        }
-
-        th, td {
-            border: 1px solid black;
-            padding: 10px;
-            text-align: center;
-        }
-
-        th {
-            background-color: #f8f9fa;
-        }
-
-        .btn-editar, .btn-deletar {
-            padding: 5px 10px;
-            font-size: 12px;
-            font-weight: bold;
-            color: white;
-            border-radius: 5px;
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 36px;
+            padding: 8px 14px;
+            border: 1px solid transparent;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 700;
             text-decoration: none;
-            border: none;
             cursor: pointer;
+        }
+
+        .btn-primary {
+            background: var(--primary-color, #0d6efd);
+            color: #fff;
         }
 
         .btn-editar {
             background-color: #0275d8;
+            color: #fff;
         }
 
-        .btn-editar:hover {
-            background-color: #025aa5;
-        }
-
-        .btn-deletar {
+        .btn-status {
             background-color: #d9534f;
+            color: #fff;
         }
 
-        .btn-deletar:hover {
-            background-color: #c9302c;
+        .btn-status.ativar {
+            background-color: #198754;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+        }
+
+        th, td {
+            border: 1px solid #d7dde8;
+            padding: 10px;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        th {
+            background-color: #f8f9fa;
+            font-size: 13px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-start;
+        }
+
+        .status {
+            display: inline-flex;
+            align-items: center;
+            min-height: 26px;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .status.ativo {
+            color: #0f5132;
+            background: #d1e7dd;
+        }
+
+        .status.inativo {
+            color: #842029;
+            background: #f8d7da;
+        }
+
+        .messages {
+            margin-bottom: 16px;
+        }
+
+        .message {
+            padding: 10px 12px;
+            border-radius: 6px;
+            background: #eef4ff;
+            border: 1px solid #cfe2ff;
+            color: #1f3b64;
+            font-weight: 600;
         }
 
         .back-link {
@@ -84,99 +138,88 @@
             margin-top: 20px;
             text-decoration: none;
             font-size: 14px;
-            color: #007bff;
+            color: var(--primary-color, #0d6efd);
             font-weight: bold;
         }
 
-        .back-link:hover {
-            text-decoration: underline;
+        @media (max-width: 720px) {
+            .page-actions {
+                align-items: stretch;
+                flex-direction: column;
+            }
+
+            table {
+                display: block;
+                overflow-x: auto;
+            }
         }
-table {
-    width: auto;  /* Ajusta a tabela ao conteúdo */
-    margin: auto;
-    border-collapse: collapse;
-}
-
-th, td {
-    border: 1px solid black;
-    padding: 10px;
-    text-align: center;
-    white-space: nowrap;  /* Impede que os textos quebrem em várias linhas */
-}
-
-th {
-    background-color: #f8f9fa;
-}
-
-.btn-editar, .btn-deletar {
-    padding: 5px 10px;
-    font-size: 12px;
-    font-weight: bold;
-    color: white;
-    border-radius: 5px;
-    text-decoration: none;
-    border: none;
-    cursor: pointer;
-}
-
-.btn-editar {
-    background-color: #0275d8;
-}
-
-.btn-editar:hover {
-    background-color: #025aa5;
-}
-
-.btn-deletar {
-    background-color: #d9534f;
-}
-
-.btn-deletar:hover {
-    background-color: #c9302c;
-}
-
-
     </style>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/pilot.css') }}">
 </head>
 <body>
     <div class="pilot-shell app-header-shell">
         {% set header_subtitle = "Gerenciar usuários" %}
         {% include "partials/app_header.html" %}
     </div>
-    <div class="container">
-        <h1 class="titulo-centralizado">Gerenciar Usuários</h1>
+
+    <main class="container">
+        <div class="page-actions">
+            <h1 class="titulo-centralizado">Gerenciar Usuários</h1>
+            <a href="{{ url_for('criar_usuario') }}" class="btn btn-primary">Adicionar usuário</a>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="messages">
+                    {% for category, message in messages %}
+                        <div class="message">{{ message }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
         <table>
-    <thead>
-        <tr>
-            <th>Nome</th>
-            <th>CPF</th>
-            <th>Ações</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for usuario in usuarios %}
-        <tr>
-            <td>{{ usuario.nome }}</td>  <!-- Exibe o nome do usuário -->
-            <td>{{ usuario.cpf }}</td>
-            <td>
-                <form action="{{ url_for('editar_usuario', cpf=usuario.cpf) }}" method="GET" style="display:inline;">
-                    <button type="submit" class="btn-editar">Editar</button>
-                </form>
-                <form action="{{ url_for('deletar_usuario', cpf=usuario.cpf) }}" method="POST" onsubmit="return confirm('Tem certeza que deseja excluir este usuário?');" style="display:inline;">
-                    <button type="submit" class="btn-deletar">Excluir</button>
-                </form>
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+            <thead>
+                <tr>
+                    <th>Nome</th>
+                    <th>CPF</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for usuario in usuarios %}
+                <tr>
+                    <td>{{ usuario.nome }}</td>
+                    <td>{{ usuario.cpf }}</td>
+                    <td>
+                        {% if usuario.ativo %}
+                            <span class="status ativo">Ativo</span>
+                        {% else %}
+                            <span class="status inativo">Desativado</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <div class="actions">
+                            <form action="{{ url_for('editar_usuario', cpf=usuario.cpf) }}" method="GET">
+                                <button type="submit" class="btn btn-editar">Editar</button>
+                            </form>
+                            <form action="{{ url_for('alternar_usuario', cpf=usuario.cpf) }}" method="POST" onsubmit="return confirm('Deseja {{ 'desativar' if usuario.ativo else 'ativar' }} este usuário?');">
+                                <button type="submit" class="btn btn-status {% if not usuario.ativo %}ativar{% endif %}">
+                                    {{ 'Desativar' if usuario.ativo else 'Ativar' }}
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="4">Nenhum usuário cadastrado.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
 
-        <br>
-        <a href="{{ url_for('index') }}" class="back-link">← Voltar para a Página Inicial</a>
-    </div>
-
+        <a href="{{ url_for('index') }}" class="back-link">Voltar para a página inicial</a>
+    </main>
 </body>
 </html>
-
-

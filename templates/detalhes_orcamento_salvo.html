@@ -1038,14 +1038,21 @@
     {% endif %}
 
     <div class="header-container">
-        <img src="{{ url_for('static', filename='logo.jpg') }}" alt="Logo da Empresa" class="logo-empresa">
+        <img src="{{ empresa_logo_url }}" alt="{{ empresa_nome }}" class="logo-empresa">
     </div>
 
     <div class="empresa-header">
-        <h1>Prime Marble Shop</h1>
-        <p><strong>Endereço:</strong> Estrada do Engenho, 1800 - Bangu</p>
-        <p><strong>CNPJ:</strong> 39.903.780/0001-15</p>
-        <p><strong>Telefone:</strong> <span class="info-normal">{{ telefone_usuario }}</span></p>
+        <h1>{{ empresa_nome }}</h1>
+        {% if empresa_config.endereco %}
+        <p><strong>Endereço:</strong> <span class="info-normal">{{ empresa_config.endereco }}</span></p>
+        {% endif %}
+        {% if empresa_config.telefone %}
+        <p><strong>Telefone da loja:</strong> <span class="info-normal">{{ empresa_config.telefone }}</span></p>
+        {% endif %}
+        <p><strong>Vendedor:</strong> <span class="info-normal">{{ vendedor_nome or 'Não informado' }}</span></p>
+        {% if telefone_usuario %}
+        <p><strong>Telefone do vendedor:</strong> <span class="info-normal">{{ telefone_usuario }}</span></p>
+        {% endif %}
     </div>
 
     <div class="cliente-header">
@@ -1474,16 +1481,16 @@
                         {% endif %}
                     </div>
                     
-                    <!-- À vista (Dinheiro/PIX) - Primeira opção -->
+                    <!-- À vista - 50% entrada / 50% entrega -->
                     <div class="payment-option {% if '2' in exclude_payments %}hidden-in-pdf oculto-pdf{% endif %}" id="payment-option-2">
-                        <h4>À vista (Dinheiro/PIX)</h4>
+                        <h4>À vista - 50% entrada / 50% na entrega</h4>
                         <div class="payment-detail">
-                            <span class="discount-percentage" id="discount1Display">{{ desconto_avista }}</span>Com desconto
+                            <span class="discount-percentage" id="discount1Display">{{ desconto_avista }}</span>% de desconto
                             {% if not pdf %}
                             <button class="btn-edit" onclick="toggleEdit('discount1')">Editar</button>
                             {% endif %}
                         </div>
-                        <div class="payment-detail">• Sinal de 50% e 50% na entrega</div>
+                        <div class="payment-detail">• 50% de entrada e 50% na entrega</div>
                         <div class="installment-calc">
                             Valor com desconto: R$ <span id="valorAvista">
                                 {% set valor_com_desconto_avista = valor_total_float * (1 - desconto_avista/100) %}
@@ -1509,16 +1516,16 @@
                         {% endif %}
                     </div>
 
-                    <!-- À vista (Dinheiro/PIX) - Segunda opção -->
+                    <!-- À vista - 80% entrada / 20% entrega -->
                     <div class="payment-option {% if '3' in exclude_payments %}hidden-in-pdf oculto-pdf{% endif %}" id="payment-option-3">
-                        <h4>À vista (Dinheiro/PIX)</h4>
+                        <h4>À vista - 80% entrada / 20% na entrega</h4>
                         <div class="payment-detail">
-                            <span class="discount-percentage" id="discount2Display">{{ desconto_parcelado }}</span>Com desconto
+                            <span class="discount-percentage" id="discount2Display">{{ desconto_parcelado }}</span>% de desconto
                             {% if not pdf %}
                             <button class="btn-edit" onclick="toggleEdit('discount2')">Editar</button>
                             {% endif %}
                         </div>
-                        <div class="payment-detail">• Sinal de 80% e 20% na entrega</div>
+                        <div class="payment-detail">• 80% de entrada e 20% na entrega</div>
                         <div class="installment-calc">
                             Valor com desconto: R$ <span id="valorParcelado">
                                 {% set valor_com_desconto_parcelado = valor_total_float * (1 - desconto_parcelado/100) %}
@@ -1603,6 +1610,7 @@
 </div>
 
 <!-- MODAL PARA ITENS REMOVIDOS -->
+{% if not pdf %}
 <div class="modal fade" id="modalItensExcluidos" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
@@ -1628,6 +1636,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 <!-- SweetAlert2 JS -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -2415,5 +2424,3 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 </body>
 </html>
-
-

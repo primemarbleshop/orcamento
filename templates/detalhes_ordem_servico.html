@@ -2160,9 +2160,13 @@ body.linhas-simbolo-bloqueadas .linha-peca.linha-visivel-hover[data-estilo-linha
 <img alt="Logo da Empresa" class="logo-empresa" src="{{ logo_url }}"/>
 </div>
 <div class="cliente-header">
-<h1>Prime Marble Shop</h1>
-<p><strong>Endereço:</strong> Estrada do Engenho, 1800 - Bangu</p>
-<p><strong>CNPJ:</strong> 39.903.780/0001-15</p>
+<h1>{{ empresa_nome }}</h1>
+{% if empresa_config.endereco %}
+<p><strong>Endereço:</strong> {{ empresa_config.endereco }}</p>
+{% endif %}
+{% if empresa_config.telefone %}
+<p><strong>Telefone da loja:</strong> {{ empresa_config.telefone }}</p>
+{% endif %}
 </div>
 <div class="cliente-header">
 <h2>
@@ -7092,56 +7096,62 @@ _isTouchGesture(e) {
         duplicarElementoBase(elementoAlvo, offset = 30) {
             const clone = elementoAlvo.cloneNode(true);
 
-            clone.style.left = `${parseFloat(elementoAlvo.style.left) + offset}px`;
-            clone.style.top = `${parseFloat(elementoAlvo.style.top) + offset}px`;
+            clone.style.left = `${(parseFloat(elementoAlvo.style.left) || 0) + offset}px`;
+            clone.style.top = `${(parseFloat(elementoAlvo.style.top) || 0) + offset}px`;
             clone.classList.remove('elemento-selecionado', 'elemento-em-grupo');
             
             if (!this.modoSelecaoAtivo) {
                 clone.classList.remove('selecionavel');
             }
             
-            const novoPecaId = 'copy-' + Date.now();
-            if (clone.id) {
-                clone.id = clone.id + '-copy-' + Date.now();
-            }
-            
-            if (clone.classList.contains('peca')) {
-                clone.setAttribute('data-peca-id', novoPecaId);
-                clone.id = `peca-${novoPecaId}`;
-            }
-            
-            const estadoBorrachaClone = clone.classList.contains('peca')
-                ? this.capturarEstadoBorrachaLinhasPeca(clone)
-                : null;
-
-            const linhasAntigas = clone.querySelectorAll('.linha-peca');
-            linhasAntigas.forEach(linha => linha.remove());
-            
-            const simbolosAntigos = clone.querySelectorAll('.simbolo-linha');
-            simbolosAntigos.forEach(simbolo => simbolo.remove());
-
+            const copiaId = `copy-${Date.now()}-${Math.floor(Math.random() * 100000)}`;
             clone.querySelectorAll('.elemento-selecionado, .elemento-em-grupo').forEach((item) => {
                 item.classList.remove('elemento-selecionado', 'elemento-em-grupo');
             });
-            
-            this.drawingArea.appendChild(clone);
-            this.aplicarTravaBordasElemento(clone);
-            
-            if (clone.classList.contains('peca')) {
-                const width = parseFloat(clone.style.width);
-                const height = parseFloat(clone.style.height);
-                
-                this.criarLinhasPeca(clone, novoPecaId, width, height);
-                this.aplicarEstadoBorrachaEscaladoPeca(clone, estadoBorrachaClone, width, height);
+
+            clone.querySelectorAll('[id]').forEach((item) => {
+                item.id = `${item.id}-${copiaId}`;
+            });
+
+            if (clone.id) {
+                clone.id = `${clone.id}-${copiaId}`;
             }
             
+            if (clone.classList.contains('peca')) {
+                const pecaIdAntigo = elementoAlvo.getAttribute('data-peca-id');
+                const novoPecaId = copiaId;
+                clone.setAttribute('data-peca-id', novoPecaId);
+                clone.id = `peca-${novoPecaId}`;
+                clone.querySelectorAll('[data-peca-id]').forEach((item) => {
+                    if (!pecaIdAntigo || item.getAttribute('data-peca-id') === pecaIdAntigo) {
+                        item.setAttribute('data-peca-id', novoPecaId);
+                    }
+                });
+            } else if (clone.classList.contains('cuba')) {
+                const desenhoId = `desenho-${copiaId}`;
+                clone.setAttribute('data-desenho-id', desenhoId);
+            }
+
+            clone.querySelectorAll('[data-desenho-id]').forEach((item) => {
+                item.setAttribute('data-desenho-id', `desenho-${copiaId}`);
+            });
+
+            const parent = elementoAlvo.parentElement || this.drawingArea;
+            parent.appendChild(clone);
+            this.aplicarTravaBordasElemento(clone);
+
             this.configurarInteratividade(clone);
-            
+            clone.querySelectorAll('.simbolo-linha').forEach((simbolo) => this.configurarInteratividadeSimbolo(simbolo));
+            clone.querySelectorAll('.texto-legenda').forEach((texto) => this.configurarInteratividadeTexto(texto));
+            clone.querySelectorAll('.cuba').forEach((cuba) => this.configurarInteratividadeCuba(cuba));
+
             if (clone.classList.contains('simbolo-linha')) {
                 this.configurarInteratividadeSimbolo(clone);
-            } else if (clone.classList.contains('cuba')) {
+            }
+            if (clone.classList.contains('cuba')) {
                 this.configurarInteratividadeCuba(clone);
-            } else if (clone.classList.contains('texto-legenda')) {
+            }
+            if (clone.classList.contains('texto-legenda')) {
                 this.configurarInteratividadeTexto(clone);
                 this.ajustarCaixaTextoAoConteudo(clone);
             }
