@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configurações | {{ empresa_nome }}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pilot.css') }}">
+    <style>
+        .settings-shell {
+            max-width: 1280px;
+            margin: 0 auto;
+        }
+        .settings-layout {
+            display: grid;
+            grid-template-columns: 260px minmax(0, 1fr);
+            gap: 18px;
+            align-items: start;
+        }
+        .settings-nav,
+        .settings-panel {
+            background: #fff;
+            border: 1px solid #e3e8f4;
+            border-radius: 8px;
+            box-shadow: 0 8px 24px rgba(32, 36, 43, .06);
+        }
+        .settings-nav {
+            padding: 10px;
+            position: sticky;
+            top: 14px;
+        }
+        .settings-tab {
+            width: 100%;
+            border: 0;
+            background: transparent;
+            border-radius: 6px;
+            padding: 12px 14px;
+            text-align: left;
+            font-weight: 700;
+            color: #334155;
+            display: block;
+        }
+        .settings-tab.active {
+            background: var(--brand, #4e73df);
+            color: #fff;
+        }
+        .settings-panel {
+            display: none;
+            padding: 22px;
+        }
+        .settings-panel.active {
+            display: block;
+        }
+        .settings-panel h2 {
+            font-size: 1.2rem;
+            color: #172033;
+            margin: 0;
+        }
+        .settings-panel .section-note {
+            color: #64748b;
+            margin: 6px 0 20px;
+            max-width: 760px;
+        }
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 16px;
+        }
+        .settings-grid.two {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .settings-grid.four {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+        .field-span-2 {
+            grid-column: span 2;
+        }
+        .field-span-3 {
+            grid-column: span 3;
+        }
+        .form-label {
+            font-weight: 700;
+            color: #334155;
+            line-height: 1.25;
+        }
+        .form-hint {
+            display: block;
+            color: #64748b;
+            font-size: .82rem;
+            margin-top: 4px;
+        }
+        .help-toggle {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border: 1px solid #9aa7bd;
+            background: #fff;
+            color: #334155;
+            font-weight: 800;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            margin-left: 6px;
+            cursor: pointer;
+        }
+        .help-toggle:hover,
+        .help-toggle.active {
+            border-color: var(--brand, #4e73df);
+            color: var(--brand, #4e73df);
+            background: #f5f7ff;
+        }
+        .settings-shell .btn-primary {
+            background-color: var(--brand, #4e73df);
+            border-color: var(--brand, #4e73df);
+        }
+        .settings-shell .btn-primary:hover,
+        .settings-shell .btn-primary:focus {
+            background-color: var(--brand-dark, var(--brand, #4e73df));
+            border-color: var(--brand-dark, var(--brand, #4e73df));
+        }
+        .settings-shell .btn-outline-primary {
+            color: var(--brand, #4e73df);
+            border-color: var(--brand, #4e73df);
+        }
+        .settings-shell .btn-outline-primary:hover,
+        .settings-shell .btn-outline-primary:focus {
+            color: #fff;
+            background-color: var(--brand, #4e73df);
+            border-color: var(--brand, #4e73df);
+        }
+        .help-box {
+            display: none;
+            margin-top: 10px;
+            padding: 12px;
+            border: 1px solid #d8e0ef;
+            border-radius: 8px;
+            background: #f8fafc;
+            color: #475569;
+            font-size: .88rem;
+            line-height: 1.45;
+        }
+        .help-box.open {
+            display: block;
+        }
+        .logo-preview {
+            width: 132px;
+            height: 132px;
+            object-fit: contain;
+            border: 1px solid #d8dce6;
+            border-radius: 8px;
+            background: #f8f9fc;
+            padding: 10px;
+        }
+        .formula-card {
+            border: 1px solid #e4e9f3;
+            border-radius: 8px;
+            padding: 16px;
+            background: #fbfcff;
+        }
+        .formula-card h3 {
+            font-size: 1rem;
+            margin: 0 0 12px;
+            color: #172033;
+        }
+        .cuba-row {
+            display: grid;
+            grid-template-columns: minmax(180px, 1fr) minmax(120px, 180px) auto;
+            gap: 10px;
+            align-items: end;
+            padding: 12px;
+            border: 1px solid #e4e9f3;
+            border-radius: 8px;
+            background: #fbfcff;
+            margin-bottom: 10px;
+        }
+        .settings-actions {
+            position: sticky;
+            bottom: 0;
+            z-index: 5;
+            background: rgba(245, 247, 255, .96);
+            border-top: 1px solid #dfe5f5;
+            padding: 14px 0;
+            margin-top: 18px;
+        }
+        @media (max-width: 980px) {
+            .settings-layout {
+                grid-template-columns: 1fr;
+            }
+            .settings-nav {
+                position: static;
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+            .settings-grid,
+            .settings-grid.two,
+            .settings-grid.four {
+                grid-template-columns: 1fr;
+            }
+            .field-span-2,
+            .field-span-3 {
+                grid-column: span 1;
+            }
+        }
+    </style>
+</head>
+<body class="app-theme">
+    <div class="pilot-shell app-header-shell">
+        {% set header_subtitle = "Configurações do sistema" %}
+        {% include "partials/app_header.html" %}
+    </div>
+
+    <main class="container-fluid py-4 settings-shell">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'success' if category == 'success' else 'warning' }}">{{ message }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" enctype="multipart/form-data">
+            <div class="settings-layout">
+                <aside class="settings-nav" aria-label="Seções de configuração">
+                    <button type="button" class="settings-tab active" data-tab="identidade">Identidade</button>
+                    <button type="button" class="settings-tab" data-tab="comercial">Comercial</button>
+                    <button type="button" class="settings-tab" data-tab="produtos">Fórmulas por produto</button>
+                    <button type="button" class="settings-tab" data-tab="acabamentos">Acabamentos</button>
+                    <button type="button" class="settings-tab" data-tab="nicho">Nicho</button>
+                    <button type="button" class="settings-tab" data-tab="cubas">Cubas e acessórios</button>
+                </aside>
+
+                <div>
+                    <section class="settings-panel active" data-panel="identidade">
+                        <h2>Identidade da empresa</h2>
+                        <p class="section-note">Define como a empresa aparece no cabeçalho, login, orçamentos, PDFs e links públicos.</p>
+                        <div class="settings-grid">
+                            <div>
+                                <label class="form-label" for="logo">Logo</label>
+                                <div class="mb-3 mt-2">
+                                    <img src="{{ logo_url }}" alt="{{ config.nome_empresa }}" class="logo-preview">
+                                </div>
+                                <input class="form-control" type="file" id="logo" name="logo" accept=".png,.jpg,.jpeg,.webp">
+                            </div>
+                            <div>
+                                <label class="form-label" for="nome_empresa">Nome da empresa</label>
+                                <input class="form-control" id="nome_empresa" name="nome_empresa" value="{{ config.nome_empresa }}" required>
+                            </div>
+                            <div>
+                                <label class="form-label" for="cor_primaria">Cor primária</label>
+                                <input class="form-control form-control-color" type="color" id="cor_primaria" name="cor_primaria" value="{{ config.cor_primaria or '#4e73df' }}">
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="settings-panel" data-panel="comercial">
+                        <h2>Dados comerciais e condições</h2>
+                        <p class="section-note">Essas informações alimentam o orçamento, a prévia pública e os textos comerciais padrão.</p>
+                        <div class="settings-grid">
+                            <div>
+                                <label class="form-label" for="razao_social">Razão social</label>
+                                <input class="form-control" id="razao_social" name="razao_social" value="{{ config.razao_social or '' }}">
+                            </div>
+                            <div>
+                                <label class="form-label" for="documento">CNPJ/CPF</label>
+                                <input class="form-control" id="documento" name="documento" value="{{ config.documento or '' }}">
+                            </div>
+                            <div>
+                                <label class="form-label" for="telefone">Telefone</label>
+                                <input class="form-control" id="telefone" name="telefone" value="{{ config.telefone or '' }}">
+                            </div>
+                            <div>
+                                <label class="form-label" for="whatsapp">WhatsApp</label>
+                                <input class="form-control" id="whatsapp" name="whatsapp" value="{{ config.whatsapp or '' }}" placeholder="5521999999999">
+                            </div>
+                            <div>
+                                <label class="form-label" for="prazo_entrega_padrao">Prazo padrão de entrega</label>
+                                <input class="form-control" type="number" min="0" id="prazo_entrega_padrao" name="prazo_entrega_padrao" value="{{ config.prazo_entrega_padrao }}">
+                            </div>
+                            <div>
+                                <label class="form-label" for="desconto_avista_padrao">Desconto 50% entrada / 50% entrega (%)</label>
+                                <input class="form-control" type="number" step="0.01" min="0" id="desconto_avista_padrao" name="desconto_avista_padrao" value="{{ config.desconto_avista_padrao }}">
+                            </div>
+                            <div>
+                                <label class="form-label" for="desconto_parcelado_padrao">Desconto 80% entrada / 20% entrega (%)</label>
+                                <input class="form-control" type="number" step="0.01" min="0" id="desconto_parcelado_padrao" name="desconto_parcelado_padrao" value="{{ config.desconto_parcelado_padrao }}">
+                            </div>
+                            <div>
+                                <label class="form-label" for="rt_percentual_padrao">RT padrão (%)</label>
+                                <input class="form-control" type="number" step="0.01" min="0" id="rt_percentual_padrao" name="rt_percentual_padrao" value="{{ config.rt_percentual_padrao }}">
+                            </div>
+                            <div class="field-span-3">
+                                <label class="form-label" for="endereco">Endereço</label>
+                                <textarea class="form-control" id="endereco" name="endereco" rows="2">{{ config.endereco or '' }}</textarea>
+                            </div>
+                            <div class="field-span-3">
+                                <label class="form-label" for="observacoes_padrao">Observações padrão</label>
+                                <textarea class="form-control" id="observacoes_padrao" name="observacoes_padrao" rows="4">{{ config.observacoes_padrao }}</textarea>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="settings-panel" data-panel="produtos">
+                        <h2>Fórmulas por produto</h2>
+                        <p class="section-note">Configure acréscimos sobre a área base. A área base é comprimento x largura x valor do material, respeitando a medida mínima.</p>
+                        <div class="settings-grid two">
+                            <div class="formula-card">
+                                <h3>Medida base</h3>
+                                <label class="form-label" for="minimo_medida_cm">
+                                    Medida mínima cobrada (cm)
+                                    <button type="button" class="help-toggle" aria-label="Ajuda sobre medida mínima" onclick="toggleHelp('help-medida-minima', this)">i</button>
+                                </label>
+                                <input class="form-control" type="number" step="0.01" min="0" id="minimo_medida_cm" name="minimo_medida_cm" value="{{ config.minimo_medida_cm }}">
+                                <div class="help-box" id="help-medida-minima">Usada em pedra simples, bancada, lavatório, saia, fronte, alisar e nicho. Se uma medida for menor que esse mínimo, o sistema cobra pelo mínimo configurado.</div>
+                            </div>
+                            <div class="formula-card">
+                                <h3>Pedra simples</h3>
+                                <label class="form-label" for="pedra_simples_margem">Acréscimo sobre área base (%)</label>
+                                <input class="form-control" type="number" step="0.01" min="0" id="pedra_simples_margem" name="pedra_simples_margem" value="{{ config.pedra_simples_margem }}">
+                            </div>
+                            <div class="formula-card">
+                                <h3>Bancada e lavatório</h3>
+                                <div class="settings-grid">
+                                    <div>
+                                        <label class="form-label" for="bancada_margem_ate_1000">Material até R$ 999,99 (%)</label>
+                                        <input class="form-control" type="number" step="0.01" min="0" id="bancada_margem_ate_1000" name="bancada_margem_ate_1000" value="{{ config.bancada_margem_ate_1000 }}">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="bancada_margem_ate_2000">Até R$ 1.999,99 (%)</label>
+                                        <input class="form-control" type="number" step="0.01" min="0" id="bancada_margem_ate_2000" name="bancada_margem_ate_2000" value="{{ config.bancada_margem_ate_2000 }}">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="bancada_margem_acima_2000">Acima de R$ 2.000 (%)</label>
+                                        <input class="form-control" type="number" step="0.01" min="0" id="bancada_margem_acima_2000" name="bancada_margem_acima_2000" value="{{ config.bancada_margem_acima_2000 }}">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="formula-card">
+                                <h3>Ilharga e pedra de box</h3>
+                                <div class="settings-grid">
+                                    <div>
+                                        <label class="form-label" for="ilharga_margem">Ilharga simples (%)</label>
+                                        <input class="form-control" type="number" step="0.01" min="0" id="ilharga_margem" name="ilharga_margem" value="{{ config.ilharga_margem }}">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="ilharga_bipolida_margem">Ilharga bipolida (%)</label>
+                                        <input class="form-control" type="number" step="0.01" min="0" id="ilharga_bipolida_margem" name="ilharga_bipolida_margem" value="{{ config.ilharga_bipolida_margem }}">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="pedra_box_adicional">Pedra de box fixo (R$)</label>
+                                        <input class="form-control" type="number" step="0.01" min="0" id="pedra_box_adicional" name="pedra_box_adicional" value="{{ config.pedra_box_adicional }}">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="settings-panel" data-panel="acabamentos">
+                        <h2>Acabamentos</h2>
+                        <p class="section-note">Saia e fronte são calculadas por área de acabamento. O alisar fica na aba Nicho, porque só entra quando o nicho tem moldura.</p>
+                        <div class="settings-grid">
+                            <div class="formula-card">
+                                <h3>Saia</h3>
+                                <label class="form-label" for="saia_margem">Acréscimo sobre área da saia (%)</label>
+                                <input class="form-control" type="number" step="0.01" min="0" id="saia_margem" name="saia_margem" value="{{ config.saia_margem }}">
+                            </div>
+                            <div class="formula-card">
+                                <h3>Fronte</h3>
+                                <label class="form-label" for="fronte_margem">Acréscimo sobre área do fronte (%)</label>
+                                <input class="form-control" type="number" step="0.01" min="0" id="fronte_margem" name="fronte_margem" value="{{ config.fronte_margem }}">
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="settings-panel" data-panel="nicho">
+                        <h2>Nicho</h2>
+                        <p class="section-note">Nicho com fundo cobra fundo + laterais. Nicho sem fundo cobra somente laterais. O alisar entra como área adicional quando marcado no orçamento.</p>
+                        <div class="settings-grid">
+                            <div>
+                                <label class="form-label" for="nicho_mao_obra">Mão de obra nicho com fundo (R$)</label>
+                                <input class="form-control" type="number" step="0.01" min="0" id="nicho_mao_obra" name="nicho_mao_obra" value="{{ config.nicho_mao_obra }}">
+                            </div>
+                            <div>
+                                <label class="form-label" for="nicho_sem_fundo_mao_obra">Mão de obra nicho sem fundo (R$)</label>
+                                <input class="form-control" type="number" step="0.01" min="0" id="nicho_sem_fundo_mao_obra" name="nicho_sem_fundo_mao_obra" value="{{ config.nicho_sem_fundo_mao_obra }}">
+                            </div>
+                            <div>
+                                <label class="form-label" for="nicho_folga_cm">
+                                    Acréscimo técnico nas medidas do nicho (cm)
+                                    <button type="button" class="help-toggle" aria-label="Ajuda sobre acréscimo técnico do nicho" onclick="toggleHelp('help-nicho-folga', this)">i</button>
+                                </label>
+                                <input class="form-control" type="number" step="0.01" min="0" id="nicho_folga_cm" name="nicho_folga_cm" value="{{ config.nicho_folga_cm }}">
+                                <div class="help-box" id="help-nicho-folga">Esse valor é somado ao comprimento e à largura usados no cálculo para cobrir folgas, perdas de corte e encaixe. Ex.: nicho 60 x 30 com 4 cm calcula a base como 64 x 34. Não muda a medida informada ao cliente.</div>
+                            </div>
+                            <div>
+                                <label class="form-label" for="alisar_margem">Alisar - acréscimo sobre área (%)</label>
+                                <input class="form-control" type="number" step="0.01" min="0" id="alisar_margem" name="alisar_margem" value="{{ config.alisar_margem }}">
+                                <span class="form-hint">Usado somente quando o nicho estiver marcado com alisar/moldura.</span>
+                            </div>
+                        </div>
+                    </section>
+
+                    <section class="settings-panel" data-panel="cubas">
+                        <h2>Cubas e acessórios</h2>
+                        <p class="section-note">Configure os valores fixos dos acessórios usados em bancada e lavatório.</p>
+                        <div class="settings-grid two">
+                            <div>
+                                <label class="form-label" for="cooktop_valor">Cooktop (R$)</label>
+                                <input class="form-control" type="number" step="0.01" min="0" id="cooktop_valor" name="cooktop_valor" value="{{ config.cooktop_valor }}">
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h3 class="h6 m-0">Tabela de cubas</h3>
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="adicionarCuba()">Adicionar cuba</button>
+                            </div>
+                            <div id="cubasList">
+                                {% for nome, valor in cuba_valores.items() %}
+                                <div class="cuba-row">
+                                    <div>
+                                        <label class="form-label">Nome da cuba</label>
+                                        <input class="form-control" name="cuba_nome[]" value="{{ nome }}" required>
+                                    </div>
+                                    <div>
+                                        <label class="form-label">Valor (R$)</label>
+                                        <input class="form-control" type="number" step="0.01" min="0" name="cuba_valor[]" value="{{ valor }}" required>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-danger" onclick="removerCuba(this)">Remover</button>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <div class="settings-actions">
+                <div class="settings-shell d-flex justify-content-end gap-2">
+                    <a href="{{ url_for('index') }}" class="btn btn-outline-secondary">Cancelar</a>
+                    <button type="submit" class="btn btn-primary">Salvar configurações</button>
+                </div>
+            </div>
+        </form>
+    </main>
+
+    <script>
+        document.querySelectorAll('.settings-tab').forEach((tab) => {
+            tab.addEventListener('click', () => {
+                const target = tab.dataset.tab;
+                document.querySelectorAll('.settings-tab').forEach((item) => item.classList.toggle('active', item === tab));
+                document.querySelectorAll('.settings-panel').forEach((panel) => panel.classList.toggle('active', panel.dataset.panel === target));
+            });
+        });
+
+        function adicionarCuba(nome = '', valor = '') {
+            const lista = document.getElementById('cubasList');
+            const row = document.createElement('div');
+            row.className = 'cuba-row';
+            row.innerHTML = `
+                <div>
+                    <label class="form-label">Nome da cuba</label>
+                    <input class="form-control" name="cuba_nome[]" value="${nome}" required>
+                </div>
+                <div>
+                    <label class="form-label">Valor (R$)</label>
+                    <input class="form-control" type="number" step="0.01" min="0" name="cuba_valor[]" value="${valor}" required>
+                </div>
+                <button type="button" class="btn btn-outline-danger" onclick="removerCuba(this)">Remover</button>
+            `;
+            lista.appendChild(row);
+        }
+
+        function removerCuba(botao) {
+            const linhas = document.querySelectorAll('.cuba-row');
+            if (linhas.length <= 1) return;
+            botao.closest('.cuba-row').remove();
+        }
+
+        function toggleHelp(id, button) {
+            const box = document.getElementById(id);
+            if (!box) return;
+            const abrir = !box.classList.contains('open');
+            box.classList.toggle('open', abrir);
+            if (button) button.classList.toggle('active', abrir);
+        }
+    </script>
+</body>
+</html>

@@ -65,8 +65,10 @@ echo.
 echo Adicionando SOMENTE os arquivos atualizados/adicionados...
 "%GIT_EXE%" add app.py
 "%GIT_EXE%" add config.py
+"%GIT_EXE%" add pricing.py
 "%GIT_EXE%" add README.md
 "%GIT_EXE%" add run_local.bat
+"%GIT_EXE%" add deploy_atualizacoes_github.bat
 "%GIT_EXE%" add .env.example
 "%GIT_EXE%" add .gitignore
 "%GIT_EXE%" add static/css/pilot.css
@@ -79,6 +81,7 @@ echo Adicionando SOMENTE os arquivos atualizados/adicionados...
 "%GIT_EXE%" add templates/relatorio_vendas.html
 "%GIT_EXE%" add templates/alterar_senha.html
 "%GIT_EXE%" add templates/clientes.html
+"%GIT_EXE%" add templates/configuracoes.html
 "%GIT_EXE%" add templates/configurador_3d.html
 "%GIT_EXE%" add templates/criar_usuario.html
 "%GIT_EXE%" add templates/detalhes_orcamento.html
