@@ -238,6 +238,48 @@ def pagamentos_excluidos_padrao(dados=None):
     )
 
 
+def chave_ordem_tabela(ambiente_nome, descricao_nome):
+    return f"{ambiente_nome or ''}||{descricao_nome or ''}"
+
+
+def ordem_linhas_orcamento(orcamento_salvo):
+    if not orcamento_salvo or not getattr(orcamento_salvo, "ordem_linhas_json", None):
+        return {}
+    try:
+        dados = json.loads(orcamento_salvo.ordem_linhas_json)
+        if isinstance(dados, dict):
+            return {
+                str(chave): [int(item_id) for item_id in valores if str(item_id).isdigit()]
+                for chave, valores in dados.items()
+                if isinstance(valores, list)
+            }
+    except (TypeError, ValueError):
+        pass
+    return {}
+
+
+def linhas_ordenadas_por_tabela(ambientes_agrupados, orcamento_salvo):
+    ordem_salva = ordem_linhas_orcamento(orcamento_salvo)
+    tabelas = {}
+    for ambiente_nome, descricoes in (ambientes_agrupados or {}).items():
+        for descricao_nome, tipos_produtos in (descricoes or {}).items():
+            chave = chave_ordem_tabela(ambiente_nome, descricao_nome)
+            linhas = []
+            for produtos in (tipos_produtos or {}).values():
+                linhas.extend(produtos or [])
+
+            ids_salvos = ordem_salva.get(chave, [])
+            if ids_salvos:
+                posicoes = {item_id: index for index, item_id in enumerate(ids_salvos)}
+                linhas = sorted(
+                    enumerate(linhas),
+                    key=lambda item: (posicoes.get(item[1].id, len(posicoes) + item[0]), item[0])
+                )
+                linhas = [produto for _, produto in linhas]
+            tabelas[chave] = linhas
+    return tabelas
+
+
 def _criar_pdf_orcamento_fallback(
     orcamento_salvo,
     orcamentos,
@@ -475,7 +517,7 @@ def dados_usuario_layout():
 def injetar_ordenacao_tabelas(response):
     if response.direct_passthrough or response.mimetype != "text/html" or response.status_code >= 300:
         return response
-    if request.endpoint == "relatorio_vendas":
+    if request.endpoint != "detalhes_orcamento_salvo":
         return response
 
     html = response.get_data(as_text=True)
@@ -853,6 +895,7 @@ class OrcamentoSalvo(db.Model):
     max_parcelas = db.Column(db.Integer, nullable=True)
     valor_minimo_parcela = db.Column(db.Float, nullable=True)
     pagamentos_config_json = db.Column(db.Text, default='')
+    ordem_linhas_json = db.Column(db.Text, default='')
 
     @property
     def cliente_nome(self):
@@ -967,6 +1010,7 @@ def _garantir_colunas_orcamento_salvo():
         "max_parcelas": "INTEGER",
         "valor_minimo_parcela": "FLOAT",
         "pagamentos_config_json": "TEXT",
+        "ordem_linhas_json": "TEXT",
     }
     for coluna, definicao in colunas.items():
         _garantir_coluna("orcamento_salvo", coluna, definicao)
@@ -1127,7 +1171,8 @@ def _gerar_pdf_bytes(codigo):
         pagamentos_config=pagamentos_config,
         max_parcelas=max_parcelas,
         valor_minimo_parcela=valor_minimo_parcela,
-        parcelas_orcamento=parcelas_orcamento
+        parcelas_orcamento=parcelas_orcamento,
+        linhas_ordenadas=linhas_ordenadas_por_tabela(ambientes_agrupados, orcamento_salvo)
     )
     with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_pdf:
         temp_pdf_path = temp_pdf.name
@@ -2042,11 +2087,17 @@ def relatorio_vendas():
     mes_filtro = request.args.get("mes", str(hoje.month))
     ano_filtro = request.args.get("ano", str(hoje.year))
     vendedor_filtro = request.args.get("vendedor", "Todos")
+    status_filtro = request.args.get("status", "Todos")
     usuarios = Usuario.query.order_by(Usuario.nome).all() if session.get("admin") else []
     if session.get("admin") and vendedor_filtro and vendedor_filtro != "Todos":
         todos_orcamentos = [
             orcamento for orcamento in todos_orcamentos
             if (orcamento.criado_por or "") == vendedor_filtro
+        ]
+    if status_filtro and status_filtro != "Todos":
+        todos_orcamentos = [
+            orcamento for orcamento in todos_orcamentos
+            if (orcamento.status or "Em Espera") == status_filtro
         ]
     orcamentos, mes_filtro, ano_filtro = _filtrar_orcamentos_por_periodo(
         todos_orcamentos,
@@ -2164,6 +2215,7 @@ def relatorio_vendas():
         ano=ano_filtro or "todos",
         usuarios=usuarios,
         vendedor_filtro=vendedor_filtro,
+        status_filtro=status_filtro,
         moeda=_moeda,
     )
 
@@ -3457,7 +3509,8 @@ def detalhes_orcamento_salvo(codigo):
         is_admin=is_admin,
         max_parcelas=max_parcelas,
         valor_minimo_parcela=valor_minimo_parcela,
-        parcelas_orcamento=parcelas_orcamento
+        parcelas_orcamento=parcelas_orcamento,
+        linhas_ordenadas=linhas_ordenadas_por_tabela(ambientes_agrupados, orcamento_salvo)
     )
 
 def recriar_agrupamentos_orcamento(codigo_orcamento):
@@ -3820,7 +3873,8 @@ def gerar_pdf_orcamento(codigo_ou_token):
         pagamentos_config=pagamentos_config,
         max_parcelas=max_parcelas,
         valor_minimo_parcela=valor_minimo_parcela,
-        parcelas_orcamento=parcelas_orcamento
+        parcelas_orcamento=parcelas_orcamento,
+        linhas_ordenadas=linhas_ordenadas_por_tabela(ambientes_agrupados, orcamento_salvo)
     )
 
     try:
@@ -4200,6 +4254,58 @@ def salvar_rodape_orcamento(codigo):
     flash("Rodapé do orçamento salvo com sucesso!", "success")
     
     return redirect(url_for('detalhes_orcamento_salvo', codigo=codigo))
+
+
+@app.route('/salvar_ordem_linhas_orcamento/<codigo>', methods=['POST'])
+def salvar_ordem_linhas_orcamento(codigo):
+    orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
+    if not orcamento_salvo:
+        return jsonify({'success': False, 'message': 'Orçamento salvo não encontrado.'}), 404
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        try:
+            data = json.loads((request.get_data(as_text=True) or '').strip() or '{}')
+        except (TypeError, ValueError):
+            data = {}
+    tabelas = data.get('tables')
+    chave = str(data.get('table_key') or '').strip()
+    item_ids = data.get('item_ids') or []
+
+    if tabelas is None:
+        if not chave or not isinstance(item_ids, list):
+            return jsonify({'success': False, 'message': 'Dados de ordenação inválidos.'}), 400
+        tabelas = {chave: item_ids}
+
+    if not isinstance(tabelas, dict):
+        return jsonify({'success': False, 'message': 'Dados de ordenação inválidos.'}), 400
+
+    ids_orcamento = {
+        int(item_id)
+        for item_id in (orcamento_salvo.orcamentos_ids or '').split(',')
+        if str(item_id).strip().isdigit()
+    }
+
+    ordem_atual = ordem_linhas_orcamento(orcamento_salvo)
+    for chave_tabela, ids_tabela in tabelas.items():
+        chave_limpa = str(chave_tabela or '').strip()
+        if not chave_limpa or not isinstance(ids_tabela, list):
+            continue
+
+        ids_limpos = []
+        for item_id in ids_tabela:
+            try:
+                item_int = int(item_id)
+            except (TypeError, ValueError):
+                continue
+            if item_int in ids_orcamento and item_int not in ids_limpos:
+                ids_limpos.append(item_int)
+
+        ordem_atual[chave_limpa] = ids_limpos
+
+    orcamento_salvo.ordem_linhas_json = json.dumps(ordem_atual, ensure_ascii=False)
+    db.session.commit()
+    return jsonify({'success': True, 'ordem_linhas': ordem_atual})
 
 
 @app.route('/adicionar_ambiente', methods=['POST'])
