@@ -243,6 +243,9 @@
         padding: 8px;
         border: 1px dashed #ccc;
         margin-top: 5px;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
     }
 
     .edit-field {
@@ -250,6 +253,16 @@
         margin: 0 5px;
         padding: 2px;
         font-size: 12px;
+    }
+
+    .payment-option .edit-mode {
+        margin: 8px 0 0;
+        min-height: 40px;
+    }
+
+    .payment-option .edit-mode[style*="display: block"],
+    .payment-option .edit-mode.is-editing {
+        display: flex !important;
     }
 
     .payment-option {
@@ -1500,17 +1513,15 @@
                             {% endif %}
                         </div>
                         {% if not pdf %}
-                        <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-2')">
-                            {% if '2' in exclude_payments %}Mostrar{% else %}Ocultar{% endif %} no PDF
-                        </button>
-                        {% endif %}
-                        
-                        {% if not pdf %}
                         <div id="discount1Edit" class="edit-mode" style="display: none;">
                             <input type="number" id="discount1Input" class="edit-field" value="{{ desconto_avista }}" min="0" max="100">
                             <button class="btn-save" onclick="saveValue('discount1')">Salvar</button>
                             <button class="btn-cancel" onclick="cancelEdit('discount1')">Cancelar</button>
                         </div>
+                        
+                        <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-2')">
+                            {% if '2' in exclude_payments %}Mostrar{% else %}Ocultar{% endif %} no PDF
+                        </button>
                         {% endif %}
                     </div>
                     {% endif %}
@@ -1535,17 +1546,15 @@
                             {% endif %}
                         </div>
                         {% if not pdf %}
-                        <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-3')">
-                            {% if '3' in exclude_payments %}Mostrar{% else %}Ocultar{% endif %} no PDF
-                        </button>
-                        {% endif %}
-                        
-                        {% if not pdf %}
                         <div id="discount2Edit" class="edit-mode" style="display: none;">
                             <input type="number" id="discount2Input" class="edit-field" value="{{ desconto_parcelado }}" min="0" max="100">
                             <button class="btn-save" onclick="saveValue('discount2')">Salvar</button>
                             <button class="btn-cancel" onclick="cancelEdit('discount2')">Cancelar</button>
                         </div>
+                        
+                        <button class="btn-toggle-pdf" onclick="togglePdfVisibility('payment-option-3')">
+                            {% if '3' in exclude_payments %}Mostrar{% else %}Ocultar{% endif %} no PDF
+                        </button>
                         {% endif %}
                     </div>
                     {% endif %}
@@ -2151,7 +2160,7 @@ function toggleEdit(field) {
             editElement.style.display = 'none';
         } else {
             displayParent.style.display = 'none';
-            editElement.style.display = '';
+            editElement.style.display = 'flex';
         }
     } else {
         // Lógica original para outros campos
@@ -2173,7 +2182,7 @@ function toggleEdit(field) {
             editElement.style.display = 'none';
         } else {
             displayElement.style.display = 'none';
-            editElement.style.display = '';
+            editElement.style.display = ['discount1', 'discount2'].includes(field) ? 'flex' : '';
         }
     }
 }
@@ -2490,7 +2499,9 @@ document.addEventListener('DOMContentLoaded', function() {
     if (pdfButton) {
         pdfButton.addEventListener('click', function(event) {
             event.preventDefault();
-            const href = this.href;
+            const pdfUrl = new URL(this.href, window.location.origin);
+            pdfUrl.searchParams.set('_ts', Date.now().toString());
+            const href = pdfUrl.toString();
             const originalText = this.innerHTML;
             this.classList.add('disabled');
             this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando PDF...';

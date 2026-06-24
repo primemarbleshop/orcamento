@@ -126,6 +126,17 @@ def _get_weasyprint_html():
             "WeasyPrint precisa das bibliotecas nativas GTK/Pango instaladas para gerar PDF no Windows."
         ) from exc
 
+
+def _resposta_pdf(pdf_bytes, filename):
+    response = make_response(pdf_bytes)
+    response.headers["Content-Type"] = "application/pdf"
+    response.headers["Content-Disposition"] = f"inline; filename={filename}"
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
+
+
 def _hex_para_rgb01(cor_hex):
     cor = (cor_hex or "#4e73df").strip().lstrip("#")
     if len(cor) != 6:
@@ -3780,16 +3791,9 @@ def gerar_pdf_orcamento(codigo_ou_token):
         pdf_bytes = _get_weasyprint_html()(string=rendered_html, base_url=request.url_root).write_pdf()
     except RuntimeError:
         pdf_bytes = _gerar_pdf_html_com_chrome(rendered_html, request.url_root)
-        response = make_response(pdf_bytes)
-        response.headers["Content-Type"] = "application/pdf"
-        response.headers["Content-Disposition"] = f"inline; filename=orcamento_{orcamento_salvo.codigo}.pdf"
-        return response
+        return _resposta_pdf(pdf_bytes, f"orcamento_{orcamento_salvo.codigo}.pdf")
 
-    response = make_response(pdf_bytes)
-    response.headers["Content-Type"] = "application/pdf"
-    response.headers["Content-Disposition"] = f"inline; filename=orcamento_{orcamento_salvo.codigo}.pdf"
-
-    return response
+    return _resposta_pdf(pdf_bytes, f"orcamento_{orcamento_salvo.codigo}.pdf")
 
 @app.route('/orcamentos/editar_material_rt_selecionados', methods=['POST'])
 def editar_material_rt_selecionados():
