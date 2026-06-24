@@ -398,12 +398,14 @@
                                 <h3>Acabamentos</h3>
                                 <div class="settings-grid">
                                     <div>
-                                        <label class="form-label" for="saia_margem">Saia - acréscimo sobre área (%)</label>
+                                        <label class="form-label" for="saia_margem">Saia - valor por metro linear (R$)</label>
                                         <input class="form-control" type="number" step="0.01" min="0" id="saia_margem" name="saia_margem" value="{{ config.saia_margem }}">
+                                        <span class="form-hint">Calcula pelo comprimento da saia convertido para metros. Ex.: 200 cm = 2 m x valor configurado.</span>
                                     </div>
                                     <div>
-                                        <label class="form-label" for="fronte_margem">Fronte - acréscimo sobre área (%)</label>
+                                        <label class="form-label" for="fronte_margem">Fronte - valor por metro linear (R$)</label>
                                         <input class="form-control" type="number" step="0.01" min="0" id="fronte_margem" name="fronte_margem" value="{{ config.fronte_margem }}">
+                                        <span class="form-hint">Calcula pelo comprimento do fronte convertido para metros. Ex.: 200 cm = 2 m x valor configurado.</span>
                                     </div>
                                 </div>
                             </div>
@@ -447,11 +449,26 @@
 
                     <section class="settings-panel" data-panel="cubas">
                         <h2>Cubas e acessórios</h2>
-                        <p class="section-note">Configure os valores fixos dos acessórios usados em bancada e lavatório.</p>
-                        <div class="settings-grid two">
-                            <div>
-                                <label class="form-label" for="cooktop_valor">Cooktop (R$)</label>
-                                <input class="form-control" type="number" step="0.01" min="0" id="cooktop_valor" name="cooktop_valor" value="{{ config.cooktop_valor }}">
+                        <p class="section-note">Configure os valores fixos das cubas e dos acessórios usados em bancada e lavatório.</p>
+                        <div class="mt-2">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h3 class="h6 m-0">Tabela de acessórios</h3>
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="adicionarAcessorioConfig()">Adicionar acessório</button>
+                            </div>
+                            <div id="acessoriosConfigList">
+                                {% for nome, valor in acessorio_valores.items() %}
+                                <div class="cuba-row">
+                                    <div>
+                                        <label class="form-label">Nome do acessório</label>
+                                        <input class="form-control" name="acessorio_nome[]" value="{{ nome }}" required>
+                                    </div>
+                                    <div>
+                                        <label class="form-label">Valor padrão (R$)</label>
+                                        <input class="form-control" type="number" step="0.01" min="0" name="acessorio_valor[]" value="{{ valor }}" required>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-danger" onclick="removerCuba(this)">Remover</button>
+                                </div>
+                                {% endfor %}
                             </div>
                         </div>
 
@@ -510,6 +527,24 @@
                 <div>
                     <label class="form-label">Valor (R$)</label>
                     <input class="form-control" type="number" step="0.01" min="0" name="cuba_valor[]" value="${valor}" required>
+                </div>
+                <button type="button" class="btn btn-outline-danger" onclick="removerCuba(this)">Remover</button>
+            `;
+            lista.appendChild(row);
+        }
+
+        function adicionarAcessorioConfig(nome = '', valor = '') {
+            const lista = document.getElementById('acessoriosConfigList');
+            const row = document.createElement('div');
+            row.className = 'cuba-row';
+            row.innerHTML = `
+                <div>
+                    <label class="form-label">Nome do acessório</label>
+                    <input class="form-control" name="acessorio_nome[]" value="${nome}" required>
+                </div>
+                <div>
+                    <label class="form-label">Valor padrão (R$)</label>
+                    <input class="form-control" type="number" step="0.01" min="0" name="acessorio_valor[]" value="${valor}" required>
                 </div>
                 <button type="button" class="btn btn-outline-danger" onclick="removerCuba(this)">Remover</button>
             `;

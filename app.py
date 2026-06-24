@@ -504,6 +504,11 @@ def dados_usuario_layout():
         "empresa_config": config_empresa,
         "empresa_nome": empresa_nome,
         "empresa_logo_url": empresa_logo_url(),
+        "acessorios_texto": acessorios_texto,
+        "acessorios_do_orcamento": acessorios_do_orcamento,
+        "texto_saia_produto": texto_saia_produto,
+        "texto_fronte_produto": texto_fronte_produto,
+        "texto_cuba_produto": texto_cuba_produto,
     }
     cpf = session.get('user_cpf')
     if not cpf:
@@ -515,6 +520,11 @@ def dados_usuario_layout():
 
 @app.after_request
 def injetar_ordenacao_tabelas(response):
+    if request.endpoint in {"detalhes_orcamento_salvo", "detalhes_orcamento", "gerar_pdf_orcamento"}:
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+        response.headers["Pragma"] = "no-cache"
+        response.headers["Expires"] = "0"
+
     if response.direct_passthrough or response.mimetype != "text/html" or response.status_code >= 300:
         return response
     if request.endpoint != "detalhes_orcamento_salvo":
@@ -634,6 +644,7 @@ def _config_empresa_fallback():
         'pagamento_3_titulo': PAGAMENTOS_PADRAO['3']['titulo'],
         'pagamento_3_descricao': PAGAMENTOS_PADRAO['3']['descricao'],
         'cooktop_valor': 50,
+        'acessorios_valores_json': '',
         'nicho_mao_obra': 150,
         'nicho_sem_fundo_mao_obra': 150,
         'rt_percentual_padrao': 10,
@@ -721,6 +732,133 @@ def empresa_cuba_valores(config=None):
         except (TypeError, ValueError):
             pass
     return valores
+
+
+ACESSORIOS_VALORES_PADRAO = {
+    "Cooktop": 50,
+    "Lixeira": 0,
+    "Torre de tomada": 0,
+    "Calha úmida": 0,
+    "Dispenser": 0,
+}
+
+
+def empresa_acessorios_valores(config=None):
+    valores = dict(ACESSORIOS_VALORES_PADRAO)
+    config = config or obter_config_empresa()
+    if config and getattr(config, "acessorios_valores_json", None):
+        try:
+            salvos = json.loads(config.acessorios_valores_json)
+            if isinstance(salvos, dict):
+                valores.update({str(nome): float(valor or 0) for nome, valor in salvos.items() if str(nome).strip()})
+        except (TypeError, ValueError):
+            pass
+    elif config and getattr(config, "cooktop_valor", None) is not None:
+        valores["Cooktop"] = float(config.cooktop_valor or 0)
+    return valores
+
+
+def normalizar_acessorios(nomes, valores=None):
+    valores_padrao = empresa_acessorios_valores()
+    valores = valores or []
+    acessorios = []
+    for indice, nome in enumerate(nomes or []):
+        nome_limpo = str(nome or '').strip()
+        if not nome_limpo:
+            continue
+        try:
+            valor = float(str(valores[indice]).replace(',', '.')) if indice < len(valores) and str(valores[indice]).strip() else float(valores_padrao.get(nome_limpo, 0) or 0)
+        except (TypeError, ValueError):
+            valor = float(valores_padrao.get(nome_limpo, 0) or 0)
+        acessorios.append({"nome": nome_limpo, "valor": valor})
+    return acessorios
+
+
+def acessorios_do_orcamento(orcamento):
+    if not orcamento:
+        return []
+    if getattr(orcamento, "acessorios_json", None):
+        try:
+            dados = json.loads(orcamento.acessorios_json)
+            if isinstance(dados, list):
+                return normalizar_acessorios(
+                    [item.get("nome") for item in dados if isinstance(item, dict)],
+                    [item.get("valor") for item in dados if isinstance(item, dict)],
+                )
+        except (TypeError, ValueError):
+            pass
+    if getattr(orcamento, "tem_cooktop", "") == "Sim":
+        return [{"nome": "Cooktop", "valor": float(empresa_acessorios_valores().get("Cooktop", 50) or 0)}]
+    return []
+
+
+def acessorios_total(acessorios):
+    return sum(float(item.get("valor") or 0) for item in (acessorios or []))
+
+
+def acessorios_texto(orcamento):
+    nomes = [item.get("nome") for item in acessorios_do_orcamento(orcamento) if item.get("nome")]
+    return ", ".join(nomes) if nomes else "-"
+
+
+TIPOS_COM_SAIA_TABELA = {"Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida", "Pedra Simples com Saia", "Pedra Bipolida com Saia"}
+TIPOS_COM_FRONTE_CUBA_TABELA = {"Bancada", "Lavatorio"}
+
+
+def _float_tabela(valor):
+    try:
+        return float(valor or 0)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _texto_dimensao_tabela(comprimento, largura):
+    comp = _float_tabela(comprimento)
+    larg = _float_tabela(largura)
+    if comp <= 0 or larg <= 0:
+        return ""
+    return f"{comp:.1f} x {larg:.1f} cm"
+
+
+def texto_saia_produto(produto):
+    tipo = getattr(produto, "tipo_produto", "") or ""
+    if tipo not in TIPOS_COM_SAIA_TABELA:
+        return ""
+    return _texto_dimensao_tabela(
+        getattr(produto, "comprimento_saia", 0),
+        getattr(produto, "largura_saia", 0),
+    )
+
+
+def texto_fronte_produto(produto):
+    tipo = getattr(produto, "tipo_produto", "") or ""
+    if tipo not in TIPOS_COM_FRONTE_CUBA_TABELA:
+        return ""
+    return _texto_dimensao_tabela(
+        getattr(produto, "comprimento_fronte", 0),
+        getattr(produto, "largura_fronte", 0),
+    )
+
+
+def texto_cuba_produto(produto):
+    tipo = getattr(produto, "tipo_produto", "") or ""
+    if tipo not in TIPOS_COM_FRONTE_CUBA_TABELA:
+        return ""
+
+    tipo_cuba = str(getattr(produto, "tipo_cuba", "") or "").strip()
+    if not tipo_cuba or tipo_cuba == "-":
+        return ""
+
+    quantidade = getattr(produto, "quantidade_cubas", 0) or 0
+    if tipo_cuba.lower() == "esculpida":
+        comp = _float_tabela(getattr(produto, "comprimento_cuba", 0))
+        larg = _float_tabela(getattr(produto, "largura_cuba", 0))
+        prof = _float_tabela(getattr(produto, "profundidade_cuba", 0))
+        if comp > 0 and larg > 0 and prof > 0:
+            return f"Esculpida ({quantidade}) - {comp:.1f} x {larg:.1f} x {prof:.1f} cm"
+        return f"Esculpida ({quantidade})"
+
+    return f"{tipo_cuba} ({quantidade})"
 
 
 def opcoes_precificacao_empresa(config=None):
@@ -813,6 +951,7 @@ class EmpresaConfig(db.Model):
     pagamento_3_titulo = db.Column(db.String(120), default=PAGAMENTOS_PADRAO['3']['titulo'], nullable=False)
     pagamento_3_descricao = db.Column(db.Text, default=PAGAMENTOS_PADRAO['3']['descricao'], nullable=False)
     cooktop_valor = db.Column(db.Float, default=50, nullable=False)
+    acessorios_valores_json = db.Column(db.Text, default='')
     nicho_mao_obra = db.Column(db.Float, default=150, nullable=False)
     nicho_sem_fundo_mao_obra = db.Column(db.Float, default=150, nullable=False)
     rt_percentual_padrao = db.Column(db.Float, default=10, nullable=False)
@@ -953,6 +1092,7 @@ class Orcamento(db.Model):
     profundidade_cuba = db.Column(db.Float, default=0.0)
     modelo_cuba = db.Column(db.String(50))
     tem_cooktop = db.Column(db.String(50), default="Não")
+    acessorios_json = db.Column(db.Text, default='')
     profundidade_nicho = db.Column(db.Float, default=0.0)
     tem_fundo = db.Column(db.String(50), default="Sim")
     tem_alisar = db.Column(db.String(50), default="Não")
@@ -985,6 +1125,7 @@ def criar_banco():
         db.create_all()
         _garantir_colunas_orcamento_salvo()
         _garantir_colunas_empresa_config()
+        _garantir_colunas_orcamento()
         _garantir_colunas_usuario()
         _atualizar_textos_pagamento_padrao()
         _migrar_logo_arquivo_para_banco()
@@ -1036,6 +1177,7 @@ def _garantir_colunas_empresa_config():
         "valor_minimo_parcela": "FLOAT DEFAULT 100 NOT NULL",
         "logo_mime": "VARCHAR(80) DEFAULT ''",
         "logo_data": "TEXT DEFAULT ''",
+        "acessorios_valores_json": "TEXT DEFAULT ''",
         "pagamento_1_ativo": "BOOLEAN DEFAULT 1 NOT NULL",
         "pagamento_1_titulo": "VARCHAR(120) DEFAULT 'Cartão de Crédito' NOT NULL",
         "pagamento_1_descricao": "TEXT DEFAULT 'Pagamento de 100% na aprovação do orçamento' NOT NULL",
@@ -1055,6 +1197,10 @@ def _garantir_colunas_empresa_config():
 
 def _garantir_colunas_usuario():
     _garantir_coluna("usuario", "ativo", "BOOLEAN DEFAULT 1 NOT NULL")
+
+
+def _garantir_colunas_orcamento():
+    _garantir_coluna("orcamento", "acessorios_json", "TEXT DEFAULT ''")
 
 
 def _atualizar_textos_pagamento_padrao():
@@ -1330,6 +1476,7 @@ def api_configurador_orcamento():
                     profundidade_cuba=prof_cuba,
                     modelo_cuba='Normal',
                     tem_cooktop=tem_cooktop,
+                    acessorios_valor_total=0,
                     profundidade_nicho=prof_nicho,
                     tem_fundo=tem_fundo,
                     tem_alisar=tem_alisar,
@@ -2094,17 +2241,19 @@ def relatorio_vendas():
             orcamento for orcamento in todos_orcamentos
             if (orcamento.criado_por or "") == vendedor_filtro
         ]
-    if status_filtro and status_filtro != "Todos":
-        todos_orcamentos = [
-            orcamento for orcamento in todos_orcamentos
-            if (orcamento.status or "Em Espera") == status_filtro
-        ]
     orcamentos, mes_filtro, ano_filtro = _filtrar_orcamentos_por_periodo(
         todos_orcamentos,
         mes=mes_filtro,
         ano=ano_filtro,
     )
+    orcamentos_detalhe = orcamentos
+    if status_filtro and status_filtro != "Todos":
+        orcamentos_detalhe = [
+            orcamento for orcamento in orcamentos
+            if (orcamento.status or "Em Espera") == status_filtro
+        ]
     dashboard = _montar_dashboard_vendas(orcamentos, limite_recentes=len(orcamentos) or 1)
+    detalhe_dashboard = _montar_dashboard_vendas(orcamentos_detalhe, limite_recentes=len(orcamentos_detalhe) or 1)
     meses = [
         (1, "Janeiro"), (2, "Fevereiro"), (3, "Março"), (4, "Abril"),
         (5, "Maio"), (6, "Junho"), (7, "Julho"), (8, "Agosto"),
@@ -2205,7 +2354,7 @@ def relatorio_vendas():
         periodo_label=periodo_label,
         resumo=resumo_executivo,
         dashboard=dashboard,
-        orcamentos=dashboard["recentes"],
+        orcamentos=detalhe_dashboard["recentes"],
         status_resumo=status_resumo,
         formas_pagamento=formas_pagamento,
         vendedores=vendedores,
@@ -2271,7 +2420,11 @@ def listar_orcamentos():
         comprimento_cuba = float(request.form.get('comprimento_cuba', 0) or 0)
         largura_cuba = float(request.form.get('largura_cuba', 0) or 0)
         profundidade_cuba = float(request.form.get('profundidade_cuba', 0) or 0)
-        tem_cooktop = request.form.get('tem_cooktop', 'Não')
+        acessorios = normalizar_acessorios(
+            request.form.getlist('acessorio_nome[]'),
+            request.form.getlist('acessorio_valor[]'),
+        )
+        tem_cooktop = 'Sim' if any(item.get('nome') == 'Cooktop' for item in acessorios) else request.form.get('tem_cooktop', 'Não')
         profundidade_nicho = float(request.form.get('profundidade_nicho', 0) or 0)
         tem_fundo = request.form.get('tem_fundo', 'Não')
         tem_alisar = request.form.get('tem_alisar', 'Não')
@@ -2283,7 +2436,7 @@ def listar_orcamentos():
         tipo_cuba = request.form.get('tipo_cuba', '')
         quantidade_cubas = int(request.form.get('quantidade_cubas', 0)) if tipo_cuba else 0
 
-        tem_cooktop = request.form.get('tem_cooktop', 'Não')
+        tem_cooktop = 'Sim' if any(item.get('nome') == 'Cooktop' for item in acessorios) else request.form.get('tem_cooktop', 'Não')
 
         material = Material.query.get(material_id)
 
@@ -2312,6 +2465,7 @@ def listar_orcamentos():
             profundidade_cuba=profundidade_cuba,
             modelo_cuba=modelo_cuba,
             tem_cooktop=tem_cooktop,
+            acessorios_valor_total=acessorios_total(acessorios),
             profundidade_nicho=profundidade_nicho,
             tem_fundo=tem_fundo,
             tem_alisar=tem_alisar,
@@ -2344,6 +2498,7 @@ def listar_orcamentos():
                 largura_cuba=largura_cuba,
                 profundidade_cuba=profundidade_cuba,
                 tem_cooktop=tem_cooktop,
+                acessorios_json=json.dumps(acessorios, ensure_ascii=False),
                 profundidade_nicho=profundidade_nicho,
                 tem_fundo=tem_fundo,
                 tem_alisar=tem_alisar,
@@ -2437,7 +2592,8 @@ def listar_orcamentos():
         filtro_data_inicio_atual=filtro_data_inicio,
         filtro_data_fim_atual=filtro_data_fim,
         limite_atual=limite_int,
-        cuba_valores=empresa_cuba_valores()
+        cuba_valores=empresa_cuba_valores(),
+        acessorio_valores=empresa_acessorios_valores(),
     )
 
     
@@ -2583,6 +2739,18 @@ def configuracoes():
             cuba_valores = dict(CUBA_VALORES_PADRAO)
         config.cuba_valores_json = json.dumps(cuba_valores, ensure_ascii=False)
 
+        acessorio_valores = {}
+        acessorio_nomes = request.form.getlist('acessorio_nome[]')
+        acessorio_precos = request.form.getlist('acessorio_valor[]')
+        for nome_acessorio, valor_acessorio in zip(acessorio_nomes, acessorio_precos):
+            nome_limpo = (nome_acessorio or '').strip()
+            if nome_limpo:
+                acessorio_valores[nome_limpo] = float(valor_acessorio or 0)
+        if not acessorio_valores:
+            acessorio_valores = dict(ACESSORIOS_VALORES_PADRAO)
+        config.acessorios_valores_json = json.dumps(acessorio_valores, ensure_ascii=False)
+        config.cooktop_valor = float(acessorio_valores.get("Cooktop", config.cooktop_valor or 50) or 0)
+
         logo = request.files.get('logo')
         if logo and logo.filename and _logo_permitida(logo.filename):
             ext = secure_filename(logo.filename).rsplit('.', 1)[1].lower()
@@ -2601,6 +2769,8 @@ def configuracoes():
         config=config,
         cuba_valores=empresa_cuba_valores(config),
         cuba_padrao=CUBA_VALORES_PADRAO,
+        acessorio_valores=empresa_acessorios_valores(config),
+        acessorio_padrao=ACESSORIOS_VALORES_PADRAO,
         logo_url=empresa_logo_url(config),
     )
 
@@ -2703,7 +2873,12 @@ def editar_orcamento(id):
         orcamento.comprimento_cuba = float(request.form.get('comprimento_cuba', orcamento.comprimento_cuba or 0) or 0)
         orcamento.largura_cuba = float(request.form.get('largura_cuba', orcamento.largura_cuba or 0) or 0)
         orcamento.profundidade_cuba = float(request.form.get('profundidade_cuba', orcamento.profundidade_cuba or 0) or 0)
-        orcamento.tem_cooktop = request.form.get('tem_cooktop', orcamento.tem_cooktop)
+        acessorios = normalizar_acessorios(
+            request.form.getlist('acessorio_nome[]'),
+            request.form.getlist('acessorio_valor[]'),
+        )
+        orcamento.tem_cooktop = 'Sim' if any(item.get('nome') == 'Cooktop' for item in acessorios) else request.form.get('tem_cooktop', orcamento.tem_cooktop)
+        orcamento.acessorios_json = json.dumps(acessorios, ensure_ascii=False)
         orcamento.profundidade_nicho = float(request.form.get('profundidade_nicho', orcamento.profundidade_nicho or 0) or 0)
         orcamento.tem_fundo = request.form.get('tem_fundo', orcamento.tem_fundo)
         orcamento.tem_alisar = request.form.get('tem_alisar', orcamento.tem_alisar)
@@ -2857,6 +3032,7 @@ def editar_orcamento(id):
             profundidade_cuba=orcamento.profundidade_cuba,
             modelo_cuba=orcamento.modelo_cuba,
             tem_cooktop=orcamento.tem_cooktop,
+            acessorios_valor_total=acessorios_total(acessorios_do_orcamento(orcamento)),
             profundidade_nicho=orcamento.profundidade_nicho,
             tem_fundo=orcamento.tem_fundo,
             tem_alisar=orcamento.tem_alisar,
@@ -2905,7 +3081,9 @@ def editar_orcamento(id):
         clientes=clientes,
         materiais=materiais,
         orcamentos_salvos=orcamentos_salvos,
-        cuba_valores=empresa_cuba_valores()
+        cuba_valores=empresa_cuba_valores(),
+        acessorio_valores=empresa_acessorios_valores(),
+        acessorios_orcamento=acessorios_do_orcamento(orcamento),
     )
 
 @app.route('/clientes/delete/<int:id>', methods=['POST'])
@@ -4104,6 +4282,7 @@ def editar_material_rt_selecionados():
             profundidade_cuba=orcamento.profundidade_cuba,
             modelo_cuba=orcamento.modelo_cuba,
             tem_cooktop=orcamento.tem_cooktop,
+            acessorios_valor_total=acessorios_total(acessorios_do_orcamento(orcamento)),
             profundidade_nicho=orcamento.profundidade_nicho,
             tem_fundo=orcamento.tem_fundo,
             tem_alisar=orcamento.tem_alisar,
@@ -4160,6 +4339,7 @@ def duplicar_selecionados():
                     profundidade_cuba=original.profundidade_cuba,
                     modelo_cuba=original.modelo_cuba or "Normal",
                     tem_cooktop=original.tem_cooktop,
+                    acessorios_valor_total=acessorios_total(acessorios_do_orcamento(original)),
                     profundidade_nicho=original.profundidade_nicho,
                     tem_fundo=original.tem_fundo,
                     tem_alisar=original.tem_alisar,
@@ -4192,6 +4372,7 @@ def duplicar_selecionados():
                     largura_cuba=original.largura_cuba,
                     profundidade_cuba=original.profundidade_cuba,
                     tem_cooktop=original.tem_cooktop,
+                    acessorios_json=original.acessorios_json,
                     profundidade_nicho=original.profundidade_nicho,
                     tem_fundo=original.tem_fundo,
                     tem_alisar=original.tem_alisar,

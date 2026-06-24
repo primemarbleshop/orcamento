@@ -741,6 +741,7 @@
     // =============================================
     let dropdownAtivo = null;
     const rtPadrao = parseFloat('{{ empresa_config.rt_percentual_padrao or 10 }}') || 10;
+    const acessoriosPadrao = {{ acessorio_valores|tojson }};
 
     // Função para fechar todos os dropdowns
     function fecharTodosDropdowns() {
@@ -766,6 +767,46 @@
         
         const numero = parseFloat(valorStr);
         return isNaN(numero) ? 0 : numero;
+    }
+
+    function atualizarValorAcessorio(select) {
+        const row = select.closest('.acessorio-row');
+        const inputValor = row ? row.querySelector('input[name="acessorio_valor[]"]') : null;
+        if (inputValor && Object.prototype.hasOwnProperty.call(acessoriosPadrao, select.value)) {
+            inputValor.value = acessoriosPadrao[select.value];
+        }
+        const hiddenCooktop = document.getElementById('tem_cooktop');
+        if (hiddenCooktop) {
+            const temCooktop = Array.from(document.querySelectorAll('select[name="acessorio_nome[]"]')).some((item) => item.value === 'Cooktop');
+            hiddenCooktop.value = temCooktop ? 'Sim' : 'Não';
+        }
+    }
+
+    function adicionarAcessorioOrcamento(nome = '', valor = '') {
+        const lista = document.getElementById('acessoriosSelecionados');
+        if (!lista) return;
+        const row = document.createElement('div');
+        row.className = 'row g-2 align-items-end acessorio-row mb-2';
+        const opcoes = Object.keys(acessoriosPadrao).map((item) => `<option value="${item}" ${item === nome ? 'selected' : ''}>${item}</option>`).join('');
+        const nomeInicial = nome || Object.keys(acessoriosPadrao)[0] || '';
+        const valorInicial = valor !== '' ? valor : (acessoriosPadrao[nomeInicial] || 0);
+        row.innerHTML = `
+            <div class="col-md-6">
+                <label class="form-label">Acessório</label>
+                <select class="form-select" name="acessorio_nome[]" onchange="atualizarValorAcessorio(this)">
+                    ${opcoes}
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Valor (R$)</label>
+                <input class="form-control" type="number" step="0.01" min="0" name="acessorio_valor[]" value="${valorInicial}">
+            </div>
+            <div class="col-md-2">
+                <button type="button" class="btn btn-outline-danger w-100" onclick="this.closest('.acessorio-row').remove(); atualizarValorAcessorio(document.createElement('select'));">Remover</button>
+            </div>
+        `;
+        lista.appendChild(row);
+        atualizarValorAcessorio(row.querySelector('select'));
     }
 
     // Função para mostrar informações do Material (valor CADASTRADO)
@@ -1235,14 +1276,12 @@
                 camposEspecificos += `
                     <div class="row dynamic-field">
                         <div class="col-md-12">
-                            <h5><i class="fas fa-fire me-2"></i>Configurações do Cooktop</h5>
+                            <h5><i class="fas fa-puzzle-piece me-2"></i>Acessórios</h5>
                         </div>
-                        <div class="col-md-4 form-section">
-                            <label for="tem_cooktop" class="form-label">Tem Cooktop?</label>
-                            <select name="tem_cooktop" id="tem_cooktop" class="form-select">
-                                <option value="Não">Não</option>
-                                <option value="Sim">Sim</option>
-                            </select>
+                        <div class="col-md-12 form-section">
+                            <div id="acessoriosSelecionados"></div>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="adicionarAcessorioOrcamento()">Adicionar acessório</button>
+                            <input type="hidden" name="tem_cooktop" id="tem_cooktop" value="Não">
                         </div>
                     </div>
                 `;

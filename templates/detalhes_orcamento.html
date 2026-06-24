@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
@@ -650,22 +650,25 @@
             {% set ambiente_total.value = ambiente_total.value + produto.valor_total %}
             
             <!-- Analisar campos específicos baseados no tipo de produto -->
-            {% if tipo_produto in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida", "Pedra Simples com Saia", "Pedra Bipolida com Saia"] %}
+            {% if texto_saia_produto(produto) %}
                 {% if not campos_necessarios.saia %}
                     {% set campos_necessarios.saia = true %}
                 {% endif %}
             {% endif %}
             
-            {% if tipo_produto in ["Bancada", "Lavatorio"] %}
+            {% if texto_fronte_produto(produto) %}
                 {% if not campos_necessarios.fronte %}
                     {% set campos_necessarios.fronte = true %}
                 {% endif %}
+            {% endif %}
+
+            {% if texto_cuba_produto(produto) %}
                 {% if not campos_necessarios.cuba %}
                     {% set campos_necessarios.cuba = true %}
                 {% endif %}
             {% endif %}
             
-            {% if tipo_produto == "Bancada" %}
+            {% if tipo_produto == "Bancada" and acessorios_texto(produto) != "-" %}
                 {% if not campos_necessarios.cooktop %}
                     {% set campos_necessarios.cooktop = true %}
                 {% endif %}
@@ -704,22 +707,25 @@
             {% set descricao_total.value = descricao_total.value + produto.valor_total %}
             
             <!-- Analisar campos específicos baseados no tipo de produto nesta descrição -->
-            {% if tipo_produto in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida", "Pedra Simples com Saia", "Pedra Bipolida com Saia"] %}
+            {% if texto_saia_produto(produto) %}
                 {% if not campos_descricao.saia %}
                     {% set campos_descricao.saia = true %}
                 {% endif %}
             {% endif %}
             
-            {% if tipo_produto in ["Bancada", "Lavatorio"] %}
+            {% if texto_fronte_produto(produto) %}
                 {% if not campos_descricao.fronte %}
                     {% set campos_descricao.fronte = true %}
                 {% endif %}
+            {% endif %}
+
+            {% if texto_cuba_produto(produto) %}
                 {% if not campos_descricao.cuba %}
                     {% set campos_descricao.cuba = true %}
                 {% endif %}
             {% endif %}
             
-            {% if tipo_produto == "Bancada" %}
+            {% if tipo_produto == "Bancada" and acessorios_texto(produto) != "-" %}
                 {% if not campos_descricao.cooktop %}
                     {% set campos_descricao.cooktop = true %}
                 {% endif %}
@@ -773,7 +779,7 @@
         {% endif %}
         
         {% if campos_descricao.cooktop %}
-        <th>Cooktop</th>
+        <th>Acessórios</th>
         {% endif %}
         
         <!-- Campos específicos de Nicho - SÓ aparecem se HOUVER nicho na descrição -->
@@ -824,8 +830,8 @@
             <!-- SAIA - Só mostra se o campo estiver ativo na descrição -->
             {% if campos_descricao.saia %}
             <td>
-                {% if tipo_produto in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida", "Pedra Simples com Saia", "Pedra Bipolida com Saia"] %}
-                    {{ produto.comprimento_saia }} x {{ produto.largura_saia }} cm
+                {% if texto_saia_produto(produto) %}
+                    {{ texto_saia_produto(produto) }}
                 {% else %}
                     -
                 {% endif %}
@@ -835,8 +841,8 @@
             <!-- FRONTE - Só mostra se o campo estiver ativo na descrição -->
             {% if campos_descricao.fronte %}
             <td>
-                {% if tipo_produto in ["Bancada", "Lavatorio"] %}
-                    {{ produto.comprimento_fronte }} x {{ produto.largura_fronte }} cm
+                {% if texto_fronte_produto(produto) %}
+                    {{ texto_fronte_produto(produto) }}
                 {% else %}
                     -
                 {% endif %}
@@ -846,14 +852,8 @@
             <!-- CUBA - Só mostra se o campo estiver ativo na descrição -->
             {% if campos_descricao.cuba %}
             <td>
-                {% if tipo_produto in ["Bancada", "Lavatorio"] %}
-                    {% if produto.tipo_cuba == "Esculpida" %}
-                        Esculpida ({{ produto.quantidade_cubas }}) - {{ produto.comprimento_cuba }} x {{ produto.largura_cuba }} x {{ produto.profundidade_cuba }} cm
-                    {% elif produto.tipo_cuba %}
-                        {{ produto.tipo_cuba }} ({{ produto.quantidade_cubas }})
-                    {% else %}
-                        -
-                    {% endif %}
+                {% if texto_cuba_produto(produto) %}
+                    {{ texto_cuba_produto(produto) }}
                 {% else %}
                     -
                 {% endif %}
@@ -864,7 +864,7 @@
             {% if campos_descricao.cooktop %}
             <td>
                 {% if tipo_produto == "Bancada" %}
-                    {% if produto.tem_cooktop == "Sim" %}Sim{% else %}-{% endif %}
+                    {{ acessorios_texto(produto) }}
                 {% else %}
                     -
                 {% endif %}
@@ -1145,6 +1145,51 @@ document.addEventListener('click', function(event) {
 });
 
 document.addEventListener("DOMContentLoaded", function() {
+    function normalizarCelulaTabela(valor) {
+        return (valor || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    }
+
+    function colunaOpcionalVazia(valor) {
+        const texto = normalizarCelulaTabela(valor);
+        return texto === '' || texto === '-' || /^0(?:\.0)?\s*x\s*0(?:\.0)?\s*cm$/.test(texto);
+    }
+
+    function removerColunasOpcionaisVazias() {
+        const colunasOpcionais = ['Cuba', 'Fronte', 'Saia', 'Acessórios'];
+        document.querySelectorAll('table').forEach(table => {
+            const headerRow = table.querySelector('tr');
+            if (!headerRow) return;
+
+            const headers = Array.from(headerRow.children);
+            const indicesRemover = [];
+
+            headers.forEach((header, index) => {
+                const titulo = (header.textContent || '').replace(/\s+/g, ' ').trim();
+                if (!colunasOpcionais.includes(titulo)) return;
+
+                const linhas = Array.from(table.querySelectorAll('tr')).slice(1);
+                const temInformacao = linhas.some(row => {
+                    const cell = row.children[index];
+                    return cell && !colunaOpcionalVazia(cell.textContent);
+                });
+
+                if (!temInformacao) {
+                    indicesRemover.push(index);
+                }
+            });
+
+            indicesRemover.reverse().forEach(index => {
+                table.querySelectorAll('tr').forEach(row => {
+                    if (row.children[index]) {
+                        row.children[index].remove();
+                    }
+                });
+            });
+        });
+    }
+
+    removerColunasOpcionaisVazias();
+
     // Formatar o valor total final
     let valorTotal = document.getElementById("valorTotal");
     let numeroTotal = parseFloat(valorTotal.innerText.replace(",", "."));
@@ -1179,11 +1224,11 @@ document.addEventListener("DOMContentLoaded", function() {
 
     botaoSalvar.addEventListener("click", function() {
         if (!ids) {
-            alert("❌ Erro: Nenhum orçamento selecionado!");
+            alert("? Erro: Nenhum orçamento selecionado!");
             return;
         }
 
-        console.log("📡 Enviando requisição para salvar orçamento com IDs:", ids);
+        console.log("?? Enviando requisição para salvar orçamento com IDs:", ids);
 
         fetch("/salvar_orcamento", {
             method: "POST",
@@ -1192,21 +1237,22 @@ document.addEventListener("DOMContentLoaded", function() {
         })
         .then(response => response.json())
         .then(data => {
-            console.log("📦 Resposta do servidor:", data);
+            console.log("?? Resposta do servidor:", data);
 
             if (data.success) {
-                alert("✅ Orçamento salvo com sucesso! Código: " + data.codigo);
+                alert("? Orçamento salvo com sucesso! Código: " + data.codigo);
                 window.location.href = "/orcamentos_salvos"; // Redireciona
             } else {
-                alert("❌ Erro ao salvar orçamento: " + data.error);
+                alert("? Erro ao salvar orçamento: " + data.error);
             }
         })
         .catch(error => {
-            console.error("⚠️ Erro ao enviar requisição:", error);
-            alert("❌ Erro ao salvar orçamento!");
+            console.error("?? Erro ao enviar requisição:", error);
+            alert("? Erro ao salvar orçamento!");
         });
     });
 });
 </script>
 </body>
 </html>
+

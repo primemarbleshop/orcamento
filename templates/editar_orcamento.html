@@ -289,8 +289,58 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
+    
     <script>
+        const acessoriosPadrao = {{ acessorio_valores|tojson }};
+        const acessoriosExistentes = {{ acessorios_orcamento|tojson }};
+
+        function atualizarValorAcessorio(select) {
+            const row = select.closest('.acessorio-row');
+            const inputValor = row ? row.querySelector('input[name="acessorio_valor[]"]') : null;
+            if (inputValor && Object.prototype.hasOwnProperty.call(acessoriosPadrao, select.value)) {
+                inputValor.value = acessoriosPadrao[select.value];
+            }
+            const hiddenCooktop = document.getElementById('tem_cooktop');
+            if (hiddenCooktop) {
+                const temCooktop = Array.from(document.querySelectorAll('select[name="acessorio_nome[]"]')).some((item) => item.value === 'Cooktop');
+                hiddenCooktop.value = temCooktop ? 'Sim' : 'Não';
+            }
+        }
+
+        function adicionarAcessorioOrcamento(nome = '', valor = '') {
+            const lista = document.getElementById('acessoriosSelecionados');
+            if (!lista) return;
+            const row = document.createElement('div');
+            row.className = 'row g-2 align-items-end acessorio-row mb-2';
+            const opcoes = Object.keys(acessoriosPadrao).map((item) => `<option value="${item}" ${item === nome ? 'selected' : ''}>${item}</option>`).join('');
+            const nomeInicial = nome || Object.keys(acessoriosPadrao)[0] || '';
+            const valorInicial = valor !== '' ? valor : (acessoriosPadrao[nomeInicial] || 0);
+            row.innerHTML = `
+                <div class="col-md-6">
+                    <label class="form-label">Acessório</label>
+                    <select class="form-select" name="acessorio_nome[]" onchange="atualizarValorAcessorio(this)">
+                        ${opcoes}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Valor (R$)</label>
+                    <input class="form-control" type="number" step="0.01" min="0" name="acessorio_valor[]" value="${valorInicial}">
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-outline-danger w-100" onclick="this.closest('.acessorio-row').remove(); atualizarValorAcessorio(document.createElement('select'));">Remover</button>
+                </div>
+            `;
+            lista.appendChild(row);
+            atualizarValorAcessorio(row.querySelector('select'));
+        }
+
+        function restaurarAcessoriosOrcamento() {
+            const lista = document.getElementById('acessoriosSelecionados');
+            if (!lista || lista.dataset.restaurado === '1') return;
+            acessoriosExistentes.forEach((item) => adicionarAcessorioOrcamento(item.nome, item.valor));
+            lista.dataset.restaurado = '1';
+        }
+
         // Função para mostrar/ocultar campos dinâmicos
         function toggleFields() {
             const tipoProduto = document.getElementById('tipo_produto').value;
@@ -378,25 +428,23 @@
                     </div>
                 `;
                 
-                // Campos de cooktop (apenas para Bancada)
                 if (tipoProduto === 'Bancada') {
                     camposEspecificos += `
                         <div class="row dynamic-field">
                             <div class="col-md-12">
-                                <h5><i class="fas fa-fire me-2"></i>Configurações do Cooktop</h5>
+                                <h5><i class="fas fa-puzzle-piece me-2"></i>Acessórios</h5>
                             </div>
-                            <div class="col-md-4 form-section">
-                                <label for="tem_cooktop" class="form-label">Tem Cooktop?</label>
-                                <select name="tem_cooktop" id="tem_cooktop" class="form-select">
-                                    <option value="Não" {% if orcamento.tem_cooktop == 'Não' %}selected{% endif %}>Não</option>
-                                    <option value="Sim" {% if orcamento.tem_cooktop == 'Sim' %}selected{% endif %}>Sim</option>
-                                </select>
+                            <div class="col-md-12 form-section">
+                                <div id="acessoriosSelecionados"></div>
+                                <button type="button" class="btn btn-outline-primary btn-sm" onclick="adicionarAcessorioOrcamento()">Adicionar acessório</button>
+                                <input type="hidden" name="tem_cooktop" id="tem_cooktop" value="{{ orcamento.tem_cooktop or 'Não' }}">
                             </div>
                         </div>
                     `;
                 }
                 
                 container.innerHTML = camposEspecificos;
+                restaurarAcessoriosOrcamento();
             } 
             else if (tipoProduto === 'Ilharga' || tipoProduto === 'Ilharga Bipolida' || tipoProduto === 'Pedra Simples com Saia' || tipoProduto === 'Pedra Bipolida com Saia') {
                 let camposEspecificos = `

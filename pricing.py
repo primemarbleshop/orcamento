@@ -153,6 +153,7 @@ def calcular_valor_item(
     profundidade_cuba=0,
     modelo_cuba="Normal",
     tem_cooktop="Nao",
+    acessorios_valor_total=0,
     instalacao="Nao",
     instalacao_valor=0,
     rt="Nao",
@@ -226,12 +227,10 @@ def calcular_valor_item(
         total = (area_nicho / 10000) * valor_material + _float(mao_obra_nicho, NICHO_MAO_OBRA_PADRAO)
 
     if tipo_produto in ["Ilharga", "Ilharga Bipolida", "Pedra Simples com Saia", "Pedra Bipolida com Saia", "Bancada", "Lavatorio"]:
-        valor_saia = medida_minima(comprimento_saia, minimo_medida_cm) * medida_minima(largura_saia, minimo_medida_cm) * valor_material / 10000
-        total += valor_saia * (1 + _float(saia_margem) / 100)
+        total += (_float(comprimento_saia) / 100) * _float(saia_margem)
 
     if tipo_produto in ["Bancada", "Lavatorio"]:
-        valor_fronte = medida_minima(comprimento_fronte, minimo_medida_cm) * medida_minima(largura_fronte, minimo_medida_cm) * valor_material / 10000
-        total += valor_fronte * (1 + _float(fronte_margem) / 100)
+        total += (_float(comprimento_fronte) / 100) * _float(fronte_margem)
 
     if tipo_produto == "Pedra de Box":
         total = valor_base + _float(pedra_box_adicional, 30)
@@ -251,7 +250,8 @@ def calcular_valor_item(
         else:
             total += cuba_valores.get(tipo_cuba, 0) * qtd_cubas
 
-    if tem_cooktop == "Sim":
+    total += _float(acessorios_valor_total)
+    if tem_cooktop == "Sim" and _float(acessorios_valor_total) <= 0:
         total += _float(cooktop_valor)
 
     if instalacao == "Sim":
