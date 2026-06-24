@@ -169,13 +169,13 @@ PAGAMENTOS_PADRAO = {
     },
     "2": {
         "ativo": True,
-        "titulo": "À vista - 50% entrada / 50% na entrega",
-        "descricao": "50% de entrada e 50% na entrega",
+        "titulo": "À vista (Dinheiro/Pix) com desconto",
+        "descricao": "Sinal de 50% e 50% na entrega",
     },
     "3": {
         "ativo": True,
-        "titulo": "À vista - 80% entrada / 20% na entrega",
-        "descricao": "80% de entrada e 20% na entrega",
+        "titulo": "À vista (Dinheiro/Pix) com desconto",
+        "descricao": "Sinal de 80% e 20% na entrega",
     },
 }
 
@@ -320,11 +320,11 @@ def _criar_pdf_orcamento_fallback(
     if pagamentos_config["2"].get("ativo", True) and "2" not in exclude_payments:
         valor = total * (1 - float(desconto_avista or 0) / 100)
         texto(f"{pagamentos_config['2']['titulo']}: {pagamentos_config['2']['descricao']}", gap=13)
-        texto(f"Valor com desconto: {_moeda(valor)} ({desconto_avista:g}% de desconto)", gap=13)
+        texto(f"Valor com desconto: {_moeda(valor)}", gap=13)
     if pagamentos_config["3"].get("ativo", True) and "3" not in exclude_payments:
         valor = total * (1 - float(desconto_parcelado or 0) / 100)
         texto(f"{pagamentos_config['3']['titulo']}: {pagamentos_config['3']['descricao']}", gap=13)
-        texto(f"Valor com desconto: {_moeda(valor)} ({desconto_parcelado:g}% de desconto)", gap=16)
+        texto(f"Valor com desconto: {_moeda(valor)}", gap=16)
     if observacoes:
         linha()
         texto("Observações", size=11, color=brand, gap=17)
@@ -914,6 +914,7 @@ def criar_banco():
         _garantir_colunas_orcamento_salvo()
         _garantir_colunas_empresa_config()
         _garantir_colunas_usuario()
+        _atualizar_textos_pagamento_padrao()
 
 def _garantir_coluna(tabela, coluna, definicao):
     colunas = [
@@ -963,11 +964,11 @@ def _garantir_colunas_empresa_config():
         "pagamento_1_titulo": "VARCHAR(120) DEFAULT 'Cartão de Crédito' NOT NULL",
         "pagamento_1_descricao": "TEXT DEFAULT 'Pagamento de 100% na aprovação do orçamento' NOT NULL",
         "pagamento_2_ativo": "BOOLEAN DEFAULT 1 NOT NULL",
-        "pagamento_2_titulo": "VARCHAR(120) DEFAULT 'À vista - 50% entrada / 50% na entrega' NOT NULL",
-        "pagamento_2_descricao": "TEXT DEFAULT '50% de entrada e 50% na entrega' NOT NULL",
+        "pagamento_2_titulo": "VARCHAR(120) DEFAULT 'À vista (Dinheiro/Pix) com desconto' NOT NULL",
+        "pagamento_2_descricao": "TEXT DEFAULT 'Sinal de 50% e 50% na entrega' NOT NULL",
         "pagamento_3_ativo": "BOOLEAN DEFAULT 1 NOT NULL",
-        "pagamento_3_titulo": "VARCHAR(120) DEFAULT 'À vista - 80% entrada / 20% na entrega' NOT NULL",
-        "pagamento_3_descricao": "TEXT DEFAULT '80% de entrada e 20% na entrega' NOT NULL",
+        "pagamento_3_titulo": "VARCHAR(120) DEFAULT 'À vista (Dinheiro/Pix) com desconto' NOT NULL",
+        "pagamento_3_descricao": "TEXT DEFAULT 'Sinal de 80% e 20% na entrega' NOT NULL",
         "saia_margem": "FLOAT DEFAULT 0 NOT NULL",
         "fronte_margem": "FLOAT DEFAULT 0 NOT NULL",
         "alisar_margem": "FLOAT DEFAULT 0 NOT NULL",
@@ -978,6 +979,34 @@ def _garantir_colunas_empresa_config():
 
 def _garantir_colunas_usuario():
     _garantir_coluna("usuario", "ativo", "BOOLEAN DEFAULT 1 NOT NULL")
+
+
+def _atualizar_textos_pagamento_padrao():
+    atualizacoes = {
+        "pagamento_2_titulo": (
+            "À vista (Dinheiro/Pix) com desconto",
+            ["À vista - 50% entrada / 50% na entrega"],
+        ),
+        "pagamento_2_descricao": (
+            "Sinal de 50% e 50% na entrega",
+            ["50% de entrada e 50% na entrega"],
+        ),
+        "pagamento_3_titulo": (
+            "À vista (Dinheiro/Pix) com desconto",
+            ["À vista - 80% entrada / 20% na entrega"],
+        ),
+        "pagamento_3_descricao": (
+            "Sinal de 80% e 20% na entrega",
+            ["80% de entrada e 20% na entrega"],
+        ),
+    }
+    for coluna, (novo_valor, valores_antigos) in atualizacoes.items():
+        for valor_antigo in valores_antigos:
+            db.session.execute(
+                text(f"UPDATE empresa_config SET {coluna} = :novo WHERE {coluna} = :antigo"),
+                {"novo": novo_valor, "antigo": valor_antigo},
+            )
+    db.session.commit()
 
 @app.route('/orcamento')
 def configurador_3d():
@@ -2412,7 +2441,6 @@ def configuracoes():
         config.razao_social = request.form.get('razao_social', '').strip()
         config.documento = request.form.get('documento', '').strip()
         config.telefone = request.form.get('telefone', '').strip()
-        config.whatsapp = request.form.get('whatsapp', '').strip()
         config.endereco = request.form.get('endereco', '').strip()
         config.cor_primaria = request.form.get('cor_primaria', '#4e73df').strip() or '#4e73df'
         config.prazo_entrega_padrao = int(float(request.form.get('prazo_entrega_padrao', 15) or 15))
