@@ -1576,13 +1576,8 @@
 
     <br>
 
-    <!-- Botão Salvar Alterações do Rodapé -->
     {% if not pdf %}
     <div class="btn-container">
-        <button type="button" id="btnSalvarRodape" class="btn-save-rodape">
-            <i class="fas fa-save me-1"></i> Salvar Alterações do Rodapé
-        </button>
-        
         <!-- Botão Gerar PDF com parâmetros de exclusão -->
         <a href="/gerar_pdf_orcamento/{{ codigo_orcamento }}?exclude_payments={{ exclude_payments|join(',') }}" class="btn btn-custom-success btn-pdf" id="btnGerarPDF" title="Gerar PDF">
             <i class="fas fa-file-pdf"></i> Gerar PDF
@@ -2083,6 +2078,8 @@ function togglePdfVisibility(paymentOptionId) {
     
     // Atualizar o link do botão PDF
     updatePdfButtonLink();
+
+    salvarRodapeAutomaticamente();
 }
 
 // Função para atualizar o link do botão Gerar PDF
@@ -2116,7 +2113,10 @@ function calcularMaxParcelas(valorTotal) {
 // Atualizar informações de parcelamento
 function atualizarParcelamento() {
     const maxParcelas = calcularMaxParcelas(valorTotalFloat);
-    document.getElementById('maxParcelas').textContent = maxParcelas;
+    const maxParcelasElement = document.getElementById('maxParcelas') || document.getElementById('maxParcelasDisplay');
+    if (maxParcelasElement) {
+        maxParcelasElement.textContent = maxParcelas;
+    }
 }
 
 // Função para alternar entre modo de visualização e edição
@@ -2194,6 +2194,8 @@ function saveMaxParcelas() {
     
     // Limpar valor original
     delete valoresOriginais['maxParcelas'];
+
+    salvarRodapeAutomaticamente();
 }
 
 // Função para salvar valores editados
@@ -2205,7 +2207,13 @@ function saveValue(field) {
     
     const inputElement = document.getElementById(field + 'Input');
     const displayElement = document.getElementById(field + 'Display');
-    const formElement = document.getElementById('form' + field.charAt(0).toUpperCase() + field.slice(1));
+    const formElementMap = {
+        deliveryDays: 'formPrazoEntrega',
+        discount1: 'formDescontoAvista',
+        discount2: 'formDescontoParcelado',
+        observacoes: 'formObservacoes'
+    };
+    const formElement = document.getElementById(formElementMap[field]);
     
     let newValue;
     if (field === 'observacoes') {
@@ -2228,6 +2236,8 @@ function saveValue(field) {
     
     // Sair do modo de edição
     toggleEdit(field);
+
+    salvarRodapeAutomaticamente();
 }
 
 // Função para cancelar edição e restaurar valor original
@@ -2287,12 +2297,30 @@ function atualizarValorComDesconto(field, desconto) {
 
 // Função para atualizar todos os campos do formulário com os valores atuais
 function atualizarFormulario() {
-    document.getElementById('formPrazoEntrega').value = document.getElementById('deliveryDaysDisplay').textContent;
-    document.getElementById('formDescontoAvista').value = document.getElementById('discount1Display').textContent;
-    document.getElementById('formDescontoParcelado').value = document.getElementById('discount2Display').textContent;
-    document.getElementById('formObservacoes').value = document.getElementById('observacoesDisplay').textContent;
-    document.getElementById('formExcludePayments').value = hiddenPaymentOptions.join(',');
-    document.getElementById('formMaxParcelas').value = document.getElementById('maxParcelasDisplay').textContent;
+    const setValue = (inputId, value) => {
+        const input = document.getElementById(inputId);
+        if (input) input.value = value;
+    };
+    const getText = (elementId, fallback = '') => {
+        const element = document.getElementById(elementId);
+        return element ? element.textContent.trim() : fallback;
+    };
+
+    setValue('formPrazoEntrega', getText('deliveryDaysDisplay', '{{ prazo_entrega }}'));
+    setValue('formDescontoAvista', getText('discount1Display', '{{ desconto_avista }}'));
+    setValue('formDescontoParcelado', getText('discount2Display', '{{ desconto_parcelado }}'));
+    setValue('formObservacoes', getText('observacoesDisplay', {{ observacoes|tojson }}));
+    setValue('formExcludePayments', hiddenPaymentOptions.join(','));
+    setValue('formMaxParcelas', getText('maxParcelasDisplay', '{{ max_parcelas if max_parcelas is not none else "" }}'));
+}
+
+function salvarRodapeAutomaticamente() {
+    atualizarFormulario();
+
+    const form = document.getElementById('rodapeForm');
+    if (form) {
+        form.submit();
+    }
 }
 
 // Função para carregar contador de itens excluídos
@@ -2323,14 +2351,6 @@ document.addEventListener('click', function(event) {
     if (dropdownAtivo && !event.target.classList.contains('clickable-cell') && !dropdownAtivo.contains(event.target)) {
         fecharTodosDropdowns();
     }
-});
-
-// Event listener para o botão Salvar Alterações do Rodapé
-document.getElementById('btnSalvarRodape').addEventListener('click', function() {
-    // Garantir que todos os valores estejam atualizados no formulário
-    atualizarFormulario();
-    
-    document.getElementById('rodapeForm').submit();
 });
 
 // Verificar se há mensagens de sucesso ou erro na URL - CORRIGIDO

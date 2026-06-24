@@ -72,7 +72,9 @@ echo Adicionando SOMENTE os arquivos atualizados/adicionados...
 "%GIT_EXE%" add .env.example
 "%GIT_EXE%" add .gitignore
 "%GIT_EXE%" add static/css/pilot.css
+"%GIT_EXE%" add static/js/configurador.js
 "%GIT_EXE%" add static/logo-header.png
+"%GIT_EXE%" add static/uploads
 "%GIT_EXE%" add templates/index.html
 "%GIT_EXE%" add templates/login.html
 "%GIT_EXE%" add templates/setup.html
@@ -100,6 +102,9 @@ echo Adicionando SOMENTE os arquivos atualizados/adicionados...
 echo.
 echo Arquivos preparados para commit:
 "%GIT_EXE%" status --short
+echo.
+echo Arquivos que realmente entrarao no commit:
+"%GIT_EXE%" diff --cached --name-status
 
 echo.
 set /p CONFIRMAR="Confirmar commit e push desses arquivos? (S/N): "
@@ -115,6 +120,9 @@ echo Criando commit...
 if errorlevel 1 (
     echo.
     echo Nenhum commit criado ou ocorreu erro no commit.
+    echo O push foi cancelado para evitar enviar sem atualizar nada.
+    pause
+    exit /b 1
 )
 
 echo.

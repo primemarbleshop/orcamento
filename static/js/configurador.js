@@ -966,7 +966,7 @@ function drawNicho(W, H) {
 
 }
 
-/* ---------- LAVATÓRIO VIOLÃO ---------- */
+/* ---------- Lavat?rio viol?o ---------- */
 function drawLavViolao(W, H) {
     const A = CFG.compGen, B = CFG.profGen;
     const C = CFG.lavRecorteLarg, D = CFG.lavRecorteAlt;
@@ -1066,7 +1066,7 @@ function drawLavViolao(W, H) {
     // label
     ctx.fillStyle = '#374151'; ctx.font = 'bold 11px Inter,sans-serif';
     ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-    ctx.fillText('LAVATÓRIO VIOLÃO', ox + 6, oy + 5);
+    ctx.fillText('Lavat?rio viol?o', ox + 6, oy + 5);
     ctx.fillStyle = '#6b7280'; ctx.font = '10px Inter,sans-serif';
     ctx.fillText(A + ' × ' + B, ox + 6, oy + 20);
 
