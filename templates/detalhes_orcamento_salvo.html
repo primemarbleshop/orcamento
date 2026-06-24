@@ -4,10 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Detalhes dos Orçamentos</title>
+    {% if not pdf %}
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <!-- SweetAlert2 CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+    {% endif %}
     <style>
     /* Estilos mantidos conforme o código original */
     .main-container {
@@ -736,14 +738,21 @@
         }
         
         .payment-options-container {
-            display: flex;
-            justify-content: space-between;
+            display: grid !important;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            column-gap: 12px;
+            align-items: start;
+            justify-content: initial;
         }
         
         .payment-option {
-            flex: 1;
+            display: block !important;
+            flex: none;
             min-width: 0;
-            padding: 0 8px;
+            padding: 0 10px;
+            line-height: 1.35 !important;
+            break-inside: avoid;
+            page-break-inside: avoid;
         }
         
         .payment-option:not(:last-child) {
@@ -781,10 +790,21 @@
         
         .payment-option h4 {
             font-size: 12px !important;
+            line-height: 1.35 !important;
+            margin: 0 0 5px 0 !important;
         }
         
         .payment-detail, .installment-calc {
             font-size: 12px !important;
+            display: block !important;
+            clear: both !important;
+            line-height: 1.35 !important;
+            margin: 0 0 5px 0 !important;
+            white-space: normal !important;
+        }
+
+        .installment-calc {
+            margin-top: 7px !important;
         }
         
         .parcelamento-simplificado {
@@ -1660,6 +1680,7 @@
 </div>
 {% endif %}
 
+{% if not pdf %}
 <!-- SweetAlert2 JS -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
@@ -2534,5 +2555,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+{% endif %}
 </body>
 </html>

@@ -405,7 +405,12 @@ def _gerar_pdf_html_com_chrome(rendered_html, base_url):
             "--disable-gpu",
             "--disable-software-rasterizer",
             "--disable-dev-shm-usage",
+            "--disable-background-networking",
+            "--disable-background-timer-throttling",
+            "--disable-client-side-phishing-detection",
             "--disable-extensions",
+            "--disable-sync",
+            "--metrics-recording-only",
             "--no-sandbox",
             "--disable-setuid-sandbox",
             "--no-first-run",
@@ -568,6 +573,8 @@ def _config_empresa_fallback():
         'whatsapp': '',
         'endereco': '',
         'logo_filename': '',
+        'logo_mime': '',
+        'logo_data': '',
         'cor_primaria': '#4e73df',
         'prazo_entrega_padrao': 15,
         'desconto_avista_padrao': 5,
@@ -638,6 +645,9 @@ def empresa_config_dict():
 
 def empresa_logo_url(config=None):
     config = config or obter_config_empresa()
+    if config and getattr(config, 'logo_data', None):
+        mime = getattr(config, 'logo_mime', None) or 'image/png'
+        return f"data:{mime};base64,{config.logo_data}"
     if config and config.logo_filename:
         return url_for('static', filename=f'uploads/{config.logo_filename}')
     return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="1" height="1"%3E%3C/svg%3E'
@@ -649,7 +659,35 @@ def empresa_logo_path(config=None):
         caminho = os.path.join(UPLOADS_DIR, config.logo_filename)
         if os.path.exists(caminho):
             return caminho
+    fallback = os.path.join(app.static_folder, "logo-header.png")
+    if os.path.exists(fallback):
+        return fallback
     return ''
+
+
+def empresa_logo_data_uri(config=None):
+    config = config or obter_config_empresa()
+    if config and getattr(config, 'logo_data', None):
+        mime = getattr(config, 'logo_mime', None) or 'image/png'
+        return f"data:{mime};base64,{config.logo_data}"
+
+    caminho = empresa_logo_path(config)
+    if not caminho:
+        return empresa_logo_url(config)
+    extensao = os.path.splitext(caminho)[1].lower()
+    mime = {
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".webp": "image/webp",
+        ".gif": "image/gif",
+    }.get(extensao, "image/png")
+    try:
+        with open(caminho, "rb") as arquivo:
+            encoded = base64.b64encode(arquivo.read()).decode("ascii")
+        return f"data:{mime};base64,{encoded}"
+    except OSError:
+        return empresa_logo_url(config)
 
 
 def empresa_cuba_valores(config=None):
@@ -732,6 +770,8 @@ class EmpresaConfig(db.Model):
     whatsapp = db.Column(db.String(30), default='')
     endereco = db.Column(db.String(250), default='')
     logo_filename = db.Column(db.String(180), default='')
+    logo_mime = db.Column(db.String(80), default='')
+    logo_data = db.Column(db.Text, default='')
     cor_primaria = db.Column(db.String(20), default='#4e73df')
     prazo_entrega_padrao = db.Column(db.Integer, default=15, nullable=False)
     desconto_avista_padrao = db.Column(db.Float, default=5, nullable=False)
@@ -926,6 +966,7 @@ def criar_banco():
         _garantir_colunas_empresa_config()
         _garantir_colunas_usuario()
         _atualizar_textos_pagamento_padrao()
+        _migrar_logo_arquivo_para_banco()
 
 def _garantir_coluna(tabela, coluna, definicao):
     colunas = [
@@ -971,6 +1012,8 @@ def _garantir_colunas_empresa_config():
         "nicho_sem_fundo_mao_obra": "FLOAT DEFAULT 150 NOT NULL",
         "max_parcelas_padrao": "INTEGER DEFAULT 10 NOT NULL",
         "valor_minimo_parcela": "FLOAT DEFAULT 100 NOT NULL",
+        "logo_mime": "VARCHAR(80) DEFAULT ''",
+        "logo_data": "TEXT DEFAULT ''",
         "pagamento_1_ativo": "BOOLEAN DEFAULT 1 NOT NULL",
         "pagamento_1_titulo": "VARCHAR(120) DEFAULT 'Cartão de Crédito' NOT NULL",
         "pagamento_1_descricao": "TEXT DEFAULT 'Pagamento de 100% na aprovação do orçamento' NOT NULL",
@@ -1019,6 +1062,33 @@ def _atualizar_textos_pagamento_padrao():
             )
     db.session.commit()
 
+
+def _mime_logo_por_extensao(caminho):
+    extensao = os.path.splitext(caminho or "")[1].lower()
+    return {
+        ".jpg": "image/jpeg",
+        ".jpeg": "image/jpeg",
+        ".png": "image/png",
+        ".webp": "image/webp",
+        ".gif": "image/gif",
+    }.get(extensao, "image/png")
+
+
+def _migrar_logo_arquivo_para_banco():
+    config = obter_config_empresa()
+    if not config or getattr(config, 'logo_data', None):
+        return
+    caminho = empresa_logo_path(config)
+    if not caminho or not os.path.exists(caminho):
+        return
+    try:
+        with open(caminho, "rb") as arquivo:
+            config.logo_data = base64.b64encode(arquivo.read()).decode("ascii")
+        config.logo_mime = _mime_logo_por_extensao(caminho)
+        db.session.commit()
+    except OSError:
+        db.session.rollback()
+
 @app.route('/orcamento')
 def configurador_3d():
     logado = 'user_cpf' in session
@@ -1062,7 +1132,7 @@ def _gerar_pdf_bytes(codigo):
     pagamentos_config = pagamentos_config_orcamento(orcamento_salvo)
     rendered_html = render_template(
         "detalhes_orcamento_salvo.html",
-        logo_url=url_for('static', filename='logo.jpg'),
+        logo_url=empresa_logo_data_uri(),
         codigo_orcamento=orcamento_salvo.codigo,
         data_salvo=orcamento_salvo.data_salvo,
         cliente_nome=orcamentos[0].cliente.nome if orcamentos else "Desconhecido",
@@ -2501,8 +2571,12 @@ def configuracoes():
             os.makedirs(UPLOADS_DIR, exist_ok=True)
             ext = secure_filename(logo.filename).rsplit('.', 1)[1].lower()
             filename = f"empresa_logo.{ext}"
-            logo.save(os.path.join(UPLOADS_DIR, filename))
+            logo_bytes = logo.read()
+            config.logo_data = base64.b64encode(logo_bytes).decode("ascii")
+            config.logo_mime = logo.mimetype or _mime_logo_por_extensao(filename)
             config.logo_filename = filename
+            with open(os.path.join(UPLOADS_DIR, filename), "wb") as logo_file:
+                logo_file.write(logo_bytes)
 
         db.session.commit()
         flash("Configurações salvas com sucesso.", "success")
@@ -3366,7 +3440,7 @@ def detalhes_orcamento_salvo(codigo):
     valor_total_float = valor_total_final
     
     # Configurar logo URL
-    logo_url = empresa_logo_url()
+    logo_url = empresa_logo_data_uri()
     
     # Obter informações do usuário
     usuario_logado = Usuario.query.filter_by(cpf=session.get('user_cpf')).first()
