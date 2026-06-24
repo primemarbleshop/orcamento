@@ -3748,53 +3748,18 @@ def gerar_pdf_orcamento(codigo_ou_token):
         parcelas_orcamento=parcelas_orcamento
     )
 
-    # 🔥 Geração do PDF com arquivos temporários (compatível com Windows)
-    import tempfile
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_pdf:
-        temp_pdf_path = temp_pdf.name
-
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as final_pdf:
-        final_pdf_path = final_pdf.name
-
     try:
-        _get_weasyprint_html()(string=rendered_html, base_url=request.url_root).write_pdf(temp_pdf_path)
+        pdf_bytes = _get_weasyprint_html()(string=rendered_html, base_url=request.url_root).write_pdf()
     except RuntimeError:
-        if os.path.exists(temp_pdf_path):
-            os.unlink(temp_pdf_path)
-        if os.path.exists(final_pdf_path):
-            os.unlink(final_pdf_path)
         pdf_bytes = _gerar_pdf_html_com_chrome(rendered_html, request.url_root)
         response = make_response(pdf_bytes)
         response.headers["Content-Type"] = "application/pdf"
         response.headers["Content-Disposition"] = f"inline; filename=orcamento_{orcamento_salvo.codigo}.pdf"
         return response
 
-    # Adicionar logo (se existir)
-    import fitz  # PyMuPDF
-    logo_path = empresa_logo_path()
-    doc = fitz.open(temp_pdf_path)
-    if os.path.exists(logo_path):
-        page = doc[0]
-        page_width = page.rect.width
-        page_height = page.rect.height
-        logo_width = 210
-        logo_height = 105
-        rect = fitz.Rect(page_width - logo_width - -20, 20, page_width - -20, 20 + logo_height)
-        page.insert_image(rect, filename=logo_path)
-    doc.save(final_pdf_path)
-    doc.close()
-
-    # Ler PDF final e retornar
-    with open(final_pdf_path, "rb") as pdf_file:
-        pdf_bytes = pdf_file.read()
-
     response = make_response(pdf_bytes)
     response.headers["Content-Type"] = "application/pdf"
     response.headers["Content-Disposition"] = f"inline; filename=orcamento_{orcamento_salvo.codigo}.pdf"
-
-    # Limpar temporários
-    os.unlink(temp_pdf_path)
-    os.unlink(final_pdf_path)
 
     return response
 
@@ -4136,8 +4101,11 @@ def duplicar_selecionados():
 @app.route('/salvar_rodape_orcamento/<codigo>', methods=['POST'])
 def salvar_rodape_orcamento(codigo):
     orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
+    ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest'
     
     if not orcamento_salvo:
+        if ajax:
+            return jsonify({'success': False, 'message': 'Orçamento salvo não encontrado!'}), 404
         flash("Orçamento salvo não encontrado!", "danger")
         return redirect(url_for('listar_orcamentos_salvos'))
     
@@ -4158,6 +4126,9 @@ def salvar_rodape_orcamento(codigo):
     orcamento_salvo.exclude_payments = exclude_payments
     
     db.session.commit()
+    if ajax:
+        return jsonify({'success': True})
+
     flash("Rodapé do orçamento salvo com sucesso!", "success")
     
     return redirect(url_for('detalhes_orcamento_salvo', codigo=codigo))
