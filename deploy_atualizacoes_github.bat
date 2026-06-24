@@ -73,8 +73,6 @@ echo Adicionando SOMENTE os arquivos atualizados/adicionados...
 "%GIT_EXE%" add .gitignore
 "%GIT_EXE%" add static/css/pilot.css
 "%GIT_EXE%" add static/js/configurador.js
-"%GIT_EXE%" add static/logo-header.png
-"%GIT_EXE%" add static/uploads
 "%GIT_EXE%" add templates/index.html
 "%GIT_EXE%" add templates/login.html
 "%GIT_EXE%" add templates/setup.html

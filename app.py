@@ -648,8 +648,6 @@ def empresa_logo_url(config=None):
     if config and getattr(config, 'logo_data', None):
         mime = getattr(config, 'logo_mime', None) or 'image/png'
         return f"data:{mime};base64,{config.logo_data}"
-    if config and config.logo_filename:
-        return url_for('static', filename=f'uploads/{config.logo_filename}')
     return 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="1" height="1"%3E%3C/svg%3E'
 
 
@@ -659,9 +657,6 @@ def empresa_logo_path(config=None):
         caminho = os.path.join(UPLOADS_DIR, config.logo_filename)
         if os.path.exists(caminho):
             return caminho
-    fallback = os.path.join(app.static_folder, "logo-header.png")
-    if os.path.exists(fallback):
-        return fallback
     return ''
 
 
@@ -670,24 +665,7 @@ def empresa_logo_data_uri(config=None):
     if config and getattr(config, 'logo_data', None):
         mime = getattr(config, 'logo_mime', None) or 'image/png'
         return f"data:{mime};base64,{config.logo_data}"
-
-    caminho = empresa_logo_path(config)
-    if not caminho:
-        return empresa_logo_url(config)
-    extensao = os.path.splitext(caminho)[1].lower()
-    mime = {
-        ".jpg": "image/jpeg",
-        ".jpeg": "image/jpeg",
-        ".png": "image/png",
-        ".webp": "image/webp",
-        ".gif": "image/gif",
-    }.get(extensao, "image/png")
-    try:
-        with open(caminho, "rb") as arquivo:
-            encoded = base64.b64encode(arquivo.read()).decode("ascii")
-        return f"data:{mime};base64,{encoded}"
-    except OSError:
-        return empresa_logo_url(config)
+    return empresa_logo_url(config)
 
 
 def empresa_cuba_valores(config=None):
@@ -1092,7 +1070,7 @@ def _migrar_logo_arquivo_para_banco():
 @app.route('/orcamento')
 def configurador_3d():
     logado = 'user_cpf' in session
-    return render_template('configurador_3d.html', logado=logado)
+    return render_template('configurador_3d.html', logado=logado, empresa_logo_url=empresa_logo_url())
 
 @app.route('/api/materiais')
 def api_materiais():
@@ -1101,7 +1079,6 @@ def api_materiais():
 
 def _gerar_pdf_bytes(codigo):
     import tempfile
-    import fitz
     orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
     if not orcamento_salvo:
         return None
@@ -1154,22 +1131,10 @@ def _gerar_pdf_bytes(codigo):
     )
     with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_pdf:
         temp_pdf_path = temp_pdf.name
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as final_pdf:
-        final_pdf_path = final_pdf.name
     _get_weasyprint_html()(string=rendered_html, base_url=request.url_root).write_pdf(temp_pdf_path)
-    logo_path = os.path.join(app.root_path, "static", "logo.jpg")
-    doc = fitz.open(temp_pdf_path)
-    if os.path.exists(logo_path):
-        page = doc[0]
-        logo_width, logo_height = 210, 105
-        rect = fitz.Rect(page.rect.width - logo_width + 20, 20, page.rect.width + 20, 20 + logo_height)
-        page.insert_image(rect, filename=logo_path)
-    doc.save(final_pdf_path)
-    doc.close()
-    with open(final_pdf_path, "rb") as f:
+    with open(temp_pdf_path, "rb") as f:
         pdf_bytes = f.read()
     os.unlink(temp_pdf_path)
-    os.unlink(final_pdf_path)
     return pdf_bytes
 
 @app.route('/api/configurador-orcamento', methods=['POST'])
@@ -2568,15 +2533,12 @@ def configuracoes():
 
         logo = request.files.get('logo')
         if logo and logo.filename and _logo_permitida(logo.filename):
-            os.makedirs(UPLOADS_DIR, exist_ok=True)
             ext = secure_filename(logo.filename).rsplit('.', 1)[1].lower()
             filename = f"empresa_logo.{ext}"
             logo_bytes = logo.read()
             config.logo_data = base64.b64encode(logo_bytes).decode("ascii")
             config.logo_mime = logo.mimetype or _mime_logo_por_extensao(filename)
             config.logo_filename = filename
-            with open(os.path.join(UPLOADS_DIR, filename), "wb") as logo_file:
-                logo_file.write(logo_bytes)
 
         db.session.commit()
         flash("Configurações salvas com sucesso.", "success")
