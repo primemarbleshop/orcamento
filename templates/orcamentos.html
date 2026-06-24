@@ -637,6 +637,7 @@
                 <th>Qtd</th>
                 <th>Compr.</th>
                 <th>Larg.</th>
+                <th>Recortes</th>
                 <th>Instalação</th>
                 <th>Valor</th>
                 <th>Data</th>
@@ -672,6 +673,7 @@
                 <td>{{ orcamento.quantidade }}</td>
                 <td>{{ orcamento.comprimento }}</td>
                 <td>{{ orcamento.largura }}</td>
+                <td>{{ acessorios_texto(orcamento) }}</td>
                 <!-- INSTALAÇÃO: Passar o valor da instalação -->
                 <td class="clickable-cell instalacao-cell" 
                     onclick="mostrarInfoInstalacao(this, 
@@ -792,7 +794,7 @@
         const valorInicial = valor !== '' ? valor : (acessoriosPadrao[nomeInicial] || 0);
         row.innerHTML = `
             <div class="col-md-6">
-                <label class="form-label">Acessório</label>
+                <label class="form-label">Recorte</label>
                 <select class="form-select" name="acessorio_nome[]" onchange="atualizarValorAcessorio(this)">
                     ${opcoes}
                 </select>
@@ -993,7 +995,7 @@
         }
         
         const tabelaBody = document.getElementById('orcamento_table');
-        tabelaBody.innerHTML = '<tr><td colspan="14" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><div class="mt-2">Carregando orçamentos...</div></td></tr>';
+        tabelaBody.innerHTML = '<tr><td colspan="15" class="text-center py-4"><div class="spinner-border text-primary" role="status"></div><div class="mt-2">Carregando orçamentos...</div></td></tr>';
         
         fetch(`/orcamentos/json?${params.toString()}`)
         .then(response => response.json())
@@ -1007,7 +1009,7 @@
         })
         .catch(error => {
             console.error('Erro ao buscar dados:', error);
-            tabelaBody.innerHTML = '<tr><td colspan="14" class="text-center text-danger py-4">Erro ao carregar orçamentos: ' + error.message + '</td></tr>';
+            tabelaBody.innerHTML = '<tr><td colspan="15" class="text-center text-danger py-4">Erro ao carregar orçamentos: ' + error.message + '</td></tr>';
         });
     }
 
@@ -1016,7 +1018,7 @@
         const isAdmin = {{ 'true' if is_admin else 'false' }};
         
         if (orcamentos.length === 0) {
-            tabelaBody.innerHTML = '<tr><td colspan="15" class="text-center py-4">Nenhum orçamento encontrado</td></tr>';
+            tabelaBody.innerHTML = '<tr><td colspan="16" class="text-center py-4">Nenhum orçamento encontrado</td></tr>';
             document.getElementById('valor-final').textContent = "R$ 0,00";
             return;
         }
@@ -1045,6 +1047,7 @@
                 <td>${orcamento.quantidade}</td>
                 <td>${orcamento.comprimento}</td>
                 <td>${orcamento.largura}</td>
+                <td>${orcamento.recortes || '-'}</td>
                 <td class="clickable-cell instalacao-cell" onclick="mostrarInfoInstalacao(this, '${orcamento.instalacao}', '${orcamento.instalacao_valor}')">${orcamento.instalacao}</td>
                 <td class="clickable-cell valor-cell valor-total" onclick="mostrarInfoRT(this, '${orcamento.rt_percentual}')">${valorFormatado}</td>
                 <td>${orcamento.data}</td>
@@ -1197,6 +1200,19 @@
             </div>
         `;
 
+        let camposRecortes = `
+            <div class="row dynamic-field">
+                <div class="col-md-12">
+                    <h5><i class="fas fa-puzzle-piece me-2"></i>Recortes</h5>
+                </div>
+                <div class="col-md-12 form-section">
+                    <div id="acessoriosSelecionados"></div>
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="adicionarAcessorioOrcamento()">Adicionar recorte</button>
+                    <input type="hidden" name="tem_cooktop" id="tem_cooktop" value="Não">
+                </div>
+            </div>
+        `;
+
         let camposEspecificos = '';
 
         if (tipoProduto === 'Bancada' || tipoProduto === 'Lavatorio') {
@@ -1271,21 +1287,6 @@
                     </div>
                 </div>
             `;
-            
-            if (tipoProduto === 'Bancada') {
-                camposEspecificos += `
-                    <div class="row dynamic-field">
-                        <div class="col-md-12">
-                            <h5><i class="fas fa-puzzle-piece me-2"></i>Acessórios</h5>
-                        </div>
-                        <div class="col-md-12 form-section">
-                            <div id="acessoriosSelecionados"></div>
-                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="adicionarAcessorioOrcamento()">Adicionar acessório</button>
-                            <input type="hidden" name="tem_cooktop" id="tem_cooktop" value="Não">
-                        </div>
-                    </div>
-                `;
-            }
         } 
         else if (tipoProduto === 'Ilharga' || tipoProduto === 'Ilharga Bipolida' || tipoProduto === 'Pedra Simples com Saia' || tipoProduto === 'Pedra Bipolida com Saia') {
             camposEspecificos = `
@@ -1340,7 +1341,7 @@
             `;
         }
 
-        container.innerHTML = camposEspecificos + camposComuns;
+        container.innerHTML = camposEspecificos + camposRecortes + camposComuns;
     }
 
     function toggleInstalacaoFields() {
