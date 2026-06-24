@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
@@ -69,6 +69,9 @@
         .settings-grid.two {
             grid-template-columns: repeat(2, minmax(0, 1fr));
         }
+        .settings-grid.formulas-stack {
+            grid-template-columns: 1fr;
+        }
         .settings-grid.four {
             grid-template-columns: repeat(4, minmax(0, 1fr));
         }
@@ -82,6 +85,14 @@
             font-weight: 700;
             color: #334155;
             line-height: 1.25;
+        }
+        .toggle-line {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 12px;
+            font-weight: 700;
+            color: #334155;
         }
         .form-hint {
             display: block;
@@ -226,8 +237,6 @@
                     <button type="button" class="settings-tab active" data-tab="identidade">Identidade</button>
                     <button type="button" class="settings-tab" data-tab="comercial">Comercial</button>
                     <button type="button" class="settings-tab" data-tab="produtos">Fórmulas por produto</button>
-                    <button type="button" class="settings-tab" data-tab="acabamentos">Acabamentos</button>
-                    <button type="button" class="settings-tab" data-tab="nicho">Nicho</button>
                     <button type="button" class="settings-tab" data-tab="cubas">Cubas e acessórios</button>
                 </aside>
 
@@ -279,14 +288,6 @@
                                 <input class="form-control" type="number" min="0" id="prazo_entrega_padrao" name="prazo_entrega_padrao" value="{{ config.prazo_entrega_padrao }}">
                             </div>
                             <div>
-                                <label class="form-label" for="desconto_avista_padrao">Desconto 50% entrada / 50% entrega (%)</label>
-                                <input class="form-control" type="number" step="0.01" min="0" id="desconto_avista_padrao" name="desconto_avista_padrao" value="{{ config.desconto_avista_padrao }}">
-                            </div>
-                            <div>
-                                <label class="form-label" for="desconto_parcelado_padrao">Desconto 80% entrada / 20% entrega (%)</label>
-                                <input class="form-control" type="number" step="0.01" min="0" id="desconto_parcelado_padrao" name="desconto_parcelado_padrao" value="{{ config.desconto_parcelado_padrao }}">
-                            </div>
-                            <div>
                                 <label class="form-label" for="rt_percentual_padrao">RT padrão (%)</label>
                                 <input class="form-control" type="number" step="0.01" min="0" id="rt_percentual_padrao" name="rt_percentual_padrao" value="{{ config.rt_percentual_padrao }}">
                             </div>
@@ -294,6 +295,48 @@
                                 <label class="form-label" for="endereco">Endereço</label>
                                 <textarea class="form-control" id="endereco" name="endereco" rows="2">{{ config.endereco or '' }}</textarea>
                             </div>
+                            <div class="field-span-3">
+                                <h3>Formas de pagamento padrão</h3>
+                                <p class="section-note">Ative ou desative as formas que devem aparecer automaticamente nos novos orçamentos e edite os textos exibidos no rodapé.</p>
+                            </div>
+                            {% for chave in ['1', '2', '3'] %}
+                            <div class="formula-card field-span-3">
+                                <label class="toggle-line">
+                                    <input type="checkbox" name="pagamento_{{ chave }}_ativo" {% if config|attr('pagamento_' ~ chave ~ '_ativo') %}checked{% endif %}>
+                                    Forma de pagamento {{ chave }} ativa
+                                </label>
+                                <div class="settings-grid two">
+                                    <div>
+                                        <label class="form-label" for="pagamento_{{ chave }}_titulo">Título</label>
+                                        <input class="form-control" id="pagamento_{{ chave }}_titulo" name="pagamento_{{ chave }}_titulo" value="{{ config|attr('pagamento_' ~ chave ~ '_titulo') }}">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="pagamento_{{ chave }}_descricao">Texto</label>
+                                        <textarea class="form-control" id="pagamento_{{ chave }}_descricao" name="pagamento_{{ chave }}_descricao" rows="2">{{ config|attr('pagamento_' ~ chave ~ '_descricao') }}</textarea>
+                                    </div>
+                                    {% if chave == '1' %}
+                                    <div>
+                                        <label class="form-label" for="max_parcelas_padrao">Quantidade máxima de parcelas</label>
+                                        <input class="form-control" type="number" min="1" max="36" id="max_parcelas_padrao" name="max_parcelas_padrao" value="{{ config.max_parcelas_padrao }}">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="valor_minimo_parcela">Valor mínimo da parcela (R$)</label>
+                                        <input class="form-control" type="number" step="0.01" min="0" id="valor_minimo_parcela" name="valor_minimo_parcela" value="{{ config.valor_minimo_parcela }}">
+                                    </div>
+                                    {% elif chave == '2' %}
+                                    <div>
+                                        <label class="form-label" for="desconto_avista_padrao">Desconto da forma de pagamento 2 (%)</label>
+                                        <input class="form-control" type="number" step="0.01" min="0" id="desconto_avista_padrao" name="desconto_avista_padrao" value="{{ config.desconto_avista_padrao }}">
+                                    </div>
+                                    {% elif chave == '3' %}
+                                    <div>
+                                        <label class="form-label" for="desconto_parcelado_padrao">Desconto da forma de pagamento 3 (%)</label>
+                                        <input class="form-control" type="number" step="0.01" min="0" id="desconto_parcelado_padrao" name="desconto_parcelado_padrao" value="{{ config.desconto_parcelado_padrao }}">
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
                             <div class="field-span-3">
                                 <label class="form-label" for="observacoes_padrao">Observações padrão</label>
                                 <textarea class="form-control" id="observacoes_padrao" name="observacoes_padrao" rows="4">{{ config.observacoes_padrao }}</textarea>
@@ -304,20 +347,39 @@
                     <section class="settings-panel" data-panel="produtos">
                         <h2>Fórmulas por produto</h2>
                         <p class="section-note">Configure acréscimos sobre a área base. A área base é comprimento x largura x valor do material, respeitando a medida mínima.</p>
-                        <div class="settings-grid two">
+                        <div class="settings-grid formulas-stack">
                             <div class="formula-card">
-                                <h3>Medida base</h3>
-                                <label class="form-label" for="minimo_medida_cm">
-                                    Medida mínima cobrada (cm)
-                                    <button type="button" class="help-toggle" aria-label="Ajuda sobre medida mínima" onclick="toggleHelp('help-medida-minima', this)">i</button>
-                                </label>
-                                <input class="form-control" type="number" step="0.01" min="0" id="minimo_medida_cm" name="minimo_medida_cm" value="{{ config.minimo_medida_cm }}">
-                                <div class="help-box" id="help-medida-minima">Usada em pedra simples, bancada, lavatório, saia, fronte, alisar e nicho. Se uma medida for menor que esse mínimo, o sistema cobra pelo mínimo configurado.</div>
-                            </div>
-                            <div class="formula-card">
-                                <h3>Pedra simples</h3>
-                                <label class="form-label" for="pedra_simples_margem">Acréscimo sobre área base (%)</label>
-                                <input class="form-control" type="number" step="0.01" min="0" id="pedra_simples_margem" name="pedra_simples_margem" value="{{ config.pedra_simples_margem }}">
+                                <h3>Pedras</h3>
+                                <div class="settings-grid">
+                                    <div>
+                                        <label class="form-label" for="pedra_simples_margem">Pedra simples (%)</label>
+                                        <input class="form-control" type="number" step="0.01" min="0" id="pedra_simples_margem" name="pedra_simples_margem" value="{{ config.pedra_simples_margem }}">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="pedra_bipolida_margem">Pedra bipolida (%)</label>
+                                        <input class="form-control" type="number" step="0.01" min="0" id="pedra_bipolida_margem" name="pedra_bipolida_margem" value="{{ config.pedra_bipolida_margem }}">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="pedra_simples_com_saia_margem">Pedra simples com saia (%)</label>
+                                        <input class="form-control" type="number" step="0.01" min="0" id="pedra_simples_com_saia_margem" name="pedra_simples_com_saia_margem" value="{{ config.pedra_simples_com_saia_margem }}">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="pedra_bipolida_com_saia_margem">Pedra bipolida com saia (%)</label>
+                                        <input class="form-control" type="number" step="0.01" min="0" id="pedra_bipolida_com_saia_margem" name="pedra_bipolida_com_saia_margem" value="{{ config.pedra_bipolida_com_saia_margem }}">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="ilharga_margem">Ilharga simples (%)</label>
+                                        <input class="form-control" type="number" step="0.01" min="0" id="ilharga_margem" name="ilharga_margem" value="{{ config.ilharga_margem }}">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="ilharga_bipolida_margem">Ilharga bipolida (%)</label>
+                                        <input class="form-control" type="number" step="0.01" min="0" id="ilharga_bipolida_margem" name="ilharga_bipolida_margem" value="{{ config.ilharga_bipolida_margem }}">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="pedra_box_adicional">Pedra de box fixo (R$)</label>
+                                        <input class="form-control" type="number" step="0.01" min="0" id="pedra_box_adicional" name="pedra_box_adicional" value="{{ config.pedra_box_adicional }}">
+                                    </div>
+                                </div>
                             </div>
                             <div class="formula-card">
                                 <h3>Bancada e lavatório</h3>
@@ -337,66 +399,52 @@
                                 </div>
                             </div>
                             <div class="formula-card">
-                                <h3>Ilharga e pedra de box</h3>
+                                <h3>Acabamentos</h3>
                                 <div class="settings-grid">
                                     <div>
-                                        <label class="form-label" for="ilharga_margem">Ilharga simples (%)</label>
-                                        <input class="form-control" type="number" step="0.01" min="0" id="ilharga_margem" name="ilharga_margem" value="{{ config.ilharga_margem }}">
+                                        <label class="form-label" for="saia_margem">Saia - acréscimo sobre área (%)</label>
+                                        <input class="form-control" type="number" step="0.01" min="0" id="saia_margem" name="saia_margem" value="{{ config.saia_margem }}">
                                     </div>
                                     <div>
-                                        <label class="form-label" for="ilharga_bipolida_margem">Ilharga bipolida (%)</label>
-                                        <input class="form-control" type="number" step="0.01" min="0" id="ilharga_bipolida_margem" name="ilharga_bipolida_margem" value="{{ config.ilharga_bipolida_margem }}">
-                                    </div>
-                                    <div>
-                                        <label class="form-label" for="pedra_box_adicional">Pedra de box fixo (R$)</label>
-                                        <input class="form-control" type="number" step="0.01" min="0" id="pedra_box_adicional" name="pedra_box_adicional" value="{{ config.pedra_box_adicional }}">
+                                        <label class="form-label" for="fronte_margem">Fronte - acréscimo sobre área (%)</label>
+                                        <input class="form-control" type="number" step="0.01" min="0" id="fronte_margem" name="fronte_margem" value="{{ config.fronte_margem }}">
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </section>
-
-                    <section class="settings-panel" data-panel="acabamentos">
-                        <h2>Acabamentos</h2>
-                        <p class="section-note">Saia e fronte são calculadas por área de acabamento. O alisar fica na aba Nicho, porque só entra quando o nicho tem moldura.</p>
-                        <div class="settings-grid">
                             <div class="formula-card">
-                                <h3>Saia</h3>
-                                <label class="form-label" for="saia_margem">Acréscimo sobre área da saia (%)</label>
-                                <input class="form-control" type="number" step="0.01" min="0" id="saia_margem" name="saia_margem" value="{{ config.saia_margem }}">
+                                <h3>Nicho</h3>
+                                <div class="settings-grid">
+                                    <div>
+                                        <label class="form-label" for="nicho_mao_obra">Mão de obra nicho com fundo (R$)</label>
+                                        <input class="form-control" type="number" step="0.01" min="0" id="nicho_mao_obra" name="nicho_mao_obra" value="{{ config.nicho_mao_obra }}">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="nicho_sem_fundo_mao_obra">Mão de obra nicho sem fundo (R$)</label>
+                                        <input class="form-control" type="number" step="0.01" min="0" id="nicho_sem_fundo_mao_obra" name="nicho_sem_fundo_mao_obra" value="{{ config.nicho_sem_fundo_mao_obra }}">
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="nicho_folga_cm">
+                                            Acréscimo técnico nas medidas do nicho (cm)
+                                            <button type="button" class="help-toggle" aria-label="Ajuda sobre acréscimo técnico do nicho" onclick="toggleHelp('help-nicho-folga', this)">i</button>
+                                        </label>
+                                        <input class="form-control" type="number" step="0.01" min="0" id="nicho_folga_cm" name="nicho_folga_cm" value="{{ config.nicho_folga_cm }}">
+                                        <div class="help-box" id="help-nicho-folga">Esse valor é somado ao comprimento e à largura usados no cálculo para cobrir folgas, perdas de corte e encaixe. Ex.: nicho 60 x 30 com 4 cm calcula a base como 64 x 34. Não muda a medida informada ao cliente.</div>
+                                    </div>
+                                    <div>
+                                        <label class="form-label" for="alisar_margem">Alisar - acréscimo sobre área (%)</label>
+                                        <input class="form-control" type="number" step="0.01" min="0" id="alisar_margem" name="alisar_margem" value="{{ config.alisar_margem }}">
+                                        <span class="form-hint">Usado somente quando o nicho estiver marcado com alisar/moldura.</span>
+                                    </div>
+                                </div>
                             </div>
                             <div class="formula-card">
-                                <h3>Fronte</h3>
-                                <label class="form-label" for="fronte_margem">Acréscimo sobre área do fronte (%)</label>
-                                <input class="form-control" type="number" step="0.01" min="0" id="fronte_margem" name="fronte_margem" value="{{ config.fronte_margem }}">
-                            </div>
-                        </div>
-                    </section>
-
-                    <section class="settings-panel" data-panel="nicho">
-                        <h2>Nicho</h2>
-                        <p class="section-note">Nicho com fundo cobra fundo + laterais. Nicho sem fundo cobra somente laterais. O alisar entra como área adicional quando marcado no orçamento.</p>
-                        <div class="settings-grid">
-                            <div>
-                                <label class="form-label" for="nicho_mao_obra">Mão de obra nicho com fundo (R$)</label>
-                                <input class="form-control" type="number" step="0.01" min="0" id="nicho_mao_obra" name="nicho_mao_obra" value="{{ config.nicho_mao_obra }}">
-                            </div>
-                            <div>
-                                <label class="form-label" for="nicho_sem_fundo_mao_obra">Mão de obra nicho sem fundo (R$)</label>
-                                <input class="form-control" type="number" step="0.01" min="0" id="nicho_sem_fundo_mao_obra" name="nicho_sem_fundo_mao_obra" value="{{ config.nicho_sem_fundo_mao_obra }}">
-                            </div>
-                            <div>
-                                <label class="form-label" for="nicho_folga_cm">
-                                    Acréscimo técnico nas medidas do nicho (cm)
-                                    <button type="button" class="help-toggle" aria-label="Ajuda sobre acréscimo técnico do nicho" onclick="toggleHelp('help-nicho-folga', this)">i</button>
+                                <h3>Medida base</h3>
+                                <label class="form-label" for="minimo_medida_cm">
+                                    Medida mínima cobrada (cm)
+                                    <button type="button" class="help-toggle" aria-label="Ajuda sobre medida mínima" onclick="toggleHelp('help-medida-minima', this)">i</button>
                                 </label>
-                                <input class="form-control" type="number" step="0.01" min="0" id="nicho_folga_cm" name="nicho_folga_cm" value="{{ config.nicho_folga_cm }}">
-                                <div class="help-box" id="help-nicho-folga">Esse valor é somado ao comprimento e à largura usados no cálculo para cobrir folgas, perdas de corte e encaixe. Ex.: nicho 60 x 30 com 4 cm calcula a base como 64 x 34. Não muda a medida informada ao cliente.</div>
-                            </div>
-                            <div>
-                                <label class="form-label" for="alisar_margem">Alisar - acréscimo sobre área (%)</label>
-                                <input class="form-control" type="number" step="0.01" min="0" id="alisar_margem" name="alisar_margem" value="{{ config.alisar_margem }}">
-                                <span class="form-hint">Usado somente quando o nicho estiver marcado com alisar/moldura.</span>
+                                <input class="form-control" type="number" step="0.01" min="0" id="minimo_medida_cm" name="minimo_medida_cm" value="{{ config.minimo_medida_cm }}">
+                                <div class="help-box" id="help-medida-minima">Usada em pedra simples, bancada, lavatório, saia, fronte, alisar e nicho. Se uma medida for menor que esse mínimo, o sistema cobra pelo mínimo configurado.</div>
                             </div>
                         </div>
                     </section>

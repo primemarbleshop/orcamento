@@ -442,11 +442,13 @@
                             <select name="tipo_produto" id="tipo_produto" class="form-select" onchange="toggleFields()" required>
                                 <option value="" disabled selected>Selecione o tipo de produto</option>
                                 <option value="Pedra Simples">Pedra Simples</option>
+                                <option value="Pedra Bipolida">Pedra bipolida</option>
+                                <option value="Pedra Simples com Saia">Pedra simples com saia</option>
+                                <option value="Pedra Bipolida com Saia">Pedra bipolida com saia</option>
                                 <option value="Bancada">Bancada</option>
                                 <option value="Lavatorio">Lavatorio</option>
                                 <option value="Ilharga">Ilharga</option>
                                 <option value="Ilharga Bipolida">Ilharga Bipolida</option>
-                                <option value="Pedra de Box">Pedra de Box</option>
                                 <option value="Nicho">Nicho</option>
                             </select>
                         </div>
@@ -738,6 +740,7 @@
     // VARIÁVEIS GLOBAIS - DROPDOWN
     // =============================================
     let dropdownAtivo = null;
+    const rtPadrao = parseFloat('{{ empresa_config.rt_percentual_padrao or 10 }}') || 10;
 
     // Função para fechar todos os dropdowns
     function fecharTodosDropdowns() {
@@ -1245,7 +1248,7 @@
                 `;
             }
         } 
-        else if (tipoProduto === 'Ilharga' || tipoProduto === 'Ilharga Bipolida') {
+        else if (tipoProduto === 'Ilharga' || tipoProduto === 'Ilharga Bipolida' || tipoProduto === 'Pedra Simples com Saia' || tipoProduto === 'Pedra Bipolida com Saia') {
             camposEspecificos = `
                 <div class="row dynamic-field">
                     <div class="col-md-12">
@@ -1312,8 +1315,12 @@
     function toggleRTFields() {
         const rt = document.getElementById('rt');
         const field = document.getElementById('rt_percent_field');
+        const input = document.getElementById('rt_percentual');
         if (rt && field) {
             field.style.display = rt.value === 'Sim' ? 'block' : 'none';
+            if (rt.value === 'Sim' && input && (!input.value || parseFloat(input.value) <= 0)) {
+                input.value = rtPadrao;
+            }
         }
     }
 
@@ -1722,6 +1729,9 @@
                     $('#rt-option').on('change', function() {
                         if ($(this).val() === 'Sim') {
                             $('#rt-percent-field').show();
+                            if (!$('#rt-percent').val() || parseFloat($('#rt-percent').val()) <= 0) {
+                                $('#rt-percent').val(rtPadrao);
+                            }
                         } else {
                             $('#rt-percent-field').hide();
                         }

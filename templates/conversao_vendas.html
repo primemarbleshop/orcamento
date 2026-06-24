@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
@@ -17,7 +17,7 @@
                     <div>
                         <h1>Controle de vendas {{ periodo_label }}</h1>
                     </div>
-                    <a href="{{ url_for('relatorio_vendas', mes=filtro_mes or 'todos', ano=filtro_ano or 'todos') }}" class="pilot-btn pilot-btn-primary" target="_blank">Gerar relatório de vendas</a>
+                    <a href="{{ url_for('relatorio_vendas', mes=filtro_mes or 'todos', ano=filtro_ano or 'todos', vendedor=vendedor_filtro or 'Todos') }}" class="pilot-btn pilot-btn-primary" target="_blank">Gerar relatório de vendas</a>
                 </div>
 
                 <form method="GET" class="dash-panel" style="padding: 16px; margin-bottom: 16px;">
@@ -40,6 +40,14 @@
                                     <option value="{{ ano }}" {% if filtro_ano == ano %}selected{% endif %}>{{ ano }}</option>
                                 {% endfor %}
                             </select>
+                            {% if session.get('admin') %}
+                            <select name="vendedor" class="conversion-select js-period-filter">
+                                <option value="Todos" {% if vendedor_filtro == 'Todos' %}selected{% endif %}>Todos os vendedores</option>
+                                {% for usuario in usuarios %}
+                                    <option value="{{ usuario.nome }}" {% if vendedor_filtro == usuario.nome %}selected{% endif %}>{{ usuario.nome }}</option>
+                                {% endfor %}
+                            </select>
+                            {% endif %}
 
                             <a href="{{ url_for('conversao_vendas') }}" class="pilot-btn">Limpar</a>
                         </div>

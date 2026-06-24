@@ -1098,7 +1098,7 @@
             {% set ambiente_total.value = ambiente_total.value + produto.valor_total %}
             
             <!-- Analisar campos específicos baseados no tipo de produto -->
-            {% if tipo_produto in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
+            {% if tipo_produto in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida", "Pedra Simples com Saia", "Pedra Bipolida com Saia"] %}
                 {% if not campos_necessarios.saia %}
                     {% set campos_necessarios.saia = true %}
                 {% endif %}
@@ -1152,7 +1152,7 @@
             {% set descricao_total.value = descricao_total.value + produto.valor_total %}
             
             <!-- Analisar campos específicos baseados no tipo de produto nesta descrição -->
-            {% if tipo_produto in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
+            {% if tipo_produto in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida", "Pedra Simples com Saia", "Pedra Bipolida com Saia"] %}
                 {% if not campos_descricao.saia %}
                     {% set campos_descricao.saia = true %}
                 {% endif %}
@@ -1279,7 +1279,7 @@
             <!-- SAIA - Só mostra se o campo estiver ativo na descrição -->
             {% if campos_descricao.saia %}
             <td>
-                {% if tipo_produto in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida"] %}
+                {% if tipo_produto in ["Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida", "Pedra Simples com Saia", "Pedra Bipolida com Saia"] %}
                     {{ produto.comprimento_saia }} x {{ produto.largura_saia }} cm
                 {% else %}
                     -
@@ -1426,29 +1426,21 @@
         <div class="footer-section">
             <div class="footer-title">Condições de Pagamento:</div>
             <div class="footer-content">
+                {% set pagamento_1 = pagamentos_config.get('1') %}
+                {% set pagamento_2 = pagamentos_config.get('2') %}
+                {% set pagamento_3 = pagamentos_config.get('3') %}
                 <div class="payment-options-container" id="paymentOptionsContainer">
                     <!-- Cartão de Crédito (com edição de parcelas) -->
+                    {% if pagamento_1.ativo %}
                     <div class="payment-option {% if '1' in exclude_payments %}hidden-in-pdf oculto-pdf{% endif %}" id="payment-option-1">
-                        <h4>Cartão de Crédito</h4>
+                        <h4>{{ pagamento_1.titulo }}</h4>
                         <div class="payment-detail">
-                           • Pagamento de 100% na aprovação do orçamento
+                           • {{ pagamento_1.descricao }}
                         </div>
                         <div class="installment-calc" id="parcelamentoSimplificado">
                              R$ {{ "{:,.2f}".format(valor_total_float).replace(",", "X").replace(".", ",").replace("X", ".") }} em até 
                              <span id="maxParcelasDisplay">
-                             {%- if max_parcelas is not none -%}
-                                 {{ max_parcelas }}
-                             {%- else -%}
-                                 {%- set max_parcelas_calculado = (valor_total_float / 100)|int -%}
-                                 {%- if max_parcelas_calculado < 1 -%}
-                                     {%- set max_parcelas_calculado = 1 -%}
-                                 {%- endif -%}
-                                 {%- if max_parcelas_calculado > 10 -%}
-                                     10
-                                 {%- else -%}
-                                     {{ max_parcelas_calculado }}
-                                 {%- endif -%}
-                             {%- endif -%}
+                             {{ parcelas_orcamento }}
                              </span>x sem juros
                              {% if not pdf %}
                              <button class="btn-edit" onclick="toggleEdit('maxParcelas')">Editar</button>
@@ -1461,16 +1453,9 @@
                                 {%- if max_parcelas is not none -%}
                                     {{ max_parcelas }}
                                 {%- else -%}
-                                    {%- set max_parcelas_calculado = (valor_total_float / 100)|int -%}
-                                    {%- if max_parcelas_calculado < 1 -%}
-                                        1
-                                    {%- elif max_parcelas_calculado > 10 -%}
-                                        10
-                                    {%- else -%}
-                                        {{ max_parcelas_calculado }}
-                                    {%- endif -%}
+                                    {{ parcelas_orcamento }}
                                 {%- endif -%}
-                            " min="1" max="12">
+                            " min="1" max="36">
                             <button class="btn-save" onclick="saveMaxParcelas()">Salvar</button>
                             <button class="btn-cancel" onclick="cancelEdit('maxParcelas')">Cancelar</button>
                         </div>
@@ -1480,17 +1465,19 @@
                         </button>
                         {% endif %}
                     </div>
+                    {% endif %}
                     
                     <!-- À vista - 50% entrada / 50% entrega -->
+                    {% if pagamento_2.ativo %}
                     <div class="payment-option {% if '2' in exclude_payments %}hidden-in-pdf oculto-pdf{% endif %}" id="payment-option-2">
-                        <h4>À vista - 50% entrada / 50% na entrega</h4>
+                        <h4>{{ pagamento_2.titulo }}</h4>
                         <div class="payment-detail">
                             <span class="discount-percentage" id="discount1Display">{{ desconto_avista }}</span>% de desconto
                             {% if not pdf %}
                             <button class="btn-edit" onclick="toggleEdit('discount1')">Editar</button>
                             {% endif %}
                         </div>
-                        <div class="payment-detail">• 50% de entrada e 50% na entrega</div>
+                        <div class="payment-detail">• {{ pagamento_2.descricao }}</div>
                         <div class="installment-calc">
                             Valor com desconto: R$ <span id="valorAvista">
                                 {% set valor_com_desconto_avista = valor_total_float * (1 - desconto_avista/100) %}
@@ -1515,17 +1502,19 @@
                         </div>
                         {% endif %}
                     </div>
+                    {% endif %}
 
                     <!-- À vista - 80% entrada / 20% entrega -->
+                    {% if pagamento_3.ativo %}
                     <div class="payment-option {% if '3' in exclude_payments %}hidden-in-pdf oculto-pdf{% endif %}" id="payment-option-3">
-                        <h4>À vista - 80% entrada / 20% na entrega</h4>
+                        <h4>{{ pagamento_3.titulo }}</h4>
                         <div class="payment-detail">
                             <span class="discount-percentage" id="discount2Display">{{ desconto_parcelado }}</span>% de desconto
                             {% if not pdf %}
                             <button class="btn-edit" onclick="toggleEdit('discount2')">Editar</button>
                             {% endif %}
                         </div>
-                        <div class="payment-detail">• 80% de entrada e 20% na entrega</div>
+                        <div class="payment-detail">• {{ pagamento_3.descricao }}</div>
                         <div class="installment-calc">
                             Valor com desconto: R$ <span id="valorParcelado">
                                 {% set valor_com_desconto_parcelado = valor_total_float * (1 - desconto_parcelado/100) %}
@@ -1550,6 +1539,7 @@
                         </div>
                         {% endif %}
                     </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -1579,6 +1569,7 @@
             <input type="hidden" name="observacoes" id="formObservacoes" value="{{ observacoes }}">
             <input type="hidden" name="exclude_payments" id="formExcludePayments" value="{{ exclude_payments|join(',') }}">
             <input type="hidden" name="max_parcelas" id="formMaxParcelas" value="{{ max_parcelas if max_parcelas is not none else '' }}">
+            <input type="hidden" name="valor_minimo_parcela" id="formValorMinimoParcela" value="{{ valor_minimo_parcela if valor_minimo_parcela is not none else '' }}">
         </form>
         {% endif %}
     </div>
@@ -2112,11 +2103,12 @@ function formatarMoeda(valor) {
     return valor.toFixed(2).replace('.', ',').replace(/\B(?=(\d{3})+(?!\d))/g, ".");
 }
 
-// Calcular o número máximo de parcelas (máximo de 12x, mínimo de 1x)
+// Calcular o número máximo de parcelas (respeita padrão do orçamento)
 function calcularMaxParcelas(valorTotal) {
-    // Calcula com base no valor (mínimo R$ 100 por parcela)
-    let parcelas = Math.floor(valorTotal / 100);
-    if (parcelas > 10) parcelas = 10;
+    const maximoConfigurado = parseInt(document.getElementById('formMaxParcelas')?.value || '{{ max_parcelas or 10 }}', 10) || 10;
+    const minimoConfigurado = parseFloat((document.getElementById('formValorMinimoParcela')?.value || '{{ valor_minimo_parcela or 100 }}').toString().replace(',', '.')) || 100;
+    let parcelas = minimoConfigurado > 0 ? Math.floor(valorTotal / minimoConfigurado) : maximoConfigurado;
+    if (parcelas > maximoConfigurado) parcelas = maximoConfigurado;
     if (parcelas < 1) parcelas = 1;
     return parcelas;
 }
@@ -2185,7 +2177,7 @@ function saveMaxParcelas() {
     
     // Validação
     if (isNaN(newValue) || newValue < 1) newValue = 1;
-    if (newValue > 12) newValue = 12; // Limite máximo
+    if (newValue > 36) newValue = 36; // Limite máximo
     
     // Atualizar display
     displaySpan.textContent = newValue;

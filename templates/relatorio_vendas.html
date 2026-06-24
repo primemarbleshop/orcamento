@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
@@ -43,6 +43,23 @@
             font-weight: 700;
             text-decoration: none;
             cursor: pointer;
+        }
+
+        .report-filter {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-right: auto;
+            font-weight: 700;
+        }
+
+        .report-filter select {
+            border: 1px solid #cfd6e4;
+            border-radius: 6px;
+            padding: 8px 10px;
+            min-width: 180px;
+            background: #fff;
+            color: #172033;
         }
 
         .report-page {
@@ -449,6 +466,19 @@
 </head>
 <body>
     <div class="print-actions no-print">
+        {% if session.get('admin') %}
+        <form class="report-filter" method="get">
+            <input type="hidden" name="mes" value="{{ mes }}">
+            <input type="hidden" name="ano" value="{{ ano }}">
+            <label for="vendedor">Vendedor</label>
+            <select id="vendedor" name="vendedor" onchange="this.form.submit()">
+                <option value="Todos" {% if vendedor_filtro == 'Todos' %}selected{% endif %}>Todos</option>
+                {% for usuario in usuarios %}
+                    <option value="{{ usuario.nome }}" {% if vendedor_filtro == usuario.nome %}selected{% endif %}>{{ usuario.nome }}</option>
+                {% endfor %}
+            </select>
+        </form>
+        {% endif %}
         <a href="{{ url_for('conversao_vendas', mes=mes, ano=ano) }}">Voltar ao controle</a>
         <button type="button" onclick="window.print()">Imprimir relatório</button>
     </div>

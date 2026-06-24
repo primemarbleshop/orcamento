@@ -49,6 +49,9 @@ def aplicar_margem_material(
     margem_ate_2000=15,
     margem_acima_2000=10,
     margem_ilharga_bipolida=15,
+    pedra_simples_com_saia_margem=0,
+    pedra_bipolida_com_saia_margem=15,
+    pedra_bipolida_margem=15,
 ):
     if tipo_produto == "Pedra Simples":
         return valor_base * (1 + _float(pedra_simples_margem) / 100)
@@ -60,6 +63,9 @@ def aplicar_margem_material(
     if tipo_produto == "Ilharga":
         return valor_base * (1 + _float(ilharga_margem) / 100)
 
+    if tipo_produto == "Pedra Simples com Saia":
+        return valor_base * (1 + _float(pedra_simples_com_saia_margem) / 100)
+
     if tipo_produto in ["Bancada", "Lavatorio"]:
         if valor_material < 1000:
             return valor_base * (1 + _float(margem_ate_1000) / 100)
@@ -70,6 +76,12 @@ def aplicar_margem_material(
 
     if tipo_produto == "Ilharga Bipolida" and valor_base < 1000000:
         return valor_base * (1 + _float(margem_ilharga_bipolida) / 100)
+
+    if tipo_produto == "Pedra Bipolida com Saia" and valor_base < 1000000:
+        return valor_base * (1 + _float(pedra_bipolida_com_saia_margem) / 100)
+
+    if tipo_produto == "Pedra Bipolida" and valor_base < 1000000:
+        return valor_base * (1 + _float(pedra_bipolida_margem) / 100)
 
     return valor_base
 
@@ -161,6 +173,9 @@ def calcular_valor_item(
     bancada_margem_ate_2000=15,
     bancada_margem_acima_2000=10,
     ilharga_bipolida_margem=15,
+    pedra_simples_com_saia_margem=0,
+    pedra_bipolida_com_saia_margem=15,
+    pedra_bipolida_margem=15,
     pedra_box_adicional=30,
     nicho_folga_cm=4,
     saia_margem=0,
@@ -186,6 +201,9 @@ def calcular_valor_item(
         bancada_margem_ate_2000,
         bancada_margem_acima_2000,
         ilharga_bipolida_margem,
+        pedra_simples_com_saia_margem,
+        pedra_bipolida_com_saia_margem,
+        pedra_bipolida_margem,
     )
 
     total = valor_base
@@ -207,7 +225,7 @@ def calcular_valor_item(
             mao_obra_nicho = nicho_sem_fundo_mao_obra
         total = (area_nicho / 10000) * valor_material + _float(mao_obra_nicho, NICHO_MAO_OBRA_PADRAO)
 
-    if tipo_produto in ["Ilharga", "Ilharga Bipolida", "Bancada", "Lavatorio"]:
+    if tipo_produto in ["Ilharga", "Ilharga Bipolida", "Pedra Simples com Saia", "Pedra Bipolida com Saia", "Bancada", "Lavatorio"]:
         valor_saia = medida_minima(comprimento_saia, minimo_medida_cm) * medida_minima(largura_saia, minimo_medida_cm) * valor_material / 10000
         total += valor_saia * (1 + _float(saia_margem) / 100)
 

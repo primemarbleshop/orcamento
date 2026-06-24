@@ -1,4 +1,4 @@
-# 📌 Imports de Bibliotecas Externas
+﻿# ðŸ“Œ Imports de Bibliotecas Externas
 import os
 import sys
 
@@ -138,6 +138,95 @@ def _hex_para_rgb01(cor_hex):
 def _moeda(valor):
     return "R$ {:,.2f}".format(float(valor or 0)).replace(",", "X").replace(".", ",").replace("X", ".")
 
+
+def calcular_parcelas_orcamento(total, max_parcelas=None, valor_minimo_parcela=None):
+    try:
+        total = float(total or 0)
+    except (TypeError, ValueError):
+        total = 0
+    try:
+        maximo = int(max_parcelas or 10)
+    except (TypeError, ValueError):
+        maximo = 10
+    try:
+        minimo = float(valor_minimo_parcela or 100)
+    except (TypeError, ValueError):
+        minimo = 100
+
+    maximo = max(1, maximo)
+    if total <= 0:
+        return 1
+    if minimo <= 0:
+        return maximo
+    return max(1, min(maximo, int(total // minimo) or 1))
+
+
+PAGAMENTOS_PADRAO = {
+    "1": {
+        "ativo": True,
+        "titulo": "Cartão de Crédito",
+        "descricao": "Pagamento de 100% na aprovação do orçamento",
+    },
+    "2": {
+        "ativo": True,
+        "titulo": "À vista - 50% entrada / 50% na entrega",
+        "descricao": "50% de entrada e 50% na entrega",
+    },
+    "3": {
+        "ativo": True,
+        "titulo": "À vista - 80% entrada / 20% na entrega",
+        "descricao": "80% de entrada e 20% na entrega",
+    },
+}
+
+
+def _bool_config(valor, padrao=True):
+    if valor is None:
+        return padrao
+    if isinstance(valor, bool):
+        return valor
+    return str(valor).strip().lower() not in ("0", "false", "nao", "não", "")
+
+
+def pagamentos_config_padrao(dados=None):
+    dados = dados or empresa_config_dict()
+    pagamentos = {}
+    for chave, padrao in PAGAMENTOS_PADRAO.items():
+        pagamentos[chave] = {
+            "ativo": _bool_config(dados.get(f"pagamento_{chave}_ativo"), padrao["ativo"]),
+            "titulo": (dados.get(f"pagamento_{chave}_titulo") or padrao["titulo"]).strip(),
+            "descricao": (dados.get(f"pagamento_{chave}_descricao") or padrao["descricao"]).strip(),
+        }
+    return pagamentos
+
+
+def pagamentos_config_orcamento(orcamento_salvo=None):
+    pagamentos_atuais = pagamentos_config_padrao()
+    if orcamento_salvo and getattr(orcamento_salvo, "pagamentos_config_json", None):
+        try:
+            salvos = json.loads(orcamento_salvo.pagamentos_config_json)
+            if isinstance(salvos, dict):
+                pagamentos = pagamentos_atuais.copy()
+                for chave, valores in salvos.items():
+                    if chave in pagamentos and isinstance(valores, dict):
+                        pagamentos[chave].update({
+                            "titulo": (valores.get("titulo") or pagamentos[chave]["titulo"]).strip(),
+                            "descricao": (valores.get("descricao") or pagamentos[chave]["descricao"]).strip(),
+                        })
+                        pagamentos[chave]["ativo"] = pagamentos_atuais[chave]["ativo"]
+                return pagamentos
+        except (TypeError, ValueError):
+            pass
+    return pagamentos_atuais
+
+
+def pagamentos_excluidos_padrao(dados=None):
+    return ",".join(
+        chave for chave, pagamento in pagamentos_config_padrao(dados).items()
+        if not pagamento.get("ativo", True)
+    )
+
+
 def _criar_pdf_orcamento_fallback(
     orcamento_salvo,
     orcamentos,
@@ -150,10 +239,13 @@ def _criar_pdf_orcamento_fallback(
     observacoes,
     exclude_payments=None,
     max_parcelas=None,
+    valor_minimo_parcela=None,
+    pagamentos_config=None,
 ):
     import fitz
 
     empresa = empresa_config_dict()
+    pagamentos_config = pagamentos_config or pagamentos_config_padrao(empresa)
     brand = _hex_para_rgb01(empresa.get("cor_primaria"))
     exclude_payments = exclude_payments or []
     doc = fitz.open()
@@ -221,18 +313,18 @@ def _criar_pdf_orcamento_fallback(
 
     texto("Condições de pagamento", size=11, color=brand, gap=17)
     total = float(valor_total_final or 0)
-    if "1" not in exclude_payments:
+    if pagamentos_config["1"].get("ativo", True) and "1" not in exclude_payments:
+        parcelas = calcular_parcelas_orcamento(total, max_parcelas, valor_minimo_parcela)
+        texto(f"{pagamentos_config['1']['titulo']}: {pagamentos_config['1']['descricao']}", gap=13)
+        texto(f"Parcelado: ate {parcelas}x de {_moeda(total / max(int(parcelas), 1))}", gap=13)
+    if pagamentos_config["2"].get("ativo", True) and "2" not in exclude_payments:
         valor = total * (1 - float(desconto_avista or 0) / 100)
-        texto(f"50% entrada / 50% entrega: {_moeda(valor)} ({desconto_avista:g}% de desconto)", gap=13)
-    if "2" not in exclude_payments:
+        texto(f"{pagamentos_config['2']['titulo']}: {pagamentos_config['2']['descricao']}", gap=13)
+        texto(f"Valor com desconto: {_moeda(valor)} ({desconto_avista:g}% de desconto)", gap=13)
+    if pagamentos_config["3"].get("ativo", True) and "3" not in exclude_payments:
         valor = total * (1 - float(desconto_parcelado or 0) / 100)
-        texto(f"80% entrada / 20% entrega: {_moeda(valor)} ({desconto_parcelado:g}% de desconto)", gap=13)
-    if "3" not in exclude_payments:
-        parcelas = max_parcelas
-        if parcelas is None:
-            parcelas = max(1, min(10, int(total / 100) if total else 1))
-        texto(f"Parcelado: até {parcelas}x de {_moeda(total / max(int(parcelas), 1))}", gap=16)
-
+        texto(f"{pagamentos_config['3']['titulo']}: {pagamentos_config['3']['descricao']}", gap=13)
+        texto(f"Valor com desconto: {_moeda(valor)} ({desconto_parcelado:g}% de desconto)", gap=16)
     if observacoes:
         linha()
         texto("Observações", size=11, color=brand, gap=17)
@@ -335,15 +427,16 @@ def _gerar_pdf_html_com_chrome(rendered_html, base_url):
             except Exception:
                 pass
 
-# 📌 Inicializa o Flask
+# ðŸ“Œ Inicializa o Flask
 app = Flask(__name__)
 app.config.from_object(Config)  # Aplica configurações do config.py
 
-# 📌 Inicializa o Banco de Dados
+# ðŸ“Œ Inicializa o Banco de Dados
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 
 _url_serializer = URLSafeSerializer(app.config['SECRET_KEY'], salt='orcamento-link')
+
 
 @app.context_processor
 def dados_usuario_layout():
@@ -469,6 +562,17 @@ def _config_empresa_fallback():
         'desconto_avista_padrao': 5,
         'desconto_parcelado_padrao': 10,
         'observacoes_padrao': 'Medidas sujeitas a confirmação no local. Valores válidos por 7 dias.',
+        'max_parcelas_padrao': 10,
+        'valor_minimo_parcela': 100,
+        'pagamento_1_ativo': True,
+        'pagamento_1_titulo': PAGAMENTOS_PADRAO['1']['titulo'],
+        'pagamento_1_descricao': PAGAMENTOS_PADRAO['1']['descricao'],
+        'pagamento_2_ativo': True,
+        'pagamento_2_titulo': PAGAMENTOS_PADRAO['2']['titulo'],
+        'pagamento_2_descricao': PAGAMENTOS_PADRAO['2']['descricao'],
+        'pagamento_3_ativo': True,
+        'pagamento_3_titulo': PAGAMENTOS_PADRAO['3']['titulo'],
+        'pagamento_3_descricao': PAGAMENTOS_PADRAO['3']['descricao'],
         'cooktop_valor': 50,
         'nicho_mao_obra': 150,
         'nicho_sem_fundo_mao_obra': 150,
@@ -477,10 +581,13 @@ def _config_empresa_fallback():
         'pedra_simples_margem': 0,
         'soleira_margem': 0,
         'ilharga_margem': 0,
+        'pedra_simples_com_saia_margem': 0,
         'bancada_margem_ate_1000': 30,
         'bancada_margem_ate_2000': 15,
         'bancada_margem_acima_2000': 10,
         'ilharga_bipolida_margem': 15,
+        'pedra_bipolida_com_saia_margem': 15,
+        'pedra_bipolida_margem': 15,
         'pedra_box_adicional': 30,
         'nicho_folga_cm': 4,
         'saia_margem': 0,
@@ -559,10 +666,13 @@ def opcoes_precificacao_empresa(config=None):
         'pedra_simples_margem': float(dados.get('pedra_simples_margem') or 0),
         'soleira_margem': float(dados.get('soleira_margem') or 0),
         'ilharga_margem': float(dados.get('ilharga_margem') or 0),
+        'pedra_simples_com_saia_margem': float(dados.get('pedra_simples_com_saia_margem') or 0),
         'bancada_margem_ate_1000': float(dados.get('bancada_margem_ate_1000') or 30),
         'bancada_margem_ate_2000': float(dados.get('bancada_margem_ate_2000') or 15),
         'bancada_margem_acima_2000': float(dados.get('bancada_margem_acima_2000') or 10),
         'ilharga_bipolida_margem': float(dados.get('ilharga_bipolida_margem') or 15),
+        'pedra_bipolida_com_saia_margem': float(dados.get('pedra_bipolida_com_saia_margem') or 15),
+        'pedra_bipolida_margem': float(dados.get('pedra_bipolida_margem') or 15),
         'pedra_box_adicional': float(dados.get('pedra_box_adicional') or 30),
         'nicho_folga_cm': float(dados.get('nicho_folga_cm') or 4),
         'saia_margem': float(dados.get('saia_margem') or 0),
@@ -620,6 +730,17 @@ class EmpresaConfig(db.Model):
         default='Medidas sujeitas a confirmação no local. Valores válidos por 7 dias.',
         nullable=False
     )
+    max_parcelas_padrao = db.Column(db.Integer, default=10, nullable=False)
+    valor_minimo_parcela = db.Column(db.Float, default=100, nullable=False)
+    pagamento_1_ativo = db.Column(db.Boolean, default=True, nullable=False)
+    pagamento_1_titulo = db.Column(db.String(120), default=PAGAMENTOS_PADRAO['1']['titulo'], nullable=False)
+    pagamento_1_descricao = db.Column(db.Text, default=PAGAMENTOS_PADRAO['1']['descricao'], nullable=False)
+    pagamento_2_ativo = db.Column(db.Boolean, default=True, nullable=False)
+    pagamento_2_titulo = db.Column(db.String(120), default=PAGAMENTOS_PADRAO['2']['titulo'], nullable=False)
+    pagamento_2_descricao = db.Column(db.Text, default=PAGAMENTOS_PADRAO['2']['descricao'], nullable=False)
+    pagamento_3_ativo = db.Column(db.Boolean, default=True, nullable=False)
+    pagamento_3_titulo = db.Column(db.String(120), default=PAGAMENTOS_PADRAO['3']['titulo'], nullable=False)
+    pagamento_3_descricao = db.Column(db.Text, default=PAGAMENTOS_PADRAO['3']['descricao'], nullable=False)
     cooktop_valor = db.Column(db.Float, default=50, nullable=False)
     nicho_mao_obra = db.Column(db.Float, default=150, nullable=False)
     nicho_sem_fundo_mao_obra = db.Column(db.Float, default=150, nullable=False)
@@ -628,10 +749,13 @@ class EmpresaConfig(db.Model):
     pedra_simples_margem = db.Column(db.Float, default=0, nullable=False)
     soleira_margem = db.Column(db.Float, default=0, nullable=False)
     ilharga_margem = db.Column(db.Float, default=0, nullable=False)
+    pedra_simples_com_saia_margem = db.Column(db.Float, default=0, nullable=False)
     bancada_margem_ate_1000 = db.Column(db.Float, default=30, nullable=False)
     bancada_margem_ate_2000 = db.Column(db.Float, default=15, nullable=False)
     bancada_margem_acima_2000 = db.Column(db.Float, default=10, nullable=False)
     ilharga_bipolida_margem = db.Column(db.Float, default=15, nullable=False)
+    pedra_bipolida_com_saia_margem = db.Column(db.Float, default=15, nullable=False)
+    pedra_bipolida_margem = db.Column(db.Float, default=15, nullable=False)
     pedra_box_adicional = db.Column(db.Float, default=30, nullable=False)
     nicho_folga_cm = db.Column(db.Float, default=4, nullable=False)
     saia_margem = db.Column(db.Float, default=0, nullable=False)
@@ -698,6 +822,8 @@ class OrcamentoSalvo(db.Model):
     desenhos_ordem_servico = db.relationship('DesenhoOrdemServico', backref='orcamento', lazy=True)
     desenho_ordem_servico = db.Column(db.Text, nullable=True)
     max_parcelas = db.Column(db.Integer, nullable=True)
+    valor_minimo_parcela = db.Column(db.Float, nullable=True)
+    pagamentos_config_json = db.Column(db.Text, default='')
 
     @property
     def cliente_nome(self):
@@ -807,6 +933,9 @@ def _garantir_colunas_orcamento_salvo():
         "final_percentual": "FLOAT",
         "entrada_valor": "FLOAT",
         "final_valor": "FLOAT",
+        "max_parcelas": "INTEGER",
+        "valor_minimo_parcela": "FLOAT",
+        "pagamentos_config_json": "TEXT",
     }
     for coluna, definicao in colunas.items():
         _garantir_coluna("orcamento_salvo", coluna, definicao)
@@ -818,13 +947,27 @@ def _garantir_colunas_empresa_config():
         "pedra_simples_margem": "FLOAT DEFAULT 0 NOT NULL",
         "soleira_margem": "FLOAT DEFAULT 0 NOT NULL",
         "ilharga_margem": "FLOAT DEFAULT 0 NOT NULL",
+        "pedra_simples_com_saia_margem": "FLOAT DEFAULT 0 NOT NULL",
         "bancada_margem_ate_1000": "FLOAT DEFAULT 30 NOT NULL",
         "bancada_margem_ate_2000": "FLOAT DEFAULT 15 NOT NULL",
         "bancada_margem_acima_2000": "FLOAT DEFAULT 10 NOT NULL",
         "ilharga_bipolida_margem": "FLOAT DEFAULT 15 NOT NULL",
+        "pedra_bipolida_com_saia_margem": "FLOAT DEFAULT 15 NOT NULL",
+        "pedra_bipolida_margem": "FLOAT DEFAULT 15 NOT NULL",
         "pedra_box_adicional": "FLOAT DEFAULT 30 NOT NULL",
         "nicho_folga_cm": "FLOAT DEFAULT 4 NOT NULL",
         "nicho_sem_fundo_mao_obra": "FLOAT DEFAULT 150 NOT NULL",
+        "max_parcelas_padrao": "INTEGER DEFAULT 10 NOT NULL",
+        "valor_minimo_parcela": "FLOAT DEFAULT 100 NOT NULL",
+        "pagamento_1_ativo": "BOOLEAN DEFAULT 1 NOT NULL",
+        "pagamento_1_titulo": "VARCHAR(120) DEFAULT 'Cartão de Crédito' NOT NULL",
+        "pagamento_1_descricao": "TEXT DEFAULT 'Pagamento de 100% na aprovação do orçamento' NOT NULL",
+        "pagamento_2_ativo": "BOOLEAN DEFAULT 1 NOT NULL",
+        "pagamento_2_titulo": "VARCHAR(120) DEFAULT 'À vista - 50% entrada / 50% na entrega' NOT NULL",
+        "pagamento_2_descricao": "TEXT DEFAULT '50% de entrada e 50% na entrega' NOT NULL",
+        "pagamento_3_ativo": "BOOLEAN DEFAULT 1 NOT NULL",
+        "pagamento_3_titulo": "VARCHAR(120) DEFAULT 'À vista - 80% entrada / 20% na entrega' NOT NULL",
+        "pagamento_3_descricao": "TEXT DEFAULT '80% de entrada e 20% na entrega' NOT NULL",
         "saia_margem": "FLOAT DEFAULT 0 NOT NULL",
         "fronte_margem": "FLOAT DEFAULT 0 NOT NULL",
         "alisar_margem": "FLOAT DEFAULT 0 NOT NULL",
@@ -871,8 +1014,12 @@ def _gerar_pdf_bytes(codigo):
     desconto_avista = orcamento_salvo.desconto_avista if orcamento_salvo.desconto_avista is not None else 5
     desconto_parcelado = orcamento_salvo.desconto_parcelado if orcamento_salvo.desconto_parcelado is not None else 10
     observacoes = orcamento_salvo.observacoes if orcamento_salvo.observacoes is not None else "Medidas sujeitas a confirmação no local. Valores válidos por 7 dias."
-    max_parcelas = orcamento_salvo.max_parcelas
+    empresa = empresa_config_dict()
+    max_parcelas = orcamento_salvo.max_parcelas if orcamento_salvo.max_parcelas is not None else int(empresa.get('max_parcelas_padrao') or 10)
+    valor_minimo_parcela = orcamento_salvo.valor_minimo_parcela if orcamento_salvo.valor_minimo_parcela is not None else float(empresa.get('valor_minimo_parcela') or 100)
+    parcelas_orcamento = calcular_parcelas_orcamento(valor_total_final, max_parcelas, valor_minimo_parcela)
     exclude_payments = orcamento_salvo.exclude_payments.split(',') if orcamento_salvo.exclude_payments else []
+    pagamentos_config = pagamentos_config_orcamento(orcamento_salvo)
     rendered_html = render_template(
         "detalhes_orcamento_salvo.html",
         logo_url=url_for('static', filename='logo.jpg'),
@@ -890,7 +1037,10 @@ def _gerar_pdf_bytes(codigo):
         observacoes=observacoes,
         pdf=True,
         exclude_payments=exclude_payments,
-        max_parcelas=max_parcelas
+        pagamentos_config=pagamentos_config,
+        max_parcelas=max_parcelas,
+        valor_minimo_parcela=valor_minimo_parcela,
+        parcelas_orcamento=parcelas_orcamento
     )
     with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_pdf:
         temp_pdf_path = temp_pdf.name
@@ -993,8 +1143,13 @@ def api_configurador_orcamento():
                     elif mat.valor < 1000000:
                         valor_base *= 1.1
 
-                if tipo_produto == 'Ilharga Bipolida' and valor_base < 1000000:
-                    valor_base *= 1.15
+                if tipo_produto in ['Ilharga Bipolida', 'Pedra Bipolida com Saia', 'Pedra Bipolida'] and valor_base < 1000000:
+                    margem_bipolida = pricing_opts.get('ilharga_bipolida_margem', 15)
+                    if tipo_produto == 'Pedra Bipolida com Saia':
+                        margem_bipolida = pricing_opts.get('pedra_bipolida_com_saia_margem', 15)
+                    elif tipo_produto == 'Pedra Bipolida':
+                        margem_bipolida = pricing_opts.get('pedra_bipolida_margem', 15)
+                    valor_base *= 1 + (float(margem_bipolida or 0) / 100)
 
                 valor_total = valor_base
 
@@ -1240,7 +1395,7 @@ def api_configurador_orcamento():
                 if is_l:
                     comp_l = pcfg.get('compL', 120)
                     prof_l = pcfg.get('profL', 60)
-                    sides_l = [('l_esquerda', prof_l), ('l_fundo', comp_l), ('fundo', prof_l)]
+                    sides_l = [('l_esquerda', prof_l), ('l_fundo', comp_l)]
                     if modelo == 'l_seca_molhada':
                         inner_h = mainD + comp_l - prof_m_val
                     else:
@@ -1416,11 +1571,20 @@ def api_configurador_orcamento():
         if not orcamento_ids:
             return jsonify({'success': False, 'error': 'Nenhum item gerado'}), 400
 
+        empresa = empresa_config_dict()
         orc_salvo = OrcamentoSalvo(
             orcamentos_ids=','.join(orcamento_ids),
             valor_total=sum(Orcamento.query.get(int(i)).valor_total for i in orcamento_ids),
             criado_por='Configurador Online',
-            tipo_cliente='Cliente Online'
+            tipo_cliente='Cliente Online',
+            prazo_entrega=int(empresa.get('prazo_entrega_padrao') or 15),
+            desconto_avista=float(empresa.get('desconto_avista_padrao') or 5),
+            desconto_parcelado=float(empresa.get('desconto_parcelado_padrao') or 10),
+            observacoes=empresa.get('observacoes_padrao') or _config_empresa_fallback()['observacoes_padrao'],
+            exclude_payments=pagamentos_excluidos_padrao(empresa),
+            max_parcelas=int(empresa.get('max_parcelas_padrao') or 10),
+            valor_minimo_parcela=float(empresa.get('valor_minimo_parcela') or 100),
+            pagamentos_config_json=json.dumps(pagamentos_config_padrao(empresa), ensure_ascii=False),
         )
         orc_salvo.gerar_codigo()
         db.session.add(orc_salvo)
@@ -1730,6 +1894,13 @@ def conversao_vendas():
     )
     mes_filtro = request.args.get("mes", str(hoje.month))
     ano_filtro = request.args.get("ano", str(hoje.year))
+    vendedor_filtro = request.args.get("vendedor", "Todos")
+    usuarios = Usuario.query.order_by(Usuario.nome).all() if session.get("admin") else []
+    if session.get("admin") and vendedor_filtro and vendedor_filtro != "Todos":
+        todos_orcamentos = [
+            orcamento for orcamento in todos_orcamentos
+            if (orcamento.criado_por or "") == vendedor_filtro
+        ]
     orcamentos, mes_filtro, ano_filtro = _filtrar_orcamentos_por_periodo(
         todos_orcamentos,
         mes=mes_filtro,
@@ -1765,6 +1936,8 @@ def conversao_vendas():
         anos_disponiveis=anos_disponiveis,
         filtro_mes=mes_filtro,
         filtro_ano=ano_filtro,
+        usuarios=usuarios,
+        vendedor_filtro=vendedor_filtro,
         periodo_label=periodo_label,
         orcamentos=dashboard["recentes"] if request.args.get("recentes") else [
             {
@@ -1793,6 +1966,13 @@ def relatorio_vendas():
     hoje = datetime.now(br_tz)
     mes_filtro = request.args.get("mes", str(hoje.month))
     ano_filtro = request.args.get("ano", str(hoje.year))
+    vendedor_filtro = request.args.get("vendedor", "Todos")
+    usuarios = Usuario.query.order_by(Usuario.nome).all() if session.get("admin") else []
+    if session.get("admin") and vendedor_filtro and vendedor_filtro != "Todos":
+        todos_orcamentos = [
+            orcamento for orcamento in todos_orcamentos
+            if (orcamento.criado_por or "") == vendedor_filtro
+        ]
     orcamentos, mes_filtro, ano_filtro = _filtrar_orcamentos_por_periodo(
         todos_orcamentos,
         mes=mes_filtro,
@@ -1907,6 +2087,8 @@ def relatorio_vendas():
         clientes_resumo=clientes_resumo,
         mes=mes_filtro or "todos",
         ano=ano_filtro or "todos",
+        usuarios=usuarios,
+        vendedor_filtro=vendedor_filtro,
         moeda=_moeda,
     )
 
@@ -1947,6 +2129,8 @@ def listar_orcamentos():
         instalacao_valor = float(request.form.get('instalacao_valor', 0) or 0)
         rt = request.form.get('rt', 'Não')
         rt_percentual = float(request.form.get('rt_percentual', 0) or 0)
+        if rt == 'Sim' and rt_percentual <= 0:
+            rt_percentual = float(empresa_config_dict().get('rt_percentual_padrao') or 10)
         data_atual = datetime.now(br_tz)
         dono = session['user_cpf']
 
@@ -2235,6 +2419,12 @@ def configuracoes():
         config.desconto_avista_padrao = float(request.form.get('desconto_avista_padrao', 5) or 5)
         config.desconto_parcelado_padrao = float(request.form.get('desconto_parcelado_padrao', 10) or 10)
         config.observacoes_padrao = request.form.get('observacoes_padrao', '').strip() or _config_empresa_fallback()['observacoes_padrao']
+        config.max_parcelas_padrao = int(request.form.get('max_parcelas_padrao', 10) or 10)
+        config.valor_minimo_parcela = float(request.form.get('valor_minimo_parcela', 100) or 100)
+        for chave, padrao in PAGAMENTOS_PADRAO.items():
+            setattr(config, f'pagamento_{chave}_ativo', request.form.get(f'pagamento_{chave}_ativo') == 'on')
+            setattr(config, f'pagamento_{chave}_titulo', request.form.get(f'pagamento_{chave}_titulo', '').strip() or padrao['titulo'])
+            setattr(config, f'pagamento_{chave}_descricao', request.form.get(f'pagamento_{chave}_descricao', '').strip() or padrao['descricao'])
         config.cooktop_valor = float(request.form.get('cooktop_valor', 50) or 50)
         config.nicho_mao_obra = float(request.form.get('nicho_mao_obra', 150) or 150)
         config.nicho_sem_fundo_mao_obra = float(request.form.get('nicho_sem_fundo_mao_obra', 150) or 150)
@@ -2243,10 +2433,13 @@ def configuracoes():
         config.pedra_simples_margem = float(request.form.get('pedra_simples_margem', 0) or 0)
         config.soleira_margem = float(request.form.get('soleira_margem', 0) or 0)
         config.ilharga_margem = float(request.form.get('ilharga_margem', 0) or 0)
+        config.pedra_simples_com_saia_margem = float(request.form.get('pedra_simples_com_saia_margem', 0) or 0)
         config.bancada_margem_ate_1000 = float(request.form.get('bancada_margem_ate_1000', 30) or 30)
         config.bancada_margem_ate_2000 = float(request.form.get('bancada_margem_ate_2000', 15) or 15)
         config.bancada_margem_acima_2000 = float(request.form.get('bancada_margem_acima_2000', 10) or 10)
         config.ilharga_bipolida_margem = float(request.form.get('ilharga_bipolida_margem', 15) or 15)
+        config.pedra_bipolida_com_saia_margem = float(request.form.get('pedra_bipolida_com_saia_margem', 15) or 15)
+        config.pedra_bipolida_margem = float(request.form.get('pedra_bipolida_margem', 15) or 15)
         config.pedra_box_adicional = float(request.form.get('pedra_box_adicional', 30) or 30)
         config.nicho_folga_cm = float(request.form.get('nicho_folga_cm', 4) or 4)
         config.saia_margem = float(request.form.get('saia_margem', 0) or 0)
@@ -2410,8 +2603,14 @@ def editar_orcamento(id):
                 valor_base *= 1.1
 
         # Ajuste de preço para Ilharga Bipolida
-        if orcamento.tipo_produto == 'Ilharga Bipolida' and valor_base < 1000000:
-            valor_base *= 1.15
+        if orcamento.tipo_produto in ['Ilharga Bipolida', 'Pedra Bipolida com Saia', 'Pedra Bipolida'] and valor_base < 1000000:
+            pricing_opts = opcoes_precificacao_empresa()
+            margem_bipolida = pricing_opts.get('ilharga_bipolida_margem', 15)
+            if orcamento.tipo_produto == 'Pedra Bipolida com Saia':
+                margem_bipolida = pricing_opts.get('pedra_bipolida_com_saia_margem', 15)
+            elif orcamento.tipo_produto == 'Pedra Bipolida':
+                margem_bipolida = pricing_opts.get('pedra_bipolida_margem', 15)
+            valor_base *= 1 + (float(margem_bipolida or 0) / 100)
 
         valor_total_criar += valor_base  # Inicializando o valor total
 
@@ -2438,7 +2637,7 @@ def editar_orcamento(id):
             valor_total_criar = valor_nicho
                                        
         # **Cálculo do Acabamento Saia**
-        if orcamento.tipo_produto in ['Ilharga', 'Ilharga Bipolida', 'Bancada', 'Lavatorio']:
+        if orcamento.tipo_produto in ['Ilharga', 'Ilharga Bipolida', 'Pedra Simples com Saia', 'Pedra Bipolida com Saia', 'Bancada', 'Lavatorio']:
             orcamento.comprimento_saia_cal = 10 if 0 < orcamento.comprimento_saia < 10 else orcamento.comprimento_saia
             orcamento.largura_saia_cal = 10 if 0 < orcamento.largura_saia < 10 else orcamento.largura_saia
             valor_saia = orcamento.comprimento_saia_cal * orcamento.largura_saia_cal * material.valor / 10000
@@ -2640,7 +2839,7 @@ def deletar_orcamento(id):
             db.session.delete(orcamento_salvo)
             flash(f"Orçamento salvo {orcamento_salvo.codigo} excluído por não ter mais itens.", "warning")
 
-    # 🔥 EXCLUIR FISICAMENTE (apenas da tabela Orcamento)
+    # ðŸ”¥ EXCLUIR FISICAMENTE (apenas da tabela Orcamento)
     db.session.delete(orcamento)
     db.session.commit()
 
@@ -2954,14 +3153,14 @@ import time  # Certifique-se de importar time
 @app.route('/salvar_orcamento', methods=['POST'])
 def salvar_orcamento():
     try:
-        # 🔹 Pegando os dados do JSON enviado pelo frontend
+        # ðŸ”¹ Pegando os dados do JSON enviado pelo frontend
         data = request.json
         ids = data.get('ids')
 
         if not ids:
             return jsonify({"success": False, "error": "Nenhum orçamento selecionado!"}), 400
 
-        # 🔹 Convertendo a string de IDs para uma lista de inteiros
+        # ðŸ”¹ Convertendo a string de IDs para uma lista de inteiros
         ids = [int(id.strip()) for id in ids.split(",") if id.strip().isdigit()]
         if not ids:
             return jsonify({"success": False, "error": "IDs inválidos!"}), 400
@@ -2974,7 +3173,7 @@ def salvar_orcamento():
         ultimo_orcamento = db.session.query(db.func.max(OrcamentoSalvo.id)).scalar()
         novo_codigo = f"O{(100 + (ultimo_orcamento or 0)):06d}"
 
-        # 🔹 Data de salvamento
+        # ðŸ”¹ Data de salvamento
         data_salvamento = datetime.now(br_tz)
 
         # 🔹 Calcular o valor total dos orçamentos selecionados
@@ -2993,6 +3192,10 @@ def salvar_orcamento():
             desconto_avista=float(empresa.get('desconto_avista_padrao') or 5),
             desconto_parcelado=float(empresa.get('desconto_parcelado_padrao') or 10),
             observacoes=empresa.get('observacoes_padrao') or _config_empresa_fallback()['observacoes_padrao'],
+            exclude_payments=pagamentos_excluidos_padrao(empresa),
+            max_parcelas=int(empresa.get('max_parcelas_padrao') or 10),
+            valor_minimo_parcela=float(empresa.get('valor_minimo_parcela') or 100),
+            pagamentos_config_json=json.dumps(pagamentos_config_padrao(empresa), ensure_ascii=False),
         )
 
         db.session.add(novo_orcamento)
@@ -3140,6 +3343,11 @@ def detalhes_orcamento_salvo(codigo):
     desconto_avista = orcamento_salvo.desconto_avista if orcamento_salvo.desconto_avista is not None else 5
     desconto_parcelado = orcamento_salvo.desconto_parcelado if orcamento_salvo.desconto_parcelado is not None else 10
     observacoes = orcamento_salvo.observacoes if orcamento_salvo.observacoes is not None else "Medidas sujeitas a confirmação no local. Valores válidos por 7 dias."
+    empresa = empresa_config_dict()
+    max_parcelas = orcamento_salvo.max_parcelas if orcamento_salvo.max_parcelas is not None else int(empresa.get('max_parcelas_padrao') or 10)
+    valor_minimo_parcela = orcamento_salvo.valor_minimo_parcela if orcamento_salvo.valor_minimo_parcela is not None else float(empresa.get('valor_minimo_parcela') or 100)
+    parcelas_orcamento = calcular_parcelas_orcamento(valor_total_float, max_parcelas, valor_minimo_parcela)
+    pagamentos_config = pagamentos_config_orcamento(orcamento_salvo)
     
     # Obter opções de pagamento excluídas
     exclude_payments = orcamento_salvo.exclude_payments.split(',') if orcamento_salvo.exclude_payments else []
@@ -3166,12 +3374,15 @@ def detalhes_orcamento_salvo(codigo):
         desconto_parcelado=desconto_parcelado,
         observacoes=observacoes,
         exclude_payments=exclude_payments,
+        pagamentos_config=pagamentos_config,
         # Passar parâmetro para saber se estamos em modo PDF ou não
         pdf=False,
         # Passar o usuário atual para verificar permissões no template
         usuario_atual=usuario_logado,
         is_admin=is_admin,
-        max_parcelas = orcamento_salvo.max_parcelas
+        max_parcelas=max_parcelas,
+        valor_minimo_parcela=valor_minimo_parcela,
+        parcelas_orcamento=parcelas_orcamento
     )
 
 def recriar_agrupamentos_orcamento(codigo_orcamento):
@@ -3183,13 +3394,13 @@ def recriar_agrupamentos_orcamento(codigo_orcamento):
         orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo_orcamento).first()
         
         if not orcamento_salvo:
-            print(f"⚠️ Orçamento salvo não encontrado: {codigo_orcamento}")
+            print(f"âš ï¸ Orçamento salvo não encontrado: {codigo_orcamento}")
             return None
         
         # Extrair IDs dos orçamentos (com validação)
         ids_str = orcamento_salvo.orcamentos_ids
         if not ids_str or not ids_str.strip():
-            print(f"⚠️ Lista de IDs vazia para orçamento: {codigo_orcamento}")
+            print(f"âš ï¸ Lista de IDs vazia para orçamento: {codigo_orcamento}")
             return {}
         
         ids = []
@@ -3198,17 +3409,17 @@ def recriar_agrupamentos_orcamento(codigo_orcamento):
             if id_str and id_str.isdigit():
                 ids.append(int(id_str))
             else:
-                print(f"⚠️ ID inválido ignorado: '{id_str}'")
+                print(f"âš ï¸ ID inválido ignorado: '{id_str}'")
         
         if not ids:
-            print(f"⚠️ Nenhum ID válido encontrado para orçamento: {codigo_orcamento}")
+            print(f"âš ï¸ Nenhum ID válido encontrado para orçamento: {codigo_orcamento}")
             return {}
         
         # Buscar orçamentos
         orcamentos = Orcamento.query.filter(Orcamento.id.in_(ids)).all()
         
         if not orcamentos:
-            print(f"⚠️ Nenhum orçamento encontrado para os IDs: {ids}")
+            print(f"âš ï¸ Nenhum orçamento encontrado para os IDs: {ids}")
             return {}
         
         # Reagrupar por ambiente -> descrição -> tipo de produto
@@ -3220,7 +3431,7 @@ def recriar_agrupamentos_orcamento(codigo_orcamento):
                 ambiente_nome = orcamento.ambiente.nome
             else:
                 ambiente_nome = 'Sem Ambiente'
-                print(f"ℹ️ Orçamento {orcamento.id} sem ambiente definido")
+                print(f"â„¹ï¸ Orçamento {orcamento.id} sem ambiente definido")
             
             # Inicializar o ambiente se não existir
             if ambiente_nome not in ambientes_agrupados:
@@ -3231,7 +3442,7 @@ def recriar_agrupamentos_orcamento(codigo_orcamento):
                 descricao_nome = orcamento.descricao.nome
             else:
                 descricao_nome = 'Sem Descrição'
-                print(f"ℹ️ Orçamento {orcamento.id} sem descrição definida")
+                print(f"Info: orcamento {orcamento.id} sem descricao definida")
             
             # Inicializar a descrição se não existir
             if descricao_nome not in ambientes_agrupados[ambiente_nome]:
@@ -3241,7 +3452,7 @@ def recriar_agrupamentos_orcamento(codigo_orcamento):
             tipo_produto = orcamento.tipo_produto
             if not tipo_produto:
                 tipo_produto = 'Não especificado'
-                print(f"ℹ️ Orçamento {orcamento.id} sem tipo de produto definido")
+                print(f"Info: orcamento {orcamento.id} sem tipo de produto definido")
             
             # Inicializar o tipo de produto se não existir
             if tipo_produto not in ambientes_agrupados[ambiente_nome][descricao_nome]:
@@ -3251,18 +3462,18 @@ def recriar_agrupamentos_orcamento(codigo_orcamento):
             ambientes_agrupados[ambiente_nome][descricao_nome][tipo_produto].append(orcamento)
         
         # Log para debug
-        print(f"✅ Agrupamentos recriados para {codigo_orcamento}:")
+        print(f"Agrupamentos recriados para {codigo_orcamento}:")
         for ambiente, descricoes in ambientes_agrupados.items():
-            print(f"  📍 {ambiente}: {len(descricoes)} descrições")
+            print(f"  Ambiente {ambiente}: {len(descricoes)} descricoes")
             for descricao, tipos in descricoes.items():
-                print(f"    📝 {descricao}: {len(tipos)} tipos de produto")
+                print(f"    Descricao {descricao}: {len(tipos)} tipos de produto")
                 total_itens = sum(len(produtos) for produtos in tipos.values())
-                print(f"      📦 Total de itens nesta descrição: {total_itens}")
+                print(f"      Total de itens nesta descricao: {total_itens}")
         
         return ambientes_agrupados
     
     except Exception as e:
-        print(f"❌ Erro ao recriar agrupamentos para {codigo_orcamento}: {str(e)}")
+        print(f"Erro ao recriar agrupamentos para {codigo_orcamento}: {str(e)}")
         import traceback
         traceback.print_exc()
         return None
@@ -3312,7 +3523,7 @@ def deletar_orcamento_salvo(orcamento_id):
             orcamento_salvo_codigo=orcamento.codigo
         ).delete()
         
-        # 🔥 Excluir desenhos associados
+        # ðŸ”¥ Excluir desenhos associados
         DesenhoOrdemServico.query.filter_by(orcamento_salvo_codigo=orcamento.codigo).delete()
         
         # Depois exclui o orçamento salvo
@@ -3499,8 +3710,12 @@ def gerar_pdf_orcamento(codigo_ou_token):
     desconto_parcelado = orcamento_salvo.desconto_parcelado if orcamento_salvo.desconto_parcelado is not None else 10
     observacoes = orcamento_salvo.observacoes if orcamento_salvo.observacoes is not None else "Medidas sujeitas a confirmação no local. Valores válidos por 7 dias."
     
-    # ✅ NOVO: Obter max_parcelas (pode ser None)
-    max_parcelas = orcamento_salvo.max_parcelas
+    # âœ… NOVO: Obter max_parcelas (pode ser None)
+    empresa = empresa_config_dict()
+    max_parcelas = orcamento_salvo.max_parcelas if orcamento_salvo.max_parcelas is not None else int(empresa.get('max_parcelas_padrao') or 10)
+    valor_minimo_parcela = orcamento_salvo.valor_minimo_parcela if orcamento_salvo.valor_minimo_parcela is not None else float(empresa.get('valor_minimo_parcela') or 100)
+    parcelas_orcamento = calcular_parcelas_orcamento(valor_total_float, max_parcelas, valor_minimo_parcela)
+    pagamentos_config = pagamentos_config_orcamento(orcamento_salvo)
 
     # ✅ Opções excluídas
     exclude_payments = orcamento_salvo.exclude_payments.split(',') if orcamento_salvo.exclude_payments else []
@@ -3527,7 +3742,10 @@ def gerar_pdf_orcamento(codigo_ou_token):
         observacoes=observacoes,
         pdf=True,
         exclude_payments=exclude_payments,
-        max_parcelas=max_parcelas   # <-- ESSENCIAL para evitar NameError
+        pagamentos_config=pagamentos_config,
+        max_parcelas=max_parcelas,
+        valor_minimo_parcela=valor_minimo_parcela,
+        parcelas_orcamento=parcelas_orcamento
     )
 
     # 🔥 Geração do PDF com arquivos temporários (compatível com Windows)
@@ -3588,8 +3806,10 @@ def editar_material_rt_selecionados():
     material_id = data.get('material_id')
     rt = data.get('rt')
     rt_percentual = data.get('rt_percentual', 0.0)
+    if rt == 'Sim' and float(rt_percentual or 0) <= 0:
+        rt_percentual = float(empresa_config_dict().get('rt_percentual_padrao') or 10)
     descricao_id = data.get('descricao_id')  # 🔥 NOVO: Adicionar descrição
-    produto_id = data.get('produto_id')      # 🔥 NOVO: Adicionar produto
+    produto_id = data.get('produto_id')      # ðŸ”¥ NOVO: Adicionar produto
 
     if not orcamento_ids:
         return jsonify({'erro': 'Nenhum orçamento selecionado.'}), 400
@@ -3658,7 +3878,7 @@ def editar_material_rt_selecionados():
         if descricao_id:
             orcamento.descricao_id = descricao_id
         
-        # 🔥 NOVO: Atualizar produto apenas se foi fornecido
+        # ðŸ”¥ NOVO: Atualizar produto apenas se foi fornecido
         if produto_id:
             orcamento.produto_id = produto_id
         
@@ -3691,8 +3911,14 @@ def editar_material_rt_selecionados():
             elif material_para_calculo.valor < 1000000:
                 valor_base *= 1.1
 
-        if orcamento.tipo_produto == 'Ilharga Bipolida' and material_para_calculo.valor < 1000000:
-            valor_base *= 1.15
+        if orcamento.tipo_produto in ['Ilharga Bipolida', 'Pedra Bipolida com Saia', 'Pedra Bipolida'] and material_para_calculo.valor < 1000000:
+            pricing_opts = opcoes_precificacao_empresa()
+            margem_bipolida = pricing_opts.get('ilharga_bipolida_margem', 15)
+            if orcamento.tipo_produto == 'Pedra Bipolida com Saia':
+                margem_bipolida = pricing_opts.get('pedra_bipolida_com_saia_margem', 15)
+            elif orcamento.tipo_produto == 'Pedra Bipolida':
+                margem_bipolida = pricing_opts.get('pedra_bipolida_margem', 15)
+            valor_base *= 1 + (float(margem_bipolida or 0) / 100)
 
         valor_total_criar += valor_base
 
@@ -3713,7 +3939,7 @@ def editar_material_rt_selecionados():
             valor_total_criar = valor_nicho
 
         # Saia
-        if orcamento.tipo_produto in ['Ilharga', 'Ilharga Bipolida', 'Bancada', 'Lavatorio']:
+        if orcamento.tipo_produto in ['Ilharga', 'Ilharga Bipolida', 'Pedra Simples com Saia', 'Pedra Bipolida com Saia', 'Bancada', 'Lavatorio']:
             comprimento_saia_cal = 10 if 0 < orcamento.comprimento_saia < 10 else orcamento.comprimento_saia
             largura_saia_cal = 10 if 0 < orcamento.largura_saia < 10 else orcamento.largura_saia
             valor_saia = comprimento_saia_cal * largura_saia_cal * material_para_calculo.valor / 10000
@@ -3858,7 +4084,7 @@ def duplicar_selecionados():
                     cliente_id=original.cliente_id,
                     ambiente_id=original.ambiente_id,
                     descricao_id=original.descricao_id,  # 🔥 ADICIONAR DESCRIÇÃO
-                    produto_id=original.produto_id,      # 🔥 ADICIONAR PRODUTO
+                    produto_id=original.produto_id,      # ðŸ”¥ ADICIONAR PRODUTO
                     tipo_produto=original.tipo_produto,
                     material_id=original.material_id,
                     quantidade=original.quantidade,
@@ -3894,7 +4120,7 @@ def duplicar_selecionados():
 
         db.session.commit()
         
-        # 🔥 RETORNAR OS NOVOS IDs PARA SELEÇÃO AUTOMÁTICA
+        # ðŸ”¥ RETORNAR OS NOVOS IDs PARA SELEÇÃO AUTOMÁTICA
         return jsonify({
             'success': True, 
             'novos_ids': novos_ids,
@@ -3924,6 +4150,8 @@ def salvar_rodape_orcamento(codigo):
     # ✅ NOVO: Salvar o número máximo de parcelas (pode ser vazio)
     max_parcelas = request.form.get('max_parcelas', '')
     orcamento_salvo.max_parcelas = int(max_parcelas) if max_parcelas.strip() else None
+    valor_minimo_parcela = request.form.get('valor_minimo_parcela', '')
+    orcamento_salvo.valor_minimo_parcela = float(valor_minimo_parcela) if valor_minimo_parcela.strip() else None
     
     # ✅ Salvar as opções de pagamento excluídas
     exclude_payments = request.form.get('exclude_payments', '')
@@ -4162,7 +4390,7 @@ def orcamentos_json():
             Descricao.nome.label('descricao_nome'),
             Produto.nome.label('produto_nome'),
             Material.nome.label('material_nome'),
-            Material.valor.label('valor_material')  # 🔥 ADICIONADO: valor do material
+            Material.valor.label('valor_material')  # ðŸ”¥ ADICIONADO: valor do material
         ).join(Usuario, Orcamento.dono == Usuario.cpf)\
          .join(Cliente, Orcamento.cliente_id == Cliente.id)\
          .join(Material, Orcamento.material_id == Material.id)\
@@ -4214,13 +4442,13 @@ def orcamentos_json():
                 'produto_nome': row.produto_nome if hasattr(row, 'produto_nome') and row.produto_nome else 'Não definido',
                 'tipo_produto': orcamento.tipo_produto,
                 'material_nome': row.material_nome if hasattr(row, 'material_nome') else '',
-                'valor_material': row.valor_material if hasattr(row, 'valor_material') else 0,  # 🔥 NOVO
+                'valor_material': row.valor_material if hasattr(row, 'valor_material') else 0,  # ðŸ”¥ NOVO
                 'quantidade': orcamento.quantidade,
                 'comprimento': orcamento.comprimento,
                 'largura': orcamento.largura,
                 'instalacao': orcamento.instalacao,
-                'instalacao_valor': orcamento.instalacao_valor,  # 🔥 NOVO
-                'rt_percentual': orcamento.rt_percentual,  # 🔥 NOVO
+                'instalacao_valor': orcamento.instalacao_valor,  # ðŸ”¥ NOVO
+                'rt_percentual': orcamento.rt_percentual,  # ðŸ”¥ NOVO
                 'valor_total': orcamento.valor_total,
                 'data': orcamento.data.strftime('%d-%m-%y') if orcamento.data else '',
                 'nome_usuario': row.nome_usuario if hasattr(row, 'nome_usuario') else '',
@@ -4235,7 +4463,7 @@ def orcamentos_json():
 
     except Exception as e:
         import traceback
-        print(f"❌ Erro em /orcamentos/json: {str(e)}")
+        print(f"âŒ Erro em /orcamentos/json: {str(e)}")
         print(traceback.format_exc())
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -4325,7 +4553,7 @@ def salvar_desenho_ordem_servico(codigo):
 
     except Exception as e:
         db.session.rollback()
-        print(f"❌ Erro ao salvar desenho: {str(e)}")
+        print(f"âŒ Erro ao salvar desenho: {str(e)}")
         return jsonify({"success": False, "error": str(e)}), 500
 
 @app.route('/detalhes_ordem_servico/<codigo>')
@@ -4335,7 +4563,7 @@ def detalhes_ordem_servico(codigo):
         flash("Você precisa fazer login para acessar esta página.", "error")
         return redirect(url_for('login'))
 
-    # 🔥 OBTER DADOS DO USUÁRIO LOGADO
+    # ðŸ”¥ OBTER DADOS DO USUÁRIO LOGADO
     user_cpf = session.get('user_cpf')
     is_admin = session.get('admin')
 
@@ -4354,7 +4582,7 @@ def detalhes_ordem_servico(codigo):
         flash("Ordem de serviço não contém orçamentos!", "danger")
         return redirect(url_for('ordens_servico'))
     
-    # 🔥 VERIFICAÇÃO DE PERMISSÃO - USUÁRIO PODE VER ESTA ORDEM?
+    # ðŸ”¥ VERIFICAÇÃO DE PERMISSÃO - USUÁRIO PODE VER ESTA ORDEM?
     cliente = orcamentos[0].cliente
     
     # Admin pode ver tudo, usuário comum só vê seus próprios clientes
@@ -4398,7 +4626,7 @@ def detalhes_ordem_servico(codigo):
     usuario = Usuario.query.filter_by(cpf=user_cpf).first()
     telefone_usuario = usuario.telefone if usuario else ""
 
-    # 🔥 CARREGAR SOMENTE HTML EDITÁVEL DA ORDEM DE SERVIÇO
+    # ðŸ”¥ CARREGAR SOMENTE HTML EDITÁVEL DA ORDEM DE SERVIÇO
     # O configurador 3D salva imagem data:image/... em DesenhoOrdemServico para o botão azul
     # "Ver Desenho". Essa imagem não pode ser colocada como innerHTML na OS.
     desenho_salvo = None
@@ -4414,7 +4642,7 @@ def detalhes_ordem_servico(codigo):
         if desenho_registro and _eh_html_ordem_servico(desenho_registro.desenho_data):
             desenho_salvo = desenho_registro.desenho_data
 
-    # 🔥 RENDERIZAR TEMPLATE COM TODOS OS DADOS
+    # ðŸ”¥ RENDERIZAR TEMPLATE COM TODOS OS DADOS
     return render_template(
         "detalhes_ordem_servico.html",
         logo_url=logo_url,
@@ -4516,16 +4744,16 @@ def excluir_item_orcamento(codigo):
         
         # 🔥 Log da operação
         print(f"✅ Item removido da lista (não excluído do BD): ID={item_id}, Tipo={tipo_produto}")
-        print(f"💰 Valor total atualizado: R$ {novo_valor_total:.2f}")
-        print(f"📋 IDs restantes: {orcamento_ids_atualizados}")
+        print(f"ðŸ’° Valor total atualizado: R$ {novo_valor_total:.2f}")
+        print(f"ðŸ“‹ IDs restantes: {orcamento_ids_atualizados}")
         
-        # 🔥 Redirecionar com mensagem de sucesso
+        # ðŸ”¥ Redirecionar com mensagem de sucesso
         flash("Item removido do orçamento salvo com sucesso!", "success")
         return redirect(url_for('detalhes_orcamento_salvo', codigo=codigo, item_excluido='true'))
     
     except Exception as e:
         db.session.rollback()
-        print(f"❌ Erro ao remover item: {str(e)}")
+        print(f"âŒ Erro ao remover item: {str(e)}")
         import traceback
         traceback.print_exc()
         
