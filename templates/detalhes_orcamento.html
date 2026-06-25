@@ -638,7 +638,7 @@
 
 <!-- Vamos primeiro coletar todos os tipos de produtos para determinar os campos necessários -->
 {% set tipos_produtos_na_descricao = [] %}
-{% set campos_necessarios = namespace(saia=false, fronte=false, cuba=false, cooktop=false, profundidade=false, fundo=false, alisar=false, largura_alisar=false) %}
+{% set campos_necessarios = namespace(saia=false, fronte=false, cuba=false, cooktop=false, acabamento=false, profundidade=false, fundo=false, alisar=false, largura_alisar=false) %}
 
 {% for descricao_nome, tipos_produtos in descricoes.items() %}
     {% for tipo_produto, produtos in tipos_produtos.items() %}
@@ -673,6 +673,12 @@
                     {% set campos_necessarios.cooktop = true %}
                 {% endif %}
             {% endif %}
+
+            {% if acabamentos_texto(produto) != "-" %}
+                {% if not campos_necessarios.acabamento %}
+                    {% set campos_necessarios.acabamento = true %}
+                {% endif %}
+            {% endif %}
             
             {% if tipo_produto in ["Nicho", "Nicho Sem Fundo"] %}
                 {% if not campos_necessarios.profundidade %}
@@ -700,7 +706,7 @@
     {% set descricao_total = namespace(value=0) %}
     
     <!-- Reanalisar campos para esta descrição específica -->
-    {% set campos_descricao = namespace(saia=false, fronte=false, cuba=false, cooktop=false, profundidade=false, fundo=false, alisar=false, largura_alisar=false) %}
+    {% set campos_descricao = namespace(saia=false, fronte=false, cuba=false, cooktop=false, acabamento=false, profundidade=false, fundo=false, alisar=false, largura_alisar=false) %}
     
     {% for tipo_produto, produtos in tipos_produtos.items() %}
         {% for produto in produtos %}
@@ -728,6 +734,12 @@
             {% if acessorios_texto(produto) != "-" %}
                 {% if not campos_descricao.cooktop %}
                     {% set campos_descricao.cooktop = true %}
+                {% endif %}
+            {% endif %}
+
+            {% if acabamentos_texto(produto) != "-" %}
+                {% if not campos_descricao.acabamento %}
+                    {% set campos_descricao.acabamento = true %}
                 {% endif %}
             {% endif %}
             
@@ -763,6 +775,10 @@
         <th>Qtd</th>
         <th>Comp.</th>
         <th>Larg.</th>
+        {% if campos_descricao.acabamento %}
+        <th>Acabamentos</th>
+        {% endif %}
+        
         
         <!-- Colunas que serão mostradas baseadas no tipo do produto ATUAL -->
         <!-- IMPORTANTE: Usamos a variável campos_descricao que já foi calculada -->
@@ -826,6 +842,11 @@
             <td>{{ produto.quantidade }}</td>
             <td>{{ produto.comprimento }} cm</td>
             <td>{{ produto.largura }} cm</td>
+            {% if campos_descricao.acabamento %}
+            <td>
+                {{ acabamentos_texto(produto) }}
+            </td>
+            {% endif %}
             
             <!-- SAIA - Só mostra se o campo estiver ativo na descrição -->
             {% if campos_descricao.saia %}
@@ -1151,7 +1172,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     function removerColunasOpcionaisVazias() {
-        const colunasOpcionais = ['Cuba', 'Fronte', 'Saia', 'Recortes'];
+        const colunasOpcionais = ['Cuba', 'Fronte', 'Saia', 'Recortes', 'Acabamentos'];
         document.querySelectorAll('table').forEach(table => {
             const headerRow = table.querySelector('tr');
             if (!headerRow) return;

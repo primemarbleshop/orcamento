@@ -294,6 +294,8 @@
     <script>
         const acessoriosPadrao = {{ acessorio_valores|tojson }};
         const acessoriosExistentes = {{ acessorios_orcamento|tojson }};
+        const acabamentosPadrao = {{ acabamento_valores|tojson }};
+        const acabamentosExistentes = {{ acabamentos_orcamento|tojson }};
 
         function atualizarValorAcessorio(select) {
             const row = select.closest('.acessorio-row');
@@ -342,6 +344,49 @@
             lista.dataset.restaurado = '1';
         }
 
+        function atualizarValorAcabamento(select) {
+            const row = select.closest('.acabamento-row');
+            const inputValor = row ? row.querySelector('input[name="acabamento_valor[]"]') : null;
+            if (inputValor && Object.prototype.hasOwnProperty.call(acabamentosPadrao, select.value)) {
+                inputValor.value = acabamentosPadrao[select.value];
+            }
+        }
+
+        function adicionarAcabamentoOrcamento(nome = '', comprimento = '', valor = '') {
+            const lista = document.getElementById('acabamentosSelecionados');
+            if (!lista) return;
+            const row = document.createElement('div');
+            row.className = 'row g-2 align-items-end acabamento-row mb-2';
+            const opcoes = Object.keys(acabamentosPadrao).map((item) => `<option value="${item}" ${item === nome ? 'selected' : ''}>${item}</option>`).join('');
+            const nomeInicial = nome || Object.keys(acabamentosPadrao)[0] || '';
+            const valorInicial = valor !== '' ? valor : (acabamentosPadrao[nomeInicial] || 0);
+            row.innerHTML = `
+                <div class="col-md-6">
+                    <label class="form-label">Acabamento</label>
+                    <select class="form-select" name="acabamento_nome[]" onchange="atualizarValorAcabamento(this)">
+                        ${opcoes}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label">Comprimento (cm)</label>
+                    <input class="form-control" type="number" step="0.01" min="0" name="acabamento_comprimento[]" value="${comprimento}">
+                    <input type="hidden" name="acabamento_valor[]" value="${valorInicial}">
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-outline-danger w-100" onclick="this.closest('.acabamento-row').remove();">Remover</button>
+                </div>
+            `;
+            lista.appendChild(row);
+            atualizarValorAcabamento(row.querySelector('select'));
+        }
+
+        function restaurarAcabamentosOrcamento() {
+            const lista = document.getElementById('acabamentosSelecionados');
+            if (!lista || lista.dataset.restaurado === '1') return;
+            acabamentosExistentes.forEach((item) => adicionarAcabamentoOrcamento(item.nome, item.comprimento, item.valor));
+            lista.dataset.restaurado = '1';
+        }
+
         function camposRecortes() {
             return `
                 <div class="row dynamic-field">
@@ -352,6 +397,20 @@
                         <div id="acessoriosSelecionados"></div>
                         <button type="button" class="btn btn-outline-primary btn-sm" onclick="adicionarAcessorioOrcamento()">Adicionar recorte</button>
                         <input type="hidden" name="tem_cooktop" id="tem_cooktop" value="{{ orcamento.tem_cooktop or 'Não' }}">
+                    </div>
+                </div>
+            `;
+        }
+
+        function camposAcabamentos() {
+            return `
+                <div class="row dynamic-field">
+                    <div class="col-md-12">
+                        <h5><i class="fas fa-gem me-2"></i>Acabamentos</h5>
+                    </div>
+                    <div class="col-md-12 form-section">
+                        <div id="acabamentosSelecionados"></div>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="adicionarAcabamentoOrcamento()">Adicionar acabamento</button>
                     </div>
                 </div>
             `;
@@ -370,7 +429,7 @@
                 let camposEspecificos = `
                     <div class="row dynamic-field">
                         <div class="col-md-12">
-                            <h5><i class="fas fa-ruler-combined me-2"></i>Acabamentos</h5>
+                            <h5><i class="fas fa-ruler-combined me-2"></i>Saia e Fronte</h5>
                         </div>
                         <div class="col-md-6 form-section">
                             <label for="comprimento_saia" class="form-label">Comprimento Saia (cm):</label>
@@ -446,14 +505,15 @@
                 
                 camposEspecificos += camposRecortes();
                 
-                container.innerHTML = camposEspecificos;
+                container.innerHTML = camposAcabamentos() + camposEspecificos;
                 restaurarAcessoriosOrcamento();
+                restaurarAcabamentosOrcamento();
             } 
             else if (tipoProduto === 'Ilharga' || tipoProduto === 'Ilharga Bipolida' || tipoProduto === 'Pedra Simples com Saia' || tipoProduto === 'Pedra Bipolida com Saia') {
                 let camposEspecificos = `
                     <div class="row dynamic-field">
                         <div class="col-md-12">
-                            <h5><i class="fas fa-ruler-combined me-2"></i>Acabamentos</h5>
+                            <h5><i class="fas fa-ruler-combined me-2"></i>Saia</h5>
                         </div>
                         <div class="col-md-6 form-section">
                             <label for="comprimento_saia" class="form-label">Comprimento Saia (cm):</label>
@@ -466,8 +526,9 @@
                     </div>
                 `;
                 
-                container.innerHTML = camposEspecificos + camposRecortes();
+                container.innerHTML = camposAcabamentos() + camposEspecificos + camposRecortes();
                 restaurarAcessoriosOrcamento();
+                restaurarAcabamentosOrcamento();
             }
             else if (tipoProduto === 'Nicho') {
                 let camposEspecificos = `
@@ -504,13 +565,15 @@
                     </div>
                 `;
                 
-                container.innerHTML = camposEspecificos + camposRecortes();
+                container.innerHTML = camposAcabamentos() + camposEspecificos + camposRecortes();
                 restaurarAcessoriosOrcamento();
+                restaurarAcabamentosOrcamento();
             }
             else {
                 // Para outros tipos de produtos (Pedra Simples, Pedra de Box, etc.)
-                container.innerHTML = camposRecortes();
+                container.innerHTML = camposRecortes() + camposAcabamentos();
                 restaurarAcessoriosOrcamento();
+                restaurarAcabamentosOrcamento();
             }
         }
 

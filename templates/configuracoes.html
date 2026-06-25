@@ -239,6 +239,7 @@
                     <button type="button" class="settings-tab" data-tab="comercial">Comercial</button>
                     <button type="button" class="settings-tab" data-tab="produtos">Fórmulas por produto</button>
                     <button type="button" class="settings-tab" data-tab="cubas">Cubas e recortes</button>
+                    <button type="button" class="settings-tab" data-tab="acabamentos">Acabamentos</button>
                     <button type="button" class="settings-tab" data-tab="vendas">Controle de vendas</button>
                 </aside>
 
@@ -397,7 +398,7 @@
                                 </div>
                             </div>
                             <div class="formula-card">
-                                <h3>Acabamentos</h3>
+                                <h3>Saia e fronte</h3>
                                 <div class="settings-grid">
                                     <div>
                                         <label class="form-label" for="saia_margem">Saia - valor por metro linear (R$)</label>
@@ -497,6 +498,32 @@
                         </div>
                     </section>
 
+                    <section class="settings-panel" data-panel="acabamentos">
+                        <h2>Acabamentos</h2>
+                        <p class="section-note">Configure acabamentos cobrados por metro linear, como boleado, chanfrado e outros servi?os aplicados ?s pe?as.</p>
+                        <div class="mt-2">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h3 class="h6 m-0">Tabela de acabamentos</h3>
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="adicionarAcabamentoConfig()">Adicionar acabamento</button>
+                            </div>
+                            <div id="acabamentosConfigList">
+                                {% for nome, valor in acabamento_valores.items() %}
+                                <div class="cuba-row">
+                                    <div>
+                                        <label class="form-label">Nome do acabamento</label>
+                                        <input class="form-control" name="acabamento_config_nome[]" value="{{ nome }}" required>
+                                    </div>
+                                    <div>
+                                        <label class="form-label">Valor por metro linear (R$)</label>
+                                        <input class="form-control" type="number" step="0.01" min="0" name="acabamento_config_valor[]" value="{{ valor }}" required>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-danger" onclick="removerCuba(this)">Remover</button>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </section>
+
                     <section class="settings-panel" data-panel="vendas">
                         <h2>Controle de vendas</h2>
                         <p class="section-note">Configure as opções usadas nos filtros e seletores comerciais do controle de vendas.</p>
@@ -588,6 +615,24 @@
                 <div>
                     <label class="form-label">Valor padrão (R$)</label>
                     <input class="form-control" type="number" step="0.01" min="0" name="acessorio_valor[]" value="${valor}" required>
+                </div>
+                <button type="button" class="btn btn-outline-danger" onclick="removerCuba(this)">Remover</button>
+            `;
+            lista.appendChild(row);
+        }
+
+        function adicionarAcabamentoConfig(nome = '', valor = '') {
+            const lista = document.getElementById('acabamentosConfigList');
+            const row = document.createElement('div');
+            row.className = 'cuba-row';
+            row.innerHTML = `
+                <div>
+                    <label class="form-label">Nome do acabamento</label>
+                    <input class="form-control" name="acabamento_config_nome[]" value="${nome}" required>
+                </div>
+                <div>
+                    <label class="form-label">Valor por metro linear (R$)</label>
+                    <input class="form-control" type="number" step="0.01" min="0" name="acabamento_config_valor[]" value="${valor}" required>
                 </div>
                 <button type="button" class="btn btn-outline-danger" onclick="removerCuba(this)">Remover</button>
             `;

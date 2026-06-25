@@ -154,6 +154,7 @@ def calcular_valor_item(
     modelo_cuba="Normal",
     tem_cooktop="Nao",
     acessorios_valor_total=0,
+    acabamentos_valor_total=0,
     instalacao="Nao",
     instalacao_valor=0,
     rt="Nao",
@@ -263,6 +264,7 @@ def calcular_valor_item(
             total += cuba_valores.get(tipo_cuba, 0) * qtd_cubas
 
     total += _float(acessorios_valor_total)
+    total += _float(acabamentos_valor_total)
     if tem_cooktop == "Sim" and _float(acessorios_valor_total) <= 0:
         total += _float(cooktop_valor)
 
