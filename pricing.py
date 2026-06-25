@@ -233,7 +233,7 @@ def calcular_valor_item(
         total += (_float(comprimento_fronte) / 100) * _float(fronte_margem)
 
     if tipo_produto == "Pedra de Box":
-        total = valor_base + ((_float(comprimento) / 100) * _float(pedra_box_adicional, 30))
+        total = valor_base * 2 + ((_float(comprimento) / 100) * _float(pedra_box_adicional, 30))
 
     if tipo_cuba:
         qtd_cubas = _int(quantidade_cubas, 0)
