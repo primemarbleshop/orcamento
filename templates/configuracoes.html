@@ -238,6 +238,7 @@
                     <button type="button" class="settings-tab" data-tab="comercial">Comercial</button>
                     <button type="button" class="settings-tab" data-tab="produtos">Fórmulas por produto</button>
                     <button type="button" class="settings-tab" data-tab="cubas">Cubas e recortes</button>
+                    <button type="button" class="settings-tab" data-tab="vendas">Controle de vendas</button>
                 </aside>
 
                 <div>
@@ -494,6 +495,47 @@
                             </div>
                         </div>
                     </section>
+
+                    <section class="settings-panel" data-panel="vendas">
+                        <h2>Controle de vendas</h2>
+                        <p class="section-note">Configure as opções usadas nos filtros e seletores comerciais do controle de vendas.</p>
+
+                        <div class="mt-2">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h3 class="h6 m-0">Tipos de cliente</h3>
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="adicionarOpcaoControle('tiposClienteList', 'vendas_tipo_cliente[]', 'Tipo de cliente')">Adicionar tipo</button>
+                            </div>
+                            <div id="tiposClienteList">
+                                {% for tipo_cliente in vendas_tipos_cliente %}
+                                <div class="cuba-row">
+                                    <div>
+                                        <label class="form-label">Tipo de cliente</label>
+                                        <input class="form-control" name="vendas_tipo_cliente[]" value="{{ tipo_cliente }}" required>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-danger" onclick="removerLinhaConfig(this, 'tiposClienteList')">Remover</button>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <h3 class="h6 m-0">Formas de pagamento</h3>
+                                <button type="button" class="btn btn-sm btn-outline-primary" onclick="adicionarOpcaoControle('formasPagamentoVendasList', 'vendas_forma_pagamento[]', 'Forma de pagamento')">Adicionar forma</button>
+                            </div>
+                            <div id="formasPagamentoVendasList">
+                                {% for forma_pagamento in vendas_formas_pagamento %}
+                                <div class="cuba-row">
+                                    <div>
+                                        <label class="form-label">Forma de pagamento</label>
+                                        <input class="form-control" name="vendas_forma_pagamento[]" value="{{ forma_pagamento }}" required>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-danger" onclick="removerLinhaConfig(this, 'formasPagamentoVendasList')">Remover</button>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </section>
                 </div>
             </div>
 
@@ -553,6 +595,28 @@
 
         function removerCuba(botao) {
             const linhas = document.querySelectorAll('.cuba-row');
+            if (linhas.length <= 1) return;
+            botao.closest('.cuba-row').remove();
+        }
+
+        function adicionarOpcaoControle(listaId, inputName, label) {
+            const lista = document.getElementById(listaId);
+            const row = document.createElement('div');
+            row.className = 'cuba-row';
+            row.innerHTML = `
+                <div>
+                    <label class="form-label">${label}</label>
+                    <input class="form-control" name="${inputName}" value="" required>
+                </div>
+                <button type="button" class="btn btn-outline-danger" onclick="removerLinhaConfig(this, '${listaId}')">Remover</button>
+            `;
+            lista.appendChild(row);
+            row.querySelector('input').focus();
+        }
+
+        function removerLinhaConfig(botao, listaId) {
+            const lista = document.getElementById(listaId);
+            const linhas = lista ? lista.querySelectorAll('.cuba-row') : [];
             if (linhas.length <= 1) return;
             botao.closest('.cuba-row').remove();
         }

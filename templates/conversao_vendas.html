@@ -130,20 +130,17 @@
                                     </td>
                                     <td data-label="Tipo">
                                         <select class="conversion-select js-conversion-field" data-field="tipo_cliente">
-                                            <option value="Cliente de Porta" {% if orcamento.tipo_cliente == 'Cliente de Porta' %}selected{% endif %}>Cliente de Porta</option>
-                                            <option value="Arquiteto" {% if orcamento.tipo_cliente == 'Arquiteto' %}selected{% endif %}>Arquiteto</option>
-                                            <option value="Construtora" {% if orcamento.tipo_cliente == 'Construtora' %}selected{% endif %}>Construtora</option>
-                                            <option value="Cliente Online" {% if orcamento.tipo_cliente == 'Cliente Online' %}selected{% endif %}>Cliente Online</option>
-                                            <option value="Indicação" {% if orcamento.tipo_cliente == 'Indicacao' or orcamento.tipo_cliente == 'Indicação' %}selected{% endif %}>Indicação</option>
+                                            {% for tipo_cliente in vendas_tipos_cliente %}
+                                            <option value="{{ tipo_cliente }}" {% if orcamento.tipo_cliente == tipo_cliente or (orcamento.tipo_cliente == 'Indicacao' and tipo_cliente == 'Indicação') %}selected{% endif %}>{{ tipo_cliente }}</option>
+                                            {% endfor %}
                                         </select>
                                     </td>
                                     <td data-label="Pagamento">
                                         <select class="sale-input compact-sale-field js-sale-field" data-field="forma_pagamento" {% if orcamento.status != 'Aprovado' %}disabled hidden{% endif %}>
                                             <option value="">Selecione</option>
-                                            <option value="Débito" {% if orcamento.forma_pagamento == 'Débito' %}selected{% endif %}>Débito</option>
-                                            <option value="Crédito" {% if orcamento.forma_pagamento == 'Crédito' %}selected{% endif %}>Crédito</option>
-                                            <option value="Pix" {% if orcamento.forma_pagamento == 'Pix' %}selected{% endif %}>Pix</option>
-                                            <option value="Dinheiro" {% if orcamento.forma_pagamento == 'Dinheiro' %}selected{% endif %}>Dinheiro</option>
+                                            {% for forma_pagamento in vendas_formas_pagamento %}
+                                            <option value="{{ forma_pagamento }}" {% if orcamento.forma_pagamento == forma_pagamento %}selected{% endif %}>{{ forma_pagamento }}</option>
+                                            {% endfor %}
                                         </select>
                                     </td>
                                     <td data-label="Vendedor">{{ orcamento.criado_por }}</td>

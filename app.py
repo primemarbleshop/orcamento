@@ -191,6 +191,12 @@ PAGAMENTOS_PADRAO = {
 }
 
 
+CATEGORIAS_VENDAS_PADRAO = {
+    "tipos_cliente": ["Cliente de Porta", "Arquiteto", "Construtora", "Cliente Online", "Indicação"],
+    "formas_pagamento": ["Débito", "Crédito", "Pix", "Dinheiro"],
+}
+
+
 def _bool_config(valor, padrao=True):
     if valor is None:
         return padrao
@@ -645,6 +651,8 @@ def _config_empresa_fallback():
         'pagamento_3_descricao': PAGAMENTOS_PADRAO['3']['descricao'],
         'cooktop_valor': 50,
         'acessorios_valores_json': '',
+        'vendas_tipos_cliente_json': '',
+        'vendas_formas_pagamento_json': '',
         'nicho_mao_obra': 150,
         'nicho_sem_fundo_mao_obra': 150,
         'rt_percentual_padrao': 10,
@@ -756,6 +764,36 @@ def empresa_acessorios_valores(config=None):
     elif config and getattr(config, "cooktop_valor", None) is not None:
         valores["Cooktop"] = float(config.cooktop_valor or 0)
     return valores
+
+
+def _normalizar_lista_texto(valores, padrao):
+    lista = []
+    for valor in valores or []:
+        texto = str(valor or "").strip()
+        if texto and texto not in lista:
+            lista.append(texto)
+    return lista or list(padrao)
+
+
+def _lista_config_json(config, atributo, padrao):
+    if config and getattr(config, atributo, None):
+        try:
+            dados = json.loads(getattr(config, atributo) or "[]")
+            if isinstance(dados, list):
+                return _normalizar_lista_texto(dados, padrao)
+        except (TypeError, ValueError):
+            pass
+    return list(padrao)
+
+
+def empresa_tipos_cliente(config=None):
+    config = config or obter_config_empresa()
+    return _lista_config_json(config, "vendas_tipos_cliente_json", CATEGORIAS_VENDAS_PADRAO["tipos_cliente"])
+
+
+def empresa_formas_pagamento_vendas(config=None):
+    config = config or obter_config_empresa()
+    return _lista_config_json(config, "vendas_formas_pagamento_json", CATEGORIAS_VENDAS_PADRAO["formas_pagamento"])
 
 
 def normalizar_acessorios(nomes, valores=None):
@@ -952,6 +990,8 @@ class EmpresaConfig(db.Model):
     pagamento_3_descricao = db.Column(db.Text, default=PAGAMENTOS_PADRAO['3']['descricao'], nullable=False)
     cooktop_valor = db.Column(db.Float, default=50, nullable=False)
     acessorios_valores_json = db.Column(db.Text, default='')
+    vendas_tipos_cliente_json = db.Column(db.Text, default='')
+    vendas_formas_pagamento_json = db.Column(db.Text, default='')
     nicho_mao_obra = db.Column(db.Float, default=150, nullable=False)
     nicho_sem_fundo_mao_obra = db.Column(db.Float, default=150, nullable=False)
     rt_percentual_padrao = db.Column(db.Float, default=10, nullable=False)
@@ -1178,6 +1218,8 @@ def _garantir_colunas_empresa_config():
         "logo_mime": "VARCHAR(80) DEFAULT ''",
         "logo_data": "TEXT DEFAULT ''",
         "acessorios_valores_json": "TEXT DEFAULT ''",
+        "vendas_tipos_cliente_json": "TEXT DEFAULT ''",
+        "vendas_formas_pagamento_json": "TEXT DEFAULT ''",
         "pagamento_1_ativo": "BOOLEAN DEFAULT 1 NOT NULL",
         "pagamento_1_titulo": "VARCHAR(120) DEFAULT 'Cartão de Crédito' NOT NULL",
         "pagamento_1_descricao": "TEXT DEFAULT 'Pagamento de 100% na aprovação do orçamento' NOT NULL",
@@ -2206,6 +2248,8 @@ def conversao_vendas():
         usuarios=usuarios,
         vendedor_filtro=vendedor_filtro,
         periodo_label=periodo_label,
+        vendas_tipos_cliente=empresa_tipos_cliente(),
+        vendas_formas_pagamento=empresa_formas_pagamento_vendas(),
         orcamentos=dashboard["recentes"] if request.args.get("recentes") else [
             {
                 "id": o.id,
@@ -2751,6 +2795,21 @@ def configuracoes():
         config.acessorios_valores_json = json.dumps(acessorio_valores, ensure_ascii=False)
         config.cooktop_valor = float(acessorio_valores.get("Cooktop", config.cooktop_valor or 50) or 0)
 
+        config.vendas_tipos_cliente_json = json.dumps(
+            _normalizar_lista_texto(
+                request.form.getlist('vendas_tipo_cliente[]'),
+                CATEGORIAS_VENDAS_PADRAO["tipos_cliente"],
+            ),
+            ensure_ascii=False,
+        )
+        config.vendas_formas_pagamento_json = json.dumps(
+            _normalizar_lista_texto(
+                request.form.getlist('vendas_forma_pagamento[]'),
+                CATEGORIAS_VENDAS_PADRAO["formas_pagamento"],
+            ),
+            ensure_ascii=False,
+        )
+
         logo = request.files.get('logo')
         if logo and logo.filename and _logo_permitida(logo.filename):
             ext = secure_filename(logo.filename).rsplit('.', 1)[1].lower()
@@ -2771,6 +2830,8 @@ def configuracoes():
         cuba_padrao=CUBA_VALORES_PADRAO,
         acessorio_valores=empresa_acessorios_valores(config),
         acessorio_padrao=ACESSORIOS_VALORES_PADRAO,
+        vendas_tipos_cliente=empresa_tipos_cliente(config),
+        vendas_formas_pagamento=empresa_formas_pagamento_vendas(config),
         logo_url=empresa_logo_url(config),
     )
 
