@@ -223,10 +223,11 @@
     </div>
 
     <main class="container-fluid py-4 settings-shell">
-        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% with messages = get_flashed_messages(with_categories=true, category_filter=['config_success', 'config_error']) %}
             {% if messages %}
                 {% for category, message in messages %}
-                    <div class="alert alert-{{ 'success' if category == 'success' else 'warning' }}">{{ message }}</div>
+                    {% set alert_class = 'success' if category == 'config_success' else 'danger' %}
+                    <div class="alert alert-{{ alert_class }}">{{ message }}</div>
                 {% endfor %}
             {% endif %}
         {% endwith %}

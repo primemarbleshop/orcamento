@@ -2820,7 +2820,7 @@ def configuracoes():
             config.logo_filename = filename
 
         db.session.commit()
-        flash("Configurações salvas com sucesso.", "success")
+        flash("Configurações salvas com sucesso.", "config_success")
         return redirect(url_for('configuracoes'))
 
     return render_template(
@@ -3015,8 +3015,8 @@ def editar_orcamento(id):
 
         # **Cálculo da Pedra de Box**
         if orcamento.tipo_produto == 'Pedra de Box':
-            valor_pedra_box = valor_base * 2 + ((orcamento.comprimento or 0) / 100) * pricing_opts.get('pedra_box_adicional', 30)
-            valor_total_criar += valor_pedra_box
+            pricing_opts = opcoes_precificacao_empresa()
+            valor_total_criar = (valor_base * 2) + ((orcamento.comprimento or 0) / 100) * pricing_opts.get('pedra_box_adicional', 30)
 
         # **Adicionando o valor das cubas**
         cuba_valores = {
@@ -4280,8 +4280,8 @@ def editar_material_rt_selecionados():
 
         # Pedra de Box
         if orcamento.tipo_produto == 'Pedra de Box':
-            valor_pedra_box = valor_base * 2 + ((orcamento.comprimento or 0) / 100) * pricing_opts.get('pedra_box_adicional', 30)
-            valor_total_criar += valor_pedra_box
+            pricing_opts = opcoes_precificacao_empresa()
+            valor_total_criar = (valor_base * 2) + ((orcamento.comprimento or 0) / 100) * pricing_opts.get('pedra_box_adicional', 30)
 
         # Cubas
         if orcamento.tipo_cuba:
