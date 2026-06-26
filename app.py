@@ -2825,7 +2825,7 @@ def listar_orcamentos():
             request.form.getlist('saia_fronte_virada_comprimento[]'),
             request.form.getlist('saia_fronte_virada_largura[]'),
         )
-        if not saia_fronte:
+        if not saia_fronte and request.form.get('saia_fronte_dinamicos_presentes') != '1':
             saia_fronte = normalizar_saia_fronte(
                 ['Saia', 'Fronte'],
                 [request.form.get('comprimento_saia', 0), request.form.get('comprimento_fronte', 0)],
@@ -2848,7 +2848,7 @@ def listar_orcamentos():
             request.form.getlist('cuba_largura[]'),
             request.form.getlist('cuba_profundidade[]'),
         )
-        if not cubas and request.form.get('tipo_cuba', ''):
+        if not cubas and request.form.get('cubas_dinamicas_presentes') != '1' and request.form.get('tipo_cuba', ''):
             cubas = normalizar_cubas(
                 [request.form.get('tipo_cuba', '')],
                 [request.form.get('quantidade_cubas', 0)],
@@ -2872,16 +2872,15 @@ def listar_orcamentos():
             request.form.getlist('acabamento_comprimento[]'),
             request.form.getlist('acabamento_valor[]'),
         )
-        tem_cooktop = 'Sim' if any(item.get('nome') == 'Cooktop' for item in acessorios) else request.form.get('tem_cooktop', 'Não')
+        if request.form.get('acessorios_dinamicos_presentes') == '1':
+            tem_cooktop = 'Sim' if any(item.get('nome') == 'Cooktop' for item in acessorios) else 'Não'
+        else:
+            tem_cooktop = 'Sim' if any(item.get('nome') == 'Cooktop' for item in acessorios) else request.form.get('tem_cooktop', 'Não')
         profundidade_nicho = float(request.form.get('profundidade_nicho', 0) or 0)
         tem_fundo = request.form.get('tem_fundo', 'Não')
         tem_alisar = request.form.get('tem_alisar', 'Não')
         largura_alisar = float(request.form.get('largura_alisar', 0) or 0)
         data=data_atual
-
-        
-
-        tem_cooktop = 'Sim' if any(item.get('nome') == 'Cooktop' for item in acessorios) else request.form.get('tem_cooktop', 'Não')
 
         material = Material.query.get(material_id)
 
@@ -3363,7 +3362,7 @@ def editar_orcamento(id):
             request.form.getlist('saia_fronte_virada_comprimento[]'),
             request.form.getlist('saia_fronte_virada_largura[]'),
         )
-        if not saia_fronte:
+        if not saia_fronte and request.form.get('saia_fronte_dinamicos_presentes') != '1':
             saia_fronte = normalizar_saia_fronte(
                 ['Saia', 'Fronte'],
                 [request.form.get('comprimento_saia', orcamento.comprimento_saia or 0), request.form.get('comprimento_fronte', orcamento.comprimento_fronte or 0)],
@@ -3386,7 +3385,7 @@ def editar_orcamento(id):
             request.form.getlist('cuba_largura[]'),
             request.form.getlist('cuba_profundidade[]'),
         )
-        if not cubas and request.form.get('tipo_cuba', ''):
+        if not cubas and request.form.get('cubas_dinamicas_presentes') != '1' and request.form.get('tipo_cuba', ''):
             cubas = normalizar_cubas(
                 [request.form.get('tipo_cuba', '')],
                 [request.form.get('quantidade_cubas', orcamento.quantidade_cubas or 0)],
@@ -3410,7 +3409,10 @@ def editar_orcamento(id):
             request.form.getlist('acabamento_comprimento[]'),
             request.form.getlist('acabamento_valor[]'),
         )
-        orcamento.tem_cooktop = 'Sim' if any(item.get('nome') == 'Cooktop' for item in acessorios) else request.form.get('tem_cooktop', orcamento.tem_cooktop)
+        if request.form.get('acessorios_dinamicos_presentes') == '1':
+            orcamento.tem_cooktop = 'Sim' if any(item.get('nome') == 'Cooktop' for item in acessorios) else 'Não'
+        else:
+            orcamento.tem_cooktop = 'Sim' if any(item.get('nome') == 'Cooktop' for item in acessorios) else request.form.get('tem_cooktop', orcamento.tem_cooktop)
         orcamento.acessorios_json = json.dumps(acessorios, ensure_ascii=False)
         orcamento.acabamentos_json = json.dumps(acabamentos, ensure_ascii=False)
         orcamento.saia_fronte_json = json.dumps(saia_fronte, ensure_ascii=False)
