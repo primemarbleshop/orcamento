@@ -966,7 +966,7 @@ function drawNicho(W, H) {
 
 }
 
-/* ---------- Lavat?rio viol?o ---------- */
+/* ---------- Lavatório violão ---------- */
 function drawLavViolao(W, H) {
     const A = CFG.compGen, B = CFG.profGen;
     const C = CFG.lavRecorteLarg, D = CFG.lavRecorteAlt;
@@ -1066,7 +1066,7 @@ function drawLavViolao(W, H) {
     // label
     ctx.fillStyle = '#374151'; ctx.font = 'bold 11px Inter,sans-serif';
     ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-    ctx.fillText('Lavat?rio viol?o', ox + 6, oy + 5);
+    ctx.fillText('Lavatório violão', ox + 6, oy + 5);
     ctx.fillStyle = '#6b7280'; ctx.font = '10px Inter,sans-serif';
     ctx.fillText(A + ' × ' + B, ox + 6, oy + 20);
 
@@ -1697,14 +1697,14 @@ function finalizarOrcamento() {
             sb.innerHTML = `
                 <div style="text-align:center;padding:30px 10px">
                     <div style="font-size:2rem;margin-bottom:16px">&#10003;</div>
-                    <div class="step-title" style="color:#22c55e">Orcamento Enviado!</div>
+                    <div class="step-title" style="color:#22c55e">Orçamento Enviado!</div>
                     <div class="step-desc" style="margin-top:8px">Codigo: <b style="color:#d4a017">${data.codigo}</b></div>
-                    <div class="step-desc">Clique abaixo para enviar o orcamento para a loja!</div>
+                    <div class="step-desc">Clique abaixo para enviar o or?amento para a loja!</div>
                     <div style="margin-top:20px">
-                        <a class="btn btn-next" href="https://wa.me/5521993811591?text=${encodeURIComponent('Olá, segue meu orçamento: https://primemarbleshop.com.br/orcamento/' + data.token)}" target="_blank" style="max-width:240px;margin:0 auto;display:block;text-decoration:none">Enviar Orcamento</a>
+                        <a class="btn btn-next" href="https://wa.me/5521993811591?text=${encodeURIComponent('Olá, segue meu orçamento: https://primemarbleshop.com.br/orcamento/' + data.token)}" target="_blank" style="max-width:240px;margin:0 auto;display:block;text-decoration:none">Enviar Orçamento</a>
                     </div>
                     <div style="margin-top:10px">
-                        <button class="btn btn-back" onclick="location.reload()" style="max-width:200px;margin:0 auto">Novo Orcamento</button>
+                        <button class="btn btn-back" onclick="location.reload()" style="max-width:200px;margin:0 auto">Novo Orçamento</button>
                     </div>
                 </div>`;
             document.getElementById('btnBack').classList.add('hidden');
