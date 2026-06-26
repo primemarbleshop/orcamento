@@ -296,6 +296,7 @@
         const acessoriosExistentes = {{ acessorios_orcamento|tojson }};
         const acabamentosPadrao = {{ acabamento_valores|tojson }};
         const acabamentosExistentes = {{ acabamentos_orcamento|tojson }};
+        const saiaFronteExistentes = {{ saia_fronte_orcamento|tojson }};
 
         function atualizarValorAcessorio(select) {
             const row = select.closest('.acessorio-row');
@@ -416,6 +417,72 @@
             `;
         }
 
+        function camposSaiaFronte(permitirFronte = true) {
+            return `
+                <div class="row dynamic-field">
+                    <div class="col-md-12">
+                        <h5><i class="fas fa-ruler-combined me-2"></i>${permitirFronte ? 'Saia e Fronte' : 'Saia'}</h5>
+                    </div>
+                    <div class="col-md-12 form-section">
+                        <div id="saiaFronteSelecionados"></div>
+                        <button type="button" class="btn btn-outline-primary btn-sm" onclick="adicionarSaiaFronteOrcamento('Saia')">Adicionar saia</button>
+                        ${permitirFronte ? `<button type="button" class="btn btn-outline-primary btn-sm ms-2" onclick="adicionarSaiaFronteOrcamento('Fronte')">Adicionar fronte</button>` : ''}
+                    </div>
+                </div>
+            `;
+        }
+
+        function adicionarSaiaFronteOrcamento(tipo = 'Saia', comprimento = '', largura = '', virada = 'Não', viradaComprimento = '', viradaLargura = '') {
+            const lista = document.getElementById('saiaFronteSelecionados');
+            if (!lista) return;
+            const row = document.createElement('div');
+            row.className = 'row g-2 align-items-end mb-2 saia-fronte-row';
+            const viradaAtiva = virada === true || virada === 'Sim';
+            row.innerHTML = `
+                <div class="col-md-2">
+                    <label class="form-label">Tipo</label>
+                    <input type="text" class="form-control" value="${tipo}" readonly>
+                    <input type="hidden" name="saia_fronte_tipo[]" value="${tipo}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Comprimento (cm)</label>
+                    <input type="number" class="form-control" name="saia_fronte_comprimento[]" step="0.01" min="0" value="${comprimento}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Largura (cm)</label>
+                    <input type="number" class="form-control" name="saia_fronte_largura[]" step="0.01" min="0" value="${largura}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Virada</label>
+                    <select class="form-select" name="saia_fronte_virada[]">
+                        <option value="Não" ${viradaAtiva ? '' : 'selected'}>Não</option>
+                        <option value="Sim" ${viradaAtiva ? 'selected' : ''}>Sim</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Comp. virada (cm)</label>
+                    <input type="number" class="form-control" name="saia_fronte_virada_comprimento[]" step="0.01" min="0" value="${viradaComprimento}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Larg. virada (cm)</label>
+                    <input type="number" class="form-control" name="saia_fronte_virada_largura[]" step="0.01" min="0" value="${viradaLargura}">
+                </div>
+                <div class="col-md-2">
+                    <button type="button" class="btn btn-outline-danger w-100" onclick="this.closest('.saia-fronte-row').remove();">Remover</button>
+                </div>
+            `;
+            lista.appendChild(row);
+        }
+
+        function restaurarSaiaFronteOrcamento() {
+            const lista = document.getElementById('saiaFronteSelecionados');
+            if (!lista || lista.dataset.restaurado === '1') return;
+            saiaFronteExistentes.forEach((item) => {
+                adicionarSaiaFronteOrcamento(item.tipo, item.comprimento, item.largura, item.virada ? 'Sim' : 'Não', item.virada_comprimento, item.virada_largura);
+            });
+            lista.dataset.restaurado = '1';
+        }
+
         // Função para mostrar/ocultar campos dinâmicos
         function toggleFields() {
             const tipoProduto = document.getElementById('tipo_produto').value;
@@ -427,27 +494,7 @@
             // Campos específicos para cada tipo de produto
             if (tipoProduto === 'Bancada' || tipoProduto === 'Lavatorio') {
                 let camposEspecificos = `
-                    <div class="row dynamic-field">
-                        <div class="col-md-12">
-                            <h5><i class="fas fa-ruler-combined me-2"></i>Saia e Fronte</h5>
-                        </div>
-                        <div class="col-md-6 form-section">
-                            <label for="comprimento_saia" class="form-label">Comprimento Saia (cm):</label>
-                            <input type="number" id="comprimento_saia" name="comprimento_saia" class="form-control" value="{{ orcamento.comprimento_saia }}" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
-                        </div>
-                        <div class="col-md-6 form-section">
-                            <label for="largura_saia" class="form-label">Largura Saia (cm):</label>
-                            <input type="number" id="largura_saia" name="largura_saia" class="form-control" value="{{ orcamento.largura_saia }}" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
-                        </div>
-                        <div class="col-md-6 form-section">
-                            <label for="comprimento_fronte" class="form-label">Comprimento Fronte (cm):</label>
-                            <input type="number" id="comprimento_fronte" name="comprimento_fronte" class="form-control" value="{{ orcamento.comprimento_fronte }}" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
-                        </div>
-                        <div class="col-md-6 form-section">
-                            <label for="largura_fronte" class="form-label">Largura Fronte (cm):</label>
-                            <input type="number" id="largura_fronte" name="largura_fronte" class="form-control" value="{{ orcamento.largura_fronte }}" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
-                        </div>
-                    </div>
+                    ${camposSaiaFronte(true)}
                 `;
                 
                 // Campos de cuba (apenas para Bancada e Lavatorio)
@@ -508,27 +555,17 @@
                 container.innerHTML = camposAcabamentos() + camposEspecificos;
                 restaurarAcessoriosOrcamento();
                 restaurarAcabamentosOrcamento();
+                restaurarSaiaFronteOrcamento();
             } 
             else if (tipoProduto === 'Ilharga' || tipoProduto === 'Ilharga Bipolida' || tipoProduto === 'Pedra Simples com Saia' || tipoProduto === 'Pedra Bipolida com Saia') {
                 let camposEspecificos = `
-                    <div class="row dynamic-field">
-                        <div class="col-md-12">
-                            <h5><i class="fas fa-ruler-combined me-2"></i>Saia</h5>
-                        </div>
-                        <div class="col-md-6 form-section">
-                            <label for="comprimento_saia" class="form-label">Comprimento Saia (cm):</label>
-                            <input type="number" id="comprimento_saia" name="comprimento_saia" class="form-control" value="{{ orcamento.comprimento_saia }}" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
-                        </div>
-                        <div class="col-md-6 form-section">
-                            <label for="largura_saia" class="form-label">Largura Saia (cm):</label>
-                            <input type="number" id="largura_saia" name="largura_saia" class="form-control" value="{{ orcamento.largura_saia }}" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
-                        </div>
-                    </div>
+                    ${camposSaiaFronte(false)}
                 `;
                 
                 container.innerHTML = camposAcabamentos() + camposEspecificos + camposRecortes();
                 restaurarAcessoriosOrcamento();
                 restaurarAcabamentosOrcamento();
+                restaurarSaiaFronteOrcamento();
             }
             else if (tipoProduto === 'Nicho') {
                 let camposEspecificos = `

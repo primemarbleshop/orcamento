@@ -17,6 +17,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
+from markupsafe import Markup
 from datetime import datetime
 from pytz import timezone
 from sqlalchemy import or_, text
@@ -514,6 +515,9 @@ def dados_usuario_layout():
         "acessorios_do_orcamento": acessorios_do_orcamento,
         "acabamentos_texto": acabamentos_texto,
         "acabamentos_do_orcamento": acabamentos_do_orcamento,
+        "saia_texto": saia_texto,
+        "fronte_texto": fronte_texto,
+        "virada_texto": virada_texto,
         "texto_saia_produto": texto_saia_produto,
         "texto_fronte_produto": texto_fronte_produto,
         "texto_cuba_produto": texto_cuba_produto,
@@ -674,6 +678,7 @@ def _config_empresa_fallback():
         'nicho_folga_cm': 4,
         'saia_margem': 0,
         'fronte_margem': 0,
+        'virada_margem': 0,
         'alisar_margem': 0,
         'cuba_valores_json': '',
     }
@@ -855,6 +860,54 @@ def normalizar_acabamentos(nomes, comprimentos=None, valores=None):
     return acabamentos
 
 
+def _float_form(valor, padrao=0.0):
+    try:
+        return float(str(valor if valor is not None else padrao).replace(',', '.') or padrao)
+    except (TypeError, ValueError):
+        return padrao
+
+
+def normalizar_saia_fronte(
+    tipos,
+    comprimentos=None,
+    larguras=None,
+    viradas_ativas=None,
+    viradas_comprimentos=None,
+    viradas_larguras=None,
+):
+    comprimentos = comprimentos or []
+    larguras = larguras or []
+    viradas = list(viradas_ativas or [])
+    viradas_set = set(str(valor) for valor in viradas)
+    viradas_comprimentos = viradas_comprimentos or []
+    viradas_larguras = viradas_larguras or []
+    itens = []
+    for indice, tipo in enumerate(tipos or []):
+        tipo_limpo = str(tipo or '').strip().lower()
+        if tipo_limpo not in {'saia', 'fronte'}:
+            continue
+        comprimento = _float_form(comprimentos[indice] if indice < len(comprimentos) else 0)
+        largura = _float_form(larguras[indice] if indice < len(larguras) else 0)
+        if indice < len(viradas):
+            virada_valor = str(viradas[indice] or '').strip().lower()
+            virada_ativa = virada_valor in {'sim', 's', 'on', 'true', '1'}
+        else:
+            virada_ativa = str(indice) in viradas_set
+        virada_comprimento = _float_form(viradas_comprimentos[indice] if indice < len(viradas_comprimentos) else 0)
+        virada_largura = _float_form(viradas_larguras[indice] if indice < len(viradas_larguras) else 0)
+        if comprimento <= 0 and largura <= 0 and (not virada_ativa or (virada_comprimento <= 0 and virada_largura <= 0)):
+            continue
+        itens.append({
+            "tipo": "Fronte" if tipo_limpo == "fronte" else "Saia",
+            "comprimento": comprimento,
+            "largura": largura,
+            "virada": virada_ativa,
+            "virada_comprimento": virada_comprimento,
+            "virada_largura": virada_largura,
+        })
+    return itens
+
+
 def acessorios_do_orcamento(orcamento):
     if not orcamento:
         return []
@@ -889,6 +942,45 @@ def acabamentos_do_orcamento(orcamento):
     return []
 
 
+def saia_fronte_do_orcamento(orcamento):
+    if not orcamento:
+        return []
+    if getattr(orcamento, "saia_fronte_json", None):
+        try:
+            dados = json.loads(orcamento.saia_fronte_json)
+            if isinstance(dados, list):
+                return normalizar_saia_fronte(
+                    [item.get("tipo") for item in dados if isinstance(item, dict)],
+                    [item.get("comprimento") for item in dados if isinstance(item, dict)],
+                    [item.get("largura") for item in dados if isinstance(item, dict)],
+                    ["Sim" if item.get("virada") else "Não" for item in dados if isinstance(item, dict)],
+                    [item.get("virada_comprimento") for item in dados if isinstance(item, dict)],
+                    [item.get("virada_largura") for item in dados if isinstance(item, dict)],
+                )
+        except (TypeError, ValueError):
+            pass
+    itens = []
+    if texto_saia_produto(orcamento):
+        itens.append({
+            "tipo": "Saia",
+            "comprimento": getattr(orcamento, "comprimento_saia", 0) or 0,
+            "largura": getattr(orcamento, "largura_saia", 0) or 0,
+            "virada": False,
+            "virada_comprimento": 0,
+            "virada_largura": 0,
+        })
+    if texto_fronte_produto(orcamento):
+        itens.append({
+            "tipo": "Fronte",
+            "comprimento": getattr(orcamento, "comprimento_fronte", 0) or 0,
+            "largura": getattr(orcamento, "largura_fronte", 0) or 0,
+            "virada": False,
+            "virada_comprimento": 0,
+            "virada_largura": 0,
+        })
+    return itens
+
+
 def acessorios_total(acessorios):
     return sum(float(item.get("valor") or 0) for item in (acessorios or []))
 
@@ -898,6 +990,43 @@ def acabamentos_total(acabamentos):
     for item in acabamentos or []:
         total += (float(item.get("comprimento") or 0) / 100) * float(item.get("valor") or 0)
     return total
+
+
+def saia_fronte_total(itens, valor_material, minimo_medida_cm=10, saia_margem=0, fronte_margem=0, virada_margem=0):
+    total = 0
+    for item in itens or []:
+        tipo = item.get("tipo")
+        comprimento = float(item.get("comprimento") or 0)
+        largura = float(item.get("largura") or 0)
+        if comprimento > 0 and largura > 0:
+            comp_cal = 10 if 0 < comprimento < float(minimo_medida_cm or 10) else comprimento
+            larg_cal = 10 if 0 < largura < float(minimo_medida_cm or 10) else largura
+            total += float(valor_material or 0) * (comp_cal * larg_cal / 10000)
+        if tipo == "Fronte":
+            total += (comprimento / 100) * float(fronte_margem or 0)
+        else:
+            total += (comprimento / 100) * float(saia_margem or 0)
+        if item.get("virada"):
+            virada_comprimento = float(item.get("virada_comprimento") or 0)
+            virada_largura = float(item.get("virada_largura") or 0)
+            if virada_comprimento > 0 and virada_largura > 0:
+                comp_cal = 10 if 0 < virada_comprimento < float(minimo_medida_cm or 10) else virada_comprimento
+                larg_cal = 10 if 0 < virada_largura < float(minimo_medida_cm or 10) else virada_largura
+                total += float(valor_material or 0) * (comp_cal * larg_cal / 10000)
+            total += (virada_comprimento / 100) * float(virada_margem or 0)
+    return total
+
+
+def saia_fronte_total_orcamento(orcamento, valor_material, opts=None):
+    opts = opts or opcoes_precificacao_empresa()
+    return saia_fronte_total(
+        saia_fronte_do_orcamento(orcamento),
+        valor_material,
+        opts.get('minimo_medida_cm', 10),
+        opts.get('saia_margem', 0),
+        opts.get('fronte_margem', 0),
+        opts.get('virada_margem', 0),
+    )
 
 
 def acessorios_texto(orcamento):
@@ -911,8 +1040,52 @@ def acabamentos_texto(orcamento):
         nome = item.get("nome")
         comprimento = float(item.get("comprimento") or 0)
         if nome and comprimento > 0:
-            itens.append(f"{nome} {comprimento:g} cm")
+            itens.append(f"{nome} {comprimento:g}")
     return ", ".join(itens) if itens else "-"
+
+
+def _linhas_html(itens):
+    return Markup("<br>".join(itens)) if itens else "-"
+
+
+def _duas_linhas_html(titulo, medida):
+    titulo_limpo = str(titulo or "").strip()
+    medida_limpa = str(medida or "").strip()
+    if not titulo_limpo and not medida_limpa:
+        return ""
+    if titulo_limpo and medida_limpa:
+        return Markup(f"{titulo_limpo}<br>{medida_limpa}")
+    return Markup(titulo_limpo or medida_limpa)
+
+
+def saia_texto(orcamento):
+    itens = []
+    for item in saia_fronte_do_orcamento(orcamento):
+        if item.get("tipo") == "Saia":
+            texto = _texto_dimensao_tabela(item.get("comprimento"), item.get("largura"))
+            if texto:
+                itens.append(texto)
+    return _linhas_html(itens)
+
+
+def fronte_texto(orcamento):
+    itens = []
+    for item in saia_fronte_do_orcamento(orcamento):
+        if item.get("tipo") == "Fronte":
+            texto = _texto_dimensao_tabela(item.get("comprimento"), item.get("largura"))
+            if texto:
+                itens.append(texto)
+    return _linhas_html(itens)
+
+
+def virada_texto(orcamento):
+    itens = []
+    for item in saia_fronte_do_orcamento(orcamento):
+        if item.get("virada"):
+            texto = _texto_dimensao_tabela(item.get("virada_comprimento"), item.get("virada_largura"))
+            if texto:
+                itens.append(f"{item.get('tipo')}<br>{texto}")
+    return _linhas_html(itens)
 
 
 TIPOS_COM_SAIA_TABELA = {"Bancada", "Lavatorio", "Ilharga", "Ilharga Bipolida", "Pedra Simples com Saia", "Pedra Bipolida com Saia"}
@@ -931,7 +1104,7 @@ def _texto_dimensao_tabela(comprimento, largura):
     larg = _float_tabela(largura)
     if comp <= 0 or larg <= 0:
         return ""
-    return f"{comp:.1f} x {larg:.1f} cm"
+    return f"{comp:.1f}x{larg:.1f}"
 
 
 def texto_saia_produto(produto):
@@ -969,7 +1142,7 @@ def texto_cuba_produto(produto):
         larg = _float_tabela(getattr(produto, "largura_cuba", 0))
         prof = _float_tabela(getattr(produto, "profundidade_cuba", 0))
         if comp > 0 and larg > 0 and prof > 0:
-            return f"Esculpida ({quantidade}) - {comp:.1f} x {larg:.1f} x {prof:.1f} cm"
+            return _duas_linhas_html(f"Esculpida ({quantidade})", f"{comp:.1f}x{larg:.1f}x{prof:.1f} cm")
         return f"Esculpida ({quantidade})"
 
     return f"{tipo_cuba} ({quantidade})"
@@ -998,6 +1171,7 @@ def opcoes_precificacao_empresa(config=None):
         'nicho_folga_cm': float(dados.get('nicho_folga_cm') or 4),
         'saia_margem': float(dados.get('saia_margem') or 0),
         'fronte_margem': float(dados.get('fronte_margem') or 0),
+        'virada_margem': float(dados.get('virada_margem') or 0),
         'alisar_margem': float(dados.get('alisar_margem') or 0),
     }
 
@@ -1087,6 +1261,7 @@ class EmpresaConfig(db.Model):
     nicho_folga_cm = db.Column(db.Float, default=4, nullable=False)
     saia_margem = db.Column(db.Float, default=0, nullable=False)
     fronte_margem = db.Column(db.Float, default=0, nullable=False)
+    virada_margem = db.Column(db.Float, default=0, nullable=False)
     alisar_margem = db.Column(db.Float, default=0, nullable=False)
     cuba_valores_json = db.Column(db.Text, default='')
 
@@ -1211,6 +1386,7 @@ class Orcamento(db.Model):
     tem_cooktop = db.Column(db.String(50), default="Não")
     acessorios_json = db.Column(db.Text, default='')
     acabamentos_json = db.Column(db.Text, default='')
+    saia_fronte_json = db.Column(db.Text, default='')
     profundidade_nicho = db.Column(db.Float, default=0.0)
     tem_fundo = db.Column(db.String(50), default="Sim")
     tem_alisar = db.Column(db.String(50), default="Não")
@@ -1310,6 +1486,7 @@ def _garantir_colunas_empresa_config():
         "pagamento_3_descricao": "TEXT DEFAULT 'Sinal de 80% e 20% na entrega' NOT NULL",
         "saia_margem": "FLOAT DEFAULT 0 NOT NULL",
         "fronte_margem": "FLOAT DEFAULT 0 NOT NULL",
+        "virada_margem": "FLOAT DEFAULT 0 NOT NULL",
         "alisar_margem": "FLOAT DEFAULT 0 NOT NULL",
     }
     for coluna, definicao in colunas.items():
@@ -1323,6 +1500,7 @@ def _garantir_colunas_usuario():
 def _garantir_colunas_orcamento():
     _garantir_coluna("orcamento", "acessorios_json", "TEXT DEFAULT ''")
     _garantir_coluna("orcamento", "acabamentos_json", "TEXT DEFAULT ''")
+    _garantir_coluna("orcamento", "saia_fronte_json", "TEXT DEFAULT ''")
 
 
 def _atualizar_textos_pagamento_padrao():
@@ -2537,10 +2715,29 @@ def listar_orcamentos():
         dono = session['user_cpf']
 
         # Campos dinâmicos
-        comprimento_saia = float(request.form.get('comprimento_saia', 0) or 0)
-        largura_saia = float(request.form.get('largura_saia', 0) or 0)
-        comprimento_fronte = float(request.form.get('comprimento_fronte', 0) or 0)
-        largura_fronte = float(request.form.get('largura_fronte', 0) or 0)
+        saia_fronte = normalizar_saia_fronte(
+            request.form.getlist('saia_fronte_tipo[]'),
+            request.form.getlist('saia_fronte_comprimento[]'),
+            request.form.getlist('saia_fronte_largura[]'),
+            request.form.getlist('saia_fronte_virada[]'),
+            request.form.getlist('saia_fronte_virada_comprimento[]'),
+            request.form.getlist('saia_fronte_virada_largura[]'),
+        )
+        if not saia_fronte:
+            saia_fronte = normalizar_saia_fronte(
+                ['Saia', 'Fronte'],
+                [request.form.get('comprimento_saia', 0), request.form.get('comprimento_fronte', 0)],
+                [request.form.get('largura_saia', 0), request.form.get('largura_fronte', 0)],
+                ['Não', 'Não'],
+                [0, 0],
+                [0, 0],
+            )
+        primeira_saia = next((item for item in saia_fronte if item.get('tipo') == 'Saia'), {})
+        primeiro_fronte = next((item for item in saia_fronte if item.get('tipo') == 'Fronte'), {})
+        comprimento_saia = float(primeira_saia.get('comprimento') or 0)
+        largura_saia = float(primeira_saia.get('largura') or 0)
+        comprimento_fronte = float(primeiro_fronte.get('comprimento') or 0)
+        largura_fronte = float(primeiro_fronte.get('largura') or 0)
         tipo_cuba = request.form.get('tipo_cuba', '')
         quantidade_cubas = int(request.form.get('quantidade_cubas', 0) or 0)
         comprimento_cuba = float(request.form.get('comprimento_cuba', 0) or 0)
@@ -2575,6 +2772,7 @@ def listar_orcamentos():
         if not modelo_cuba:  
             modelo_cuba = "Normal"
 
+        pricing_opts = opcoes_precificacao_empresa()
         valor_total = calcular_valor_item(
             tipo_produto=tipo_produto,
             valor_material=material.valor,
@@ -2598,11 +2796,19 @@ def listar_orcamentos():
             tem_cooktop=tem_cooktop,
             acessorios_valor_total=acessorios_total(acessorios),
             acabamentos_valor_total=acabamentos_total(acabamentos),
+            saia_fronte_valor_total=saia_fronte_total(
+                saia_fronte,
+                material.valor,
+                pricing_opts.get('minimo_medida_cm', 10),
+                pricing_opts.get('saia_margem', 0),
+                pricing_opts.get('fronte_margem', 0),
+                pricing_opts.get('virada_margem', 0),
+            ),
             profundidade_nicho=profundidade_nicho,
             tem_fundo=tem_fundo,
             tem_alisar=tem_alisar,
             largura_alisar=largura_alisar,
-            **opcoes_precificacao_empresa(),
+            **pricing_opts,
         )
 
         if cliente_id and material_id and ambiente_id:
@@ -2632,6 +2838,7 @@ def listar_orcamentos():
                 tem_cooktop=tem_cooktop,
                 acessorios_json=json.dumps(acessorios, ensure_ascii=False),
                 acabamentos_json=json.dumps(acabamentos, ensure_ascii=False),
+                saia_fronte_json=json.dumps(saia_fronte, ensure_ascii=False),
                 profundidade_nicho=profundidade_nicho,
                 tem_fundo=tem_fundo,
                 tem_alisar=tem_alisar,
@@ -2860,6 +3067,7 @@ def configuracoes():
         config.nicho_folga_cm = float(request.form.get('nicho_folga_cm', 4) or 4)
         config.saia_margem = float(request.form.get('saia_margem', 0) or 0)
         config.fronte_margem = float(request.form.get('fronte_margem', 0) or 0)
+        config.virada_margem = float(request.form.get('virada_margem', 0) or 0)
         config.alisar_margem = float(request.form.get('alisar_margem', 0) or 0)
 
         cuba_valores = {}
@@ -3028,10 +3236,29 @@ def editar_orcamento(id):
         orcamento.rt_percentual = float(request.form.get('rt_percentual', orcamento.rt_percentual or 0)or 0)
 
         # Campos dinâmicos
-        orcamento.comprimento_saia = float(request.form.get('comprimento_saia', orcamento.comprimento_saia or 0) or 0)
-        orcamento.largura_saia = float(request.form.get('largura_saia', orcamento.largura_saia or 0) or 0)
-        orcamento.comprimento_fronte = float(request.form.get('comprimento_fronte', orcamento.comprimento_fronte or 0) or 0)
-        orcamento.largura_fronte = float(request.form.get('largura_fronte', orcamento.largura_fronte or 0) or 0)
+        saia_fronte = normalizar_saia_fronte(
+            request.form.getlist('saia_fronte_tipo[]'),
+            request.form.getlist('saia_fronte_comprimento[]'),
+            request.form.getlist('saia_fronte_largura[]'),
+            request.form.getlist('saia_fronte_virada[]'),
+            request.form.getlist('saia_fronte_virada_comprimento[]'),
+            request.form.getlist('saia_fronte_virada_largura[]'),
+        )
+        if not saia_fronte:
+            saia_fronte = normalizar_saia_fronte(
+                ['Saia', 'Fronte'],
+                [request.form.get('comprimento_saia', orcamento.comprimento_saia or 0), request.form.get('comprimento_fronte', orcamento.comprimento_fronte or 0)],
+                [request.form.get('largura_saia', orcamento.largura_saia or 0), request.form.get('largura_fronte', orcamento.largura_fronte or 0)],
+                ['Não', 'Não'],
+                [0, 0],
+                [0, 0],
+            )
+        primeira_saia = next((item for item in saia_fronte if item.get('tipo') == 'Saia'), {})
+        primeiro_fronte = next((item for item in saia_fronte if item.get('tipo') == 'Fronte'), {})
+        orcamento.comprimento_saia = float(primeira_saia.get('comprimento') or 0)
+        orcamento.largura_saia = float(primeira_saia.get('largura') or 0)
+        orcamento.comprimento_fronte = float(primeiro_fronte.get('comprimento') or 0)
+        orcamento.largura_fronte = float(primeiro_fronte.get('largura') or 0)
         orcamento.tipo_cuba = request.form.get('tipo_cuba', orcamento.tipo_cuba)
         orcamento.quantidade_cubas = int(request.form.get('quantidade_cubas', orcamento.quantidade_cubas or 0) or 0)
         orcamento.comprimento_cuba = float(request.form.get('comprimento_cuba', orcamento.comprimento_cuba or 0) or 0)
@@ -3049,6 +3276,7 @@ def editar_orcamento(id):
         orcamento.tem_cooktop = 'Sim' if any(item.get('nome') == 'Cooktop' for item in acessorios) else request.form.get('tem_cooktop', orcamento.tem_cooktop)
         orcamento.acessorios_json = json.dumps(acessorios, ensure_ascii=False)
         orcamento.acabamentos_json = json.dumps(acabamentos, ensure_ascii=False)
+        orcamento.saia_fronte_json = json.dumps(saia_fronte, ensure_ascii=False)
         orcamento.profundidade_nicho = float(request.form.get('profundidade_nicho', orcamento.profundidade_nicho or 0) or 0)
         orcamento.tem_fundo = request.form.get('tem_fundo', orcamento.tem_fundo)
         orcamento.tem_alisar = request.form.get('tem_alisar', orcamento.tem_alisar)
@@ -3181,6 +3409,8 @@ def editar_orcamento(id):
             valor_rt = valor_total_criar / (1 - orcamento.rt_percentual / 100) - valor_total_criar
 
         # Arredonda apenas o valor final
+        pricing_opts = opcoes_precificacao_empresa()
+        pricing_opts = opcoes_precificacao_empresa()
         orcamento.valor_total = calcular_valor_item(
             tipo_produto=orcamento.tipo_produto,
             valor_material=material.valor,
@@ -3204,11 +3434,12 @@ def editar_orcamento(id):
             tem_cooktop=orcamento.tem_cooktop,
             acessorios_valor_total=acessorios_total(acessorios_do_orcamento(orcamento)),
             acabamentos_valor_total=acabamentos_total(acabamentos_do_orcamento(orcamento)),
+            saia_fronte_valor_total=saia_fronte_total_orcamento(orcamento, material.valor, pricing_opts),
             profundidade_nicho=orcamento.profundidade_nicho,
             tem_fundo=orcamento.tem_fundo,
             tem_alisar=orcamento.tem_alisar,
             largura_alisar=orcamento.largura_alisar,
-            **opcoes_precificacao_empresa(),
+            **pricing_opts,
         )
         
         orcamento_salvo = OrcamentoSalvo.query.filter(OrcamentoSalvo.orcamentos_ids.contains(str(orcamento.id))).first()
@@ -3257,6 +3488,7 @@ def editar_orcamento(id):
         acessorios_orcamento=acessorios_do_orcamento(orcamento),
         acabamento_valores=empresa_acabamentos_valores(),
         acabamentos_orcamento=acabamentos_do_orcamento(orcamento),
+        saia_fronte_orcamento=saia_fronte_do_orcamento(orcamento),
     )
 
 @app.route('/clientes/delete/<int:id>', methods=['POST'])
@@ -4457,11 +4689,12 @@ def editar_material_rt_selecionados():
             tem_cooktop=orcamento.tem_cooktop,
             acessorios_valor_total=acessorios_total(acessorios_do_orcamento(orcamento)),
             acabamentos_valor_total=acabamentos_total(acabamentos_do_orcamento(orcamento)),
+            saia_fronte_valor_total=saia_fronte_total_orcamento(orcamento, material_para_calculo.valor, pricing_opts),
             profundidade_nicho=orcamento.profundidade_nicho,
             tem_fundo=orcamento.tem_fundo,
             tem_alisar=orcamento.tem_alisar,
             largura_alisar=orcamento.largura_alisar,
-            **opcoes_precificacao_empresa(),
+            **pricing_opts,
         )
 
     db.session.commit()
@@ -4492,6 +4725,7 @@ def duplicar_selecionados():
             original = Orcamento.query.get(id)
             if original:
                 material = Material.query.get(original.material_id)
+                pricing_opts = opcoes_precificacao_empresa()
                 valor_total = calcular_valor_item(
                     tipo_produto=original.tipo_produto,
                     valor_material=material.valor if material else 0,
@@ -4515,11 +4749,12 @@ def duplicar_selecionados():
                     tem_cooktop=original.tem_cooktop,
                     acessorios_valor_total=acessorios_total(acessorios_do_orcamento(original)),
                     acabamentos_valor_total=acabamentos_total(acabamentos_do_orcamento(original)),
+                    saia_fronte_valor_total=saia_fronte_total_orcamento(original, material.valor if material else 0, pricing_opts),
                     profundidade_nicho=original.profundidade_nicho,
                     tem_fundo=original.tem_fundo,
                     tem_alisar=original.tem_alisar,
                     largura_alisar=original.largura_alisar,
-                    **opcoes_precificacao_empresa(),
+                    **pricing_opts,
                 )
 
                 novo_orcamento = Orcamento(
@@ -4549,6 +4784,7 @@ def duplicar_selecionados():
                     tem_cooktop=original.tem_cooktop,
                     acessorios_json=original.acessorios_json,
                     acabamentos_json=original.acabamentos_json,
+                    saia_fronte_json=original.saia_fronte_json,
                     profundidade_nicho=original.profundidade_nicho,
                     tem_fundo=original.tem_fundo,
                     tem_alisar=original.tem_alisar,

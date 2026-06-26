@@ -155,6 +155,7 @@ def calcular_valor_item(
     tem_cooktop="Nao",
     acessorios_valor_total=0,
     acabamentos_valor_total=0,
+    saia_fronte_valor_total=0,
     instalacao="Nao",
     instalacao_valor=0,
     rt="Nao",
@@ -182,6 +183,7 @@ def calcular_valor_item(
     nicho_folga_cm=4,
     saia_margem=0,
     fronte_margem=0,
+    virada_margem=0,
     alisar_margem=0,
 ):
     valor_material = _float(valor_material)
@@ -227,7 +229,9 @@ def calcular_valor_item(
             mao_obra_nicho = nicho_sem_fundo_mao_obra
         total = (area_nicho / 10000) * valor_material + _float(mao_obra_nicho, NICHO_MAO_OBRA_PADRAO)
 
-    if tipo_produto in ["Ilharga", "Ilharga Bipolida", "Pedra Simples com Saia", "Pedra Bipolida com Saia", "Bancada", "Lavatorio"]:
+    total_saia_fronte_dinamico = _float(saia_fronte_valor_total)
+
+    if total_saia_fronte_dinamico <= 0 and tipo_produto in ["Ilharga", "Ilharga Bipolida", "Pedra Simples com Saia", "Pedra Bipolida com Saia", "Bancada", "Lavatorio"]:
         comp_saia = _float(comprimento_saia)
         larg_saia = _float(largura_saia)
         if comp_saia > 0 and larg_saia > 0:
@@ -236,7 +240,7 @@ def calcular_valor_item(
             total += valor_material * (comp_saia_cal * larg_saia_cal / 10000)
         total += (comp_saia / 100) * _float(saia_margem)
 
-    if tipo_produto in ["Bancada", "Lavatorio"]:
+    if total_saia_fronte_dinamico <= 0 and tipo_produto in ["Bancada", "Lavatorio"]:
         comp_fronte = _float(comprimento_fronte)
         larg_fronte = _float(largura_fronte)
         if comp_fronte > 0 and larg_fronte > 0:
@@ -244,6 +248,8 @@ def calcular_valor_item(
             larg_fronte_cal = medida_minima(larg_fronte, minimo_medida_cm)
             total += valor_material * (comp_fronte_cal * larg_fronte_cal / 10000)
         total += (comp_fronte / 100) * _float(fronte_margem)
+
+    total += total_saia_fronte_dinamico
 
     if tipo_produto == "Pedra de Box":
         total = (valor_base * 2) + ((_float(comprimento) / 100) * _float(pedra_box_adicional, 30))
