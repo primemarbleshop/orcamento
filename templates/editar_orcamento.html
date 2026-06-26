@@ -130,7 +130,7 @@
                     <div class="row">
                         <div class="col-md-6 col-lg-3 form-section">
                             <label for="cliente_id" class="form-label">Cliente:</label>
-                            <select name="cliente_id" id="cliente_id" class="form-select select2">
+                            <select name="cliente_id" id="cliente_id" class="form-select select2" required>
                                 {% for cliente in clientes %}
                                     <option value="{{ cliente.id }}" {% if cliente.id == orcamento.cliente_id %}selected{% endif %}>
                                         {{ cliente.nome }}
@@ -141,7 +141,7 @@
 
                         <div class="col-md-6 col-lg-3 form-section">
                             <label for="ambiente_id" class="form-label">Ambiente:</label>
-                            <select name="ambiente_id" id="ambiente_id" class="form-select select2">
+                            <select name="ambiente_id" id="ambiente_id" class="form-select select2" required>
                                 {% for ambiente in ambientes %}
                                     <option value="{{ ambiente.id }}" {% if ambiente.id == orcamento.ambiente_id %}selected{% endif %}>
                                         {{ ambiente.nome }}
@@ -152,7 +152,7 @@
 
                         <div class="col-md-6 col-lg-3 form-section">
     <label for="descricao_id" class="form-label">Descrição:</label>
-    <select name="descricao_id" id="descricao_id" class="form-select select2">
+    <select name="descricao_id" id="descricao_id" class="form-select select2" required>
         <option value="">Selecione...</option>
         {% for descricao in descricoes %}
             <option value="{{ descricao.id }}" {% if descricao.id == orcamento.descricao_id %}selected{% endif %}>
@@ -164,7 +164,7 @@
 
                         <div class="col-md-6 col-lg-3 form-section">
     <label for="produto_id" class="form-label">Produto:</label>
-    <select name="produto_id" id="produto_id" class="form-select select2">
+    <select name="produto_id" id="produto_id" class="form-select select2" required>
         <option value="">Selecione...</option>
         {% for produto in produtos %}
             <option value="{{ produto.id }}" {% if produto.id == orcamento.produto_id %}selected{% endif %}>
@@ -193,7 +193,7 @@
 
                         <div class="col-md-6 col-lg-3 form-section">
                             <label for="material_id" class="form-label">Material:</label>
-                            <select name="material_id" id="material_id" class="form-select select2">
+                            <select name="material_id" id="material_id" class="form-select select2" required>
                                 {% for material in materiais %}
                                     <option value="{{ material.id }}" {% if material.id == orcamento.material_id %}selected{% endif %}>
                                         {{ material.nome }}
@@ -300,17 +300,21 @@
         const cubasPadrao = {{ cuba_valores|tojson }};
         const cubasExistentes = {{ cubas_orcamento|tojson }};
 
+        function atualizarIndicadorCooktop() {
+            const hiddenCooktop = document.getElementById('tem_cooktop');
+            if (hiddenCooktop) {
+                const temCooktop = Array.from(document.querySelectorAll('select[name="acessorio_nome[]"]')).some((item) => item.value === 'Cooktop');
+                hiddenCooktop.value = temCooktop ? 'Sim' : 'Não';
+            }
+        }
+
         function atualizarValorAcessorio(select) {
             const row = select.closest('.acessorio-row');
             const inputValor = row ? row.querySelector('input[name="acessorio_valor[]"]') : null;
             if (inputValor && Object.prototype.hasOwnProperty.call(acessoriosPadrao, select.value)) {
                 inputValor.value = acessoriosPadrao[select.value];
             }
-            const hiddenCooktop = document.getElementById('tem_cooktop');
-            if (hiddenCooktop) {
-                const temCooktop = Array.from(document.querySelectorAll('select[name="acessorio_nome[]"]')).some((item) => item.value === 'Cooktop');
-                hiddenCooktop.value = temCooktop ? 'Sim' : 'Não';
-            }
+            atualizarIndicadorCooktop();
         }
 
         function adicionarAcessorioOrcamento(nome = '', valor = '') {
@@ -337,7 +341,11 @@
                 </div>
             `;
             lista.appendChild(row);
-            atualizarValorAcessorio(row.querySelector('select'));
+            if (valor === '') {
+                atualizarValorAcessorio(row.querySelector('select'));
+            } else {
+                atualizarIndicadorCooktop();
+            }
         }
 
         function restaurarAcessoriosOrcamento() {
@@ -380,7 +388,9 @@
                 </div>
             `;
             lista.appendChild(row);
-            atualizarValorAcabamento(row.querySelector('select'));
+            if (valor === '') {
+                atualizarValorAcabamento(row.querySelector('select'));
+            }
         }
 
         function restaurarAcabamentosOrcamento() {

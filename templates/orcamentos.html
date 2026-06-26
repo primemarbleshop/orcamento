@@ -358,6 +358,14 @@
             </div>
         </div>
 
+        {% with mensagens = get_flashed_messages(category_filter=['orcamento_error']) %}
+            {% if mensagens %}
+                {% for mensagem in mensagens %}
+                    <div class="alert alert-danger">{{ mensagem }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
         <!-- Card do formulário de orçamento - SOMENTE SE NÃO FOR ADMIN -->
         {% if not is_admin %}
         <div class="card card-custom mb-4">
@@ -374,7 +382,8 @@
                     <div class="row">
                         <div class="col-md-6 col-lg-3 form-section">
                             <label for="cliente_id" class="form-label">Cliente:</label>
-                            <select name="cliente_id" id="cliente_id" class="form-select">
+                            <select name="cliente_id" id="cliente_id" class="form-select" required>
+                                <option value="">Selecione...</option>
                                 {% for cliente in clientes %}
                                     <option value="{{ cliente.id }}">
                                         {{ cliente.nome }}
@@ -386,7 +395,8 @@
                         <div class="col-md-6 col-lg-3 form-section">
                             <label for="ambiente_id" class="form-label">Ambiente:</label>
                             <div class="select-with-buttons">
-                                <select name="ambiente_id" id="ambiente_id" class="form-select">
+                                <select name="ambiente_id" id="ambiente_id" class="form-select" required>
+                                    <option value="">Selecione...</option>
                                     {% for ambiente in ambientes %}
                                         <option value="{{ ambiente.id }}">{{ ambiente.nome }}</option>
                                     {% endfor %}
@@ -403,7 +413,7 @@
                         <div class="col-md-6 col-lg-3 form-section">
                             <label for="descricao_id" class="form-label">Descrição:</label>
                             <div class="select-with-buttons">
-                                <select name="descricao_id" id="descricao_id" class="form-select">
+                                <select name="descricao_id" id="descricao_id" class="form-select" required>
                                     <option value="">Selecione...</option>
                                     {% for descricao in descricoes %}
                                         <option value="{{ descricao.id }}">{{ descricao.nome }}</option>
@@ -422,7 +432,7 @@
                         <div class="col-md-6 col-lg-3 form-section">
                             <label for="produto_id" class="form-label">Produto:</label>
                             <div class="select-with-buttons">
-                                <select name="produto_id" id="produto_id" class="form-select">
+                                <select name="produto_id" id="produto_id" class="form-select" required>
                                     <option value="">Selecione...</option>
                                     {% for produto in produtos %}
                                         <option value="{{ produto.id }}">{{ produto.nome }}</option>
@@ -456,7 +466,8 @@
 
                         <div class="col-md-6 col-lg-3 form-section">
                             <label for="material_id" class="form-label">Material:</label>
-                            <select name="material_id" id="material_id" class="form-select">
+                            <select name="material_id" id="material_id" class="form-select" required>
+                                <option value="">Selecione...</option>
                                 {% for material in materiais %}
                                     <option value="{{ material.id }}">
                                         {{ material.nome }}
@@ -776,17 +787,21 @@
         return isNaN(numero) ? 0 : numero;
     }
 
+    function atualizarIndicadorCooktop() {
+        const hiddenCooktop = document.getElementById('tem_cooktop');
+        if (hiddenCooktop) {
+            const temCooktop = Array.from(document.querySelectorAll('select[name="acessorio_nome[]"]')).some((item) => item.value === 'Cooktop');
+            hiddenCooktop.value = temCooktop ? 'Sim' : 'Não';
+        }
+    }
+
     function atualizarValorAcessorio(select) {
         const row = select.closest('.acessorio-row');
         const inputValor = row ? row.querySelector('input[name="acessorio_valor[]"]') : null;
         if (inputValor && Object.prototype.hasOwnProperty.call(acessoriosPadrao, select.value)) {
             inputValor.value = acessoriosPadrao[select.value];
         }
-        const hiddenCooktop = document.getElementById('tem_cooktop');
-        if (hiddenCooktop) {
-            const temCooktop = Array.from(document.querySelectorAll('select[name="acessorio_nome[]"]')).some((item) => item.value === 'Cooktop');
-            hiddenCooktop.value = temCooktop ? 'Sim' : 'Não';
-        }
+        atualizarIndicadorCooktop();
     }
 
     function adicionarAcessorioOrcamento(nome = '', valor = '') {
@@ -813,7 +828,11 @@
             </div>
         `;
         lista.appendChild(row);
-        atualizarValorAcessorio(row.querySelector('select'));
+        if (valor === '') {
+            atualizarValorAcessorio(row.querySelector('select'));
+        } else {
+            atualizarIndicadorCooktop();
+        }
     }
 
     function atualizarValorAcabamento(select) {
@@ -849,7 +868,9 @@
             </div>
         `;
         lista.appendChild(row);
-        atualizarValorAcabamento(row.querySelector('select'));
+        if (valor === '') {
+            atualizarValorAcabamento(row.querySelector('select'));
+        }
     }
 
     function atualizarCamposCubaOrcamento(select) {
@@ -1642,6 +1663,29 @@
         });
     }
 
+    function validarFormularioOrcamento(event) {
+        const obrigatorios = [
+            ['cliente_id', 'cliente'],
+            ['ambiente_id', 'ambiente'],
+            ['descricao_id', 'descrição'],
+            ['produto_id', 'produto'],
+            ['tipo_produto', 'tipo de produto'],
+            ['material_id', 'material']
+        ];
+        const faltando = obrigatorios
+            .filter(([id]) => !($('#' + id).val() || '').toString().trim())
+            .map(([, nome]) => nome);
+
+        if (faltando.length) {
+            event.preventDefault();
+            Swal.fire('Campos obrigatórios', `Informe ${faltando.join(', ')} antes de criar o orçamento.`, 'warning');
+            return false;
+        }
+
+        salvarSelecoesFormulario();
+        return true;
+    }
+
     function setupRowClickEvents() {
         document.querySelectorAll('#orcamento_table tr').forEach(row => {
             row.addEventListener('click', function(e) {
@@ -2042,6 +2086,11 @@
                 toggleFields();
             }
         });
+
+        const formOrcamento = document.getElementById('orcamentoForm');
+        if (formOrcamento) {
+            formOrcamento.addEventListener('submit', validarFormularioOrcamento);
+        }
     
         document.querySelectorAll('.filtro-auto').forEach(element => {
             element.addEventListener('change', function() {

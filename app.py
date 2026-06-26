@@ -2801,10 +2801,24 @@ def listar_orcamentos():
         cliente_id = request.form.get('cliente_id')
         ambiente_id = request.form.get('ambiente_id')
         produto_id = request.form.get('produto_id')  # NOVO CAMPO
-        tipo_produto = request.form['tipo_produto']
+        tipo_produto = request.form.get('tipo_produto')
         descricao_id = request.form.get('descricao_id')
-        material_id = request.form['material_id']
-        quantidade = int(request.form['quantidade'])
+        material_id = request.form.get('material_id')
+        campos_obrigatorios = {
+            'cliente': cliente_id,
+            'ambiente': ambiente_id,
+            'descrição': descricao_id,
+            'produto': produto_id,
+            'tipo de produto': tipo_produto,
+            'material': material_id,
+            'quantidade': request.form.get('quantidade'),
+        }
+        faltando = [nome for nome, valor in campos_obrigatorios.items() if not str(valor or '').strip()]
+        if faltando:
+            flash(f"Informe {', '.join(faltando)} antes de criar o orçamento.", "orcamento_error")
+            return redirect(url_for('listar_orcamentos'))
+
+        quantidade = int(request.form.get('quantidade') or 0)
         comprimento = float(request.form.get('comprimento', 0) or 0)
         largura = float(request.form.get('largura', 0) or 0)
         instalacao = request.form.get('instalacao', 'Não')  # padrão = "Não"
@@ -2883,6 +2897,9 @@ def listar_orcamentos():
         data=data_atual
 
         material = Material.query.get(material_id)
+        if not material:
+            flash("Material não encontrado. Selecione um material válido antes de criar o orçamento.", "orcamento_error")
+            return redirect(url_for('listar_orcamentos'))
 
         modelo_cuba = str(primeira_cuba.get('modelo') or request.form.get("modelo_cuba", "")).strip()
         if not modelo_cuba:  
@@ -2928,50 +2945,49 @@ def listar_orcamentos():
             **pricing_opts,
         )
 
-        if cliente_id and material_id and ambiente_id:
-            novo_orcamento = Orcamento(
-                cliente_id=cliente_id,
-                ambiente_id=ambiente_id,
-                descricao_id=descricao_id,
-                produto_id=produto_id,
-                tipo_produto=tipo_produto,
-                material_id=material_id,
-                quantidade=quantidade,
-                comprimento=comprimento,
-                largura=largura,
-                instalacao=instalacao,
-                instalacao_valor=instalacao_valor,
-                rt=rt,
-                rt_percentual=rt_percentual,
-                comprimento_saia=comprimento_saia,
-                largura_saia=largura_saia,
-                comprimento_fronte=comprimento_fronte,
-                largura_fronte=largura_fronte,
-                tipo_cuba=tipo_cuba,
-                quantidade_cubas=quantidade_cubas,
-                comprimento_cuba=comprimento_cuba,
-                largura_cuba=largura_cuba,
-                profundidade_cuba=profundidade_cuba,
-                cubas_json=json.dumps(cubas, ensure_ascii=False),
-                tem_cooktop=tem_cooktop,
-                acessorios_json=json.dumps(acessorios, ensure_ascii=False),
-                acabamentos_json=json.dumps(acabamentos, ensure_ascii=False),
-                saia_fronte_json=json.dumps(saia_fronte, ensure_ascii=False),
-                profundidade_nicho=profundidade_nicho,
-                tem_fundo=tem_fundo,
-                tem_alisar=tem_alisar,
-                largura_alisar=largura_alisar,
-                valor_total=valor_total,
-                modelo_cuba=modelo_cuba,
-                dono=session['user_cpf']
-            )
-            db.session.add(novo_orcamento)
-            db.session.commit()
+        novo_orcamento = Orcamento(
+            cliente_id=cliente_id,
+            ambiente_id=ambiente_id,
+            descricao_id=descricao_id,
+            produto_id=produto_id,
+            tipo_produto=tipo_produto,
+            material_id=material_id,
+            quantidade=quantidade,
+            comprimento=comprimento,
+            largura=largura,
+            instalacao=instalacao,
+            instalacao_valor=instalacao_valor,
+            rt=rt,
+            rt_percentual=rt_percentual,
+            comprimento_saia=comprimento_saia,
+            largura_saia=largura_saia,
+            comprimento_fronte=comprimento_fronte,
+            largura_fronte=largura_fronte,
+            tipo_cuba=tipo_cuba,
+            quantidade_cubas=quantidade_cubas,
+            comprimento_cuba=comprimento_cuba,
+            largura_cuba=largura_cuba,
+            profundidade_cuba=profundidade_cuba,
+            cubas_json=json.dumps(cubas, ensure_ascii=False),
+            tem_cooktop=tem_cooktop,
+            acessorios_json=json.dumps(acessorios, ensure_ascii=False),
+            acabamentos_json=json.dumps(acabamentos, ensure_ascii=False),
+            saia_fronte_json=json.dumps(saia_fronte, ensure_ascii=False),
+            profundidade_nicho=profundidade_nicho,
+            tem_fundo=tem_fundo,
+            tem_alisar=tem_alisar,
+            largura_alisar=largura_alisar,
+            valor_total=valor_total,
+            modelo_cuba=modelo_cuba,
+            dono=session['user_cpf']
+        )
+        db.session.add(novo_orcamento)
+        db.session.commit()
 
-            selected_cliente_id = int(cliente_id)
-            selected_material_id = int(material_id)
-            selected_ambiente_id = int(ambiente_id)
-            selected_descricao_id = int(descricao_id) if descricao_id else None
+        selected_cliente_id = int(cliente_id)
+        selected_material_id = int(material_id)
+        selected_ambiente_id = int(ambiente_id)
+        selected_descricao_id = int(descricao_id) if descricao_id else None
 
         return redirect(url_for('listar_orcamentos'))
 
@@ -3338,6 +3354,20 @@ def editar_orcamento(id):
             orcamentos_salvos = []
 
     if request.method == 'POST':
+        campos_obrigatorios = {
+            'cliente': request.form.get('cliente_id'),
+            'ambiente': request.form.get('ambiente_id'),
+            'descrição': request.form.get('descricao_id'),
+            'produto': request.form.get('produto_id'),
+            'tipo de produto': request.form.get('tipo_produto'),
+            'material': request.form.get('material_id'),
+            'quantidade': request.form.get('quantidade'),
+        }
+        faltando = [nome for nome, valor in campos_obrigatorios.items() if not str(valor or '').strip()]
+        if faltando:
+            flash(f"Informe {', '.join(faltando)} antes de salvar o orçamento.", "orcamento_error")
+            return redirect(url_for('editar_orcamento', id=id))
+
         # Atualizando os dados do orçamento com as informações do formulário
         orcamento.cliente_id = request.form.get('cliente_id')
         orcamento.tipo_produto = request.form['tipo_produto']
