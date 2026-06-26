@@ -1223,7 +1223,7 @@ def texto_cuba_produto(produto):
             larg = _float_tabela(cuba.get("largura"))
             prof = _float_tabela(cuba.get("profundidade"))
             if comp > 0 and larg > 0 and prof > 0:
-                linhas.append(f"Esculpida ({quantidade})<br>{comp:.1f}x{larg:.1f}x{prof:.1f} cm")
+                linhas.append(f"Esculpida ({quantidade})<br>{comp:.1f}x{larg:.1f}x{prof:.1f}&nbsp;cm")
             else:
                 linhas.append(f"Esculpida ({quantidade})")
         else:
