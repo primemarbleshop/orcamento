@@ -297,6 +297,8 @@
         const acabamentosPadrao = {{ acabamento_valores|tojson }};
         const acabamentosExistentes = {{ acabamentos_orcamento|tojson }};
         const saiaFronteExistentes = {{ saia_fronte_orcamento|tojson }};
+        const cubasPadrao = {{ cuba_valores|tojson }};
+        const cubasExistentes = {{ cubas_orcamento|tojson }};
 
         function atualizarValorAcessorio(select) {
             const row = select.closest('.acessorio-row');
@@ -385,6 +387,71 @@
             const lista = document.getElementById('acabamentosSelecionados');
             if (!lista || lista.dataset.restaurado === '1') return;
             acabamentosExistentes.forEach((item) => adicionarAcabamentoOrcamento(item.nome, item.comprimento, item.valor));
+            lista.dataset.restaurado = '1';
+        }
+
+        function atualizarCamposCubaOrcamento(select) {
+            const row = select.closest('.cuba-row');
+            if (!row) return;
+            const camposEsculpida = row.querySelector('.cuba-esculpida-campos');
+            if (camposEsculpida) {
+                camposEsculpida.style.display = select.value === 'Esculpida' ? '' : 'none';
+            }
+        }
+
+        function adicionarCubaOrcamento(nome = '', quantidade = 1, modelo = 'Normal', comprimento = '', largura = '', profundidade = '') {
+            const lista = document.getElementById('cubasSelecionadas');
+            if (!lista) return;
+            const row = document.createElement('div');
+            row.className = 'cuba-row border rounded p-3 mb-2';
+            const nomeInicial = nome || Object.keys(cubasPadrao)[0] || '';
+            const opcoes = Object.keys(cubasPadrao).map((item) => `<option value="${item}" ${item === nomeInicial ? 'selected' : ''}>${item}</option>`).join('');
+            row.innerHTML = `
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-5">
+                        <label class="form-label">Tipo de cuba</label>
+                        <select class="form-select" name="cuba_nome[]" onchange="atualizarCamposCubaOrcamento(this)">
+                            ${opcoes}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Quantidade</label>
+                        <input class="form-control" type="number" min="1" step="1" name="cuba_quantidade[]" value="${quantidade || 1}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">Modelo</label>
+                        <select class="form-select" name="cuba_modelo[]">
+                            <option value="Normal" ${modelo === 'Prainha' ? '' : 'selected'}>Normal</option>
+                            <option value="Prainha" ${modelo === 'Prainha' ? 'selected' : ''}>Prainha</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-outline-danger w-100" onclick="this.closest('.cuba-row').remove();">Remover</button>
+                    </div>
+                </div>
+                <div class="row g-2 mt-2 cuba-esculpida-campos" style="display:none;">
+                    <div class="col-md-4">
+                        <label class="form-label">Comprimento (cm)</label>
+                        <input class="form-control" type="number" step="0.01" min="0" name="cuba_comprimento[]" value="${comprimento}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Largura (cm)</label>
+                        <input class="form-control" type="number" step="0.01" min="0" name="cuba_largura[]" value="${largura}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Profundidade (cm)</label>
+                        <input class="form-control" type="number" step="0.01" min="0" name="cuba_profundidade[]" value="${profundidade}">
+                    </div>
+                </div>
+            `;
+            lista.appendChild(row);
+            atualizarCamposCubaOrcamento(row.querySelector('select[name="cuba_nome[]"]'));
+        }
+
+        function restaurarCubasOrcamento() {
+            const lista = document.getElementById('cubasSelecionadas');
+            if (!lista || lista.dataset.restaurado === '1') return;
+            cubasExistentes.forEach((item) => adicionarCubaOrcamento(item.nome, item.quantidade, item.modelo, item.comprimento, item.largura, item.profundidade));
             lista.dataset.restaurado = '1';
         }
 
@@ -497,65 +564,25 @@
                     ${camposSaiaFronte(true)}
                 `;
                 
-                // Campos de cuba (apenas para Bancada e Lavatorio)
                 camposEspecificos += `
                     <div class="row dynamic-field">
                         <div class="col-md-12">
-                            <h5><i class="fas fa-tint me-2"></i>Configurações da Cuba</h5>
+                            <h5><i class="fas fa-tint me-2"></i>Cubas</h5>
                         </div>
-                        <div class="col-md-4 form-section">
-                            <label for="tipo_cuba" class="form-label">Tipo de Cuba:</label>
-                            <select name="tipo_cuba" id="tipo_cuba" class="form-select" onchange="toggleCubaFields()">
-                                <option value="">Selecione...</option>
-                                {% for nome_cuba in cuba_valores.keys() %}
-                                <option value="{{ nome_cuba }}" {% if orcamento.tipo_cuba == nome_cuba %}selected{% endif %}>{{ nome_cuba }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-4 form-section">
-                            <label for="quantidade_cubas" class="form-label">Quantidade de Cubas:</label>
-                            <input type="number" id="quantidade_cubas" name="quantidade_cubas" class="form-control" value="{{ orcamento.quantidade_cubas }}" min="0">
+                        <div class="col-md-12 form-section">
+                            <div id="cubasSelecionadas"></div>
+                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="adicionarCubaOrcamento()">Adicionar cuba</button>
                         </div>
                     </div>
                 `;
-                
-                // Campos específicos para cuba esculpida
-                camposEspecificos += `
-                    <div class="col-md-12" id="cuba_esculpida_fields" style="display: {% if orcamento.tipo_cuba == 'Esculpida' %}block{% else %}none{% endif %};">
-                        <div class="row mt-3">
-                            <div class="col-md-4 form-section">
-                                <label for="modelo_cuba" class="form-label">Modelo da Cuba:</label>
-                                <select name="modelo_cuba" id="modelo_cuba" class="form-select">
-                                    <option value="Normal" {% if orcamento.modelo_cuba == 'Normal' %}selected{% endif %}>Normal</option>
-                                    <option value="Prainha" {% if orcamento.modelo_cuba == 'Prainha' %}selected{% endif %}>Prainha</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-12" id="medidas_cuba_fields" style="display: {% if orcamento.tipo_cuba == 'Esculpida' %}block{% else %}none{% endif %};">
-                        <div class="row mt-3">
-                            <div class="col-md-4 form-section">
-                                <label for="comprimento_cuba" class="form-label">Comprimento Cuba (cm):</label>
-                                <input type="number" id="comprimento_cuba" name="comprimento_cuba" class="form-control" value="{{ orcamento.comprimento_cuba }}" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
-                            </div>
-                            <div class="col-md-4 form-section">
-                                <label for="largura_cuba" class="form-label">Largura Cuba (cm):</label>
-                                <input type="number" id="largura_cuba" name="largura_cuba" class="form-control" value="{{ orcamento.largura_cuba }}" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
-                            </div>
-                            <div class="col-md-4 form-section">
-                                <label for="profundidade_cuba" class="form-label">Profundidade Cuba (cm):</label>
-                                <input type="number" id="profundidade_cuba" name="profundidade_cuba" class="form-control" value="{{ orcamento.profundidade_cuba }}" step="0.01" min="0" pattern="[0-9]+([,][0-9]+)?">
-                            </div>
-                        </div>
-                    </div>
-                `;
-                
+
                 camposEspecificos += camposRecortes();
                 
                 container.innerHTML = camposAcabamentos() + camposEspecificos;
                 restaurarAcessoriosOrcamento();
                 restaurarAcabamentosOrcamento();
                 restaurarSaiaFronteOrcamento();
+                restaurarCubasOrcamento();
             } 
             else if (tipoProduto === 'Ilharga' || tipoProduto === 'Ilharga Bipolida' || tipoProduto === 'Pedra Simples com Saia' || tipoProduto === 'Pedra Bipolida com Saia') {
                 let camposEspecificos = `

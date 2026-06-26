@@ -152,6 +152,7 @@ def calcular_valor_item(
     largura_cuba=0,
     profundidade_cuba=0,
     modelo_cuba="Normal",
+    cubas_valor_total=0,
     tem_cooktop="Nao",
     acessorios_valor_total=0,
     acabamentos_valor_total=0,
@@ -254,7 +255,10 @@ def calcular_valor_item(
     if tipo_produto == "Pedra de Box":
         total = (valor_base * 2) + ((_float(comprimento) / 100) * _float(pedra_box_adicional, 30))
 
-    if tipo_cuba:
+    cubas_valor_total = _float(cubas_valor_total)
+    if cubas_valor_total > 0:
+        total += cubas_valor_total
+    elif tipo_cuba:
         qtd_cubas = _int(quantidade_cubas, 0)
         if tipo_cuba == "Esculpida":
             qtd_esculpida = max(qtd_cubas, 1)

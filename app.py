@@ -860,6 +860,37 @@ def normalizar_acabamentos(nomes, comprimentos=None, valores=None):
     return acabamentos
 
 
+def normalizar_cubas(nomes, quantidades=None, modelos=None, comprimentos=None, larguras=None, profundidades=None):
+    quantidades = quantidades or []
+    modelos = modelos or []
+    comprimentos = comprimentos or []
+    larguras = larguras or []
+    profundidades = profundidades or []
+    cubas = []
+    for indice, nome in enumerate(nomes or []):
+        nome_limpo = str(nome or '').strip()
+        if not nome_limpo:
+            continue
+        try:
+            quantidade = int(float(str(quantidades[indice]).replace(',', '.'))) if indice < len(quantidades) and str(quantidades[indice]).strip() else 1
+        except (TypeError, ValueError):
+            quantidade = 1
+        quantidade = max(quantidade, 1)
+        modelo = str(modelos[indice] if indice < len(modelos) else 'Normal' or 'Normal').strip() or 'Normal'
+        comprimento = _float_form(comprimentos[indice] if indice < len(comprimentos) else 0)
+        largura = _float_form(larguras[indice] if indice < len(larguras) else 0)
+        profundidade = _float_form(profundidades[indice] if indice < len(profundidades) else 0)
+        cubas.append({
+            "nome": nome_limpo,
+            "quantidade": quantidade,
+            "modelo": modelo,
+            "comprimento": comprimento,
+            "largura": largura,
+            "profundidade": profundidade,
+        })
+    return cubas
+
+
 def _float_form(valor, padrao=0.0):
     try:
         return float(str(valor if valor is not None else padrao).replace(',', '.') or padrao)
@@ -926,6 +957,36 @@ def acessorios_do_orcamento(orcamento):
     return []
 
 
+def cubas_do_orcamento(orcamento):
+    if not orcamento:
+        return []
+    if getattr(orcamento, "cubas_json", None):
+        try:
+            dados = json.loads(orcamento.cubas_json)
+            if isinstance(dados, list):
+                return normalizar_cubas(
+                    [item.get("nome") for item in dados if isinstance(item, dict)],
+                    [item.get("quantidade") for item in dados if isinstance(item, dict)],
+                    [item.get("modelo") for item in dados if isinstance(item, dict)],
+                    [item.get("comprimento") for item in dados if isinstance(item, dict)],
+                    [item.get("largura") for item in dados if isinstance(item, dict)],
+                    [item.get("profundidade") for item in dados if isinstance(item, dict)],
+                )
+        except (TypeError, ValueError):
+            pass
+    tipo_cuba = str(getattr(orcamento, "tipo_cuba", "") or "").strip()
+    if not tipo_cuba or tipo_cuba == "-":
+        return []
+    return normalizar_cubas(
+        [tipo_cuba],
+        [getattr(orcamento, "quantidade_cubas", 0) or 1],
+        [getattr(orcamento, "modelo_cuba", "Normal") or "Normal"],
+        [getattr(orcamento, "comprimento_cuba", 0) or 0],
+        [getattr(orcamento, "largura_cuba", 0) or 0],
+        [getattr(orcamento, "profundidade_cuba", 0) or 0],
+    )
+
+
 def acabamentos_do_orcamento(orcamento):
     if not orcamento or not getattr(orcamento, "acabamentos_json", None):
         return []
@@ -985,6 +1046,26 @@ def acessorios_total(acessorios):
     return sum(float(item.get("valor") or 0) for item in (acessorios or []))
 
 
+def cubas_total(cubas, valor_material, cuba_valores=None):
+    cuba_valores = cuba_valores or empresa_cuba_valores()
+    total = 0
+    for item in cubas or []:
+        nome = item.get("nome")
+        quantidade = max(int(item.get("quantidade") or 1), 1)
+        total += float(cuba_valores.get(nome, 0) or 0) * quantidade
+        if str(nome or "").lower() == "esculpida":
+            comp = float(item.get("comprimento") or 0)
+            larg = float(item.get("largura") or 0)
+            prof = float(item.get("profundidade") or 0)
+            if comp > 0 and larg > 0 and prof > 0:
+                if item.get("modelo") == "Prainha":
+                    area = ((comp * larg) + (larg * 2) * prof) / 10000
+                else:
+                    area = ((comp * larg * 2) + (comp * 2 + larg * 2) * prof) / 10000
+                total += area * float(valor_material or 0) * quantidade
+    return total
+
+
 def acabamentos_total(acabamentos):
     total = 0
     for item in acabamentos or []:
@@ -1040,8 +1121,9 @@ def acabamentos_texto(orcamento):
         nome = item.get("nome")
         comprimento = float(item.get("comprimento") or 0)
         if nome and comprimento > 0:
-            itens.append(f"{nome} {comprimento:g}")
-    return ", ".join(itens) if itens else "-"
+            comprimento_formatado = f"{comprimento:.1f}".replace(".", ",")
+            itens.append(f"{nome}<br>{comprimento_formatado}")
+    return Markup("<br>".join(itens)) if itens else "-"
 
 
 def _linhas_html(itens):
@@ -1132,20 +1214,21 @@ def texto_cuba_produto(produto):
     if tipo not in TIPOS_COM_FRONTE_CUBA_TABELA:
         return ""
 
-    tipo_cuba = str(getattr(produto, "tipo_cuba", "") or "").strip()
-    if not tipo_cuba or tipo_cuba == "-":
-        return ""
-
-    quantidade = getattr(produto, "quantidade_cubas", 0) or 0
-    if tipo_cuba.lower() == "esculpida":
-        comp = _float_tabela(getattr(produto, "comprimento_cuba", 0))
-        larg = _float_tabela(getattr(produto, "largura_cuba", 0))
-        prof = _float_tabela(getattr(produto, "profundidade_cuba", 0))
-        if comp > 0 and larg > 0 and prof > 0:
-            return _duas_linhas_html(f"Esculpida ({quantidade})", f"{comp:.1f}x{larg:.1f}x{prof:.1f} cm")
-        return f"Esculpida ({quantidade})"
-
-    return f"{tipo_cuba} ({quantidade})"
+    linhas = []
+    for cuba in cubas_do_orcamento(produto):
+        tipo_cuba = str(cuba.get("nome") or "").strip()
+        quantidade = int(cuba.get("quantidade") or 1)
+        if tipo_cuba.lower() == "esculpida":
+            comp = _float_tabela(cuba.get("comprimento"))
+            larg = _float_tabela(cuba.get("largura"))
+            prof = _float_tabela(cuba.get("profundidade"))
+            if comp > 0 and larg > 0 and prof > 0:
+                linhas.append(f"Esculpida ({quantidade})<br>{comp:.1f}x{larg:.1f}x{prof:.1f} cm")
+            else:
+                linhas.append(f"Esculpida ({quantidade})")
+        else:
+            linhas.append(f"{tipo_cuba} ({quantidade})")
+    return Markup("<br>".join(linhas)) if linhas else ""
 
 
 def opcoes_precificacao_empresa(config=None):
@@ -1383,6 +1466,7 @@ class Orcamento(db.Model):
     largura_cuba = db.Column(db.Float, default=0.0)
     profundidade_cuba = db.Column(db.Float, default=0.0)
     modelo_cuba = db.Column(db.String(50))
+    cubas_json = db.Column(db.Text, default='')
     tem_cooktop = db.Column(db.String(50), default="Não")
     acessorios_json = db.Column(db.Text, default='')
     acabamentos_json = db.Column(db.Text, default='')
@@ -1501,6 +1585,7 @@ def _garantir_colunas_orcamento():
     _garantir_coluna("orcamento", "acessorios_json", "TEXT DEFAULT ''")
     _garantir_coluna("orcamento", "acabamentos_json", "TEXT DEFAULT ''")
     _garantir_coluna("orcamento", "saia_fronte_json", "TEXT DEFAULT ''")
+    _garantir_coluna("orcamento", "cubas_json", "TEXT DEFAULT ''")
 
 
 def _atualizar_textos_pagamento_padrao():
@@ -1696,7 +1781,7 @@ def api_configurador_orcamento():
             def criar_item_p(tipo_produto, comprimento, largura, comp_saia, larg_saia, comp_fronte, larg_fronte,
                            tipo_cuba='', qtd_cubas=0, comp_cuba=0, larg_cuba=0, prof_cuba=0,
                            tem_cooktop='Não', prof_nicho=0, tem_fundo='Sim', tem_alisar='Não', larg_alisar=0,
-                           produto_nome='', quantidade=1):
+                           produto_nome='', quantidade=1, cubas_lista=None):
                 comprimento_cal = max(comprimento, 10)
                 largura_cal = max(largura, 10)
                 valor_base = mat.valor * (comprimento_cal * largura_cal / 10000)
@@ -1718,6 +1803,30 @@ def api_configurador_orcamento():
                     valor_base *= 1 + (float(margem_bipolida or 0) / 100)
 
                 valor_total = valor_base
+                if cubas_lista is not None:
+                    cubas_item = normalizar_cubas(
+                        [item.get('nome') for item in cubas_lista],
+                        [item.get('quantidade') for item in cubas_lista],
+                        [item.get('modelo') for item in cubas_lista],
+                        [item.get('comprimento') for item in cubas_lista],
+                        [item.get('largura') for item in cubas_lista],
+                        [item.get('profundidade') for item in cubas_lista],
+                    )
+                else:
+                    cubas_item = normalizar_cubas(
+                        [tipo_cuba] if tipo_cuba else [],
+                        [qtd_cubas],
+                        ['Normal'],
+                        [comp_cuba],
+                        [larg_cuba],
+                        [prof_cuba],
+                    )
+                primeira_cuba = cubas_item[0] if cubas_item else {}
+                tipo_cuba_cap = primeira_cuba.get('nome', '')
+                qtd_cubas = int(primeira_cuba.get('quantidade') or 0)
+                comp_cuba = float(primeira_cuba.get('comprimento') or 0)
+                larg_cuba = float(primeira_cuba.get('largura') or 0)
+                prof_cuba = float(primeira_cuba.get('profundidade') or 0)
 
                 if tipo_produto == 'Nicho':
                     comp_cal = max(comprimento, 10)
@@ -1742,20 +1851,6 @@ def api_configurador_orcamento():
                     lf_cal = max(larg_fronte, 10)
                     valor_total += cf_cal * lf_cal * mat.valor / 10000
 
-                cubas_configuradas = pricing_opts.get('cuba_valores', {})
-                tipo_cuba_cap = ''
-                if tipo_cuba:
-                    tipo_cuba_cap = next(
-                        (nome for nome in cubas_configuradas if nome.lower() == str(tipo_cuba).lower()),
-                        str(tipo_cuba).strip()
-                    )
-                if tipo_cuba_cap:
-                    vc = cubas_configuradas.get(tipo_cuba_cap, 0)
-                    valor_total += vc * max(qtd_cubas, 1)
-                    if tipo_cuba_cap == 'Esculpida' and comp_cuba > 0:
-                        m2_cuba = ((comp_cuba*larg_cuba*2)+(comp_cuba*2+larg_cuba*2)*prof_cuba)/10000
-                        valor_total += m2_cuba * mat.valor * max(qtd_cubas, 1)
-
                 if tem_cooktop == 'Sim':
                     valor_total += pricing_opts.get('cooktop_valor', 50)
 
@@ -1775,6 +1870,7 @@ def api_configurador_orcamento():
                     largura_cuba=larg_cuba,
                     profundidade_cuba=prof_cuba,
                     modelo_cuba='Normal',
+                    cubas_valor_total=cubas_total(cubas_item, mat.valor, pricing_opts.get('cuba_valores')),
                     tem_cooktop=tem_cooktop,
                     acessorios_valor_total=0,
                     profundidade_nicho=prof_nicho,
@@ -1798,6 +1894,7 @@ def api_configurador_orcamento():
                     quantidade_cubas=qtd_cubas,
                     comprimento_cuba=comp_cuba, largura_cuba=larg_cuba, profundidade_cuba=prof_cuba,
                     modelo_cuba='Normal',
+                    cubas_json=json.dumps(cubas_item, ensure_ascii=False) if cubas_item else '',
                     tem_cooktop=tem_cooktop,
                     profundidade_nicho=prof_nicho,
                     tem_fundo=tem_fundo, tem_alisar=tem_alisar, largura_alisar=larg_alisar,
@@ -1815,17 +1912,30 @@ def api_configurador_orcamento():
 
                 def cubas_na_secao(*secoes):
                     if not pcfg.get('cuba'):
-                        return '', 0, 0, 0, 0
+                        return []
                     qtd = pcfg.get('cubaQtd', 1)
                     c1_here = pcfg.get('cubaLocal') in secoes
                     c2_here = qtd >= 2 and pcfg.get('cuba2Local') in secoes
-                    if c1_here and c2_here:
-                        return pcfg.get('tipoCuba', ''), 2, pcfg.get('cubaComp', 0), pcfg.get('cubaLarg', 0), pcfg.get('cubaAlt', 0)
+                    cubas_secao = []
                     if c1_here:
-                        return pcfg.get('tipoCuba', ''), 1, pcfg.get('cubaComp', 0), pcfg.get('cubaLarg', 0), pcfg.get('cubaAlt', 0)
+                        cubas_secao.append({
+                            "nome": pcfg.get('tipoCuba', ''),
+                            "quantidade": 1,
+                            "modelo": pcfg.get('modeloCuba', 'Normal'),
+                            "comprimento": pcfg.get('cubaComp', 0),
+                            "largura": pcfg.get('cubaLarg', 0),
+                            "profundidade": pcfg.get('cubaAlt', 0),
+                        })
                     if c2_here:
-                        return pcfg.get('tipoCuba2', ''), 1, pcfg.get('cubaComp2', 0), pcfg.get('cubaLarg2', 0), pcfg.get('cubaAlt2', 0)
-                    return '', 0, 0, 0, 0
+                        cubas_secao.append({
+                            "nome": pcfg.get('tipoCuba2', pcfg.get('tipoCuba', '')),
+                            "quantidade": 1,
+                            "modelo": pcfg.get('modeloCuba2', pcfg.get('modeloCuba', 'Normal')),
+                            "comprimento": pcfg.get('cubaComp2', 0),
+                            "largura": pcfg.get('cubaLarg2', 0),
+                            "profundidade": pcfg.get('cubaAlt2', 0),
+                        })
+                    return cubas_secao
 
                 prof_m_val = pcfg.get('profMolhada', 60)
                 prof_s_val = pcfg.get('profSeca', 60)
@@ -1895,10 +2005,8 @@ def api_configurador_orcamento():
                     if dente_fundo_molhada > 0:
                         sides_m.append(('fundo', dente_fundo_molhada))
                     cs, ls, cf, lf, _ilh = calc_saia_fronte(sides_m, bordas, borda_alts, borda_saia_larg)
-                    tc, qc, cc, lc, pc = cubas_na_secao('molhada')
                     criar_item_p('Bancada', comp_m, prof_m, cs, ls, cf, lf,
-                              tipo_cuba=tc, qtd_cubas=qc,
-                              comp_cuba=cc, larg_cuba=lc, prof_cuba=pc,
+                              cubas_lista=cubas_na_secao('molhada'),
                               produto_nome='Bancada Molhada')
 
                 if has_seca and modelo != 'molhada_centro_seca_lat':
@@ -1912,11 +2020,9 @@ def api_configurador_orcamento():
                     if dente_fundo_seca > 0:
                         sides_s.append(('fundo', dente_fundo_seca))
                     cs, ls, cf, lf, _ilh = calc_saia_fronte(sides_s, bordas, borda_alts, borda_saia_larg)
-                    tc, qc, cc, lc, pc = cubas_na_secao('seca')
                     cook = 'Sim' if pcfg.get('cooktop') else 'Não'
                     criar_item_p('Bancada', comp_s, prof_s, cs, ls, cf, lf,
-                              tipo_cuba=tc, qtd_cubas=qc,
-                              comp_cuba=cc, larg_cuba=lc, prof_cuba=pc,
+                              cubas_lista=cubas_na_secao('seca'),
                               tem_cooktop=cook,
                               produto_nome='Bancada Seca')
 
@@ -1933,11 +2039,9 @@ def api_configurador_orcamento():
                         if dente_lateral > 0:
                             sides_sl.append(('fundo', dente_lateral))
                         cs, ls, cf, lf, _ilh = calc_saia_fronte(sides_sl, bordas, borda_alts, borda_saia_larg)
-                        tc, qc, cc, lc, pc = cubas_na_secao(cuba_local)
                         cook = 'Sim' if pcfg.get('cooktop') and cooktop_idx == idx else 'Não'
                         criar_item_p('Bancada', comp_sl, prof_sl, cs, ls, cf, lf,
-                                  tipo_cuba=tc, qtd_cubas=qc,
-                                  comp_cuba=cc, larg_cuba=lc, prof_cuba=pc,
+                                  cubas_lista=cubas_na_secao(cuba_local),
                                   tem_cooktop=cook,
                                   produto_nome=nome)
 
@@ -1953,10 +2057,8 @@ def api_configurador_orcamento():
                         if dente_lateral > 0:
                             sides_ml.append(('fundo', dente_lateral))
                         cs, ls, cf, lf, _ilh = calc_saia_fronte(sides_ml, bordas, borda_alts, borda_saia_larg)
-                        tc, qc, cc, lc, pc = cubas_na_secao(cuba_local)
                         criar_item_p('Bancada', comp_ml, prof_ml, cs, ls, cf, lf,
-                                  tipo_cuba=tc, qtd_cubas=qc,
-                                  comp_cuba=cc, larg_cuba=lc, prof_cuba=pc,
+                                  cubas_lista=cubas_na_secao(cuba_local),
                                   produto_nome=nome)
 
                 if is_l:
@@ -2738,11 +2840,29 @@ def listar_orcamentos():
         largura_saia = float(primeira_saia.get('largura') or 0)
         comprimento_fronte = float(primeiro_fronte.get('comprimento') or 0)
         largura_fronte = float(primeiro_fronte.get('largura') or 0)
-        tipo_cuba = request.form.get('tipo_cuba', '')
-        quantidade_cubas = int(request.form.get('quantidade_cubas', 0) or 0)
-        comprimento_cuba = float(request.form.get('comprimento_cuba', 0) or 0)
-        largura_cuba = float(request.form.get('largura_cuba', 0) or 0)
-        profundidade_cuba = float(request.form.get('profundidade_cuba', 0) or 0)
+        cubas = normalizar_cubas(
+            request.form.getlist('cuba_nome[]'),
+            request.form.getlist('cuba_quantidade[]'),
+            request.form.getlist('cuba_modelo[]'),
+            request.form.getlist('cuba_comprimento[]'),
+            request.form.getlist('cuba_largura[]'),
+            request.form.getlist('cuba_profundidade[]'),
+        )
+        if not cubas and request.form.get('tipo_cuba', ''):
+            cubas = normalizar_cubas(
+                [request.form.get('tipo_cuba', '')],
+                [request.form.get('quantidade_cubas', 0)],
+                [request.form.get('modelo_cuba', 'Normal')],
+                [request.form.get('comprimento_cuba', 0)],
+                [request.form.get('largura_cuba', 0)],
+                [request.form.get('profundidade_cuba', 0)],
+            )
+        primeira_cuba = cubas[0] if cubas else {}
+        tipo_cuba = primeira_cuba.get('nome', '')
+        quantidade_cubas = int(primeira_cuba.get('quantidade') or 0)
+        comprimento_cuba = float(primeira_cuba.get('comprimento') or 0)
+        largura_cuba = float(primeira_cuba.get('largura') or 0)
+        profundidade_cuba = float(primeira_cuba.get('profundidade') or 0)
         acessorios = normalizar_acessorios(
             request.form.getlist('acessorio_nome[]'),
             request.form.getlist('acessorio_valor[]'),
@@ -2761,14 +2881,11 @@ def listar_orcamentos():
 
         
 
-        tipo_cuba = request.form.get('tipo_cuba', '')
-        quantidade_cubas = int(request.form.get('quantidade_cubas', 0)) if tipo_cuba else 0
-
         tem_cooktop = 'Sim' if any(item.get('nome') == 'Cooktop' for item in acessorios) else request.form.get('tem_cooktop', 'Não')
 
         material = Material.query.get(material_id)
 
-        modelo_cuba = request.form.get("modelo_cuba", "").strip()
+        modelo_cuba = str(primeira_cuba.get('modelo') or request.form.get("modelo_cuba", "")).strip()
         if not modelo_cuba:  
             modelo_cuba = "Normal"
 
@@ -2793,6 +2910,7 @@ def listar_orcamentos():
             largura_cuba=largura_cuba,
             profundidade_cuba=profundidade_cuba,
             modelo_cuba=modelo_cuba,
+            cubas_valor_total=cubas_total(cubas, material.valor, pricing_opts.get('cuba_valores')),
             tem_cooktop=tem_cooktop,
             acessorios_valor_total=acessorios_total(acessorios),
             acabamentos_valor_total=acabamentos_total(acabamentos),
@@ -2835,6 +2953,7 @@ def listar_orcamentos():
                 comprimento_cuba=comprimento_cuba,
                 largura_cuba=largura_cuba,
                 profundidade_cuba=profundidade_cuba,
+                cubas_json=json.dumps(cubas, ensure_ascii=False),
                 tem_cooktop=tem_cooktop,
                 acessorios_json=json.dumps(acessorios, ensure_ascii=False),
                 acabamentos_json=json.dumps(acabamentos, ensure_ascii=False),
@@ -3259,11 +3378,29 @@ def editar_orcamento(id):
         orcamento.largura_saia = float(primeira_saia.get('largura') or 0)
         orcamento.comprimento_fronte = float(primeiro_fronte.get('comprimento') or 0)
         orcamento.largura_fronte = float(primeiro_fronte.get('largura') or 0)
-        orcamento.tipo_cuba = request.form.get('tipo_cuba', orcamento.tipo_cuba)
-        orcamento.quantidade_cubas = int(request.form.get('quantidade_cubas', orcamento.quantidade_cubas or 0) or 0)
-        orcamento.comprimento_cuba = float(request.form.get('comprimento_cuba', orcamento.comprimento_cuba or 0) or 0)
-        orcamento.largura_cuba = float(request.form.get('largura_cuba', orcamento.largura_cuba or 0) or 0)
-        orcamento.profundidade_cuba = float(request.form.get('profundidade_cuba', orcamento.profundidade_cuba or 0) or 0)
+        cubas = normalizar_cubas(
+            request.form.getlist('cuba_nome[]'),
+            request.form.getlist('cuba_quantidade[]'),
+            request.form.getlist('cuba_modelo[]'),
+            request.form.getlist('cuba_comprimento[]'),
+            request.form.getlist('cuba_largura[]'),
+            request.form.getlist('cuba_profundidade[]'),
+        )
+        if not cubas and request.form.get('tipo_cuba', ''):
+            cubas = normalizar_cubas(
+                [request.form.get('tipo_cuba', '')],
+                [request.form.get('quantidade_cubas', orcamento.quantidade_cubas or 0)],
+                [request.form.get('modelo_cuba', orcamento.modelo_cuba or 'Normal')],
+                [request.form.get('comprimento_cuba', orcamento.comprimento_cuba or 0)],
+                [request.form.get('largura_cuba', orcamento.largura_cuba or 0)],
+                [request.form.get('profundidade_cuba', orcamento.profundidade_cuba or 0)],
+            )
+        primeira_cuba = cubas[0] if cubas else {}
+        orcamento.tipo_cuba = primeira_cuba.get('nome', '')
+        orcamento.quantidade_cubas = int(primeira_cuba.get('quantidade') or 0)
+        orcamento.comprimento_cuba = float(primeira_cuba.get('comprimento') or 0)
+        orcamento.largura_cuba = float(primeira_cuba.get('largura') or 0)
+        orcamento.profundidade_cuba = float(primeira_cuba.get('profundidade') or 0)
         acessorios = normalizar_acessorios(
             request.form.getlist('acessorio_nome[]'),
             request.form.getlist('acessorio_valor[]'),
@@ -3277,11 +3414,12 @@ def editar_orcamento(id):
         orcamento.acessorios_json = json.dumps(acessorios, ensure_ascii=False)
         orcamento.acabamentos_json = json.dumps(acabamentos, ensure_ascii=False)
         orcamento.saia_fronte_json = json.dumps(saia_fronte, ensure_ascii=False)
+        orcamento.cubas_json = json.dumps(cubas, ensure_ascii=False)
         orcamento.profundidade_nicho = float(request.form.get('profundidade_nicho', orcamento.profundidade_nicho or 0) or 0)
         orcamento.tem_fundo = request.form.get('tem_fundo', orcamento.tem_fundo)
         orcamento.tem_alisar = request.form.get('tem_alisar', orcamento.tem_alisar)
         orcamento.largura_alisar = float(request.form.get('largura_alisar', orcamento.largura_alisar or 0) or 0)
-        orcamento.modelo_cuba = request.form.get('modelo_cuba', 'Normal')
+        orcamento.modelo_cuba = primeira_cuba.get('modelo') or request.form.get('modelo_cuba', 'Normal')
 
         # Obtendo o material
         material = Material.query.get(orcamento.material_id)
@@ -3355,38 +3493,7 @@ def editar_orcamento(id):
             pricing_opts = opcoes_precificacao_empresa()
             valor_total_criar = (valor_base * 2) + ((orcamento.comprimento or 0) / 100) * pricing_opts.get('pedra_box_adicional', 30)
 
-        # **Adicionando o valor das cubas**
-        cuba_valores = {
-            'Embutida': 225,
-            'Esculpida': 175,
-            'Tradicional Inox': 225,
-            'Tanque Inox': 500,
-            'Apoio Cliente': 125,
-            'Embutida Cliente': 125,
-            'Gourmet Cliente': 225,
-            'Sobrepor Cliente': 125,
-            'Tanque Inox Cliente': 225
-        }
-        
-        # **Adicionando o valor das cubas**
-        if orcamento.tipo_cuba:
-            valor_cuba = cuba_valores.get(orcamento.tipo_cuba, 0)
-            valor_total_criar += valor_cuba * orcamento.quantidade_cubas
-
-            if orcamento.tipo_cuba == 'Esculpida':
-                modelo_cuba = request.form.get('modelo_cuba', 'Normal')
-                comprimento_cuba = float(request.form.get('orcamento.comprimento_cuba', 0))
-                largura_cuba = float(request.form.get('orcamento.largura_cuba', 0))
-                profundidade_cuba = float(request.form.get('orcamento.profundidade_cuba', 0))
-            
-                if modelo_cuba == 'Prainha':
-                    m2_cuba = ((orcamento.comprimento_cuba * orcamento.largura_cuba) + (orcamento.largura_cuba * 2) * orcamento.profundidade_cuba) / 10000
-                else:
-                    m2_cuba = ((orcamento.comprimento_cuba * orcamento.largura_cuba * 2) +
-                               (orcamento.comprimento_cuba * 2 + orcamento.largura_cuba * 2) * orcamento.profundidade_cuba) / 10000
-            
-                valor_cuba_esculpida = m2_cuba * material.valor * orcamento.quantidade_cubas
-                valor_total_criar += valor_cuba_esculpida
+        valor_total_criar += cubas_total(cubas, material.valor, empresa_cuba_valores())
 
         # **Definindo o valor fixo do cooktop**
         cooktop_valor = 50  # Valor fixo para o cooktop
@@ -3431,6 +3538,7 @@ def editar_orcamento(id):
             largura_cuba=orcamento.largura_cuba,
             profundidade_cuba=orcamento.profundidade_cuba,
             modelo_cuba=orcamento.modelo_cuba,
+            cubas_valor_total=cubas_total(cubas_do_orcamento(orcamento), material.valor, pricing_opts.get('cuba_valores')),
             tem_cooktop=orcamento.tem_cooktop,
             acessorios_valor_total=acessorios_total(acessorios_do_orcamento(orcamento)),
             acabamentos_valor_total=acabamentos_total(acabamentos_do_orcamento(orcamento)),
@@ -3489,6 +3597,7 @@ def editar_orcamento(id):
         acabamento_valores=empresa_acabamentos_valores(),
         acabamentos_orcamento=acabamentos_do_orcamento(orcamento),
         saia_fronte_orcamento=saia_fronte_do_orcamento(orcamento),
+        cubas_orcamento=cubas_do_orcamento(orcamento),
     )
 
 @app.route('/clientes/delete/<int:id>', methods=['POST'])
@@ -4472,6 +4581,7 @@ def gerar_pdf_orcamento(codigo_ou_token):
 def editar_material_rt_selecionados():
     data = request.get_json()
     orcamento_ids = data.get('orcamento_ids', [])
+    pricing_opts = opcoes_precificacao_empresa()
     cliente_id = data.get('cliente_id')
     material_id = data.get('material_id')
     rt = data.get('rt')
@@ -4686,6 +4796,7 @@ def editar_material_rt_selecionados():
             largura_cuba=orcamento.largura_cuba,
             profundidade_cuba=orcamento.profundidade_cuba,
             modelo_cuba=orcamento.modelo_cuba,
+            cubas_valor_total=cubas_total(cubas_do_orcamento(orcamento), material_para_calculo.valor, pricing_opts.get('cuba_valores')),
             tem_cooktop=orcamento.tem_cooktop,
             acessorios_valor_total=acessorios_total(acessorios_do_orcamento(orcamento)),
             acabamentos_valor_total=acabamentos_total(acabamentos_do_orcamento(orcamento)),
@@ -4746,6 +4857,7 @@ def duplicar_selecionados():
                     largura_cuba=original.largura_cuba,
                     profundidade_cuba=original.profundidade_cuba,
                     modelo_cuba=original.modelo_cuba or "Normal",
+                    cubas_valor_total=cubas_total(cubas_do_orcamento(original), material.valor if material else 0, pricing_opts.get('cuba_valores')),
                     tem_cooktop=original.tem_cooktop,
                     acessorios_valor_total=acessorios_total(acessorios_do_orcamento(original)),
                     acabamentos_valor_total=acabamentos_total(acabamentos_do_orcamento(original)),
@@ -4785,6 +4897,7 @@ def duplicar_selecionados():
                     acessorios_json=original.acessorios_json,
                     acabamentos_json=original.acabamentos_json,
                     saia_fronte_json=original.saia_fronte_json,
+                    cubas_json=original.cubas_json,
                     profundidade_nicho=original.profundidade_nicho,
                     tem_fundo=original.tem_fundo,
                     tem_alisar=original.tem_alisar,
