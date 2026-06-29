@@ -3454,6 +3454,14 @@ atualizarCursorBorracha(e) {
         carregarDesenhoSalvo() {
             try {
                 this.drawingArea.innerHTML = this.desenhoSalvo;
+                const temConteudoEditavel = this.drawingArea.querySelector('.peca, .cuba');
+                if (!temConteudoEditavel) {
+                    console.warn('Desenho salvo sem peças editáveis. Recriando peças do orçamento.');
+                    this.drawingArea.innerHTML = '';
+                    this.pecasCriadas = false;
+                    this.criarPecasBase();
+                    return;
+                }
                 this.restaurarElementosTexto();
                 this.reposicionarConteudoParaQuebrasPagina();
                 this.atualizarGuiasQuebraImpressao();
@@ -8254,8 +8262,8 @@ simboloElement.style.zIndex = '10';
             const viewportWidth = Math.max(window.innerWidth || 0, document.documentElement.clientWidth || 0);
             const viewportHeight = Math.max(window.innerHeight || 0, document.documentElement.clientHeight || 0);
             const pontoClique = {
-                clientX: event?.touches?.[0]?.clientX ? event?.changedTouches?.[0]?.clientX ? event.clientX,
-                clientY: event?.touches?.[0]?.clientY ? event?.changedTouches?.[0]?.clientY ? event.clientY
+                clientX: event?.touches?.[0]?.clientX || event?.changedTouches?.[0]?.clientX || event.clientX,
+                clientY: event?.touches?.[0]?.clientY || event?.changedTouches?.[0]?.clientY || event.clientY
             };
             const larguraPopup = viewportWidth <= 768 ? Math.min(360, viewportWidth - 24) : 320;
             const alturaPopup = viewportWidth <= 768 ? Math.min(520, viewportHeight - 24) : 430;

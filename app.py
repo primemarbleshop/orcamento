@@ -1494,7 +1494,20 @@ def _eh_html_ordem_servico(desenho_data):
     """Retorna True somente para desenho HTML editável da tela Detalhes Ordem de Serviço."""
     if not desenho_data:
         return False
-    return not _eh_imagem_configurador(desenho_data)
+    if _eh_imagem_configurador(desenho_data):
+        return False
+
+    html = str(desenho_data).strip().lower()
+    if not html:
+        return False
+
+    marcadores_editaveis = (
+        'class="peca',
+        "class='peca",
+        'class="cuba',
+        "class='cuba",
+    )
+    return any(marcador in html for marcador in marcadores_editaveis)
 
 
 # Função para inicializar o banco de dados
