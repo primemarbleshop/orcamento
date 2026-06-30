@@ -731,7 +731,7 @@
                                 <i class="fas fa-pencil-alt me-1"></i> Editar Selecionados
                             </button>
 
-                            <button onclick="enviarOrcamentos()" class="btn btn-custom-primary">
+                            <button type="button" onclick="enviarOrcamentos()" class="btn btn-custom-primary">
                                 <i class="fas fa-eye me-1"></i> Exibir Detalhes
                             </button>
 
@@ -1526,7 +1526,34 @@
             cancelButtonText: "Cancelar"
         }).then((result) => {
             if (result.isConfirmed) {
-                form.submit();
+                fetch(form.action, {
+                    method: form.method || "POST",
+                    headers: {
+                        "X-Requested-With": "XMLHttpRequest",
+                        "Accept": "application/json"
+                    }
+                })
+                .then(response => response.json().then(data => ({ ok: response.ok, data })))
+                .then(({ ok, data }) => {
+                    if (!ok || !data.success) {
+                        throw new Error(data.error || "Não foi possível deletar o orçamento.");
+                    }
+                    const linha = form.closest("tr");
+                    if (linha) {
+                        linha.remove();
+                    }
+                    atualizarValorFinal();
+                    Swal.fire({
+                        title: "Deletado!",
+                        text: "O orçamento foi excluído com sucesso.",
+                        icon: "success",
+                        timer: 1400,
+                        showConfirmButton: false
+                    });
+                })
+                .catch(error => {
+                    Swal.fire("Erro!", error.message || "Erro na comunicação com o servidor.", "error");
+                });
             }
         });
     }
@@ -1752,10 +1779,10 @@
         });
 
         document.getElementById('duplicate-selected').addEventListener('click', function() {
-            const selecionados = [];
-            document.querySelectorAll('.selecionar-orcamento:checked').forEach(checkbox => {
-                selecionados.push(checkbox.closest('tr').getAttribute('data-id'));
-            });
+            const selecionados = Array.from(document.querySelectorAll('#orcamento_table tr'))
+                .filter(row => row.querySelector('.selecionar-orcamento:checked'))
+                .map(row => row.getAttribute('data-id'))
+                .filter(Boolean);
             
             if (selecionados.length === 0) {
                 Swal.fire("Atenção", "Selecione pelo menos um orçamento para duplicar!", "warning");

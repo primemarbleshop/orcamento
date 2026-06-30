@@ -76,7 +76,7 @@
                                     <th>Data</th>
                                 </tr>
                             </thead>
-                            <tbody>
+                            <tbody id="dashboard-recentes-body">
                                 {% for orcamento in dashboard.recentes %}
                                 <tr>
                                     <td data-label="Código"><a class="budget-code-link" href="{{ url_for('detalhes_orcamento_salvo', codigo=orcamento.codigo) }}">{{ orcamento.codigo }}</a></td>
@@ -97,9 +97,11 @@
                         </table>
                     </div>
                     {% if dashboard.recentes|length < dashboard.total %}
-                    <div style="display:flex;justify-content:center;margin-top:14px;">
-                        <a href="{{ url_for('index', limite=proximo_limite) }}" class="pilot-btn pilot-btn-primary">Carregar mais 10 orçamentos</a>
+                    <div id="dashboard-carregar-mais" style="display:flex;justify-content:center;margin-top:14px;">
+                        <button type="button" class="pilot-btn pilot-btn-primary" data-url="{{ url_for('index', limite=proximo_limite) }}">Carregar mais 10 orçamentos</button>
                     </div>
+                    {% else %}
+                    <div id="dashboard-carregar-mais"></div>
                     {% endif %}
                 </div>
             </div>
@@ -115,6 +117,36 @@
             if (!window.matchMedia('(max-width: 900px)').matches) {
                 event.preventDefault();
             }
+        });
+
+        document.addEventListener('click', (event) => {
+            const botao = event.target.closest('#dashboard-carregar-mais button[data-url]');
+            if (!botao) return;
+
+            const textoOriginal = botao.textContent;
+            botao.disabled = true;
+            botao.textContent = 'Carregando...';
+
+            fetch(botao.dataset.url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(response => response.text())
+                .then(html => {
+                    const doc = new DOMParser().parseFromString(html, 'text/html');
+                    const novoBody = doc.querySelector('#dashboard-recentes-body');
+                    const novoBotao = doc.querySelector('#dashboard-carregar-mais');
+                    const bodyAtual = document.querySelector('#dashboard-recentes-body');
+                    const botaoAtual = document.querySelector('#dashboard-carregar-mais');
+
+                    if (novoBody && bodyAtual) {
+                        bodyAtual.innerHTML = novoBody.innerHTML;
+                    }
+                    if (novoBotao && botaoAtual) {
+                        botaoAtual.innerHTML = novoBotao.innerHTML;
+                    }
+                })
+                .catch(() => {
+                    botao.disabled = false;
+                    botao.textContent = textoOriginal;
+                });
         });
     </script>
 </body>

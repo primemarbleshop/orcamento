@@ -283,7 +283,7 @@
                                                 data-telefone="{{ (cliente.telefone or '')|e }}">
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button class="btn btn-sm btn-custom-danger" title="Excluir" onclick="confirmarExclusao(event, '{{ url_for('deletar_cliente', id=cliente.id) }}')">
+                                        <button type="button" class="btn btn-sm btn-custom-danger" title="Excluir" onclick="confirmarExclusao(event, '{{ url_for('deletar_cliente', id=cliente.id) }}')">
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </div>
@@ -454,6 +454,7 @@
         // Função para confirmar exclusão
         function confirmarExclusao(event, url) {
             event.preventDefault();
+            const botao = event.currentTarget || event.target;
             
             Swal.fire({
                 title: "Tem certeza?",
@@ -470,14 +471,17 @@
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
+                            const linha = botao.closest('tr');
+                            if (linha) {
+                                linha.remove();
+                            }
                             Swal.fire({
                                 title: "Deletado!",
                                 text: "O cliente foi excluído com sucesso.",
                                 icon: "success",
-                                timer: 2000,
+                                timer: 1600,
                                 showConfirmButton: false
                             });
-                            setTimeout(() => location.reload(), 2000);
                         } else {
                             Swal.fire("Erro!", data.error || "Não foi possível excluir o cliente.", "error");
                         }

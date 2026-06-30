@@ -316,7 +316,33 @@
                 cancelButtonText: "Cancelar"
             }).then((result) => {
                 if (result.isConfirmed) {
-                    form.submit();
+                    fetch(form.action, {
+                        method: form.method || "POST",
+                        headers: {
+                            "X-Requested-With": "XMLHttpRequest",
+                            "Accept": "application/json"
+                        }
+                    })
+                    .then(response => response.json().then(data => ({ ok: response.ok, data })))
+                    .then(({ ok, data }) => {
+                        if (!ok || !data.success) {
+                            throw new Error(data.error || "Não foi possível deletar o material.");
+                        }
+                        const linha = form.closest("tr");
+                        if (linha) {
+                            linha.remove();
+                        }
+                        Swal.fire({
+                            title: "Deletado!",
+                            text: "O material foi excluído com sucesso.",
+                            icon: "success",
+                            timer: 1400,
+                            showConfirmButton: false
+                        });
+                    })
+                    .catch(error => {
+                        Swal.fire("Erro!", error.message || "Erro na comunicação com o servidor.", "error");
+                    });
                 }
             });
         }

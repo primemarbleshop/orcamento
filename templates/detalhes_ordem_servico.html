@@ -2404,40 +2404,40 @@ body.linhas-simbolo-bloqueadas .linha-peca.linha-visivel-hover[data-estilo-linha
 <strong>Data:</strong> {{ data_salvo.strftime('%d/%m/%Y') }}
         </p>
 <div class="action-buttons-container">
-<button class="btn btn-custom-primary" id="btnDesfazer" title="Desfazer (Ctrl+Z)">
+<button type="button" class="btn btn-custom-primary" id="btnDesfazer" title="Desfazer (Ctrl+Z)">
 <i class="fas fa-undo me-1"></i> <span class="btn-text"></span>
 </button>
-<button class="btn btn-custom-primary" id="btnRefazer" title="Refazer (Ctrl+Y)">
+<button type="button" class="btn btn-custom-primary" id="btnRefazer" title="Refazer (Ctrl+Y)">
 <i class="fas fa-redo me-1"></i> <span class="btn-text"></span>
 </button>
-<button class="btn btn-custom-primary" id="btnEstilos" title="Estilos (Cores, Texto, Linhas)">
+<button type="button" class="btn btn-custom-primary" id="btnEstilos" title="Estilos (Cores, Texto, Linhas)">
 <i class="fas fa-bars me-1"></i> <span class="btn-text"></span>
 </button>
-<button class="btn btn-custom-primary" id="btnSelecionar" title="Selecionar Objeto">
+<button type="button" class="btn btn-custom-primary" id="btnSelecionar" title="Selecionar Objeto">
 <i class="fas fa-mouse-pointer me-1"></i> <span class="btn-text">Selecionar</span>
 </button>
-<button class="btn btn-custom-primary" id="btnBorracha" title="Borracha (Pintar de branco)">
+<button type="button" class="btn btn-custom-primary" id="btnBorracha" title="Borracha (Pintar de branco)">
 <i class="fas fa-eraser me-1"></i> <span class="btn-text">Borracha</span>
 </button>
-<button class="btn btn-custom-primary" id="btnLaco" title="Laço (Selecionar área)">
+<button type="button" class="btn btn-custom-primary" id="btnLaco" title="Laço (Selecionar área)">
 <i class="fas fa-draw-polygon me-1"></i> <span class="btn-text">Laço</span>
 </button>
-<button class="btn btn-custom-primary" id="btnAdicionarTexto">
+<button type="button" class="btn btn-custom-primary" id="btnAdicionarTexto">
 <i class="fas fa-font me-1"></i> <span class="btn-text">Texto</span>
 </button>
-<button class="btn btn-custom-primary" id="btnAdicionarCuba">
+<button type="button" class="btn btn-custom-primary" id="btnAdicionarCuba">
 <i class="fas fa-pencil-ruler me-1"></i> <span class="btn-text">Desenhos</span>
 </button>
-<button class="btn btn-custom-primary" disabled="" id="btnDuplicar" title="Duplicar Elemento Selecionado">
+<button type="button" class="btn btn-custom-primary" disabled="" id="btnDuplicar" title="Duplicar Elemento Selecionado">
 <i class="fas fa-copy me-1"></i> <span class="btn-text">Duplicar</span>
 </button>
-<button class="btn btn-custom-danger" disabled="" id="btnExcluir" title="Excluir Elemento Selecionado">
+<button type="button" class="btn btn-custom-danger" disabled="" id="btnExcluir" title="Excluir Elemento Selecionado">
 <i class="fas fa-trash me-1"></i> <span class="btn-text">Excluir</span>
 </button>
-<button class="btn btn-custom-success" id="btnSalvar">
+<button type="button" class="btn btn-custom-success" id="btnSalvar">
 <i class="fas fa-save me-1"></i> <span class="btn-text">Salvar</span>
 </button>
-<button class="btn btn-custom-success" id="btnImprimir">
+<button type="button" class="btn btn-custom-success" id="btnImprimir">
 <i class="fas fa-print me-1"></i> <span class="btn-text">Imprimir</span>
 </button>
 </div>
@@ -7315,10 +7315,14 @@ _isTouchGesture(e) {
 
                     const pecaPai = elemento.closest('.peca');
                     return !pecaPai || pecaPai === elemento || !pecaPai.classList.contains('elemento-em-grupo');
+                })
+                .sort((a, b) => {
+                    if (a === b) return 0;
+                    return a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
                 });
         }
 
-        duplicarElementoBase(elementoAlvo, offset = 30) {
+        duplicarElementoBase(elementoAlvo, offset = 30, inserirDepoisDe = null) {
             const clone = elementoAlvo.cloneNode(true);
 
             clone.style.left = `${(parseFloat(elementoAlvo.style.left) || 0) + offset}px`;
@@ -7362,7 +7366,12 @@ _isTouchGesture(e) {
             });
 
             const parent = elementoAlvo.parentElement || this.drawingArea;
-            parent.appendChild(clone);
+            const referencia = inserirDepoisDe && inserirDepoisDe.parentElement === parent ? inserirDepoisDe : elementoAlvo;
+            if (referencia && referencia.parentElement === parent) {
+                parent.insertBefore(clone, referencia.nextSibling);
+            } else {
+                parent.appendChild(clone);
+            }
             this.aplicarTravaBordasElemento(clone);
 
             this.configurarInteratividade(clone);
@@ -7388,7 +7397,14 @@ _isTouchGesture(e) {
             const elementos = this.obterElementosRaizDoGrupoTemporario();
             if (!elementos.length) return;
 
-            const clones = elementos.map((elemento) => this.duplicarElementoBase(elemento, 30));
+            const ultimaReferenciaPorPai = new Map();
+            const clones = elementos.map((elemento) => {
+                const parent = elemento.parentElement || this.drawingArea;
+                const referencia = ultimaReferenciaPorPai.get(parent) || elemento;
+                const clone = this.duplicarElementoBase(elemento, 30, referencia);
+                ultimaReferenciaPorPai.set(parent, clone);
+                return clone;
+            });
             this.limparGrupoTemporario();
             this.salvarEstadoHistorico(`Duplicar Grupo: ${clones.length} elemento(s)`);
 
@@ -9009,7 +9025,7 @@ simboloElement.style.zIndex = '10';
         
         <div class="d-flex gap-2 mt-3">
             
-            <button class="btn btn-success flex-fill" id="aplicarEFecharEstilosBtn">
+            <button type="button" class="btn btn-success flex-fill" id="aplicarEFecharEstilosBtn">
                 <i class="fas fa-check-double me-1"></i> Aplicar e Fechar
             </button>
         </div>

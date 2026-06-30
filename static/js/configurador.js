@@ -1349,7 +1349,7 @@ function renderBordas(sb) {
         html += `<div class="edge-row"><div class="edge-label">${s.label}</div>${s.desc?'<div style="font-size:.65rem;color:#666">'+s.desc+'</div>':''}`;
         html += '<div class="edge-opts">';
         types.forEach(t => {
-            html += `<button class="edge-opt t-${t} ${CFG.bordas[s.key]===t?'on':''}" onclick="setBorda('${s.key}','${t}')">${EDGE_NAMES[t]}</button>`;
+            html += `<button type="button" class="edge-opt t-${t} ${CFG.bordas[s.key]===t?'on':''}" onclick="setBorda('${s.key}','${t}')">${EDGE_NAMES[t]}</button>`;
         });
         html += '</div>';
         if (bt === 'fronte') {
@@ -1704,7 +1704,7 @@ function finalizarOrcamento() {
                         <a class="btn btn-next" href="https://wa.me/5521993811591?text=${encodeURIComponent('Olá, segue meu orçamento: https://primemarbleshop.com.br/orcamento/' + data.token)}" target="_blank" style="max-width:240px;margin:0 auto;display:block;text-decoration:none">Enviar Orçamento</a>
                     </div>
                     <div style="margin-top:10px">
-                        <button class="btn btn-back" onclick="location.reload()" style="max-width:200px;margin:0 auto">Novo Orçamento</button>
+                        <button type="button" class="btn btn-back" onclick="location.reload()" style="max-width:200px;margin:0 auto">Novo Orçamento</button>
                     </div>
                 </div>`;
             document.getElementById('btnBack').classList.add('hidden');

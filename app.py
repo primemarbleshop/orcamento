@@ -18,7 +18,7 @@ from flask_migrate import Migrate
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
 from markupsafe import Markup
-from datetime import datetime
+from datetime import datetime, timedelta
 from pytz import timezone
 from sqlalchemy import or_, text
 import io
@@ -3661,17 +3661,31 @@ def deletar_cliente(id):
 
 @app.route('/materiais/delete/<int:id>', methods=['POST'])
 def deletar_material(id):
+    wants_json = (
+        request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        or 'application/json' in request.headers.get('Accept', '')
+    )
     material = Material.query.get(id)
     if material:
         db.session.delete(material)
         db.session.commit()
+        if wants_json:
+            return jsonify({"success": True, "message": "Material deletado com sucesso!"})
+    elif wants_json:
+        return jsonify({"success": False, "error": "Material não encontrado!"}), 404
     return redirect(url_for('materiais'))
 
 @app.route('/deletar_orcamento/<int:id>', methods=['POST'])
 def deletar_orcamento(id):
     """Esta rota exclui fisicamente do banco de dados (apenas do gerenciador)"""
+    wants_json = (
+        request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        or 'application/json' in request.headers.get('Accept', '')
+    )
     orcamento = Orcamento.query.get(id)
     if not orcamento:
+        if wants_json:
+            return jsonify({"success": False, "error": "Orçamento não encontrado."}), 404
         flash("Erro: Orçamento não encontrado.", "error")
         return redirect(url_for('listar_orcamentos'))
 
@@ -3707,6 +3721,8 @@ def deletar_orcamento(id):
     db.session.delete(orcamento)
     db.session.commit()
 
+    if wants_json:
+        return jsonify({"success": True, "message": "Orçamento excluído com sucesso!"})
     flash("Orçamento excluído com sucesso!", "success")
     return redirect(url_for('listar_orcamentos'))
 
@@ -4876,8 +4892,9 @@ def duplicar_selecionados():
 
     try:
         novos_ids = []  # 🔥 ARMazenar os IDs dos novos orçamentos
+        data_base_duplicacao = datetime.now(br_tz)
         
-        for id in orcamento_ids:
+        for indice, id in enumerate(orcamento_ids):
             original = Orcamento.query.get(id)
             if original:
                 material = Material.query.get(original.material_id)
@@ -4949,7 +4966,7 @@ def duplicar_selecionados():
                     largura_alisar=original.largura_alisar,
                     valor_total=valor_total,
                     dono=original.dono,
-                    data=datetime.now(br_tz)
+                    data=data_base_duplicacao - timedelta(microseconds=indice)
                 )
 
                 db.session.add(novo_orcamento)
@@ -5556,9 +5573,16 @@ def detalhes_ordem_servico(codigo):
 
 @app.route('/excluir_item_orcamento/<codigo>', methods=['POST'])
 def excluir_item_orcamento(codigo):
+    wants_json = (
+        request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+        or 'application/json' in request.headers.get('Accept', '')
+    )
+
     try:
         # Verificar se o usuário está logado
         if 'user_cpf' not in session:
+            if wants_json:
+                return jsonify({"success": False, "error": "Você precisa fazer login para realizar esta ação."}), 401
             flash("Você precisa fazer login para realizar esta ação.", "error")
             return redirect(url_for('login'))
         
@@ -5569,6 +5593,8 @@ def excluir_item_orcamento(codigo):
         tipo_produto = request.form.get('tipo_produto')
         
         if not item_id:
+            if wants_json:
+                return jsonify({"success": False, "error": "ID do item não fornecido!"}), 400
             flash("ID do item não fornecido!", "error")
             return redirect(url_for('detalhes_orcamento_salvo', codigo=codigo))
         
@@ -5576,12 +5602,16 @@ def excluir_item_orcamento(codigo):
         orcamento_salvo = OrcamentoSalvo.query.filter_by(codigo=codigo).first()
         
         if not orcamento_salvo:
+            if wants_json:
+                return jsonify({"success": False, "error": "Orçamento salvo não encontrado!"}), 404
             flash("Orçamento salvo não encontrado!", "error")
             return redirect(url_for('listar_orcamentos_salvos'))
         
         # Verificar permissões
         usuario = Usuario.query.filter_by(cpf=session.get('user_cpf')).first()
         if not session.get('admin') and orcamento_salvo.criado_por != usuario.nome:
+            if wants_json:
+                return jsonify({"success": False, "error": "Você não tem permissão para excluir itens deste orçamento!"}), 403
             flash("Você não tem permissão para excluir itens deste orçamento!", "error")
             return redirect(url_for('detalhes_orcamento_salvo', codigo=codigo))
         
@@ -5589,6 +5619,8 @@ def excluir_item_orcamento(codigo):
         orcamento_item = Orcamento.query.get(int(item_id))
         
         if not orcamento_item:
+            if wants_json:
+                return jsonify({"success": False, "error": "Item não encontrado!"}), 404
             flash("Item não encontrado!", "error")
             return redirect(url_for('detalhes_orcamento_salvo', codigo=codigo))
         
@@ -5596,6 +5628,8 @@ def excluir_item_orcamento(codigo):
         orcamento_ids = orcamento_salvo.orcamentos_ids.split(',')
         
         if str(item_id) not in orcamento_ids:
+            if wants_json:
+                return jsonify({"success": False, "error": "Este item não pertence a este orçamento!"}), 400
             flash("Este item não pertence a este orçamento!", "error")
             return redirect(url_for('detalhes_orcamento_salvo', codigo=codigo))
         
@@ -5624,6 +5658,12 @@ def excluir_item_orcamento(codigo):
             db.session.delete(orcamento_salvo)
             db.session.commit()
             
+            if wants_json:
+                return jsonify({
+                    "success": True,
+                    "orcamento_removido": True,
+                    "redirect": url_for('listar_orcamentos_salvos')
+                })
             flash("Todos os itens foram removidos. O orçamento salvo foi excluído.", "success")
             return redirect(url_for('listar_orcamentos_salvos'))
         
@@ -5646,6 +5686,12 @@ def excluir_item_orcamento(codigo):
         print(f"ðŸ“‹ IDs restantes: {orcamento_ids_atualizados}")
         
         # ðŸ”¥ Redirecionar com mensagem de sucesso
+        if wants_json:
+            return jsonify({
+                "success": True,
+                "message": "Item removido do orçamento salvo com sucesso!",
+                "novo_valor_total": novo_valor_total
+            })
         flash("Item removido do orçamento salvo com sucesso!", "success")
         return redirect(url_for('detalhes_orcamento_salvo', codigo=codigo, item_excluido='true'))
     
@@ -5655,6 +5701,8 @@ def excluir_item_orcamento(codigo):
         import traceback
         traceback.print_exc()
         
+        if wants_json:
+            return jsonify({"success": False, "error": f"Erro ao remover item: {str(e)}"}), 500
         flash(f"Erro ao remover item: {str(e)}", "error")
         return redirect(url_for('detalhes_orcamento_salvo', codigo=codigo, erro='true'))
 
