@@ -839,11 +839,57 @@
 .titulo-grupo:not(.elemento-selecionado) {
     pointer-events: auto !important;
 }
+
+body:not(.modo-borracha) .cuba.linha-reta .linha-peca,
+body:not(.modo-borracha) .cuba.linha-reta .segmento-linha-peca,
+body:not(.modo-borracha) .cuba.linha-reta .area-clique-linha-simbolo {
+    pointer-events: none !important;
+}
+
+body:not(.modo-borracha) .drawing-area .cuba.linha-reta,
+body:not(.modo-borracha) .area-pecas .cuba.linha-reta {
+    z-index: 35 !important;
+    overflow: visible !important;
+}
+
+body:not(.modo-borracha) .drawing-area .cuba.linha-reta::after,
+body:not(.modo-borracha) .area-pecas .cuba.linha-reta::after {
+    content: '' !important;
+    position: absolute !important;
+    top: -14px !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 30px !important;
+    background: transparent !important;
+    cursor: move !important;
+    pointer-events: auto !important;
+    z-index: 1 !important;
+}
+
+.linha-reta-hitbox {
+    position: absolute !important;
+    left: 0 !important;
+    top: -14px !important;
+    width: 100% !important;
+    height: 30px !important;
+    background: transparent !important;
+    pointer-events: auto !important;
+    cursor: move !important;
+    z-index: 45 !important;
+}
+
+@media print {
+    .linha-reta-hitbox {
+        display: none !important;
+        visibility: hidden !important;
+        opacity: 0 !important;
+    }
+}
     
     .handle {
         position: absolute;
-        width: 20px;
-        height: 20px;
+        width: 15px;
+        height: 15px;
         background-color: transparent;
         border: 0;
         border-radius: 50%;
@@ -890,8 +936,8 @@
     
     .handle-rotacao {
         position: absolute;
-        width: 20px;
-        height: 20px;
+        width: 15px;
+        height: 15px;
         background-color: transparent;
         border: 0;
         border-radius: 50%;
@@ -7649,7 +7695,9 @@ _isTouchGesture(e) {
                 elemento.style.zIndex = '1000';
             },
             move: (event) => {
-                const deltaLimitado = this.limitarDeltaElementoPorTravaBordas(elemento, event.dx, event.dy);
+                const deltaLimitado = elemento.classList.contains('linha-reta')
+                    ? { dx: event.dx, dy: event.dy }
+                    : this.limitarDeltaElementoPorTravaBordas(elemento, event.dx, event.dy);
                 let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + deltaLimitado.dx;
                 let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + deltaLimitado.dy;
                 const rotate = elemento.getAttribute('data-rotate') || 0;
@@ -7902,7 +7950,9 @@ _isTouchGesture(e) {
                         event.preventDefault();
                     }
 
-                    const deltaLimitado = this.limitarDeltaElementoPorTravaBordas(elemento, event.dx, event.dy);
+                    const deltaLimitado = elemento.classList.contains('linha-reta')
+                        ? { dx: event.dx, dy: event.dy }
+                        : this.limitarDeltaElementoPorTravaBordas(elemento, event.dx, event.dy);
                     const rotacao = parseFloat(elemento.getAttribute('data-rotate')) || 0;
                     const x = (parseFloat(elemento.getAttribute('data-x')) || 0) + deltaLimitado.dx;
                     const y = (parseFloat(elemento.getAttribute('data-y')) || 0) + deltaLimitado.dy;
@@ -8311,7 +8361,9 @@ simboloElement.style.zIndex = '10';
                             elemento.style.zIndex = '1000';
                         },
                         move: (event) => {
-                            const deltaLimitado = this.limitarDeltaElementoPorTravaBordas(elemento, event.dx, event.dy);
+                            const deltaLimitado = elemento.classList.contains('linha-reta')
+                                ? { dx: event.dx, dy: event.dy }
+                                : this.limitarDeltaElementoPorTravaBordas(elemento, event.dx, event.dy);
                             let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + deltaLimitado.dx;
                             let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + deltaLimitado.dy;
                             const rotate = elemento.getAttribute('data-rotate') || 0;
@@ -13728,10 +13780,12 @@ aplicarEstilosManterModal() {
             resize = null;
         }
 
-        inst.drawingArea.addEventListener('pointerdown', iniciar, true);
+        document.addEventListener('pointerdown', iniciar, true);
         document.addEventListener('pointermove', mover, true);
         document.addEventListener('pointerup', finalizar, true);
         document.addEventListener('pointercancel', finalizar, true);
+        document.addEventListener('mousemove', mover, true);
+        document.addEventListener('mouseup', finalizar, true);
     }
 
     function tentarInstalar() {
@@ -13744,6 +13798,385 @@ aplicarEstilosManterModal() {
         setTimeout(tentarInstalar, 1000);
     });
     window.addEventListener('load', tentarInstalar);
+})();
+</script>
+<script id="ordem-servico-interacao-fina-fix">
+(function() {
+    if (typeof GerenciadorDesenho === 'undefined') return;
+
+    function ehManipulavel(el) {
+        return !!(el && el.classList && (
+            el.classList.contains('peca') ||
+            el.classList.contains('cuba') ||
+            el.classList.contains('texto-legenda') ||
+            el.classList.contains('legenda-simplificada') ||
+            el.classList.contains('titulo-grupo') ||
+            el.classList.contains('dimensoes') ||
+            el.classList.contains('quantidade-peca')
+        ));
+    }
+
+    function ehLinhaReta(el) {
+        return !!(el && el.classList && el.classList.contains('cuba') && el.classList.contains('linha-reta'));
+    }
+
+    function garantirHitboxLinhaReta(el) {
+        if (!ehLinhaReta(el)) return;
+        if (!el.id) el.id = `linha-reta-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        el.querySelectorAll(':scope > .linha-reta-hitbox').forEach((node) => node.remove());
+        const parent = el.parentElement;
+        if (!parent) return;
+        let hitbox = parent.querySelector(`:scope > .linha-reta-hitbox[data-linha-id="${CSS.escape(el.id)}"]`);
+        if (!hitbox) {
+            hitbox = document.createElement('div');
+            hitbox.className = 'linha-reta-hitbox';
+            hitbox.setAttribute('aria-hidden', 'true');
+            hitbox.dataset.linhaId = el.id;
+            parent.appendChild(hitbox);
+        }
+        const left = parseFloat(el.style.left) || el.offsetLeft || 0;
+        const top = parseFloat(el.style.top) || el.offsetTop || 0;
+        const width = parseFloat(el.style.width) || el.offsetWidth || 1;
+        hitbox.style.setProperty('left', `${left}px`, 'important');
+        hitbox.style.setProperty('top', `${top - 14}px`, 'important');
+        hitbox.style.setProperty('width', `${width}px`, 'important');
+        hitbox.style.setProperty('height', '30px', 'important');
+        hitbox.style.setProperty('transform', el.style.transform || 'none', 'important');
+        hitbox.style.setProperty('transform-origin', el.style.transformOrigin || 'center center', 'important');
+    }
+
+    function garantirHitboxesLinhaReta(root) {
+        const base = root || document;
+        if (!base || !base.querySelectorAll) return;
+        base.querySelectorAll('.cuba.linha-reta').forEach(garantirHitboxLinhaReta);
+        document.querySelectorAll('.linha-reta-hitbox[data-linha-id]').forEach((hitbox) => {
+            if (!document.getElementById(hitbox.dataset.linhaId)) hitbox.remove();
+        });
+    }
+
+    function atualizarVisual(inst, el) {
+        if (!inst || !el) return;
+        if (ehLinhaReta(el)) garantirHitboxLinhaReta(el);
+        if (ehLinhaReta(el) || (el.classList && el.classList.contains('cuba'))) {
+            if (typeof inst.sincronizarLinhasDesenhoRetangular === 'function') inst.sincronizarLinhasDesenhoRetangular(el);
+            else if (typeof inst.renderizarDesenhoComBorracha === 'function') inst.renderizarDesenhoComBorracha(el);
+        }
+        if (el.classList && el.classList.contains('peca') && typeof inst.atualizarLinhasESimbolos === 'function') {
+            inst.atualizarLinhasESimbolos(el);
+        }
+    }
+
+    function esconderHandles(inst) {
+        if (!inst || !inst.drawingArea) return;
+        inst.drawingArea.querySelectorAll('.handles-container, .handle, .handle-rotacao').forEach((el) => {
+            el.style.display = 'none';
+            el.style.pointerEvents = 'none';
+        });
+    }
+
+    function mostrarHandles(inst, alvo) {
+        if (!inst || !alvo) return;
+        if (typeof inst.criarHandles === 'function') {
+            inst.criarHandles(alvo);
+        } else if (typeof inst.posicionarHandles === 'function') {
+            inst.posicionarHandles(alvo);
+        }
+    }
+
+    function limparCursorBorracha(inst) {
+        if (!inst || !inst.drawingArea) return;
+        inst.borrachaPressionada = false;
+        inst.borrachaAplicadaNestaAcao = false;
+        inst.drawingArea.querySelectorAll('.cursor-borracha').forEach((cursor, index) => {
+            if (index === 0) {
+                cursor.style.display = 'none';
+            } else if (cursor.parentNode) {
+                cursor.parentNode.removeChild(cursor);
+            }
+        });
+        if (inst.borrachaCursor) inst.borrachaCursor.style.display = 'none';
+    }
+
+    const iniciarManipulacaoAnterior = GerenciadorDesenho.prototype.iniciarManipulacaoSemPinturaBorracha;
+    GerenciadorDesenho.prototype.iniciarManipulacaoSemPinturaBorracha = function(elemento) {
+        if (typeof iniciarManipulacaoAnterior === 'function') {
+            return iniciarManipulacaoAnterior.call(this, elemento);
+        }
+    };
+
+    const finalizarManipulacaoAnterior = GerenciadorDesenho.prototype.finalizarManipulacaoSemPinturaBorracha;
+    GerenciadorDesenho.prototype.finalizarManipulacaoSemPinturaBorracha = function(elemento) {
+        const retorno = typeof finalizarManipulacaoAnterior === 'function'
+            ? finalizarManipulacaoAnterior.call(this, elemento)
+            : undefined;
+        const alvo = elemento || this.elementoSelecionado;
+        setTimeout(() => {
+            if (alvo && this.elementoSelecionado === alvo) mostrarHandles(this, alvo);
+        }, 0);
+        return retorno;
+    };
+
+    const desfazerAnterior = GerenciadorDesenho.prototype.desfazer;
+    GerenciadorDesenho.prototype.desfazer = function() {
+        const retorno = typeof desfazerAnterior === 'function' ? desfazerAnterior.call(this) : undefined;
+        limparCursorBorracha(this);
+        return retorno;
+    };
+
+    const refazerAnterior = GerenciadorDesenho.prototype.refazer;
+    GerenciadorDesenho.prototype.refazer = function() {
+        const retorno = typeof refazerAnterior === 'function' ? refazerAnterior.call(this) : undefined;
+        limparCursorBorracha(this);
+        return retorno;
+    };
+
+    function instalarArrasteDireto(inst) {
+        if (!inst || !inst.drawingArea || inst.__arrasteDiretoOSFinoInstalado) return;
+        inst.__arrasteDiretoOSFinoInstalado = true;
+        garantirHitboxesLinhaReta(inst.drawingArea);
+        if (!inst.__hitboxLinhaRetaObserver && typeof MutationObserver !== 'undefined') {
+            inst.__hitboxLinhaRetaObserver = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    mutation.addedNodes.forEach((node) => {
+                        if (!(node instanceof Element)) return;
+                        if (node.matches && node.matches('.cuba.linha-reta')) garantirHitboxLinhaReta(node);
+                        garantirHitboxesLinhaReta(node);
+                    });
+                });
+            });
+            inst.__hitboxLinhaRetaObserver.observe(inst.drawingArea, { childList: true, subtree: true });
+        }
+
+        let arraste = null;
+        let ultimoClique = { t: 0, el: null };
+
+        function estaSelecionado(el) {
+            return !!(el && (inst.elementoSelecionado === el || (el.classList && el.classList.contains('elemento-selecionado'))));
+        }
+
+        function alvoDoEvento(ev) {
+            const hitboxLinha = ev.target && ev.target.closest ? ev.target.closest('.linha-reta-hitbox') : null;
+            if (hitboxLinha) {
+                const linha = document.getElementById(hitboxLinha.dataset.linhaId) || hitboxLinha.closest('.cuba.linha-reta');
+                return ehManipulavel(linha) ? linha : null;
+            }
+            const handle = ev.target && ev.target.closest ? ev.target.closest('.handle, .handle-rotacao') : null;
+            if (handle) {
+                const selecionado = inst.elementoSelecionado;
+                return ehManipulavel(selecionado) ? selecionado : null;
+            }
+            const el = ev.target && ev.target.closest ? ev.target.closest('.peca, .cuba, .texto-legenda, .legenda-simplificada, .titulo-grupo, .dimensoes, .quantidade-peca') : null;
+            return ehManipulavel(el) ? el : null;
+        }
+
+        function deveArrastar(ev, el) {
+            if (!el || inst.modoBorrachaAtivo || inst.modoLacoAtivo) return false;
+            if (ev.target && ev.target.closest && ev.target.closest('button, select, input, textarea, .modal, .modal-controles, .modal-estilos')) return false;
+            if (!inst.modoSelecaoAtivo && !estaSelecionado(el)) return false;
+
+            const emHandle = !!(ev.target && ev.target.closest && ev.target.closest('.handle, .handle-rotacao'));
+            const agora = Date.now();
+            const duploCliqueRapido = ultimoClique.el === el && (agora - ultimoClique.t) < 420;
+            ultimoClique = { t: agora, el };
+
+            if (emHandle) return duploCliqueRapido;
+            if (ehLinhaReta(el)) return true;
+            return duploCliqueRapido;
+        }
+
+        function iniciar(ev) {
+            if (arraste) return;
+            const el = alvoDoEvento(ev);
+            if (!deveArrastar(ev, el)) return;
+
+            ev.preventDefault();
+            ev.stopPropagation();
+            if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+
+            if (inst.modoSelecaoAtivo && typeof inst.selecionarElemento === 'function' && inst.elementoSelecionado !== el) {
+                inst.selecionarElemento(el, null);
+            }
+            esconderHandles(inst);
+            if (typeof inst.iniciarManipulacaoSemPinturaBorracha === 'function') inst.iniciarManipulacaoSemPinturaBorracha(el);
+
+            arraste = {
+                el,
+                pointerId: ev.pointerId,
+                startX: ev.clientX,
+                startY: ev.clientY,
+                baseX: parseFloat(el.getAttribute('data-x')) || 0,
+                baseY: parseFloat(el.getAttribute('data-y')) || 0,
+                rotate: parseFloat(el.getAttribute('data-rotate')) || 0,
+                z: el.style.zIndex || ''
+            };
+            el.style.zIndex = '1000';
+            try { el.setPointerCapture && el.setPointerCapture(ev.pointerId); } catch (_) {}
+        }
+
+        function mover(ev) {
+            if (!arraste) return;
+            if (arraste.pointerId !== undefined && ev.pointerId !== undefined && arraste.pointerId !== ev.pointerId) return;
+            ev.preventDefault();
+            ev.stopPropagation();
+            if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+
+            let dx = ev.clientX - arraste.startX;
+            let dy = ev.clientY - arraste.startY;
+            if (!ehLinhaReta(arraste.el) && typeof inst.limitarDeltaElementoPorTravaBordas === 'function') {
+                const limitado = inst.limitarDeltaElementoPorTravaBordas(arraste.el, dx, dy);
+                if (limitado) {
+                    dx = limitado.dx;
+                    dy = limitado.dy;
+                }
+            }
+            const x = arraste.baseX + dx;
+            const y = arraste.baseY + dy;
+            arraste.el.setAttribute('data-x', String(x));
+            arraste.el.setAttribute('data-y', String(y));
+            arraste.el.style.transform = `translate(${x}px, ${y}px) rotate(${arraste.rotate}deg)`;
+            atualizarVisual(inst, arraste.el);
+        }
+
+        function finalizar(ev) {
+            if (!arraste) return;
+            if (ev) {
+                ev.preventDefault();
+                ev.stopPropagation();
+                if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+            }
+            try { arraste.el.releasePointerCapture && arraste.el.releasePointerCapture(arraste.pointerId); } catch (_) {}
+            arraste.el.style.zIndex = arraste.z || (arraste.el.classList.contains('peca') ? '2' : '8');
+            atualizarVisual(inst, arraste.el);
+            if (typeof inst.finalizarManipulacaoSemPinturaBorracha === 'function') inst.finalizarManipulacaoSemPinturaBorracha(arraste.el);
+            if (typeof inst.salvarEstadoHistorico === 'function') inst.salvarEstadoHistorico('Mover Elemento');
+            const alvo = arraste.el;
+            arraste = null;
+            setTimeout(() => mostrarHandles(inst, alvo), 0);
+        }
+
+        let resizeHandle = null;
+
+        function iniciarResizeHandle(ev) {
+            if (arraste || resizeHandle || inst.modoBorrachaAtivo || inst.modoLacoAtivo) return;
+            const handle = ev.target && ev.target.closest ? ev.target.closest('.handle:not(.handle-rotacao)') : null;
+            if (!handle) return;
+
+            const el = inst.elementoSelecionado;
+            if (!ehManipulavel(el) || !estaSelecionado(el)) return;
+
+            ev.preventDefault();
+            ev.stopPropagation();
+            if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+
+            const style = window.getComputedStyle(el);
+            resizeHandle = {
+                el,
+                handle,
+                pointerId: ev.pointerId,
+                startX: ev.clientX,
+                startY: ev.clientY,
+                width: parseFloat(style.width) || el.offsetWidth || 20,
+                height: parseFloat(style.height) || el.offsetHeight || 20,
+                left: parseFloat(el.style.left) || 0,
+                top: parseFloat(el.style.top) || 0,
+                rotate: parseFloat(el.getAttribute('data-rotate')) || 0
+            };
+            if (typeof inst.iniciarManipulacaoSemPinturaBorracha === 'function') inst.iniciarManipulacaoSemPinturaBorracha(el);
+            try { handle.setPointerCapture && handle.setPointerCapture(ev.pointerId); } catch (_) {}
+        }
+
+        function moverResizeHandle(ev) {
+            if (!resizeHandle) return;
+            if (resizeHandle.pointerId !== undefined && ev.pointerId !== undefined && resizeHandle.pointerId !== ev.pointerId) return;
+
+            ev.preventDefault();
+            ev.stopPropagation();
+            if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+
+            let dx = ev.clientX - resizeHandle.startX;
+            let dy = ev.clientY - resizeHandle.startY;
+            if (resizeHandle.rotate && typeof inst.transformarCoordenadasParaLocal === 'function') {
+                const local = inst.transformarCoordenadasParaLocal(dx, dy, resizeHandle.rotate);
+                dx = local.dx;
+                dy = local.dy;
+            }
+
+            const cls = resizeHandle.handle.classList;
+            const isE = cls.contains('handle-e') || cls.contains('handle-ne') || cls.contains('handle-se');
+            const isW = cls.contains('handle-w') || cls.contains('handle-nw') || cls.contains('handle-sw');
+            const isN = cls.contains('handle-n') || cls.contains('handle-ne') || cls.contains('handle-nw');
+            const isS = cls.contains('handle-s') || cls.contains('handle-se') || cls.contains('handle-sw');
+            const minW = resizeHandle.el.classList.contains('linha-reta') ? 1 : 10;
+            const minH = resizeHandle.el.classList.contains('linha-reta') ? 2 : 10;
+
+            let w = resizeHandle.width;
+            let h = resizeHandle.height;
+            let left = resizeHandle.left;
+            let top = resizeHandle.top;
+
+            if (isE) w = Math.max(minW, resizeHandle.width + dx);
+            if (isW) {
+                w = Math.max(minW, resizeHandle.width - dx);
+                left = resizeHandle.left + (resizeHandle.width - w);
+            }
+            if (isS) h = Math.max(minH, resizeHandle.height + dy);
+            if (isN) {
+                h = Math.max(minH, resizeHandle.height - dy);
+                top = resizeHandle.top + (resizeHandle.height - h);
+            }
+            if (resizeHandle.el.classList.contains('linha-reta')) h = 2;
+
+            resizeHandle.el.style.width = `${w}px`;
+            resizeHandle.el.style.height = `${h}px`;
+            resizeHandle.el.style.left = `${left}px`;
+            resizeHandle.el.style.top = `${top}px`;
+            atualizarVisual(inst, resizeHandle.el);
+            if (typeof inst.posicionarHandles === 'function') inst.posicionarHandles(resizeHandle.el);
+        }
+
+        function finalizarResizeHandle(ev) {
+            if (!resizeHandle) return;
+            if (ev) {
+                ev.preventDefault();
+                ev.stopPropagation();
+                if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+            }
+            try { resizeHandle.handle.releasePointerCapture && resizeHandle.handle.releasePointerCapture(resizeHandle.pointerId); } catch (_) {}
+            atualizarVisual(inst, resizeHandle.el);
+            if (typeof inst.finalizarManipulacaoSemPinturaBorracha === 'function') inst.finalizarManipulacaoSemPinturaBorracha(resizeHandle.el);
+            if (typeof inst.posicionarHandles === 'function') inst.posicionarHandles(resizeHandle.el);
+            if (typeof inst.salvarEstadoHistorico === 'function') inst.salvarEstadoHistorico('Redimensionar Elemento');
+            resizeHandle = null;
+        }
+
+        document.addEventListener('pointerdown', iniciar, true);
+        document.addEventListener('pointermove', mover, true);
+        document.addEventListener('pointerup', finalizar, true);
+        document.addEventListener('pointercancel', finalizar, true);
+        document.addEventListener('pointerdown', iniciarResizeHandle, true);
+        document.addEventListener('pointermove', moverResizeHandle, true);
+        document.addEventListener('pointerup', finalizarResizeHandle, true);
+        document.addEventListener('pointercancel', finalizarResizeHandle, true);
+
+        document.addEventListener('mousedown', function(ev) {
+            if (ev.button !== 0) return;
+            if (!(ev.target && ev.target.closest && ev.target.closest('.linha-reta-hitbox, .cuba.linha-reta'))) return;
+            iniciar(ev);
+        }, true);
+        document.addEventListener('mousemove', mover, true);
+        document.addEventListener('mouseup', finalizar, true);
+    }
+
+    function tentar() {
+        if (window.gerenciadorDesenho) instalarArrasteDireto(window.gerenciadorDesenho);
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        tentar();
+        setTimeout(tentar, 250);
+        setTimeout(tentar, 1000);
+    });
+    window.addEventListener('load', tentar);
 })();
 </script>
 <script id="theme-last-ordem-servico-js">
