@@ -8,6 +8,88 @@
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet"/>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet"/>
 <style>
+    :root {
+        --app-brand: {{ empresa_config.cor_primaria or '#4e73df' }};
+        --app-brand-dark: {{ empresa_config.cor_primaria or '#2e59d9' }};
+        --brand: {{ empresa_config.cor_primaria or '#4e73df' }};
+        --brand-dark: {{ empresa_config.cor_primaria or '#2e59d9' }};
+        --brand-soft: color-mix(in srgb, var(--brand) 12%, transparent);
+        --brand-ring: color-mix(in srgb, var(--brand) 25%, transparent);
+    }
+
+    /* THEME OVERRIDES - cor configuravel */
+    .btn-primary,
+    .btn-custom-primary,
+    .btn-salvar,
+    .btn-save,
+    .btn-save-rodape,
+    .print-actions button,
+    .print-actions a {
+        background-color: var(--brand) !important;
+        border-color: var(--brand) !important;
+        color: #fff !important;
+    }
+
+    .btn-primary:hover,
+    .btn-primary:focus,
+    .btn-custom-primary:hover,
+    .btn-custom-primary:focus,
+    .btn-salvar:hover,
+    .btn-salvar:focus,
+    .btn-save:hover,
+    .btn-save:focus,
+    .btn-save-rodape:hover,
+    .btn-save-rodape:focus,
+    .print-actions button:hover,
+    .print-actions a:hover {
+        background-color: var(--brand-dark) !important;
+        border-color: var(--brand-dark) !important;
+        color: #fff !important;
+    }
+
+    .btn-outline-primary {
+        color: var(--brand) !important;
+        border-color: var(--brand) !important;
+    }
+
+    .btn-outline-primary:hover,
+    .btn-outline-primary:focus {
+        color: #fff !important;
+        background-color: var(--brand) !important;
+        border-color: var(--brand) !important;
+    }
+
+    .text-primary,
+    .spinner-border.text-primary {
+        color: var(--brand) !important;
+    }
+
+    .bg-primary {
+        background-color: var(--brand) !important;
+    }
+
+    .border-primary {
+        border-color: var(--brand) !important;
+    }
+
+    .form-control:focus,
+    .form-select:focus,
+    input:focus,
+    select:focus,
+    textarea:focus {
+        border-color: var(--brand) !important;
+        box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--brand) 25%, transparent) !important;
+        outline-color: color-mix(in srgb, var(--brand) 35%, transparent) !important;
+    }
+
+    .instalacao-cell:hover,
+    .material-cell:hover,
+    .valor-cell:hover,
+    .clickable-cell:hover {
+        background-color: color-mix(in srgb, var(--brand) 13%, white) !important;
+    }
+
+
     .modal-backdrop {
         pointer-events: none !important;
         touch-action: none !important;
@@ -348,16 +430,16 @@
     }
     
     .laco-polygon {
-        fill: rgba(46, 89, 217, 0.1);
-        stroke: #2e59d9;
+        fill: var(--brand-soft);
+        stroke: var(--brand-dark);
         stroke-width: 2;
         stroke-dasharray: 5, 5;
         pointer-events: none;
     }
     
     .grupo-temporario {
-        border: 2px dashed rgba(46, 89, 217, 0.8);
-        background: rgba(46, 89, 217, 0.05);
+        border: 2px dashed color-mix(in srgb, var(--brand-dark) 80%, transparent);
+        background: color-mix(in srgb, var(--brand-dark) 5%, transparent);
         pointer-events: auto;
         z-index: 1000;
     }
@@ -382,14 +464,14 @@
     }
     
     .btn-custom-primary { 
-        background-color: #4e73df; 
-        border-color: #4e73df; 
+        background-color: var(--brand); 
+        border-color: var(--brand); 
         color: white; 
     }
     
     .btn-custom-primary:hover { 
-        background-color: #2e59d9; 
-        border-color: #2e59d9; 
+        background-color: var(--brand-dark); 
+        border-color: var(--brand-dark); 
         color: white; 
     }
 
@@ -398,13 +480,13 @@
     }
 
     .btn-modo-ativo {
-        background-color: #4e73df !important;
-        border-color: #4e73df !important;
+        background-color: var(--brand) !important;
+        border-color: var(--brand) !important;
         color: white !important;
         box-shadow: 
-            0 0 0 0.2rem rgba(78, 115, 223, 0.25),
+            0 0 0 0.2rem var(--brand-ring),
             0 0 0 3px #ffffff,
-            0 0 0 5px #4e73df !important;
+            0 0 0 5px var(--brand) !important;
         transform: translateY(-2px);
     }
 
@@ -531,14 +613,14 @@
     .titulo-grupo {
         font-size: 18px;
         font-weight: bold;
-        color: #2e59d9;
+        color: var(--brand-dark);
         padding: 10px 15px;
         border-radius: 5px;
         position: absolute;
         z-index: 10;
         cursor: default;
         background-color: rgba(255, 255, 255, 0.95);
-        border: 2px solid #4e73df;
+        border: 2px solid var(--brand);
         box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         min-width: 200px;
         min-height: 40px;
@@ -556,7 +638,7 @@
 
     .titulo-grupo:focus {
         background: transparent;
-        border: 0px solid #4e73df;
+        border: 0px solid var(--brand);
         outline: none;
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
@@ -610,7 +692,7 @@
     }
     
     .linha-peca:hover { 
-        background-color: #4e73df !important; 
+        background-color: var(--brand) !important; 
         opacity: 0.7; 
     }
     
@@ -733,7 +815,7 @@
     }
 
     .elemento-selecionado { 
-        outline: 0px solid #4e73df !important; 
+        outline: 0px solid var(--brand) !important; 
         outline-offset: 0px; 
         z-index: 3 !important; 
         pointer-events: auto !important;
@@ -782,7 +864,7 @@
         width: 8px;
         height: 8px;
         transform: translate(-50%, -50%);
-        background-color: #4e73df;
+        background-color: var(--brand);
         border-radius: 50%;
         box-shadow: 0 2px 4px rgba(0,0,0,0.3);
         pointer-events: none;
@@ -929,7 +1011,7 @@
     left: 0;
     right: 0;
     height: 0;
-    border-top: 1px dashed rgba(78, 115, 223, 0.7);
+    border-top: 1px dashed color-mix(in srgb, var(--brand) 70%, transparent);
     pointer-events: none;
     z-index: 1;
 }
@@ -939,10 +1021,10 @@
     right: 14px;
     top: -18px;
     padding: 2px 8px;
-    border: 1px solid rgba(78, 115, 223, 0.45);
+    border: 1px solid color-mix(in srgb, var(--brand) 45%, transparent);
     border-radius: 4px;
     background: rgba(255, 255, 255, 0.96);
-    color: #4e73df;
+    color: var(--brand);
     font-size: 12px;
     font-weight: 600;
 }
@@ -1378,7 +1460,7 @@ height: 0px !important;
     .modal-estilos h6 {
         font-weight: bold;
         margin-bottom: 15px;
-        color: #2e59d9;
+        color: var(--brand-dark);
     }
 
     .estilos-secao {
@@ -1420,7 +1502,7 @@ height: 0px !important;
     }
 
     .cor-opcao.selecionada {
-        border-color: #2e59d9;
+        border-color: var(--brand-dark);
         transform: scale(1.1);
     }
 
@@ -1471,12 +1553,12 @@ height: 0px !important;
     }
 
     .opcao-linha:hover {
-        border-color: #4e73df;
+        border-color: var(--brand);
     }
 
     .opcao-linha.selecionada {
-        border-color: #4e73df;
-        background-color: #f8f9ff;
+        border-color: var(--brand);
+        background-color: color-mix(in srgb, var(--brand) 6%, white);
     }
 
     .linha-solida {
@@ -1488,7 +1570,7 @@ height: 0px !important;
     }
 
     .botao-aplicar {
-        background-color: #4e73df;
+        background-color: var(--brand);
         color: white;
         border: none;
         padding: 10px 20px;
@@ -1501,7 +1583,7 @@ height: 0px !important;
     }
 
     .botao-aplicar:hover {
-        background-color: #2e59d9;
+        background-color: var(--brand-dark);
     }
 
     .texto-negrito {
@@ -1564,7 +1646,7 @@ height: 0px !important;
     }
     
     .elemento-selecionado {
-        outline: 0px solid #4e73df !important;
+        outline: 0px solid var(--brand) !important;
         outline-offset: 0px;
     }
     
@@ -2148,11 +2230,146 @@ body.linhas-simbolo-bloqueadas .linha-peca.linha-visivel-hover[data-estilo-linha
     background: repeating-linear-gradient(180deg, var(--line-color, #000) 0, var(--line-color, #000) 2px, transparent 2px, transparent 6px) !important;
 }
 </style>
+<style id="theme-final-ordem-servico">
+    :root {
+        --bs-primary: var(--brand);
+    }
+
+    html body .btn-primary:not(:disabled):not(.btn-desabilitado-mobile),
+    html body .btn-custom-primary:not(:disabled):not(.btn-desabilitado-mobile) {
+        --bs-btn-bg: var(--brand);
+        --bs-btn-border-color: var(--brand);
+        --bs-btn-hover-bg: var(--brand-dark);
+        --bs-btn-hover-border-color: var(--brand-dark);
+        --bs-btn-active-bg: var(--brand-dark);
+        --bs-btn-active-border-color: var(--brand-dark);
+        background-color: var(--brand) !important;
+        border-color: var(--brand) !important;
+        color: #fff !important;
+    }
+
+    html body .btn-primary:not(:disabled):not(.btn-desabilitado-mobile):hover,
+    html body .btn-primary:not(:disabled):not(.btn-desabilitado-mobile):focus,
+    html body .btn-custom-primary:not(:disabled):not(.btn-desabilitado-mobile):hover,
+    html body .btn-custom-primary:not(:disabled):not(.btn-desabilitado-mobile):focus {
+        background-color: var(--brand-dark) !important;
+        border-color: var(--brand-dark) !important;
+        color: #fff !important;
+    }
+
+    html body .btn-outline-primary {
+        --bs-btn-color: var(--brand);
+        --bs-btn-border-color: var(--brand);
+        --bs-btn-hover-bg: var(--brand);
+        --bs-btn-hover-border-color: var(--brand);
+        --bs-btn-active-bg: var(--brand-dark);
+        --bs-btn-active-border-color: var(--brand-dark);
+        color: var(--brand) !important;
+        border-color: var(--brand) !important;
+        background-color: #fff !important;
+    }
+
+    html body .btn-outline-primary:hover,
+    html body .btn-outline-primary:focus {
+        color: #fff !important;
+        background-color: var(--brand) !important;
+        border-color: var(--brand) !important;
+    }
+
+    html body .action-buttons-container .btn:disabled,
+    html body .action-buttons-container .btn-desabilitado-mobile {
+        background-color: color-mix(in srgb, var(--brand) 12%, #fff) !important;
+        border-color: color-mix(in srgb, var(--brand) 42%, #777) !important;
+        color: var(--brand) !important;
+        opacity: 0.92 !important;
+        visibility: visible !important;
+    }
+
+    html body .action-buttons-container .btn:disabled i,
+    html body .action-buttons-container .btn:disabled .btn-text,
+    html body .action-buttons-container .btn-desabilitado-mobile i,
+    html body .action-buttons-container .btn-desabilitado-mobile .btn-text {
+        color: var(--brand) !important;
+        opacity: 1 !important;
+    }
+
+    html body .action-buttons-container .btn:disabled,
+    html body .action-buttons-container .btn-desabilitado-mobile {
+        background-color: #fff !important;
+        border-color: #6c757d !important;
+        color: #6c757d !important;
+        opacity: 0.55 !important;
+        cursor: not-allowed !important;
+        pointer-events: none !important;
+    }
+
+    html body .action-buttons-container .btn:disabled i,
+    html body .action-buttons-container .btn:disabled .btn-text,
+    html body .action-buttons-container .btn-desabilitado-mobile i,
+    html body .action-buttons-container .btn-desabilitado-mobile .btn-text {
+        color: #6c757d !important;
+        opacity: 1 !important;
+    }
+
+    html body .action-buttons-container .btn:not(:disabled):not(.btn-desabilitado-mobile) i,
+    html body .action-buttons-container .btn:not(:disabled):not(.btn-desabilitado-mobile) .btn-text {
+        color: #fff !important;
+        opacity: 1 !important;
+    }
+
+    html body .text-primary,
+    html body .spinner-border.text-primary {
+        color: var(--brand) !important;
+    }
+
+    html body .bg-primary {
+        background-color: var(--brand) !important;
+    }
+
+    html body .border-primary {
+        border-color: var(--brand) !important;
+    }
+
+    /* Correção final do botão Voltar pela cor configurada */
+    html body .btn-voltar,
+    html body a[href="/orcamentos"],
+    html body a[href="/orcamentos_salvos"],
+    html body a[href="/ordens_servico"],
+    html body a.btn[href="/orcamentos"],
+    html body a.btn[href="/orcamentos_salvos"],
+    html body a.btn[href="/ordens_servico"] {
+        background-color: var(--brand) !important;
+        border-color: var(--brand) !important;
+        color: #fff !important;
+        --bs-btn-bg: var(--brand);
+        --bs-btn-border-color: var(--brand);
+        --bs-btn-color: #fff;
+        --bs-btn-hover-bg: var(--brand-dark);
+        --bs-btn-hover-border-color: var(--brand-dark);
+        --bs-btn-hover-color: #fff;
+        --bs-btn-active-bg: var(--brand-dark);
+        --bs-btn-active-border-color: var(--brand-dark);
+        --bs-btn-active-color: #fff;
+    }
+
+    html body .btn-voltar:hover,
+    html body .btn-voltar:focus,
+    html body a[href="/orcamentos"]:hover,
+    html body a[href="/orcamentos"]:focus,
+    html body a[href="/orcamentos_salvos"]:hover,
+    html body a[href="/orcamentos_salvos"]:focus,
+    html body a[href="/ordens_servico"]:hover,
+    html body a[href="/ordens_servico"]:focus {
+        background-color: var(--brand-dark) !important;
+        border-color: var(--brand-dark) !important;
+        color: #fff !important;
+    }
+</style>
 </head>
 <body>
 <div class="main-container">
 <div class="top-buttons-container">
-<a class="btn btn-custom-primary" href="/ordens_servico">
+<a class="btn btn-custom-primary btn-voltar" href="/ordens_servico" style="background-color: var(--brand) !important; border-color: var(--brand) !important; color: #fff !important;">
 <i class="fas fa-arrow-left me-1"></i> Voltar
             </a>
 </div>
@@ -2339,7 +2556,7 @@ adicionarEstilosMobile() {
             }
             
             .elemento-selecionado {
-                outline: 0px solid #4e73df !important;
+                outline: 0px solid var(--brand) !important;
                 outline-offset: 0px;
             }
             
@@ -3616,7 +3833,7 @@ limparPinturasBorracha() {
 
             const linhas = this.drawingArea.querySelectorAll('.linha-peca');
             linhas.forEach(linha => {
-                linha.addEventListener('mouseenter', () => linha.style.backgroundColor = '#4e73df');
+                linha.addEventListener('mouseenter', () => linha.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--brand').trim() || '#4e73df');
                 linha.addEventListener('mouseleave', () => linha.style.backgroundColor = 'transparent');
                 linha.addEventListener('click', (e) => this.manipularCliqueLinha(e, linha));
                 this.atualizarMascaraBorrachaElemento(linha);
@@ -4374,8 +4591,8 @@ refazer() {
         const svgns = "http://www.w3.org/2000/svg";
         const poly = document.createElementNS(svgns, 'polygon');
         poly.setAttribute('class', 'laco-polygon');
-        poly.setAttribute('fill', 'rgba(46, 89, 217, 0.1)');
-        poly.setAttribute('stroke', '#2e59d9');
+        poly.setAttribute('fill', 'var(--brand-soft)');
+        poly.setAttribute('stroke', getComputedStyle(document.documentElement).getPropertyValue('--brand-dark').trim() || '#2e59d9');
         poly.setAttribute('stroke-width', '2');
         poly.setAttribute('stroke-dasharray', '5,5');
         poly.setAttribute('points', `${coords.x},${coords.y}`);
@@ -7945,7 +8162,7 @@ _isTouchGesture(e) {
                     transition: 'background-color 0.2s ease'
                 }, lado.estilo);
 
-                linhaElement.addEventListener('mouseenter', () => linhaElement.style.backgroundColor = '#4e73df');
+                linhaElement.addEventListener('mouseenter', () => linhaElement.style.backgroundColor = getComputedStyle(document.documentElement).getPropertyValue('--brand').trim() || '#4e73df');
                 linhaElement.addEventListener('mouseleave', () => linhaElement.style.backgroundColor = 'transparent');
                 linhaElement.addEventListener('click', (e) => this.manipularCliqueLinha(e, linhaElement));
 
@@ -8728,7 +8945,7 @@ simboloElement.style.zIndex = '10';
     const cores = [
         '#000000', '#333333', '#666666', '#999999', '#cccccc',
         '#ff0000', '#ff6b6b', '#ffa500', '#ffd700', '#ffff00',
-        '#00ff00', '#90ee90', '#0000ff', '#87ceeb', '#4e73df',
+        '#00ff00', '#90ee90', '#0000ff', '#87ceeb', 'var(--brand)',
         '#8a2be2', '#ee82ee', '#a52a2a', '#deb887', '#ffffff'
     ];
     
@@ -12446,8 +12663,8 @@ aplicarEstilosManterModal() {
     }
 
     html body .linha-peca > .segmento-linha-peca > .area-clique-linha-simbolo:hover {
-        background: rgba(78, 115, 223, 0.72) !important;
-        background-color: rgba(78, 115, 223, 0.72) !important;
+        background: color-mix(in srgb, var(--brand) 72%, transparent) !important;
+        background-color: color-mix(in srgb, var(--brand) 72%, transparent) !important;
     }
 
     html body.linhas-simbolo-bloqueadas .linha-peca > .segmento-linha-peca > .area-clique-linha-simbolo,
@@ -13249,5 +13466,167 @@ aplicarEstilosManterModal() {
         }, 50);
     });
 })();
-</script></body>
+</script><style id="theme-last-ordem-servico">
+    :root {
+        --bs-primary: var(--brand) !important;
+        --bs-blue: var(--brand) !important;
+        --bs-link-color: var(--brand) !important;
+        --bs-link-hover-color: var(--brand-dark) !important;
+    }
+
+    html body .btn-primary:not(:disabled):not(.btn-desabilitado-mobile),
+    html body .btn-custom-primary:not(:disabled):not(.btn-desabilitado-mobile),
+    html body .btn-info:not(:disabled):not(.btn-desabilitado-mobile),
+    html body .btn-outline-info:not(:disabled):not(.btn-desabilitado-mobile),
+    html body .btn-link:not(:disabled):not(.btn-desabilitado-mobile),
+    html body .btn-voltar:not(:disabled):not(.btn-desabilitado-mobile) {
+        background-color: var(--brand) !important;
+        border-color: var(--brand) !important;
+        color: #fff !important;
+        --bs-btn-bg: var(--brand) !important;
+        --bs-btn-border-color: var(--brand) !important;
+        --bs-btn-color: #fff !important;
+        --bs-btn-hover-bg: var(--brand-dark) !important;
+        --bs-btn-hover-border-color: var(--brand-dark) !important;
+        --bs-btn-hover-color: #fff !important;
+        --bs-btn-active-bg: var(--brand-dark) !important;
+        --bs-btn-active-border-color: var(--brand-dark) !important;
+    }
+
+    html body .btn-primary:not(:disabled):not(.btn-desabilitado-mobile):hover,
+    html body .btn-custom-primary:not(:disabled):not(.btn-desabilitado-mobile):hover,
+    html body .btn-info:not(:disabled):not(.btn-desabilitado-mobile):hover,
+    html body .btn-outline-info:not(:disabled):not(.btn-desabilitado-mobile):hover,
+    html body .btn-link:not(:disabled):not(.btn-desabilitado-mobile):hover,
+    html body .btn-voltar:not(:disabled):not(.btn-desabilitado-mobile):hover,
+    html body .btn-primary:not(:disabled):not(.btn-desabilitado-mobile):focus,
+    html body .btn-custom-primary:not(:disabled):not(.btn-desabilitado-mobile):focus,
+    html body .btn-info:not(:disabled):not(.btn-desabilitado-mobile):focus,
+    html body .btn-outline-info:not(:disabled):not(.btn-desabilitado-mobile):focus,
+    html body .btn-link:not(:disabled):not(.btn-desabilitado-mobile):focus,
+    html body .btn-voltar:not(:disabled):not(.btn-desabilitado-mobile):focus {
+        background-color: var(--brand-dark) !important;
+        border-color: var(--brand-dark) !important;
+        color: #fff !important;
+    }
+
+    html body .btn-outline-primary {
+        background-color: #fff !important;
+        border-color: var(--brand) !important;
+        color: var(--brand) !important;
+        --bs-btn-color: var(--brand) !important;
+        --bs-btn-border-color: var(--brand) !important;
+        --bs-btn-hover-bg: var(--brand) !important;
+        --bs-btn-hover-border-color: var(--brand) !important;
+        --bs-btn-hover-color: #fff !important;
+        --bs-btn-active-bg: var(--brand-dark) !important;
+        --bs-btn-active-border-color: var(--brand-dark) !important;
+    }
+
+    html body .btn-outline-primary:hover,
+    html body .btn-outline-primary:focus {
+        background-color: var(--brand) !important;
+        border-color: var(--brand) !important;
+        color: #fff !important;
+    }
+
+    html body .text-primary,
+    html body a.text-primary,
+    html body button.text-primary,
+    html body .spinner-border.text-primary {
+        color: var(--brand) !important;
+    }
+
+    html body .action-buttons-container .btn:disabled,
+    html body .action-buttons-container .btn-desabilitado-mobile {
+        background-color: #fff !important;
+        border-color: #6c757d !important;
+        color: #6c757d !important;
+        opacity: 0.55 !important;
+        cursor: not-allowed !important;
+        pointer-events: none !important;
+    }
+
+    html body .action-buttons-container .btn:disabled i,
+    html body .action-buttons-container .btn:disabled .btn-text,
+    html body .action-buttons-container .btn-desabilitado-mobile i,
+    html body .action-buttons-container .btn-desabilitado-mobile .btn-text {
+        color: #6c757d !important;
+        opacity: 1 !important;
+    }
+</style>
+<script id="theme-last-ordem-servico-js">
+(function() {
+    function cssVar(nome, fallback) {
+        var valor = getComputedStyle(document.documentElement).getPropertyValue(nome).trim();
+        return valor || fallback;
+    }
+
+    function aplicarTemaBotoesOrdemServico() {
+        var brand = cssVar('--brand', '#4e73df');
+        var brandDark = cssVar('--brand-dark', brand);
+        document.documentElement.style.setProperty('--bs-primary', brand);
+        document.documentElement.style.setProperty('--bs-blue', brand);
+        document.documentElement.style.setProperty('--bs-link-color', brand);
+        document.documentElement.style.setProperty('--bs-link-hover-color', brandDark);
+
+        document.querySelectorAll('.btn-primary, .btn-custom-primary, .btn-info, .btn-outline-info, .btn-link, .btn-voltar').forEach(function(btn) {
+            if (btn.disabled || btn.classList.contains('btn-desabilitado-mobile')) {
+                btn.style.setProperty('background-color', '#fff', 'important');
+                btn.style.setProperty('border-color', '#6c757d', 'important');
+                btn.style.setProperty('color', '#6c757d', 'important');
+                btn.style.setProperty('opacity', '0.55', 'important');
+                btn.querySelectorAll('i, .btn-text').forEach(function(child) {
+                    child.style.setProperty('color', '#6c757d', 'important');
+                    child.style.setProperty('opacity', '1', 'important');
+                });
+                return;
+            }
+            btn.style.setProperty('background-color', brand, 'important');
+            btn.style.setProperty('border-color', brand, 'important');
+            btn.style.setProperty('color', '#fff', 'important');
+            btn.style.removeProperty('opacity');
+            btn.querySelectorAll('i, .btn-text').forEach(function(child) {
+                child.style.setProperty('color', '#fff', 'important');
+                child.style.setProperty('opacity', '1', 'important');
+            });
+        });
+
+        document.querySelectorAll('.action-buttons-container .btn:disabled i, .action-buttons-container .btn:disabled .btn-text, .action-buttons-container .btn-desabilitado-mobile i, .action-buttons-container .btn-desabilitado-mobile .btn-text').forEach(function(el) {
+            el.style.setProperty('color', '#6c757d', 'important');
+            el.style.setProperty('opacity', '1', 'important');
+        });
+
+        document.querySelectorAll('.action-buttons-container .btn:not(:disabled):not(.btn-desabilitado-mobile) i, .action-buttons-container .btn:not(:disabled):not(.btn-desabilitado-mobile) .btn-text').forEach(function(el) {
+            el.style.setProperty('color', '#fff', 'important');
+            el.style.setProperty('opacity', '1', 'important');
+        });
+
+        document.querySelectorAll('.btn-outline-primary').forEach(function(btn) {
+            btn.style.setProperty('background-color', '#fff', 'important');
+            btn.style.setProperty('border-color', brand, 'important');
+            btn.style.setProperty('color', brand, 'important');
+        });
+
+        document.querySelectorAll('.text-primary, a.text-primary, button.text-primary, .spinner-border.text-primary').forEach(function(el) {
+            el.style.setProperty('color', brand, 'important');
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', aplicarTemaBotoesOrdemServico);
+    window.addEventListener('load', aplicarTemaBotoesOrdemServico);
+    var observer = new MutationObserver(function() { aplicarTemaBotoesOrdemServico(); });
+    document.addEventListener('DOMContentLoaded', function() {
+        observer.observe(document.body, { childList: true, subtree: true });
+    });
+})();
+</script>
+</body>
 </html>
+
+
+
+
+
+
+
