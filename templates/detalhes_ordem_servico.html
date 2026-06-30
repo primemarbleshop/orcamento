@@ -13948,6 +13948,7 @@ aplicarEstilosManterModal() {
         }
 
         let arraste = null;
+        let arrasteLinhaReta = null;
         let ultimoClique = { t: 0, el: null };
 
         function estaSelecionado(el) {
@@ -13967,6 +13968,17 @@ aplicarEstilosManterModal() {
             }
             const el = ev.target && ev.target.closest ? ev.target.closest('.peca, .cuba, .texto-legenda, .legenda-simplificada, .titulo-grupo, .dimensoes, .quantidade-peca') : null;
             return ehManipulavel(el) ? el : null;
+        }
+
+        function linhaRetaDoEvento(ev) {
+            if (!(ev.target && ev.target.closest)) return null;
+            const hitboxLinha = ev.target.closest('.linha-reta-hitbox');
+            if (hitboxLinha) {
+                const linha = document.getElementById(hitboxLinha.dataset.linhaId);
+                return ehLinhaReta(linha) ? linha : null;
+            }
+            const linha = ev.target.closest('.cuba.linha-reta');
+            return ehLinhaReta(linha) ? linha : null;
         }
 
         function deveArrastar(ev, el) {
@@ -14002,6 +14014,7 @@ aplicarEstilosManterModal() {
             arraste = {
                 el,
                 pointerId: ev.pointerId,
+                mouseFallback: ev.type === 'mousedown',
                 startX: ev.clientX,
                 startY: ev.clientY,
                 baseX: parseFloat(el.getAttribute('data-x')) || 0,
@@ -14013,8 +14026,40 @@ aplicarEstilosManterModal() {
             try { el.setPointerCapture && el.setPointerCapture(ev.pointerId); } catch (_) {}
         }
 
+        function iniciarArrasteLinhaReta(ev) {
+            if (arrasteLinhaReta || arraste || ev.button !== 0) return;
+            const el = linhaRetaDoEvento(ev);
+            if (!el || inst.modoBorrachaAtivo || inst.modoLacoAtivo) return;
+            if (!inst.modoSelecaoAtivo && !estaSelecionado(el)) return;
+
+            ev.preventDefault();
+            ev.stopPropagation();
+            if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+
+            if (inst.modoSelecaoAtivo && typeof inst.selecionarElemento === 'function' && inst.elementoSelecionado !== el) {
+                inst.selecionarElemento(el, null);
+            }
+            esconderHandles(inst);
+            if (typeof inst.iniciarManipulacaoSemPinturaBorracha === 'function') inst.iniciarManipulacaoSemPinturaBorracha(el);
+
+            arrasteLinhaReta = {
+                el,
+                startX: ev.clientX,
+                startY: ev.clientY,
+                baseX: parseFloat(el.getAttribute('data-x')) || 0,
+                baseY: parseFloat(el.getAttribute('data-y')) || 0,
+                rotate: parseFloat(el.getAttribute('data-rotate')) || 0,
+                z: el.style.zIndex || ''
+            };
+            el.style.zIndex = '1000';
+            document.body.classList.add('arrastando-linha-reta');
+        }
+
         function mover(ev) {
+            if (arrasteLinhaReta) return;
             if (!arraste) return;
+            if (arraste.mouseFallback && ev.type && ev.type.indexOf('pointer') === 0) return;
+            if (!arraste.mouseFallback && ev.type === 'mousemove') return;
             if (arraste.pointerId !== undefined && ev.pointerId !== undefined && arraste.pointerId !== ev.pointerId) return;
             ev.preventDefault();
             ev.stopPropagation();
@@ -14037,8 +14082,25 @@ aplicarEstilosManterModal() {
             atualizarVisual(inst, arraste.el);
         }
 
+        function moverArrasteLinhaReta(ev) {
+            if (!arrasteLinhaReta) return;
+            ev.preventDefault();
+            ev.stopPropagation();
+            if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+
+            const x = arrasteLinhaReta.baseX + (ev.clientX - arrasteLinhaReta.startX);
+            const y = arrasteLinhaReta.baseY + (ev.clientY - arrasteLinhaReta.startY);
+            arrasteLinhaReta.el.setAttribute('data-x', String(x));
+            arrasteLinhaReta.el.setAttribute('data-y', String(y));
+            arrasteLinhaReta.el.style.transform = `translate(${x}px, ${y}px) rotate(${arrasteLinhaReta.rotate}deg)`;
+            atualizarVisual(inst, arrasteLinhaReta.el);
+        }
+
         function finalizar(ev) {
+            if (arrasteLinhaReta) return;
             if (!arraste) return;
+            if (arraste.mouseFallback && ev && ev.type && ev.type.indexOf('pointer') === 0) return;
+            if (!arraste.mouseFallback && ev && ev.type === 'mouseup') return;
             if (ev) {
                 ev.preventDefault();
                 ev.stopPropagation();
@@ -14051,6 +14113,23 @@ aplicarEstilosManterModal() {
             if (typeof inst.salvarEstadoHistorico === 'function') inst.salvarEstadoHistorico('Mover Elemento');
             const alvo = arraste.el;
             arraste = null;
+            setTimeout(() => mostrarHandles(inst, alvo), 0);
+        }
+
+        function finalizarArrasteLinhaReta(ev) {
+            if (!arrasteLinhaReta) return;
+            if (ev) {
+                ev.preventDefault();
+                ev.stopPropagation();
+                if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+            }
+            const alvo = arrasteLinhaReta.el;
+            alvo.style.zIndex = arrasteLinhaReta.z || '35';
+            atualizarVisual(inst, alvo);
+            if (typeof inst.finalizarManipulacaoSemPinturaBorracha === 'function') inst.finalizarManipulacaoSemPinturaBorracha(alvo);
+            if (typeof inst.salvarEstadoHistorico === 'function') inst.salvarEstadoHistorico('Mover Linha Reta');
+            arrasteLinhaReta = null;
+            document.body.classList.remove('arrastando-linha-reta');
             setTimeout(() => mostrarHandles(inst, alvo), 0);
         }
 
@@ -14148,6 +14227,11 @@ aplicarEstilosManterModal() {
             if (typeof inst.salvarEstadoHistorico === 'function') inst.salvarEstadoHistorico('Redimensionar Elemento');
             resizeHandle = null;
         }
+
+        window.addEventListener('mousedown', iniciarArrasteLinhaReta, true);
+        window.addEventListener('mousemove', moverArrasteLinhaReta, true);
+        window.addEventListener('mouseup', finalizarArrasteLinhaReta, true);
+        window.addEventListener('blur', finalizarArrasteLinhaReta, true);
 
         document.addEventListener('pointerdown', iniciar, true);
         document.addEventListener('pointermove', mover, true);
