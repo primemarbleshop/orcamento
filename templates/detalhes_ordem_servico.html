@@ -876,6 +876,16 @@ body:not(.modo-borracha) .area-pecas .cuba.linha-reta::after {
     pointer-events: auto !important;
     cursor: move !important;
     z-index: 45 !important;
+    touch-action: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+}
+
+body.arrastando-linha-reta,
+body.arrastando-linha-reta * {
+    cursor: move !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
 }
 
 @media print {
@@ -13824,8 +13834,11 @@ aplicarEstilosManterModal() {
         if (!ehLinhaReta(el)) return;
         if (!el.id) el.id = `linha-reta-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
         el.querySelectorAll(':scope > .linha-reta-hitbox').forEach((node) => node.remove());
-        const parent = el.parentElement;
+        const parent = document.getElementById('drawingArea') || el.closest('.drawing-area') || el.parentElement;
         if (!parent) return;
+        document.querySelectorAll(`.linha-reta-hitbox[data-linha-id="${CSS.escape(el.id)}"]`).forEach((node) => {
+            if (node.parentElement !== parent) node.remove();
+        });
         let hitbox = parent.querySelector(`:scope > .linha-reta-hitbox[data-linha-id="${CSS.escape(el.id)}"]`);
         if (!hitbox) {
             hitbox = document.createElement('div');
@@ -13834,15 +13847,29 @@ aplicarEstilosManterModal() {
             hitbox.dataset.linhaId = el.id;
             parent.appendChild(hitbox);
         }
-        const left = parseFloat(el.style.left) || el.offsetLeft || 0;
-        const top = parseFloat(el.style.top) || el.offsetTop || 0;
-        const width = parseFloat(el.style.width) || el.offsetWidth || 1;
+        const areaRect = parent.getBoundingClientRect();
+        const rect = el.getBoundingClientRect();
+        let left = rect.left - areaRect.left;
+        let top = rect.top - areaRect.top;
+        let width = rect.width || parseFloat(el.style.width) || el.offsetWidth || 1;
+        let height = rect.height || parseFloat(el.style.height) || el.offsetHeight || 1;
+        if (width < 30) {
+            left -= (30 - width) / 2;
+            width = 30;
+        }
+        if (height < 30) {
+            top -= (30 - height) / 2;
+            height = 30;
+        }
         hitbox.style.setProperty('left', `${left}px`, 'important');
-        hitbox.style.setProperty('top', `${top - 14}px`, 'important');
+        hitbox.style.setProperty('top', `${top}px`, 'important');
         hitbox.style.setProperty('width', `${width}px`, 'important');
-        hitbox.style.setProperty('height', '30px', 'important');
-        hitbox.style.setProperty('transform', el.style.transform || 'none', 'important');
-        hitbox.style.setProperty('transform-origin', el.style.transformOrigin || 'center center', 'important');
+        hitbox.style.setProperty('height', `${height}px`, 'important');
+        hitbox.style.setProperty('transform', 'none', 'important');
+        hitbox.style.setProperty('transform-origin', 'center center', 'important');
+        const inst = window.gerenciadorDesenho;
+        const selecionada = el.classList.contains('elemento-selecionado') || (inst && inst.elementoSelecionado === el);
+        hitbox.style.setProperty('z-index', selecionada ? '10000' : '9990', 'important');
     }
 
     function garantirHitboxesLinhaReta(root) {
@@ -13930,10 +13957,35 @@ aplicarEstilosManterModal() {
         return retorno;
     };
 
+    const desselecionarAnteriorLinhaReta = GerenciadorDesenho.prototype.desselecionarElemento;
+    GerenciadorDesenho.prototype.desselecionarElemento = function() {
+        if (document.body.classList.contains('arrastando-linha-reta')) {
+            const atual = this.elementoSelecionado;
+            if (ehLinhaReta(atual)) return;
+        }
+        if (Date.now() < (this.__bloquearDeselecaoLinhaRetaAte || 0)) {
+            const atual = this.elementoSelecionado;
+            if (ehLinhaReta(atual)) return;
+        }
+        if (typeof desselecionarAnteriorLinhaReta === 'function') {
+            return desselecionarAnteriorLinhaReta.call(this);
+        }
+    };
+
     function instalarArrasteDireto(inst) {
         if (!inst || !inst.drawingArea || inst.__arrasteDiretoOSFinoInstalado) return;
         inst.__arrasteDiretoOSFinoInstalado = true;
         garantirHitboxesLinhaReta(inst.drawingArea);
+        if (!inst.__selecionarLinhaRetaHitboxPatch && typeof inst.selecionarElemento === 'function') {
+            inst.__selecionarLinhaRetaHitboxPatch = true;
+            const selecionarOriginalLinhaReta = inst.selecionarElemento.bind(inst);
+            inst.selecionarElemento = function(elemento, evento) {
+                const retorno = selecionarOriginalLinhaReta(elemento, evento);
+                garantirHitboxesLinhaReta(this.drawingArea || document);
+                requestAnimationFrame(() => garantirHitboxesLinhaReta(this.drawingArea || document));
+                return retorno;
+            };
+        }
         if (!inst.__hitboxLinhaRetaObserver && typeof MutationObserver !== 'undefined') {
             inst.__hitboxLinhaRetaObserver = new MutationObserver((mutations) => {
                 mutations.forEach((mutation) => {
@@ -13949,6 +14001,7 @@ aplicarEstilosManterModal() {
 
         let arraste = null;
         let arrasteLinhaReta = null;
+        let autoScrollLinhaReta = null;
         let ultimoClique = { t: 0, el: null };
 
         function estaSelecionado(el) {
@@ -13982,6 +14035,7 @@ aplicarEstilosManterModal() {
         }
 
         function deveArrastar(ev, el) {
+            if (ehLinhaReta(el)) return false;
             if (!el || inst.modoBorrachaAtivo || inst.modoLacoAtivo) return false;
             if (ev.target && ev.target.closest && ev.target.closest('button, select, input, textarea, .modal, .modal-controles, .modal-estilos')) return false;
             if (!inst.modoSelecaoAtivo && !estaSelecionado(el)) return false;
@@ -13997,7 +14051,7 @@ aplicarEstilosManterModal() {
         }
 
         function iniciar(ev) {
-            if (arraste) return;
+            if (arraste || arrasteLinhaReta) return;
             const el = alvoDoEvento(ev);
             if (!deveArrastar(ev, el)) return;
 
@@ -14027,7 +14081,7 @@ aplicarEstilosManterModal() {
         }
 
         function iniciarArrasteLinhaReta(ev) {
-            if (arrasteLinhaReta || arraste || ev.button !== 0) return;
+            if (arrasteLinhaReta || arraste || (ev.button !== undefined && ev.button !== 0)) return;
             const el = linhaRetaDoEvento(ev);
             if (!el || inst.modoBorrachaAtivo || inst.modoLacoAtivo) return;
             if (!inst.modoSelecaoAtivo && !estaSelecionado(el)) return;
@@ -14040,19 +14094,64 @@ aplicarEstilosManterModal() {
                 inst.selecionarElemento(el, null);
             }
             esconderHandles(inst);
-            if (typeof inst.iniciarManipulacaoSemPinturaBorracha === 'function') inst.iniciarManipulacaoSemPinturaBorracha(el);
 
             arrasteLinhaReta = {
                 el,
+                tipoEvento: ev.type && ev.type.indexOf('pointer') === 0 ? 'pointer' : 'mouse',
+                pointerId: ev.pointerId,
                 startX: ev.clientX,
                 startY: ev.clientY,
+                startPageX: ev.clientX + window.scrollX,
+                startPageY: ev.clientY + window.scrollY,
+                lastClientX: ev.clientX,
+                lastClientY: ev.clientY,
                 baseX: parseFloat(el.getAttribute('data-x')) || 0,
                 baseY: parseFloat(el.getAttribute('data-y')) || 0,
                 rotate: parseFloat(el.getAttribute('data-rotate')) || 0,
                 z: el.style.zIndex || ''
             };
             el.style.zIndex = '1000';
+            try { ev.target && ev.target.setPointerCapture && ev.pointerId !== undefined && ev.target.setPointerCapture(ev.pointerId); } catch (_) {}
+            try { el.setPointerCapture && ev.pointerId !== undefined && el.setPointerCapture(ev.pointerId); } catch (_) {}
+            inst.__bloquearDeselecaoLinhaRetaAte = Date.now() + 300000;
             document.body.classList.add('arrastando-linha-reta');
+            iniciarAutoScrollLinhaReta();
+        }
+
+        function aplicarMovimentoLinhaRetaPorCliente(clientX, clientY) {
+            if (!arrasteLinhaReta) return;
+            const pageX = clientX + window.scrollX;
+            const pageY = clientY + window.scrollY;
+            const x = arrasteLinhaReta.baseX + (pageX - arrasteLinhaReta.startPageX);
+            const y = arrasteLinhaReta.baseY + (pageY - arrasteLinhaReta.startPageY);
+            inst.elementoSelecionado = arrasteLinhaReta.el;
+            arrasteLinhaReta.el.classList.add('elemento-selecionado');
+            arrasteLinhaReta.el.setAttribute('data-x', String(x));
+            arrasteLinhaReta.el.setAttribute('data-y', String(y));
+            arrasteLinhaReta.el.style.transform = `translate(${x}px, ${y}px) rotate(${arrasteLinhaReta.rotate}deg)`;
+            garantirHitboxLinhaReta(arrasteLinhaReta.el);
+        }
+
+        function iniciarAutoScrollLinhaReta() {
+            if (autoScrollLinhaReta) clearInterval(autoScrollLinhaReta);
+            autoScrollLinhaReta = setInterval(() => {
+                if (!arrasteLinhaReta) {
+                    clearInterval(autoScrollLinhaReta);
+                    autoScrollLinhaReta = null;
+                    return;
+                }
+                const margem = 90;
+                const passo = 28;
+                let dy = 0;
+                if (arrasteLinhaReta.lastClientY > window.innerHeight - margem) dy = passo;
+                else if (arrasteLinhaReta.lastClientY < margem) dy = -passo;
+                if (!dy) return;
+                const antes = window.scrollY;
+                window.scrollBy(0, dy);
+                if (window.scrollY !== antes) {
+                    aplicarMovimentoLinhaRetaPorCliente(arrasteLinhaReta.lastClientX, arrasteLinhaReta.lastClientY);
+                }
+            }, 16);
         }
 
         function mover(ev) {
@@ -14088,12 +14187,9 @@ aplicarEstilosManterModal() {
             ev.stopPropagation();
             if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
 
-            const x = arrasteLinhaReta.baseX + (ev.clientX - arrasteLinhaReta.startX);
-            const y = arrasteLinhaReta.baseY + (ev.clientY - arrasteLinhaReta.startY);
-            arrasteLinhaReta.el.setAttribute('data-x', String(x));
-            arrasteLinhaReta.el.setAttribute('data-y', String(y));
-            arrasteLinhaReta.el.style.transform = `translate(${x}px, ${y}px) rotate(${arrasteLinhaReta.rotate}deg)`;
-            atualizarVisual(inst, arrasteLinhaReta.el);
+            arrasteLinhaReta.lastClientX = ev.clientX;
+            arrasteLinhaReta.lastClientY = ev.clientY;
+            aplicarMovimentoLinhaRetaPorCliente(ev.clientX, ev.clientY);
         }
 
         function finalizar(ev) {
@@ -14124,12 +14220,17 @@ aplicarEstilosManterModal() {
                 if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
             }
             const alvo = arrasteLinhaReta.el;
+            try { alvo.releasePointerCapture && arrasteLinhaReta.pointerId !== undefined && alvo.releasePointerCapture(arrasteLinhaReta.pointerId); } catch (_) {}
             alvo.style.zIndex = arrasteLinhaReta.z || '35';
             atualizarVisual(inst, alvo);
-            if (typeof inst.finalizarManipulacaoSemPinturaBorracha === 'function') inst.finalizarManipulacaoSemPinturaBorracha(alvo);
             if (typeof inst.salvarEstadoHistorico === 'function') inst.salvarEstadoHistorico('Mover Linha Reta');
             arrasteLinhaReta = null;
+            if (autoScrollLinhaReta) {
+                clearInterval(autoScrollLinhaReta);
+                autoScrollLinhaReta = null;
+            }
             document.body.classList.remove('arrastando-linha-reta');
+            inst.__bloquearDeselecaoLinhaRetaAte = Date.now() + 500;
             setTimeout(() => mostrarHandles(inst, alvo), 0);
         }
 
@@ -14228,10 +14329,34 @@ aplicarEstilosManterModal() {
             resizeHandle = null;
         }
 
+        window.addEventListener('pointerdown', iniciarArrasteLinhaReta, true);
+        window.addEventListener('pointermove', moverArrasteLinhaReta, true);
+        window.addEventListener('pointerup', finalizarArrasteLinhaReta, true);
         window.addEventListener('mousedown', iniciarArrasteLinhaReta, true);
         window.addEventListener('mousemove', moverArrasteLinhaReta, true);
         window.addEventListener('mouseup', finalizarArrasteLinhaReta, true);
         window.addEventListener('blur', finalizarArrasteLinhaReta, true);
+        document.addEventListener('click', function(ev) {
+            if (document.body.classList.contains('arrastando-linha-reta') || Date.now() < (inst.__bloquearDeselecaoLinhaRetaAte || 0)) {
+                ev.preventDefault();
+                ev.stopPropagation();
+                if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+            }
+        }, true);
+        document.addEventListener('dragstart', function(ev) {
+            if (document.body.classList.contains('arrastando-linha-reta') || (ev.target && ev.target.closest && ev.target.closest('.linha-reta-hitbox, .cuba.linha-reta'))) {
+                ev.preventDefault();
+                ev.stopPropagation();
+                if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+            }
+        }, true);
+        document.addEventListener('selectstart', function(ev) {
+            if (document.body.classList.contains('arrastando-linha-reta')) {
+                ev.preventDefault();
+                ev.stopPropagation();
+                if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+            }
+        }, true);
 
         document.addEventListener('pointerdown', iniciar, true);
         document.addEventListener('pointermove', mover, true);
