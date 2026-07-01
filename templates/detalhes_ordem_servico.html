@@ -14259,6 +14259,8 @@ aplicarEstilosManterModal() {
                 height: parseFloat(style.height) || el.offsetHeight || 20,
                 left: parseFloat(el.style.left) || 0,
                 top: parseFloat(el.style.top) || 0,
+                dataX: parseFloat(el.getAttribute('data-x')) || 0,
+                dataY: parseFloat(el.getAttribute('data-y')) || 0,
                 rotate: parseFloat(el.getAttribute('data-rotate')) || 0
             };
             if (typeof inst.iniciarManipulacaoSemPinturaBorracha === 'function') inst.iniciarManipulacaoSemPinturaBorracha(el);
@@ -14291,20 +14293,42 @@ aplicarEstilosManterModal() {
 
             let w = resizeHandle.width;
             let h = resizeHandle.height;
-            let left = resizeHandle.left;
-            let top = resizeHandle.top;
 
             if (isE) w = Math.max(minW, resizeHandle.width + dx);
-            if (isW) {
-                w = Math.max(minW, resizeHandle.width - dx);
-                left = resizeHandle.left + (resizeHandle.width - w);
-            }
+            if (isW) w = Math.max(minW, resizeHandle.width - dx);
             if (isS) h = Math.max(minH, resizeHandle.height + dy);
-            if (isN) {
-                h = Math.max(minH, resizeHandle.height - dy);
-                top = resizeHandle.top + (resizeHandle.height - h);
-            }
             if (resizeHandle.el.classList.contains('linha-reta')) h = 2;
+            else if (isN) h = Math.max(minH, resizeHandle.height - dy);
+
+            const angulo = resizeHandle.rotate * Math.PI / 180;
+            const rotacionar = (x, y) => ({
+                x: x * Math.cos(angulo) - y * Math.sin(angulo),
+                y: x * Math.sin(angulo) + y * Math.cos(angulo)
+            });
+            const localAncoraInicial = {
+                x: isE ? -resizeHandle.width / 2 : (isW ? resizeHandle.width / 2 : 0),
+                y: isS ? -resizeHandle.height / 2 : (isN ? resizeHandle.height / 2 : 0)
+            };
+            const localAncoraNova = {
+                x: isE ? -w / 2 : (isW ? w / 2 : 0),
+                y: isS ? -h / 2 : (isN ? h / 2 : 0)
+            };
+            const centroInicial = {
+                x: resizeHandle.left + resizeHandle.dataX + resizeHandle.width / 2,
+                y: resizeHandle.top + resizeHandle.dataY + resizeHandle.height / 2
+            };
+            const ancoraInicial = rotacionar(localAncoraInicial.x, localAncoraInicial.y);
+            const ancoraNova = rotacionar(localAncoraNova.x, localAncoraNova.y);
+            const ancoraFixa = {
+                x: centroInicial.x + ancoraInicial.x,
+                y: centroInicial.y + ancoraInicial.y
+            };
+            const novoCentro = {
+                x: ancoraFixa.x - ancoraNova.x,
+                y: ancoraFixa.y - ancoraNova.y
+            };
+            const left = novoCentro.x - resizeHandle.dataX - w / 2;
+            const top = novoCentro.y - resizeHandle.dataY - h / 2;
 
             resizeHandle.el.style.width = `${w}px`;
             resizeHandle.el.style.height = `${h}px`;
