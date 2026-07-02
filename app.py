@@ -2552,7 +2552,7 @@ def _filtrar_orcamentos_por_periodo(orcamentos, mes=None, ano=None):
             filtrados.append(orcamento)
             continue
 
-        data_base = orcamento.data_fechamento or orcamento.data_salvo
+        data_base = orcamento.data_fechamento
         if not data_base:
             continue
         if data_base.date() < data_minima:

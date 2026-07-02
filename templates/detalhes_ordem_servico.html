@@ -2896,6 +2896,7 @@ adicionarEstilosMobile() {
         }
 
         capturarPosicaoManualDimensao(dimensaoElement) {
+            this.desacoplarElementoDaPeca(dimensaoElement);
             const pos = this.calcularTopLeftLocalAtualDimensao(dimensaoElement);
             const estilos = window.getComputedStyle(dimensaoElement);
             const larguraAtual = parseFloat(estilos.width) || dimensaoElement.offsetWidth || 20;
@@ -2917,6 +2918,47 @@ adicionarEstilosMobile() {
             dimensaoElement.setAttribute('data-x', '0');
             dimensaoElement.setAttribute('data-y', '0');
             this.aplicarPosicaoManualDimensao(dimensaoElement);
+        }
+
+        desacoplarElementoDaPeca(elemento) {
+            if (!elemento || !this.drawingArea || elemento.parentElement === this.drawingArea) return;
+            if (!elemento.classList || (!elemento.classList.contains('dimensoes') && !elemento.classList.contains('quantidade-peca'))) return;
+
+            const pecaElement = elemento.closest('.peca');
+            if (!pecaElement) return;
+
+            const drawingRect = this.drawingArea.getBoundingClientRect();
+            const elementoRect = elemento.getBoundingClientRect();
+            const left = elementoRect.left - drawingRect.left + (this.drawingArea.scrollLeft || 0);
+            const top = elementoRect.top - drawingRect.top + (this.drawingArea.scrollTop || 0);
+            const largura = elementoRect.width || elemento.offsetWidth || 20;
+            const altura = elementoRect.height || elemento.offsetHeight || 20;
+            const pecaId = elemento.getAttribute('data-peca-id') || pecaElement.getAttribute('data-peca-id') || '';
+            const rotacao = parseFloat(elemento.getAttribute('data-rotate')) || 0;
+
+            elemento.setAttribute('data-posicao-manual', '1');
+            elemento.setAttribute('data-manual-left', `${left}`);
+            elemento.setAttribute('data-manual-top', `${top}`);
+            elemento.setAttribute('data-manual-width', `${largura}`);
+            elemento.setAttribute('data-manual-height', `${altura}`);
+            elemento.setAttribute('data-x', '0');
+            elemento.setAttribute('data-y', '0');
+            elemento.setAttribute('data-rotate', `${rotacao}`);
+            if (pecaId) elemento.setAttribute('data-peca-id', pecaId);
+
+            this.drawingArea.appendChild(elemento);
+            elemento.style.position = 'absolute';
+            elemento.style.right = 'auto';
+            elemento.style.left = `${left}px`;
+            elemento.style.top = `${top}px`;
+            elemento.style.width = `${largura}px`;
+            elemento.style.height = `${altura}px`;
+            elemento.style.transform = rotacao ? `rotate(${rotacao}deg)` : 'none';
+            elemento.style.transformOrigin = 'center center';
+        }
+
+        desacoplarDimensaoDaPeca(dimensaoElement) {
+            this.desacoplarElementoDaPeca(dimensaoElement);
         }
 
         configurarInteratividadeDimensao(dimensaoElement) {
@@ -2945,9 +2987,10 @@ adicionarEstilosMobile() {
                         event.stopPropagation();
                         if (event.type.includes('touch')) event.preventDefault();
 
-                        const pecaElement = dimensaoElement.closest('.peca');
-                        const rotacaoPeca = pecaElement ? parseFloat(pecaElement.getAttribute('data-rotate')) || 0 : 0;
-                        const deltaLocal = this.transformarCoordenadasParaLocal(event.dx, event.dy, rotacaoPeca);
+                        let deltaLocal = { dx: event.dx, dy: event.dy };
+                        if (typeof this.limitarDeltaElementoPorTravaBordas === 'function') {
+                            deltaLocal = this.limitarDeltaElementoPorTravaBordas(dimensaoElement, event.dx, event.dy) || deltaLocal;
+                        }
 
                         const manualLeft = (parseFloat(dimensaoElement.getAttribute('data-manual-left')) || 0) + deltaLocal.dx;
                         const manualTop = (parseFloat(dimensaoElement.getAttribute('data-manual-top')) || 0) + deltaLocal.dy;
@@ -4272,6 +4315,12 @@ refazer() {
             e.stopPropagation();
             return;
         }
+
+        if (this.grupoTemporario && this.cliqueDeveLimparGrupoTemporario(e)) {
+            console.log('Clicou fora do laço - removendo grupo temporário');
+            this.limparGrupoTemporario();
+            this.desselecionarElemento();
+        }
         
         const isDrawingArea = e.target.closest('#drawingArea');
         const isHandle = e.target.closest('.handle');
@@ -4354,6 +4403,17 @@ refazer() {
 
     console.log('Eventos configurados com sucesso!');
 }
+
+        cliqueDeveLimparGrupoTemporario(e) {
+            if (!this.grupoTemporario) return false;
+            if (this._ignorarCliqueLimpezaGrupoAte && Date.now() < this._ignorarCliqueLimpezaGrupoAte) return false;
+            const alvo = e && e.target;
+            if (!alvo || !alvo.closest) return false;
+            if (alvo.closest('.grupo-temporario, .elemento-em-grupo')) return false;
+            if (alvo.closest('.handle, .handle-rotacao, .handles-container')) return false;
+            if (alvo.closest('.modal, .modal-controles, .modal-estilos, .modal-backdrop')) return false;
+            return true;
+        }
 
 
        configurarEventosAreaDesenho() {
@@ -4442,8 +4502,35 @@ refazer() {
             console.log('Modo seleção desativado');
         }
 
+        ativarSelecaoParaElemento(elemento) {
+            if (!elemento) return;
+            this.modoSelecaoAtivo = true;
+            this.modoBorrachaAtivo = false;
+            this.modoLacoAtivo = false;
+            this.modoInsercaoAtivo = null;
+            this.drawingArea.style.cursor = 'pointer';
+
+            const btnSelecionar = document.getElementById('btnSelecionar');
+            const btnBorracha = document.getElementById('btnBorracha');
+            const btnLaco = document.getElementById('btnLaco');
+            if (btnSelecionar) btnSelecionar.classList.add('btn-selecao-ativo');
+            if (btnBorracha) btnBorracha.classList.remove('btn-borracha-ativo', 'btn-modo-ativo');
+            if (btnLaco) btnLaco.classList.remove('btn-modo-ativo');
+
+            this.tornarElementosSelecionaveis(true);
+            this.desabilitarLinhasPecas();
+            this.elementoSelecionado = null;
+            this.selecionarElemento(elemento, null);
+        }
+
         toggleModoLaco() {
-            if (this.modoLacoAtivo) {
+            if (this.grupoTemporario) {
+                console.log('Botão laço clicado com grupo ativo - desfazendo laço anterior');
+                this.desativarModoLaco();
+                this.limparGrupoTemporario();
+                this.desselecionarElemento();
+                this.atualizarEstadoBotoes();
+            } else if (this.modoLacoAtivo) {
                 this.desativarModoLaco();
             } else {
                 this.ativarModoLaco();
@@ -5309,17 +5396,23 @@ _isTouchGesture(e) {
                 return false;
             }
 
-            // A trava de bordas deve atuar apenas em objetos raiz/editáveis do desenho.
-            // As medidas e quantidades são filhos posicionados relativamente à peça;
-            // se forem normalizadas como objetos independentes, perdem o right/top original
-            // e entram para dentro da peça. Elas continuam acompanhando a peça pela regra
-            // atualizarPosicaoDimensoes/criarQuantidade.
+            if (elemento.classList.contains('dimensoes')) {
+                return elemento.parentElement === this.drawingArea &&
+                       elemento.getAttribute('data-posicao-manual') === '1';
+            }
+
+            if (elemento.classList.contains('quantidade-peca')) {
+                return elemento.parentElement === this.drawingArea &&
+                       elemento.getAttribute('data-posicao-manual') === '1';
+            }
+
             return elemento.classList.contains('peca') ||
                    elemento.classList.contains('cuba') ||
                    elemento.classList.contains('texto-legenda') ||
                    elemento.classList.contains('legenda-simplificada') ||
                    elemento.classList.contains('titulo-grupo') ||
-                   elemento.classList.contains('simbolo-linha');
+                   elemento.classList.contains('simbolo-linha') ||
+                   elemento.classList.contains('grupo-temporario');
         }
 
         obterOffsetPaiNoDrawing(elemento) {
@@ -5365,10 +5458,38 @@ _isTouchGesture(e) {
             const width = Math.max(1, params.width || 1);
             const height = Math.max(elemento.classList.contains('linha-reta') ? 2 : 1, params.height || 1);
             const rad = (params.rotate || 0) * Math.PI / 180;
-            const visualWidth = Math.abs(width * Math.cos(rad)) + Math.abs(height * Math.sin(rad));
-            const visualHeight = Math.abs(width * Math.sin(rad)) + Math.abs(height * Math.cos(rad));
             const centerX = offsetPai.left + params.left + params.x + width / 2;
             const centerY = offsetPai.top + params.top + params.y + height / 2;
+
+            if (elemento.classList && elemento.classList.contains('peca')) {
+                const local = this.obterCaixaLocalPecaComMedidas(elemento, params);
+                const pontos = [
+                    { x: local.left, y: local.top },
+                    { x: local.right, y: local.top },
+                    { x: local.right, y: local.bottom },
+                    { x: local.left, y: local.bottom }
+                ].map((ponto) => {
+                    const relX = ponto.x - (width / 2);
+                    const relY = ponto.y - (height / 2);
+                    return {
+                        x: centerX + (relX * Math.cos(rad) - relY * Math.sin(rad)),
+                        y: centerY + (relX * Math.sin(rad) + relY * Math.cos(rad))
+                    };
+                });
+                const xs = pontos.map((p) => p.x);
+                const ys = pontos.map((p) => p.y);
+                return {
+                    left: Math.min(...xs),
+                    right: Math.max(...xs),
+                    top: Math.min(...ys),
+                    bottom: Math.max(...ys),
+                    width: Math.max(...xs) - Math.min(...xs),
+                    height: Math.max(...ys) - Math.min(...ys)
+                };
+            }
+
+            const visualWidth = Math.abs(width * Math.cos(rad)) + Math.abs(height * Math.sin(rad));
+            const visualHeight = Math.abs(width * Math.sin(rad)) + Math.abs(height * Math.cos(rad));
 
             return {
                 left: centerX - visualWidth / 2,
@@ -5378,6 +5499,53 @@ _isTouchGesture(e) {
                 width: visualWidth,
                 height: visualHeight
             };
+        }
+
+        obterCaixaLocalPecaComMedidas(pecaElement, params) {
+            const width = Math.max(1, params.width || 1);
+            const height = Math.max(1, params.height || 1);
+            const caixa = { left: 0, top: 0, right: width, bottom: height };
+
+            const expandir = (left, top, right, bottom) => {
+                if (![left, top, right, bottom].every(Number.isFinite)) return;
+                caixa.left = Math.min(caixa.left, left);
+                caixa.top = Math.min(caixa.top, top);
+                caixa.right = Math.max(caixa.right, right);
+                caixa.bottom = Math.max(caixa.bottom, bottom);
+            };
+
+            const dimensoesTop = pecaElement.querySelector(':scope > .dimensoes-top:not([data-posicao-manual="1"])');
+            if (dimensoesTop) {
+                const w = dimensoesTop.offsetWidth || parseFloat(window.getComputedStyle(dimensoesTop).width) || 20;
+                const h = dimensoesTop.offsetHeight || parseFloat(window.getComputedStyle(dimensoesTop).height) || 18;
+                const offsetX = parseFloat(dimensoesTop.getAttribute('data-x')) || 0;
+                const offsetY = parseFloat(dimensoesTop.getAttribute('data-y')) || 0;
+                const left = (width / 2) + offsetX - (w / 2);
+                const top = -35 + offsetY;
+                expandir(left, top, left + w, top + h);
+            }
+
+            const dimensoesRight = pecaElement.querySelector(':scope > .dimensoes-right:not([data-posicao-manual="1"])');
+            if (dimensoesRight) {
+                const w = dimensoesRight.offsetWidth || parseFloat(window.getComputedStyle(dimensoesRight).width) || 20;
+                const h = dimensoesRight.offsetHeight || parseFloat(window.getComputedStyle(dimensoesRight).height) || 18;
+                const offsetX = parseFloat(dimensoesRight.getAttribute('data-x')) || 0;
+                const offsetY = parseFloat(dimensoesRight.getAttribute('data-y')) || 0;
+                const right = width + 35 + offsetX;
+                const top = (height / 2) + offsetY - (h / 2);
+                expandir(right - w, top, right, top + h);
+            }
+
+            const quantidade = pecaElement.querySelector(':scope > .quantidade-peca:not([data-posicao-manual="1"])');
+            if (quantidade) {
+                const w = quantidade.offsetWidth || parseFloat(window.getComputedStyle(quantidade).width) || 24;
+                const h = quantidade.offsetHeight || parseFloat(window.getComputedStyle(quantidade).height) || 18;
+                const left = -45;
+                const top = (height / 2) - (h / 2);
+                expandir(left, top, left + w, top + h);
+            }
+
+            return caixa;
         }
 
 
@@ -5520,6 +5688,13 @@ _isTouchGesture(e) {
             elemento.style.top = `${ajustado.top}px`;
             elemento.style.width = `${ajustado.width}px`;
             elemento.style.height = `${ajustado.height}px`;
+
+            if (elemento.classList.contains('dimensoes') || elemento.classList.contains('quantidade-peca')) {
+                elemento.setAttribute('data-manual-left', `${ajustado.left}`);
+                elemento.setAttribute('data-manual-top', `${ajustado.top}`);
+                elemento.setAttribute('data-manual-width', `${ajustado.width}`);
+                elemento.setAttribute('data-manual-height', `${ajustado.height}`);
+            }
 
             if (elemento.classList.contains('peca')) {
                 this.atualizarLinhasESimbolos(elemento);
@@ -5830,6 +6005,9 @@ _isTouchGesture(e) {
 
         iniciarManipulacaoSemPinturaBorracha(elemento) {
             if (!elemento) return;
+            if (elemento.classList && (elemento.classList.contains('dimensoes') || elemento.classList.contains('quantidade-peca')) && typeof this.desacoplarElementoDaPeca === 'function') {
+                this.desacoplarElementoDaPeca(elemento);
+            }
 
             document.body.classList.add('manipulando-elemento-borracha');
 
@@ -6572,6 +6750,7 @@ _isTouchGesture(e) {
                         initialY = ponto.y;
 
                         this.iniciarManipulacaoSemPinturaBorracha(elemento);
+                        this.esconderHandlesDuranteManipulacao();
                         handle.style.cursor = 'grabbing';
                         console.log('Iniciando redimensionamento por handle');
                     },
@@ -6748,7 +6927,7 @@ _isTouchGesture(e) {
                         if (this.ehElementoMedida(elemento)) {
                             this.aplicarPosicaoManualDimensao(elemento);
                         }
-                        this.posicionarHandles(elemento);
+                        this.restaurarHandlesDepoisManipulacao(elemento);
                         this.salvarEstadoHistorico(this.ehElementoMedida(elemento) ? 'Redimensionar Medida' : 'Redimensionar Elemento');
                         console.log('Redimensionamento por handle concluído');
                     }
@@ -6783,6 +6962,7 @@ _isTouchGesture(e) {
                         this.iniciarManipulacaoSemPinturaBorracha(elemento);
                         const transform = elemento.style.transform || '';
                         elemento.setAttribute('data-initial-transform', transform);
+                        this.esconderHandlesDuranteManipulacao();
                         handle.style.cursor = 'grabbing';
                     },
                     move: (event) => {
@@ -6812,6 +6992,15 @@ _isTouchGesture(e) {
                             }
                         }
 
+                        if (typeof this.caixaDentroTravaBordas === 'function') {
+                            const propostaRotacao = this.obterParametrosTravaBordas
+                                ? this.obterParametrosTravaBordas(elemento, { rotate: snappedAngle })
+                                : { rotate: snappedAngle };
+                            if (!this.caixaDentroTravaBordas(elemento, propostaRotacao)) {
+                                return;
+                            }
+                        }
+
                         if (this.ehElementoMedida(elemento)) {
                             elemento.setAttribute('data-posicao-manual', '1');
                             elemento.setAttribute('data-rotate', snappedAngle);
@@ -6837,7 +7026,7 @@ _isTouchGesture(e) {
                         if (this.ehElementoMedida(elemento)) {
                             this.aplicarPosicaoManualDimensao(elemento);
                         }
-                        this.posicionarHandles(elemento);
+                        this.restaurarHandlesDepoisManipulacao(elemento);
                         this.salvarEstadoHistorico(this.ehElementoMedida(elemento) ? 'Rotacionar Medida' : 'Rotacionar Elemento');
                     }
                 }
@@ -6884,6 +7073,35 @@ _isTouchGesture(e) {
             }
 
             this.criarHandles(this.elementoSelecionado);
+        }
+
+        esconderHandlesDuranteManipulacao() {
+            if (!this.handlesContainer && (!this.handles || this.handles.length === 0)) return;
+            if (this.handlesContainer) {
+                this.handlesContainer.style.display = 'none';
+                this.handlesContainer.style.pointerEvents = 'none';
+            }
+            (this.handles || []).forEach((handle) => {
+                if (!handle || !handle.style) return;
+                handle.style.display = 'none';
+                handle.style.pointerEvents = 'none';
+            });
+        }
+
+        restaurarHandlesDepoisManipulacao(elemento = this.elementoSelecionado) {
+            if (this.handlesContainer) {
+                this.handlesContainer.style.display = '';
+                this.handlesContainer.style.pointerEvents = 'none';
+            }
+            (this.handles || []).forEach((handle) => {
+                if (!handle || !handle.style) return;
+                handle.style.display = '';
+                handle.style.pointerEvents = 'auto';
+            });
+            if (elemento && this.elementoSelecionado === elemento) {
+                if (typeof this.posicionarHandles === 'function') this.posicionarHandles(elemento);
+                else if (typeof this.atualizarHandles === 'function') this.atualizarHandles();
+            }
         }
 
         desabilitarLinhasPecas() {
@@ -7702,12 +7920,11 @@ _isTouchGesture(e) {
         listeners: {
             start: () => {
                 this.iniciarManipulacaoSemPinturaBorracha(elemento);
+                this.esconderHandlesDuranteManipulacao();
                 elemento.style.zIndex = '1000';
             },
             move: (event) => {
-                const deltaLimitado = elemento.classList.contains('linha-reta')
-                    ? { dx: event.dx, dy: event.dy }
-                    : this.limitarDeltaElementoPorTravaBordas(elemento, event.dx, event.dy);
+                const deltaLimitado = this.limitarDeltaElementoPorTravaBordas(elemento, event.dx, event.dy);
                 let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + deltaLimitado.dx;
                 let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + deltaLimitado.dy;
                 const rotate = elemento.getAttribute('data-rotate') || 0;
@@ -7719,6 +7936,7 @@ _isTouchGesture(e) {
             end: () => {
                 elemento.style.zIndex = '8';
                 this.finalizarManipulacaoSemPinturaBorracha(elemento);
+                this.restaurarHandlesDepoisManipulacao(elemento);
                 this.salvarEstadoHistorico('Mover Cuba');
             }
         }
@@ -7735,6 +7953,7 @@ _isTouchGesture(e) {
                     if (this.elementoSelecionado !== elemento && typeof this.selecionarElemento === 'function') {
                         this.selecionarElemento(elemento, event);
                     }
+                    this.esconderHandlesDuranteManipulacao();
                     elemento.style.zIndex = '1000';
                 },
                 move: (event) => {
@@ -7759,17 +7978,11 @@ _isTouchGesture(e) {
                             this.renderizarDesenhoComBorracha(event.target);
                         }
                     }
-                    if (this.elementoSelecionado === event.target) {
-                        if (typeof this.posicionarHandles === 'function') {
-                            this.posicionarHandles(event.target);
-                        } else if (typeof this.atualizarHandles === 'function') {
-                            this.atualizarHandles();
-                        }
-                    }
                 },
                 end: (event) => {
                     elemento.style.zIndex = '8';
                     this.finalizarManipulacaoSemPinturaBorracha(elemento);
+                    this.restaurarHandlesDepoisManipulacao(elemento);
                     if (typeof this.salvarEstadoHistorico === 'function') {
                         this.salvarEstadoHistorico('Redimensionar Desenho');
                     }
@@ -7960,9 +8173,7 @@ _isTouchGesture(e) {
                         event.preventDefault();
                     }
 
-                    const deltaLimitado = elemento.classList.contains('linha-reta')
-                        ? { dx: event.dx, dy: event.dy }
-                        : this.limitarDeltaElementoPorTravaBordas(elemento, event.dx, event.dy);
+                    const deltaLimitado = this.limitarDeltaElementoPorTravaBordas(elemento, event.dx, event.dy);
                     const rotacao = parseFloat(elemento.getAttribute('data-rotate')) || 0;
                     const x = (parseFloat(elemento.getAttribute('data-x')) || 0) + deltaLimitado.dx;
                     const y = (parseFloat(elemento.getAttribute('data-y')) || 0) + deltaLimitado.dy;
@@ -8184,6 +8395,8 @@ _isTouchGesture(e) {
             dimensoesTop.textContent = `${peca.comprimento}`;
             dimensoesTop.style.top = `${-35}px`;
             dimensoesTop.style.left = `${width / 2}px`;
+            dimensoesTop.style.right = 'auto';
+            dimensoesTop.style.transform = 'translateX(-50%)';
             dimensoesTop.style.zIndex = '10';
 
             
@@ -8200,6 +8413,7 @@ _isTouchGesture(e) {
             dimensoesRight.style.left = 'auto';
             dimensoesRight.style.right = `${-35}px`;
             dimensoesRight.style.top = `${height / 2}px`;
+            dimensoesRight.style.transform = 'translateY(-50%)';
 	    dimensoesRight.style.zIndex = '10';            
 
             dimensoesRight.setAttribute('data-peca-id', pecaId);
@@ -8216,16 +8430,6 @@ _isTouchGesture(e) {
                 this.configurarInteratividadeDimensao(dimensoesRight);
             }
             
-            setTimeout(() => {
-                const drawingRect = this.drawingArea.getBoundingClientRect();
-
-                const topRect = dimensoesTop.getBoundingClientRect();
-                if (topRect.right > drawingRect.right - 10) {
-                    const excesso = topRect.right - (drawingRect.right - 10);
-                    const atualLeft = parseFloat(dimensoesTop.style.left || (width/2)) || (width/2);
-                    dimensoesTop.style.left = `${atualLeft - excesso}px`;
-                }
-            }, 0);
         }
 
         criarQuantidade(pecaElement, quantidade) {
@@ -8233,6 +8437,9 @@ _isTouchGesture(e) {
             quantidadeElement.className = 'quantidade-peca';
             quantidadeElement.textContent = `${quantidade}x`;
             quantidadeElement.style.left = '-45px';
+            quantidadeElement.style.right = 'auto';
+            quantidadeElement.style.top = '50%';
+            quantidadeElement.style.transform = 'translateY(-50%)';
             pecaElement.appendChild(quantidadeElement);
         }
 
@@ -8368,12 +8575,11 @@ simboloElement.style.zIndex = '10';
                     listeners: {
                         start: () => {
                             this.iniciarManipulacaoSemPinturaBorracha(elemento);
+                            this.esconderHandlesDuranteManipulacao();
                             elemento.style.zIndex = '1000';
                         },
                         move: (event) => {
-                            const deltaLimitado = elemento.classList.contains('linha-reta')
-                                ? { dx: event.dx, dy: event.dy }
-                                : this.limitarDeltaElementoPorTravaBordas(elemento, event.dx, event.dy);
+                            const deltaLimitado = this.limitarDeltaElementoPorTravaBordas(elemento, event.dx, event.dy);
                             let x = (parseFloat(elemento.getAttribute('data-x')) || 0) + deltaLimitado.dx;
                             let y = (parseFloat(elemento.getAttribute('data-y')) || 0) + deltaLimitado.dy;
                             const rotate = elemento.getAttribute('data-rotate') || 0;
@@ -8381,11 +8587,11 @@ simboloElement.style.zIndex = '10';
                             elemento.style.transform = `translate(${x}px, ${y}px) rotate(${rotate}deg)`;
                             elemento.setAttribute('data-x', x);
                             elemento.setAttribute('data-y', y);
-                            this.atualizarHandles();
                         },
                         end: () => {
                             elemento.style.zIndex = '';
                             this.finalizarManipulacaoSemPinturaBorracha(elemento);
+                            this.restaurarHandlesDepoisManipulacao(elemento);
                             this.salvarEstadoHistorico('Mover Elemento');
                         }
                     }
@@ -8882,8 +9088,10 @@ simboloElement.style.zIndex = '10';
         }
 
         selecionarCuba(tipo, x, y) {
-            this.criarCuba(x, y, tipo);
+            const desenho = this.criarCuba(x, y, tipo);
             this.fecharModalCuba();
+            this.ativarSelecaoParaElemento(desenho);
+            return desenho;
         }
 
         fecharModalCuba() {
@@ -11276,6 +11484,121 @@ aplicarEstilosManterModal() {
     };
 })();
 
+(function() {
+    if (typeof GerenciadorDesenho === 'undefined') return;
+
+    function caixaElementoNaArea(inst, el) {
+        const areaRect = inst.drawingArea.getBoundingClientRect();
+        const rect = el.getBoundingClientRect();
+        const scrollLeft = inst.drawingArea.scrollLeft || 0;
+        const scrollTop = inst.drawingArea.scrollTop || 0;
+        return {
+            left: rect.left - areaRect.left + scrollLeft,
+            right: rect.right - areaRect.left + scrollLeft,
+            top: rect.top - areaRect.top + scrollTop,
+            bottom: rect.bottom - areaRect.top + scrollTop,
+            width: rect.width,
+            height: rect.height
+        };
+    }
+
+    function cruza(a, b) {
+        return !(a.right < b.left || a.left > b.right || a.bottom < b.top || a.top > b.bottom);
+    }
+
+    function ehCandidatoBorracha(el) {
+        if (!el || !el.classList) return false;
+        if (el.classList.contains('peca')) return true;
+        if (el.classList.contains('cuba')) return true;
+        if (el.classList.contains('linha-peca')) return true;
+        return false;
+    }
+
+    function raizApagavel(el) {
+        if (!el || !el.closest) return el;
+        const peca = el.closest('.peca');
+        if (peca) return peca;
+        const cuba = el.closest('.cuba');
+        if (cuba) return cuba;
+        return el;
+    }
+
+    GerenciadorDesenho.prototype.encontrarAlvosBorracha = function(x, y) {
+        if (!this.drawingArea) return [];
+        const tamanho = this.tamanhoBorracha || 10;
+        const borracha = {
+            left: x - tamanho / 2,
+            right: x + tamanho / 2,
+            top: y - tamanho / 2,
+            bottom: y + tamanho / 2
+        };
+
+        const vistos = new Set();
+        const alvos = [];
+        const candidatos = Array.from(this.drawingArea.querySelectorAll('.peca, .cuba, .linha-peca'));
+
+        candidatos.forEach((el) => {
+            if (!ehCandidatoBorracha(el)) return;
+            const raiz = raizApagavel(el);
+            if (!raiz || vistos.has(raiz)) return;
+            if (raiz.classList && (
+                raiz.classList.contains('texto-legenda') ||
+                raiz.classList.contains('legenda-simplificada') ||
+                raiz.classList.contains('titulo-grupo') ||
+                raiz.classList.contains('dimensoes') ||
+                raiz.classList.contains('quantidade-peca') ||
+                raiz.classList.contains('simbolo-linha')
+            )) return;
+
+            const box = caixaElementoNaArea(this, raiz);
+            if (!box.width && !box.height) return;
+            if (!cruza(borracha, box)) return;
+
+            vistos.add(raiz);
+            alvos.push({ elemento: raiz, area: Math.max(box.width * box.height, 1) });
+        });
+
+        return alvos
+            .sort((a, b) => a.area - b.area)
+            .map((item) => item.elemento);
+    };
+
+    const apagarAnteriorMultialvo = GerenciadorDesenho.prototype.apagarComBorrachaNoAlvo;
+    GerenciadorDesenho.prototype.apagarComBorrachaNoAlvo = function(x, y) {
+        const alvos = typeof this.encontrarAlvosBorracha === 'function' ? this.encontrarAlvosBorracha(x, y) : [];
+        if (!alvos.length) {
+            return typeof apagarAnteriorMultialvo === 'function' ? apagarAnteriorMultialvo.call(this, x, y) : undefined;
+        }
+
+        let aplicou = false;
+        alvos.forEach((alvo) => {
+            if (!alvo || !alvo.classList) return;
+
+            if (alvo.classList.contains('peca') || alvo.classList.contains('desenho-segmentado-retangular')) {
+                if (typeof this.aplicarBorrachaRetanguloSegmentadoFinal === 'function') {
+                    aplicou = this.aplicarBorrachaRetanguloSegmentadoFinal(alvo, x, y) || aplicou;
+                } else if (typeof this.aplicarBorrachaNasLinhasDaPeca === 'function') {
+                    aplicou = this.aplicarBorrachaNasLinhasDaPeca(alvo, x, y) || aplicou;
+                }
+                return;
+            }
+
+            if (alvo.classList.contains('cuba') && typeof this.aplicarBorrachaEmDesenho === 'function') {
+                this.aplicarBorrachaEmDesenho(alvo, x, y);
+                this.borrachaAplicadaNestaAcao = true;
+                aplicou = true;
+                return;
+            }
+
+            if (alvo.classList.contains('linha-peca') && typeof this.aplicarBorrachaEmLinhaPeca === 'function') {
+                aplicou = this.aplicarBorrachaEmLinhaPeca(alvo, x, y) || aplicou;
+            }
+        });
+
+        return aplicou;
+    };
+})();
+
 
 
 (function() {
@@ -11454,12 +11777,16 @@ aplicarEstilosManterModal() {
             if (ev) ev.stopPropagation();
             const brutoDx = clientX - ativo.startX;
             const brutoDy = clientY - ativo.startY;
-            let delta = { dx: brutoDx, dy: brutoDy };
+            const alvoX = ativo.dataX + brutoDx;
+            const alvoY = ativo.dataY + brutoDy;
+            const atualX = numero(ativo.el.getAttribute('data-x'), 0);
+            const atualY = numero(ativo.el.getAttribute('data-y'), 0);
+            let delta = { dx: alvoX - atualX, dy: alvoY - atualY };
             if (typeof inst.limitarDeltaElementoPorTravaBordas === 'function') {
-                delta = inst.limitarDeltaElementoPorTravaBordas(ativo.el, brutoDx, brutoDy);
+                delta = inst.limitarDeltaElementoPorTravaBordas(ativo.el, delta.dx, delta.dy) || delta;
             }
-            const x = ativo.dataX + delta.dx;
-            const y = ativo.dataY + delta.dy;
+            const x = atualX + delta.dx;
+            const y = atualY + delta.dy;
             ativo.el.setAttribute('data-x', `${x}`);
             ativo.el.setAttribute('data-y', `${y}`);
             ativo.el.style.transform = `translate(${x}px, ${y}px) rotate(${ativo.rot}deg)`;
@@ -11680,13 +12007,17 @@ aplicarEstilosManterModal() {
 
             const brutoDx = ev.clientX - arraste.startX;
             const brutoDy = ev.clientY - arraste.startY;
-            let delta = { dx: brutoDx, dy: brutoDy };
+            const alvoX = arraste.baseX + brutoDx;
+            const alvoY = arraste.baseY + brutoDy;
+            const atualX = numero(arraste.el.getAttribute('data-x'), 0);
+            const atualY = numero(arraste.el.getAttribute('data-y'), 0);
+            let delta = { dx: alvoX - atualX, dy: alvoY - atualY };
             if (typeof inst.limitarDeltaElementoPorTravaBordas === 'function') {
-                delta = inst.limitarDeltaElementoPorTravaBordas(arraste.el, brutoDx, brutoDy) || delta;
+                delta = inst.limitarDeltaElementoPorTravaBordas(arraste.el, delta.dx, delta.dy) || delta;
             }
 
-            const x = arraste.baseX + delta.dx;
-            const y = arraste.baseY + delta.dy;
+            const x = atualX + delta.dx;
+            const y = atualY + delta.dy;
             arraste.el.setAttribute('data-x', String(x));
             arraste.el.setAttribute('data-y', String(y));
             arraste.el.style.transform = `translate(${x}px, ${y}px) rotate(${arraste.rot}deg)`;
@@ -11881,14 +12212,18 @@ aplicarEstilosManterModal() {
             ev.stopPropagation();
             if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
 
-            let dx = ev.clientX - drag.sx;
-            let dy = ev.clientY - drag.sy;
+            const alvoX = drag.bx + (ev.clientX - drag.sx);
+            const alvoY = drag.by + (ev.clientY - drag.sy);
+            const atualX = n(drag.el.getAttribute('data-x'), 0);
+            const atualY = n(drag.el.getAttribute('data-y'), 0);
+            let dx = alvoX - atualX;
+            let dy = alvoY - atualY;
             if (typeof inst.limitarDeltaElementoPorTravaBordas === 'function') {
                 const limitado = inst.limitarDeltaElementoPorTravaBordas(drag.el, dx, dy);
                 if (limitado) { dx = limitado.dx; dy = limitado.dy; }
             }
-            const nx = drag.bx + dx;
-            const ny = drag.by + dy;
+            const nx = atualX + dx;
+            const ny = atualY + dy;
             drag.el.setAttribute('data-x', String(nx));
             drag.el.setAttribute('data-y', String(ny));
             drag.el.style.transform = `translate(${nx}px, ${ny}px) rotate(${drag.rot}deg)`;
@@ -12101,14 +12436,23 @@ aplicarEstilosManterModal() {
 
     function restaurarLinhaRetaPrintUmaLinha() {
         const root = (window.gerenciadorDesenho && window.gerenciadorDesenho.drawingArea) || document;
-        root.querySelectorAll('.cuba.linha-reta.linha-reta-print-final').forEach((el) => {
-            el.classList.remove('linha-reta-print-final');
-            el.querySelectorAll('[data-print-linha-reta-final-hide="1"]').forEach((filho) => {
+        root.querySelectorAll('.cuba.linha-reta').forEach((el) => {
+            el.classList.remove('linha-reta-print-final', 'linha-reta-print-usar-borda');
+            el.removeAttribute('data-print-line-style');
+            el.querySelectorAll('[data-print-linha-reta-final-hide="1"], [data-print-hide-linha-reta-interna="1"]').forEach((filho) => {
                 filho.removeAttribute('data-print-linha-reta-final-hide');
+                filho.removeAttribute('data-print-hide-linha-reta-interna');
                 filho.style.removeProperty('display');
                 filho.style.removeProperty('visibility');
                 filho.style.removeProperty('opacity');
             });
+            if (window.gerenciadorDesenho) {
+                if (typeof window.gerenciadorDesenho.sincronizarLinhasDesenhoRetangular === 'function') {
+                    window.gerenciadorDesenho.sincronizarLinhasDesenhoRetangular(el);
+                } else if (typeof window.gerenciadorDesenho.renderizarDesenhoComBorracha === 'function') {
+                    window.gerenciadorDesenho.renderizarDesenhoComBorracha(el);
+                }
+            }
         });
     }
 
@@ -12116,10 +12460,16 @@ aplicarEstilosManterModal() {
     window.addEventListener('beforeprint', prepararLinhaRetaPrintUmaLinha);
     window.addEventListener('afterprint', restaurarLinhaRetaPrintUmaLinha);
 
-    // Também cobre o botão interno de imprimir, caso ele prepare o DOM antes do window.print().
+    // O preparo real fica no beforeprint; estes eventos cobrem cancelamento/retorno do dialogo.
+    window.addEventListener('focus', function() { setTimeout(restaurarLinhaRetaPrintUmaLinha, 80); });
+    window.addEventListener('pageshow', function() { setTimeout(restaurarLinhaRetaPrintUmaLinha, 80); });
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) setTimeout(restaurarLinhaRetaPrintUmaLinha, 80);
+    });
+
     document.addEventListener('click', function(ev) {
         const btn = ev.target && ev.target.closest ? ev.target.closest('#btnImprimir, .btn-imprimir, [onclick*="imprimir"]') : null;
-        if (btn) setTimeout(prepararLinhaRetaPrintUmaLinha, 0);
+        if (btn) setTimeout(restaurarLinhaRetaPrintUmaLinha, 1200);
     }, true);
 })();
 
@@ -12951,6 +13301,373 @@ aplicarEstilosManterModal() {
     });
 })();
 </script>
+<script id="simbolos-por-segmento-borracha-js">
+(function() {
+    if (window.__simbolosPorSegmentoBorracha) return;
+    window.__simbolosPorSegmentoBorracha = true;
+    if (typeof GerenciadorDesenho === 'undefined') return;
+
+    function n(v, f = 0) {
+        const x = Number(v);
+        return Number.isFinite(x) ? x : f;
+    }
+
+    function ownerLinha(linha) {
+        return linha && linha.closest ? linha.closest('.peca, .cuba') : null;
+    }
+
+    function garantirId(owner) {
+        if (!owner) return '';
+        let id = owner.getAttribute('data-peca-id') || owner.getAttribute('data-desenho-id') || owner.id || '';
+        if (!id) id = `obj-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+        if (!owner.id) owner.id = id.startsWith('peca-') || id.startsWith('desenho-') || id.startsWith('obj-') ? id : `obj-${id}`;
+        owner.setAttribute('data-peca-id', id);
+        owner.setAttribute('data-desenho-id', id);
+        return id;
+    }
+
+    function garantirLinha(linha) {
+        const owner = ownerLinha(linha);
+        const id = garantirId(owner);
+        if (linha && id) linha.setAttribute('data-peca-id', id);
+        if (linha && !linha.getAttribute('data-lado')) {
+            if (linha.classList.contains('linha-top')) linha.setAttribute('data-lado', 'top');
+            else if (linha.classList.contains('linha-bottom')) linha.setAttribute('data-lado', 'bottom');
+            else if (linha.classList.contains('linha-left')) linha.setAttribute('data-lado', 'left');
+            else if (linha.classList.contains('linha-right')) linha.setAttribute('data-lado', 'right');
+            else linha.setAttribute('data-lado', 'top');
+        }
+        if (linha && !linha.getAttribute('data-rotacao')) {
+            const lado = linha.getAttribute('data-lado') || '';
+            linha.setAttribute('data-rotacao', (lado === 'left' || lado === 'right') ? '90' : '0');
+        }
+        return id;
+    }
+
+    function isHorizontal(linha) {
+        const lado = linha ? (linha.getAttribute('data-lado') || '') : '';
+        return lado === 'top' || lado === 'bottom';
+    }
+
+    function comprimentoLinha(inst, linha) {
+        if (!linha) return 0;
+        if (inst && typeof inst.obterComprimentoLinhaPeca === 'function') {
+            return Math.max(0, inst.obterComprimentoLinhaPeca(linha));
+        }
+        return Math.max(0, parseFloat(isHorizontal(linha) ? linha.style.width : linha.style.height) || (isHorizontal(linha) ? linha.offsetWidth : linha.offsetHeight) || 0);
+    }
+
+    function idSegmento(ini, fim) {
+        return `seg-${Math.round(n(ini) * 10)}-${Math.round(n(fim) * 10)}`;
+    }
+
+    function partesVisiveis(inst, linha) {
+        const total = comprimentoLinha(inst, linha);
+        if (total <= 0) return [];
+        let intervalos = [];
+        try {
+            intervalos = JSON.parse(linha.getAttribute('data-borracha-intervalos') || '[]');
+        } catch (_) {
+            intervalos = [];
+        }
+        if (inst && typeof inst.normalizarIntervalosBorracha === 'function') {
+            intervalos = inst.normalizarIntervalosBorracha(intervalos, total);
+        }
+        const partes = [];
+        let cursor = 0;
+        intervalos.forEach((i) => {
+            const ini = Math.max(0, Math.min(total, n(i.ini, 0)));
+            const fim = Math.max(0, Math.min(total, n(i.fim, 0)));
+            if (ini > cursor) partes.push({ ini: cursor, fim: ini, id: idSegmento(cursor, ini) });
+            cursor = Math.max(cursor, fim);
+        });
+        if (cursor < total) partes.push({ ini: cursor, fim: total, id: idSegmento(cursor, total) });
+        return partes.filter((p) => p.fim - p.ini > 0.5);
+    }
+
+    function prepararSegmentos(inst, linha) {
+        if (!linha || !linha.querySelectorAll) return [];
+        garantirLinha(linha);
+        const partes = partesVisiveis(inst, linha);
+        const horizontal = isHorizontal(linha);
+        const segmentos = Array.from(linha.querySelectorAll(':scope > .segmento-linha-peca'));
+        segmentos.forEach((seg, index) => {
+            let ini = horizontal ? n(parseFloat(seg.style.left), 0) : n(parseFloat(seg.style.top), 0);
+            let tamanho = horizontal ? n(parseFloat(seg.style.width), 0) : n(parseFloat(seg.style.height), 0);
+            if (tamanho <= 0 && partes[index]) {
+                ini = partes[index].ini;
+                tamanho = partes[index].fim - partes[index].ini;
+            }
+            const fim = ini + tamanho;
+            const id = idSegmento(ini, fim);
+            seg.setAttribute('data-segmento-index', String(index));
+            seg.setAttribute('data-segmento-ini', String(ini));
+            seg.setAttribute('data-segmento-fim', String(fim));
+            seg.setAttribute('data-segmento-id', id);
+            seg.querySelectorAll(':scope > .area-clique-linha-simbolo').forEach((area) => {
+                area.setAttribute('data-segmento-id', id);
+                area.setAttribute('data-segmento-ini', String(ini));
+                area.setAttribute('data-segmento-fim', String(fim));
+            });
+        });
+        return partes;
+    }
+
+    function partePorSegmento(inst, linha, segmento) {
+        const partes = prepararSegmentos(inst, linha);
+        if (!partes.length) return null;
+        if (segmento) {
+            const sid = segmento.getAttribute('data-segmento-id');
+            const exata = partes.find((p) => p.id === sid);
+            if (exata) return exata;
+            const ini = n(segmento.getAttribute('data-segmento-ini'), NaN);
+            const fim = n(segmento.getAttribute('data-segmento-fim'), NaN);
+            const porIntervalo = partes.find((p) => Math.abs(p.ini - ini) < 1 && Math.abs(p.fim - fim) < 1);
+            if (porIntervalo) return porIntervalo;
+        }
+        return partes.reduce((maior, p) => ((p.fim - p.ini) > (maior.fim - maior.ini) ? p : maior), partes[0]);
+    }
+
+    function segmentoDoEvento(inst, linha, ev) {
+        if (!linha || !ev) return null;
+        const direto = ev.target && ev.target.closest ? ev.target.closest('.segmento-linha-peca') : null;
+        if (direto && direto.closest('.linha-peca') === linha) return direto;
+        const area = ev.target && ev.target.closest ? ev.target.closest('.area-clique-linha-simbolo') : null;
+        if (area) {
+            const segArea = area.closest('.segmento-linha-peca');
+            if (segArea && segArea.closest('.linha-peca') === linha) return segArea;
+        }
+        const partes = prepararSegmentos(inst, linha);
+        if (!partes.length) return null;
+        const rect = linha.getBoundingClientRect();
+        const total = comprimentoLinha(inst, linha);
+        if (total <= 0 || (!rect.width && !rect.height)) return null;
+        const clientX = ev.touches && ev.touches[0] ? ev.touches[0].clientX : (ev.changedTouches && ev.changedTouches[0] ? ev.changedTouches[0].clientX : ev.clientX);
+        const clientY = ev.touches && ev.touches[0] ? ev.touches[0].clientY : (ev.changedTouches && ev.changedTouches[0] ? ev.changedTouches[0].clientY : ev.clientY);
+        const pos = isHorizontal(linha)
+            ? ((clientX - rect.left) / Math.max(1, rect.width)) * total
+            : ((clientY - rect.top) / Math.max(1, rect.height)) * total;
+        const parte = partes.find((p) => pos >= p.ini && pos <= p.fim) || partes.reduce((melhor, p) => {
+            const c1 = Math.abs(pos - ((p.ini + p.fim) / 2));
+            const c2 = Math.abs(pos - ((melhor.ini + melhor.fim) / 2));
+            return c1 < c2 ? p : melhor;
+        }, partes[0]);
+        return Array.from(linha.querySelectorAll(':scope > .segmento-linha-peca')).find((seg) => seg.getAttribute('data-segmento-id') === parte.id) || null;
+    }
+
+    function contexto(inst, linha, ev) {
+        if (!linha) return null;
+        const owner = ownerLinha(linha);
+        if (!owner) return null;
+        const id = garantirLinha(linha);
+        const lado = linha.getAttribute('data-lado') || 'top';
+        const segmento = segmentoDoEvento(inst, linha, ev);
+        const parte = partePorSegmento(inst, linha, segmento);
+        if (!parte) return null;
+        return { owner, id, lado, segmentoId: parte.id, ini: parte.ini, fim: parte.fim, centro: (parte.ini + parte.fim) / 2 };
+    }
+
+    function simbolosDaLinha(owner, id, lado) {
+        return Array.from(owner.querySelectorAll(':scope > .simbolo-linha')).filter((s) =>
+            s.getAttribute('data-peca-id') === id && s.getAttribute('data-lado') === lado
+        );
+    }
+
+    function simboloDoContexto(ctx) {
+        if (!ctx) return null;
+        return simbolosDaLinha(ctx.owner, ctx.id, ctx.lado).find((s) => s.getAttribute('data-segmento-id') === ctx.segmentoId) || null;
+    }
+
+    function parteParaSimbolo(inst, linha, simbolo) {
+        const partes = prepararSegmentos(inst, linha);
+        if (!partes.length) return null;
+        const sid = simbolo.getAttribute('data-segmento-id');
+        const exata = partes.find((p) => p.id === sid);
+        if (exata) return exata;
+        const ini = n(simbolo.getAttribute('data-segmento-ini'), NaN);
+        const fim = n(simbolo.getAttribute('data-segmento-fim'), NaN);
+        const porSobreposicao = partes
+            .map((p) => ({ p, overlap: Math.max(0, Math.min(p.fim, fim) - Math.max(p.ini, ini)) }))
+            .sort((a, b) => b.overlap - a.overlap)[0];
+        if (porSobreposicao && porSobreposicao.overlap > 0) return porSobreposicao.p;
+        return partes.reduce((maior, p) => ((p.fim - p.ini) > (maior.fim - maior.ini) ? p : maior), partes[0]);
+    }
+
+    GerenciadorDesenho.prototype.atualizarSimboloDaLinhaVisivel = function(linha) {
+        if (!linha || !linha.classList || !linha.classList.contains('linha-peca')) return;
+        const owner = ownerLinha(linha);
+        if (!owner) return;
+        const id = garantirLinha(linha);
+        const lado = linha.getAttribute('data-lado') || '';
+        const ownerWidth = Math.max(1, parseFloat(owner.style.width) || owner.offsetWidth || 1);
+        const ownerHeight = Math.max(1, parseFloat(owner.style.height) || owner.offsetHeight || 1);
+        simbolosDaLinha(owner, id, lado).forEach((simbolo) => {
+            const parte = parteParaSimbolo(this, linha, simbolo);
+            if (!parte) {
+                simbolo.style.display = 'none';
+                return;
+            }
+            simbolo.style.display = '';
+            simbolo.setAttribute('data-segmento-id', parte.id);
+            simbolo.setAttribute('data-segmento-ini', String(parte.ini));
+            simbolo.setAttribute('data-segmento-fim', String(parte.fim));
+            const centro = (parte.ini + parte.fim) / 2;
+            let left = ownerWidth / 2;
+            let top = ownerHeight / 2;
+            if (lado === 'top') { left = centro; top = 0; }
+            else if (lado === 'bottom') { left = centro; top = ownerHeight; }
+            else if (lado === 'left') { left = 0; top = centro; }
+            else if (lado === 'right') { left = ownerWidth; top = centro; }
+            const offsetX = n(simbolo.getAttribute('data-x'), 0);
+            const offsetY = n(simbolo.getAttribute('data-y'), 0);
+            const rot = n(simbolo.getAttribute('data-rotacao') || simbolo.getAttribute('data-rotate'), 0);
+            simbolo.style.position = 'absolute';
+            simbolo.style.left = `${left}px`;
+            simbolo.style.top = `${top}px`;
+            simbolo.style.transform = `translate(-50%, -50%) translate(${offsetX}px, ${offsetY}px) rotate(${rot}deg)`;
+            simbolo.style.transformOrigin = 'center center';
+            simbolo.setAttribute('data-rotate', String(rot));
+            simbolo.setAttribute('data-rotacao', String(rot));
+        });
+    };
+
+    const renderAnteriorSegmentos = GerenciadorDesenho.prototype.renderizarLinhaPecaComRecortes;
+    GerenciadorDesenho.prototype.renderizarLinhaPecaComRecortes = function(linha) {
+        const r = typeof renderAnteriorSegmentos === 'function' ? renderAnteriorSegmentos.call(this, linha) : undefined;
+        if (linha && linha.classList && linha.classList.contains('linha-peca')) {
+            prepararSegmentos(this, linha);
+            if (typeof this.configurarCliqueNosSegmentosVisiveisLinha === 'function') this.configurarCliqueNosSegmentosVisiveisLinha(linha);
+            this.atualizarSimboloDaLinhaVisivel(linha);
+        }
+        return r;
+    };
+
+    const cliqueLinhaAnteriorSegmento = GerenciadorDesenho.prototype.manipularCliqueLinha;
+    GerenciadorDesenho.prototype.manipularCliqueLinha = function(e, linhaElement) {
+        if (this.atualizarBloqueioLinhaSimboloPorModo && this.atualizarBloqueioLinhaSimboloPorModo()) {
+            if (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+            }
+            return false;
+        }
+        const ctx = contexto(this, linhaElement, e);
+        if (!ctx) {
+            return typeof cliqueLinhaAnteriorSegmento === 'function' ? cliqueLinhaAnteriorSegmento.call(this, e, linhaElement) : undefined;
+        }
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof e.stopImmediatePropagation === 'function') e.stopImmediatePropagation();
+        }
+        this.__contextoSimboloSegmento = ctx;
+        this.linhaElementAtual = linhaElement;
+        this.simboloExistenteAtual = simboloDoContexto(ctx);
+        return this.mostrarSeletorSimbolos(e, linhaElement, this.simboloExistenteAtual);
+    };
+
+    const mostrarAnteriorSegmento = GerenciadorDesenho.prototype.mostrarSeletorSimbolos;
+    GerenciadorDesenho.prototype.mostrarSeletorSimbolos = function(event, linhaElement, simboloExistente = null) {
+        const ctx = contexto(this, linhaElement, event) || this.__contextoSimboloSegmento;
+        if (ctx) {
+            this.__contextoSimboloSegmento = ctx;
+            simboloExistente = simboloExistente || simboloDoContexto(ctx);
+        }
+        return typeof mostrarAnteriorSegmento === 'function' ? mostrarAnteriorSegmento.call(this, event, linhaElement, simboloExistente) : undefined;
+    };
+
+    GerenciadorDesenho.prototype.criarSimboloLinha = function(linhaElement, simboloData, simboloExistente = null) {
+        const ctx = this.__contextoSimboloSegmento || contexto(this, linhaElement, null);
+        if (!ctx) return null;
+        const angulo = Number(simboloData && simboloData.rotacao) || Number(linhaElement.getAttribute('data-rotacao')) || 0;
+        const atual = simboloExistente || simboloDoContexto(ctx);
+        let simboloElement = atual && atual.parentNode ? atual : null;
+        if (!simboloElement) {
+            simboloElement = document.createElement('div');
+            simboloElement.className = 'simbolo-linha';
+            ctx.owner.appendChild(simboloElement);
+        }
+        simboloElement.textContent = (simboloData && (simboloData.texto || simboloData.simbolo)) || '//';
+        simboloElement.style.position = 'absolute';
+        simboloElement.style.zIndex = '10';
+        simboloElement.setAttribute('data-peca-id', ctx.id);
+        simboloElement.setAttribute('data-lado', ctx.lado);
+        simboloElement.setAttribute('data-segmento-id', ctx.segmentoId);
+        simboloElement.setAttribute('data-segmento-ini', String(ctx.ini));
+        simboloElement.setAttribute('data-segmento-fim', String(ctx.fim));
+        simboloElement.setAttribute('data-rotacao', String(angulo));
+        simboloElement.setAttribute('data-rotate', String(angulo));
+        if (!simboloElement.hasAttribute('data-x')) simboloElement.setAttribute('data-x', '0');
+        if (!simboloElement.hasAttribute('data-y')) simboloElement.setAttribute('data-y', '0');
+        if (this.modoSelecaoAtivo) simboloElement.classList.add('selecionavel');
+        if (typeof this.configurarInteratividadeSimbolo === 'function') this.configurarInteratividadeSimbolo(simboloElement);
+        this.atualizarSimboloDaLinhaVisivel(linhaElement);
+        if (simboloExistente && simboloExistente !== simboloElement && simboloExistente.parentNode) simboloExistente.remove();
+        if (typeof this.salvarEstadoHistorico === 'function') this.salvarEstadoHistorico(atual ? 'Editar Símbolo' : 'Adicionar Símbolo');
+        return simboloElement;
+    };
+
+    GerenciadorDesenho.prototype.selecionarSimboloModal = function(simbolo, rotacao, pecaId, lado) {
+        const linhaElement = this.linhaElementAtual || (this.drawingArea && this.drawingArea.querySelector(`.linha-peca[data-peca-id="${pecaId}"][data-lado="${lado}"]`));
+        if (linhaElement) {
+            this.criarSimboloLinha(linhaElement, { texto: simbolo, x: 0, y: 0, rotacao: rotacao }, this.simboloExistenteAtual);
+        }
+        this.fecharModalSimbolos();
+    };
+
+    GerenciadorDesenho.prototype.confirmarSimboloModal = function(pecaId, lado, rotacao) {
+        const input = document.getElementById('simboloPersonalizado');
+        if (!input) return;
+        const valor = input.value.trim();
+        if (!valor) {
+            alert('O símbolo não pode estar vazio!');
+            return;
+        }
+        const linhaElement = this.linhaElementAtual || (this.drawingArea && this.drawingArea.querySelector(`.linha-peca[data-peca-id="${pecaId}"][data-lado="${lado}"]`));
+        if (linhaElement) {
+            this.criarSimboloLinha(linhaElement, { texto: valor, x: 0, y: 0, rotacao: rotacao }, this.simboloExistenteAtual);
+        }
+        this.fecharModalSimbolos();
+    };
+
+    GerenciadorDesenho.prototype.removerSimboloModal = function(pecaId, lado) {
+        const ctx = this.__contextoSimboloSegmento;
+        const alvo = ctx ? simboloDoContexto(ctx) : (this.drawingArea && this.drawingArea.querySelector(`.simbolo-linha[data-peca-id="${pecaId}"][data-lado="${lado}"]`));
+        if (alvo) {
+            alvo.remove();
+            if (typeof this.salvarEstadoHistorico === 'function') this.salvarEstadoHistorico('Remover Símbolo');
+        }
+        this.fecharModalSimbolos();
+    };
+
+    const fecharAnteriorSegmento = GerenciadorDesenho.prototype.fecharModalSimbolos;
+    GerenciadorDesenho.prototype.fecharModalSimbolos = function() {
+        const r = typeof fecharAnteriorSegmento === 'function' ? fecharAnteriorSegmento.call(this) : undefined;
+        this.__contextoSimboloSegmento = null;
+        return r;
+    };
+
+    function aplicar(inst) {
+        if (!inst || !inst.drawingArea) return;
+        inst.drawingArea.querySelectorAll('.linha-peca').forEach((linha) => {
+            prepararSegmentos(inst, linha);
+            if (typeof inst.configurarCliqueNosSegmentosVisiveisLinha === 'function') inst.configurarCliqueNosSegmentosVisiveisLinha(linha);
+            if (typeof inst.atualizarSimboloDaLinhaVisivel === 'function') inst.atualizarSimboloDaLinhaVisivel(linha);
+        });
+    }
+
+    const tentar = setInterval(() => {
+        const inst = window.gerenciadorDesenho;
+        if (!inst || !inst.drawingArea) return;
+        aplicar(inst);
+        clearInterval(tentar);
+    }, 200);
+    document.addEventListener('click', () => {
+        if (window.gerenciadorDesenho) setTimeout(() => aplicar(window.gerenciadorDesenho), 0);
+    }, true);
+})();
+</script>
 
 
 
@@ -13702,6 +14419,9 @@ aplicarEstilosManterModal() {
         const el = this.criarCuba(x, y, tipo);
         if (typeof this.fecharModalCuba === 'function') this.fecharModalCuba();
         this.modoInsercaoAtivo = null;
+        if (typeof this.ativarSelecaoParaElemento === 'function') {
+            this.ativarSelecaoParaElemento(el);
+        }
         setTimeout(() => selecionarDesenho(this, el), 0);
         setTimeout(() => selecionarDesenho(this, el), 80);
         return el || (typeof selecionarCubaAnterior === 'function' ? selecionarCubaAnterior.call(this, tipo, x, y) : null);
@@ -13733,6 +14453,9 @@ aplicarEstilosManterModal() {
             selecionarDesenho(inst, el);
             if (typeof inst.iniciarManipulacaoSemPinturaBorracha === 'function') {
                 inst.iniciarManipulacaoSemPinturaBorracha(el);
+            }
+            if (typeof inst.esconderHandlesDuranteManipulacao === 'function') {
+                inst.esconderHandlesDuranteManipulacao();
             }
 
             resize = {
@@ -13785,6 +14508,9 @@ aplicarEstilosManterModal() {
             atualizarDesenho(inst, resize.el);
             if (typeof inst.finalizarManipulacaoSemPinturaBorracha === 'function') {
                 inst.finalizarManipulacaoSemPinturaBorracha(resize.el);
+            }
+            if (typeof inst.restaurarHandlesDepoisManipulacao === 'function') {
+                inst.restaurarHandlesDepoisManipulacao(resize.el);
             }
             if (typeof inst.salvarEstadoHistorico === 'function') inst.salvarEstadoHistorico('Redimensionar Desenho');
             resize = null;
@@ -13945,6 +14671,7 @@ aplicarEstilosManterModal() {
 
     const desfazerAnterior = GerenciadorDesenho.prototype.desfazer;
     GerenciadorDesenho.prototype.desfazer = function() {
+        limparCursorBorracha(this);
         const retorno = typeof desfazerAnterior === 'function' ? desfazerAnterior.call(this) : undefined;
         limparCursorBorracha(this);
         return retorno;
@@ -13952,6 +14679,7 @@ aplicarEstilosManterModal() {
 
     const refazerAnterior = GerenciadorDesenho.prototype.refazer;
     GerenciadorDesenho.prototype.refazer = function() {
+        limparCursorBorracha(this);
         const retorno = typeof refazerAnterior === 'function' ? refazerAnterior.call(this) : undefined;
         limparCursorBorracha(this);
         return retorno;
@@ -14063,6 +14791,7 @@ aplicarEstilosManterModal() {
                 inst.selecionarElemento(el, null);
             }
             esconderHandles(inst);
+            if (typeof inst.esconderHandlesDuranteManipulacao === 'function') inst.esconderHandlesDuranteManipulacao();
             if (typeof inst.iniciarManipulacaoSemPinturaBorracha === 'function') inst.iniciarManipulacaoSemPinturaBorracha(el);
 
             arraste = {
@@ -14164,17 +14893,21 @@ aplicarEstilosManterModal() {
             ev.stopPropagation();
             if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
 
-            let dx = ev.clientX - arraste.startX;
-            let dy = ev.clientY - arraste.startY;
-            if (!ehLinhaReta(arraste.el) && typeof inst.limitarDeltaElementoPorTravaBordas === 'function') {
+            const alvoX = arraste.baseX + (ev.clientX - arraste.startX);
+            const alvoY = arraste.baseY + (ev.clientY - arraste.startY);
+            const atualX = parseFloat(arraste.el.getAttribute('data-x')) || 0;
+            const atualY = parseFloat(arraste.el.getAttribute('data-y')) || 0;
+            let dx = alvoX - atualX;
+            let dy = alvoY - atualY;
+            if (typeof inst.limitarDeltaElementoPorTravaBordas === 'function') {
                 const limitado = inst.limitarDeltaElementoPorTravaBordas(arraste.el, dx, dy);
                 if (limitado) {
                     dx = limitado.dx;
                     dy = limitado.dy;
                 }
             }
-            const x = arraste.baseX + dx;
-            const y = arraste.baseY + dy;
+            const x = atualX + dx;
+            const y = atualY + dy;
             arraste.el.setAttribute('data-x', String(x));
             arraste.el.setAttribute('data-y', String(y));
             arraste.el.style.transform = `translate(${x}px, ${y}px) rotate(${arraste.rotate}deg)`;
@@ -14209,6 +14942,7 @@ aplicarEstilosManterModal() {
             if (typeof inst.salvarEstadoHistorico === 'function') inst.salvarEstadoHistorico('Mover Elemento');
             const alvo = arraste.el;
             arraste = null;
+            if (typeof inst.restaurarHandlesDepoisManipulacao === 'function') inst.restaurarHandlesDepoisManipulacao(alvo);
             setTimeout(() => mostrarHandles(inst, alvo), 0);
         }
 
@@ -14264,6 +14998,7 @@ aplicarEstilosManterModal() {
                 rotate: parseFloat(el.getAttribute('data-rotate')) || 0
             };
             if (typeof inst.iniciarManipulacaoSemPinturaBorracha === 'function') inst.iniciarManipulacaoSemPinturaBorracha(el);
+            if (typeof inst.esconderHandlesDuranteManipulacao === 'function') inst.esconderHandlesDuranteManipulacao();
             try { handle.setPointerCapture && handle.setPointerCapture(ev.pointerId); } catch (_) {}
         }
 
@@ -14348,9 +15083,39 @@ aplicarEstilosManterModal() {
             try { resizeHandle.handle.releasePointerCapture && resizeHandle.handle.releasePointerCapture(resizeHandle.pointerId); } catch (_) {}
             atualizarVisual(inst, resizeHandle.el);
             if (typeof inst.finalizarManipulacaoSemPinturaBorracha === 'function') inst.finalizarManipulacaoSemPinturaBorracha(resizeHandle.el);
-            if (typeof inst.posicionarHandles === 'function') inst.posicionarHandles(resizeHandle.el);
+            if (typeof inst.restaurarHandlesDepoisManipulacao === 'function') inst.restaurarHandlesDepoisManipulacao(resizeHandle.el);
+            else if (typeof inst.posicionarHandles === 'function') inst.posicionarHandles(resizeHandle.el);
             if (typeof inst.salvarEstadoHistorico === 'function') inst.salvarEstadoHistorico('Redimensionar Elemento');
             resizeHandle = null;
+        }
+
+        function obterLinhaSimboloLinhaReta(el) {
+            if (!ehLinhaReta(el)) return null;
+            if (typeof inst.sincronizarLinhasDesenhoRetangular === 'function') {
+                inst.sincronizarLinhasDesenhoRetangular(el);
+            } else if (typeof inst.renderizarDesenhoComBorracha === 'function') {
+                inst.renderizarDesenhoComBorracha(el);
+            }
+            return el.querySelector(':scope > .linha-peca[data-lado="top"], :scope > .linha-peca.desenho-linha-peca, :scope > .linha-peca');
+        }
+
+        function abrirSimboloLinhaReta(ev) {
+            if (!(ev.target && ev.target.closest)) return;
+            const hitbox = ev.target.closest('.linha-reta-hitbox');
+            if (!hitbox) return;
+            const linhaReta = document.getElementById(hitbox.dataset.linhaId);
+            if (!ehLinhaReta(linhaReta)) return;
+            if (inst.modoSelecaoAtivo || inst.modoBorrachaAtivo || inst.modoLacoAtivo || inst.modoInsercaoAtivo) return;
+            if (document.body.classList.contains('modo-borracha') || document.body.classList.contains('modo-laco')) return;
+            if (typeof inst.podeAbrirSimboloLinha === 'function' && !inst.podeAbrirSimboloLinha()) return;
+
+            const linha = obterLinhaSimboloLinhaReta(linhaReta);
+            if (!linha || typeof inst.manipularCliqueLinha !== 'function') return;
+
+            ev.preventDefault();
+            ev.stopPropagation();
+            if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+            inst.manipularCliqueLinha(ev, linha);
         }
 
         window.addEventListener('pointerdown', iniciarArrasteLinhaReta, true);
@@ -14390,6 +15155,8 @@ aplicarEstilosManterModal() {
         document.addEventListener('pointermove', moverResizeHandle, true);
         document.addEventListener('pointerup', finalizarResizeHandle, true);
         document.addEventListener('pointercancel', finalizarResizeHandle, true);
+        document.addEventListener('click', abrirSimboloLinhaReta, true);
+        document.addEventListener('touchstart', abrirSimboloLinhaReta, { capture: true, passive: false });
 
         document.addEventListener('mousedown', function(ev) {
             if (ev.button !== 0) return;
@@ -14480,10 +15247,3 @@ aplicarEstilosManterModal() {
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
