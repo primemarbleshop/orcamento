@@ -13125,6 +13125,29 @@ aplicarEstilosManterModal() {
         background-color: color-mix(in srgb, var(--brand) 72%, transparent) !important;
     }
 
+    html body:not(.modo-borracha):not(.modo-laco):not(.linhas-simbolo-bloqueadas) .cuba.linha-reta .linha-peca {
+        pointer-events: auto !important;
+    }
+
+    html body:not(.modo-borracha):not(.modo-laco):not(.linhas-simbolo-bloqueadas) .cuba.linha-reta .segmento-linha-peca {
+        pointer-events: auto !important;
+    }
+
+    html body:not(.modo-borracha):not(.modo-laco):not(.linhas-simbolo-bloqueadas) .cuba.linha-reta .area-clique-linha-simbolo {
+        pointer-events: auto !important;
+        cursor: pointer !important;
+    }
+
+    html body:not(.modo-borracha):not(.modo-laco):not(.linhas-simbolo-bloqueadas) .linha-reta-hitbox {
+        pointer-events: none !important;
+    }
+
+    html body:not(.modo-borracha):not(.modo-laco):not(.linhas-simbolo-bloqueadas) .drawing-area .cuba.linha-reta::after,
+    html body:not(.modo-borracha):not(.modo-laco):not(.linhas-simbolo-bloqueadas) .area-pecas .cuba.linha-reta::after {
+        pointer-events: none !important;
+        cursor: pointer !important;
+    }
+
     html body.linhas-simbolo-bloqueadas .linha-peca > .segmento-linha-peca > .area-clique-linha-simbolo,
     html body.modo-borracha .linha-peca > .segmento-linha-peca > .area-clique-linha-simbolo,
     html body.modo-laco .linha-peca > .segmento-linha-peca > .area-clique-linha-simbolo {
@@ -13157,7 +13180,6 @@ aplicarEstilosManterModal() {
             (inst && (inst.modoSelecaoAtivo || inst.modoBorrachaAtivo || inst.modoLacoAtivo || inst.modoInsercaoAtivo)) ||
             document.body.classList.contains('modo-borracha') ||
             document.body.classList.contains('modo-laco') ||
-            document.body.classList.contains('linhas-simbolo-bloqueadas') ||
             document.querySelector('.btn-selecao-ativo, .btn-borracha-ativo, .btn-modo-ativo')
         );
     }
@@ -13213,10 +13235,73 @@ aplicarEstilosManterModal() {
             area.setAttribute('aria-hidden', 'true');
             seg.appendChild(area);
         }
+        if (area.getAttribute('data-area-clique-linha-direta-ok') !== '1') {
+            area.setAttribute('data-area-clique-linha-direta-ok', '1');
+            const abrirSeLiberado = function(ev) {
+                const inst = obterInstancia();
+                if (modoBloqueado(inst)) return;
+                const agora = Date.now();
+                if (inst.__abrindoSimboloLinhaAte && agora < inst.__abrindoSimboloLinhaAte) return;
+                inst.__abrindoSimboloLinhaAte = agora + 250;
+                const linha = area.closest('.linha-peca');
+                if (!linha || !inst || typeof inst.manipularCliqueLinha !== 'function') return;
+                ev.preventDefault();
+                ev.stopPropagation();
+                if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+                inst.manipularCliqueLinha(ev, linha);
+            };
+            area.addEventListener('pointerdown', function(ev) {
+                if (modoBloqueado(obterInstancia())) return;
+                ev.stopPropagation();
+            }, true);
+            area.addEventListener('mousedown', function(ev) {
+                if (modoBloqueado(obterInstancia())) return;
+                ev.stopPropagation();
+            }, true);
+            area.addEventListener('pointerup', abrirSeLiberado, true);
+            area.addEventListener('mouseup', abrirSeLiberado, true);
+            area.addEventListener('click', abrirSeLiberado, true);
+        }
+    }
+
+    function sincronizarLinhaRetaNaLogicaExistente(root) {
+        const inst = obterInstancia();
+        const base = root || (inst && inst.drawingArea) || document;
+        if (!inst || !base || !base.querySelectorAll || typeof inst.sincronizarLinhasDesenhoRetangular !== 'function') return;
+        if (inst.__sincronizandoLinhaRetaAreaAzul) return;
+        const sincronizarSeNecessario = function(linhaReta) {
+            if (!linhaReta || !linhaReta.classList || !linhaReta.classList.contains('linha-reta')) return;
+            const width = parseFloat(linhaReta.style.width) || linhaReta.offsetWidth || 0;
+            const height = parseFloat(linhaReta.style.height) || linhaReta.offsetHeight || 0;
+            const assinatura = [
+                Math.round(width * 10) / 10,
+                Math.round(height * 10) / 10,
+                linhaReta.getAttribute('data-estilo-linha') || '',
+                linhaReta.getAttribute('data-line-color') || ''
+            ].join('|');
+            const temEstrutura = !!linhaReta.querySelector(':scope > .linha-peca > .segmento-linha-peca');
+            const mudou = linhaReta.getAttribute('data-area-azul-linha-reta-sync') !== assinatura;
+            if (!temEstrutura || mudou) {
+                inst.sincronizarLinhasDesenhoRetangular(linhaReta);
+                linhaReta.setAttribute('data-area-azul-linha-reta-sync', assinatura);
+            }
+        };
+        inst.__sincronizandoLinhaRetaAreaAzul = true;
+        try {
+            if (base.matches && base.matches('.cuba.linha-reta')) {
+                sincronizarSeNecessario(base);
+            }
+            base.querySelectorAll('.cuba.linha-reta').forEach((linhaReta) => {
+                sincronizarSeNecessario(linhaReta);
+            });
+        } finally {
+            inst.__sincronizandoLinhaRetaAreaAzul = false;
+        }
     }
 
     function aplicarAreas(root) {
         const base = root || document;
+        sincronizarLinhaRetaNaLogicaExistente(base);
         limparClassesAntigas(base);
         base.querySelectorAll('.linha-peca').forEach((linha) => {
             linha.style.setProperty('background', 'transparent', 'important');
@@ -13246,7 +13331,32 @@ aplicarEstilosManterModal() {
         inst.manipularCliqueLinha(ev, linha);
     }
 
+    function abrirLinhaPeloPonto(ev) {
+        const inst = obterInstancia();
+        if (modoBloqueado(inst)) return;
+        const clientX = ev.changedTouches && ev.changedTouches[0] ? ev.changedTouches[0].clientX : ev.clientX;
+        const clientY = ev.changedTouches && ev.changedTouches[0] ? ev.changedTouches[0].clientY : ev.clientY;
+        if (!Number.isFinite(clientX) || !Number.isFinite(clientY)) return;
+        const alvo = document.elementFromPoint(clientX, clientY);
+        const area = encontrarAreaClique(alvo);
+        if (!area) return;
+        const linha = area.closest('.linha-peca');
+        if (!linha || !inst || typeof inst.manipularCliqueLinha !== 'function') return;
+        const owner = linha.closest('.peca, .cuba');
+        if (!(owner && owner.classList && owner.classList.contains('linha-reta'))) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        if (typeof ev.stopImmediatePropagation === 'function') ev.stopImmediatePropagation();
+        const agora = Date.now();
+        if (inst.__abrindoSimboloLinhaAte && agora < inst.__abrindoSimboloLinhaAte) return;
+        inst.__abrindoSimboloLinhaAte = agora + 250;
+        inst.manipularCliqueLinha(ev, linha);
+    }
+
     document.addEventListener('click', clicarNaLinha, true);
+    document.addEventListener('pointerup', abrirLinhaPeloPonto, true);
+    document.addEventListener('mouseup', abrirLinhaPeloPonto, true);
+    document.addEventListener('touchend', abrirLinhaPeloPonto, { capture: true, passive: false });
     document.addEventListener('pointerdown', function(ev) {
         const area = encontrarAreaClique(ev.target);
         if (!area) return;
@@ -14811,6 +14921,8 @@ aplicarEstilosManterModal() {
 
         function iniciarArrasteLinhaReta(ev) {
             if (arrasteLinhaReta || arraste || (ev.button !== undefined && ev.button !== 0)) return;
+            if (ev.target && ev.target.closest && ev.target.closest('.area-clique-linha-simbolo')) return;
+            if (!inst.modoSelecaoAtivo && ev.target && ev.target.closest && ev.target.closest('.linha-peca, .segmento-linha-peca')) return;
             const el = linhaRetaDoEvento(ev);
             if (!el || inst.modoBorrachaAtivo || inst.modoLacoAtivo) return;
             if (!inst.modoSelecaoAtivo && !estaSelecionado(el)) return;
@@ -15160,6 +15272,8 @@ aplicarEstilosManterModal() {
 
         document.addEventListener('mousedown', function(ev) {
             if (ev.button !== 0) return;
+            if (ev.target && ev.target.closest && ev.target.closest('.area-clique-linha-simbolo')) return;
+            if (!inst.modoSelecaoAtivo && ev.target && ev.target.closest && ev.target.closest('.linha-peca, .segmento-linha-peca')) return;
             if (!(ev.target && ev.target.closest && ev.target.closest('.linha-reta-hitbox, .cuba.linha-reta'))) return;
             iniciar(ev);
         }, true);
